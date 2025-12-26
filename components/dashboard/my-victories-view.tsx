@@ -1,79 +1,42 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Trophy, Search, TrendingUp, Calendar, Building2, Eye } from "lucide-react"
-
-interface Victory {
-  id: string
-  applicationNumber: string
-  purchaseNumber: string
-  customerName: string
-  productType: string
-  amount: number
-  wonDate: string
-  contractDate?: string
-  status: "awaiting-contract" | "contract-signed" | "completed"
-}
-
-const mockVictories: Victory[] = [
-  {
-    id: "1",
-    applicationNumber: "BG-2024-001",
-    purchaseNumber: "0148300005424000001",
-    customerName: "ПАО Газпром",
-    productType: "Банковская гарантия",
-    amount: 5000000,
-    wonDate: "2024-01-10",
-    contractDate: "2024-01-15",
-    status: "completed",
-  },
-  {
-    id: "2",
-    applicationNumber: "BG-2024-005",
-    purchaseNumber: "0148300005424000015",
-    customerName: "АО РЖД",
-    productType: "Банковская гарантия",
-    amount: 12500000,
-    wonDate: "2024-01-18",
-    contractDate: "2024-01-22",
-    status: "contract-signed",
-  },
-  {
-    id: "3",
-    applicationNumber: "TK-2024-002",
-    purchaseNumber: "0148300005424000022",
-    customerName: "ООО Лукойл",
-    productType: "Тендерный кредит",
-    amount: 3200000,
-    wonDate: "2024-01-25",
-    status: "awaiting-contract",
-  },
-]
+import { Trophy, Search, TrendingUp, Calendar, Building2, Eye, Loader2, FileX } from "lucide-react"
+import { useState } from "react"
+import { useWonApplications, type ApplicationListItem } from "@/hooks/use-applications"
 
 export function MyVictoriesView() {
-  const [victories] = useState(mockVictories)
+  const { victories, isLoading, error } = useWonApplications()
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
 
+  // Map API status to display status
+  const getDisplayStatus = (status: string): "awaiting-contract" | "contract-signed" | "completed" => {
+    if (status === "won") return "completed"
+    if (status === "approved") return "contract-signed"
+    return "awaiting-contract"
+  }
+
   const filteredVictories = victories.filter((v) => {
     const matchesSearch =
-      v.applicationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.customerName.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = filterStatus === "all" || v.status === filterStatus
+      v.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.product_type_display.toLowerCase().includes(searchQuery.toLowerCase())
+    const displayStatus = getDisplayStatus(v.status)
+    const matchesStatus = filterStatus === "all" || displayStatus === filterStatus
     return matchesSearch && matchesStatus
   })
 
-  const totalAmount = victories.reduce((sum, v) => sum + v.amount, 0)
-  const completedCount = victories.filter((v) => v.status === "completed").length
+  const totalAmount = victories.reduce((sum, v) => sum + parseFloat(v.amount || "0"), 0)
+  const completedCount = victories.filter((v) => v.status === "won").length
 
-  const getStatusBadge = (status: Victory["status"]) => {
-    switch (status) {
+  const getStatusBadge = (status: string) => {
+    const displayStatus = getDisplayStatus(status)
+    switch (displayStatus) {
       case "completed":
         return <Badge className="bg-[#00d4aa]/10 text-[#00d4aa]">Исполнен</Badge>
       case "contract-signed":
@@ -89,6 +52,59 @@ export function MyVictoriesView() {
       currency: "RUB",
       maximumFractionDigits: 0,
     }).format(amount)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("ru-RU")
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
+          <p className="text-muted-foreground">Загрузка побед...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive font-medium">Ошибка загрузки</p>
+          <p className="text-muted-foreground text-sm mt-1">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Empty state
+  if (victories.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Мои победы</h1>
+          <p className="text-muted-foreground">История выигранных тендеров и контрактов</p>
+        </div>
+
+        <Card className="shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+              <FileX className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Пока нет побед</h3>
+            <p className="text-muted-foreground text-center max-w-md">
+              Здесь будут отображаться ваши выигранные тендеры и одобренные заявки.
+              Создайте заявку и дождитесь её одобрения.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -175,10 +191,10 @@ export function MyVictoriesView() {
             <TableHeader>
               <TableRow>
                 <TableHead>Заявка</TableHead>
-                <TableHead>Заказчик</TableHead>
+                <TableHead>Компания</TableHead>
                 <TableHead>Продукт</TableHead>
                 <TableHead>Сумма</TableHead>
-                <TableHead>Дата победы</TableHead>
+                <TableHead>Дата</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -188,19 +204,18 @@ export function MyVictoriesView() {
                 <TableRow key={victory.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{victory.applicationNumber}</p>
-                      <p className="text-xs text-muted-foreground">{victory.purchaseNumber}</p>
+                      <p className="font-medium">#{victory.id}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
-                      {victory.customerName}
+                      {victory.company_name}
                     </div>
                   </TableCell>
-                  <TableCell>{victory.productType}</TableCell>
-                  <TableCell className="font-medium">{formatCurrency(victory.amount)}</TableCell>
-                  <TableCell>{victory.wonDate}</TableCell>
+                  <TableCell>{victory.product_type_display}</TableCell>
+                  <TableCell className="font-medium">{formatCurrency(parseFloat(victory.amount))}</TableCell>
+                  <TableCell>{formatDate(victory.created_at)}</TableCell>
                   <TableCell>{getStatusBadge(victory.status)}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon">

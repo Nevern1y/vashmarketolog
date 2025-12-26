@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building2, User, Loader2 } from "lucide-react"
-import type { Client } from "@/lib/types"
+import type { CreateCompanyPayload } from "@/hooks/use-companies"
 
 interface AddClientModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (client: Omit<Client, "id" | "createdAt" | "applicationsCount">) => void
+  onSubmit: (client: CreateCompanyPayload) => void | Promise<void>
 }
 
 export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProps) {
@@ -20,17 +20,17 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
   const [activeTab, setActiveTab] = useState("company")
   const [formData, setFormData] = useState({
     inn: "",
-    companyName: "",
-    shortName: "",
-    legalAddress: "",
-    actualAddress: "",
-    phone: "",
-    email: "",
+    name: "",
+    short_name: "",
+    kpp: "",
+    ogrn: "",
+    legal_address: "",
+    actual_address: "",
+    director_name: "",
+    director_position: "",
+    contact_phone: "",
+    contact_email: "",
     website: "",
-    contactPerson: "",
-    contactPosition: "",
-    contactPhone: "",
-    contactEmail: "",
   })
 
   const handleChange = (field: keyof typeof formData, value: string) => {
@@ -40,39 +40,45 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
   const handleInnLookup = async () => {
     if (formData.inn.length < 10) return
     setIsLoading(true)
-    // Simulate API call to lookup company by INN
+    // Simulate API call to lookup company by INN (via DaData in real implementation)
     await new Promise((resolve) => setTimeout(resolve, 1000))
     setFormData((prev) => ({
       ...prev,
-      companyName: 'ООО "Новая Компания"',
-      shortName: 'ООО "НК"',
-      legalAddress: "г. Москва, ул. Новая, д. 1",
-      actualAddress: "г. Москва, ул. Новая, д. 1",
+      name: 'ООО "Новая Компания"',
+      short_name: 'ООО "НК"',
+      legal_address: "г. Москва, ул. Новая, д. 1",
+      actual_address: "г. Москва, ул. Новая, д. 1",
     }))
     setIsLoading(false)
   }
 
-  const handleSubmit = () => {
-    onSubmit(formData)
-    setFormData({
-      inn: "",
-      companyName: "",
-      shortName: "",
-      legalAddress: "",
-      actualAddress: "",
-      phone: "",
-      email: "",
-      website: "",
-      contactPerson: "",
-      contactPosition: "",
-      contactPhone: "",
-      contactEmail: "",
-    })
-    setActiveTab("company")
+  const handleSubmit = async () => {
+    setIsLoading(true)
+    try {
+      await onSubmit(formData)
+      // Reset form
+      setFormData({
+        inn: "",
+        name: "",
+        short_name: "",
+        kpp: "",
+        ogrn: "",
+        legal_address: "",
+        actual_address: "",
+        director_name: "",
+        director_position: "",
+        contact_phone: "",
+        contact_email: "",
+        website: "",
+      })
+      setActiveTab("company")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const isCompanyValid = formData.inn && formData.companyName && formData.shortName
-  const isContactValid = formData.contactPerson && formData.contactPhone && formData.contactEmail
+  const isCompanyValid = formData.inn && formData.name
+  const isContactValid = formData.director_name || (formData.contact_phone && formData.contact_email)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -119,40 +125,41 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="companyName">Полное наименование *</Label>
+                <Label htmlFor="name">Полное наименование *</Label>
                 <Input
-                  id="companyName"
+                  id="name"
                   placeholder="Полное наименование организации"
-                  value={formData.companyName}
-                  onChange={(e) => handleChange("companyName", e.target.value)}
+                  value={formData.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="shortName">Сокращенное наименование *</Label>
+                <Label htmlFor="short_name">Сокращенное наименование</Label>
                 <Input
-                  id="shortName"
+                  id="short_name"
                   placeholder='ООО "Компания"'
-                  value={formData.shortName}
-                  onChange={(e) => handleChange("shortName", e.target.value)}
+                  value={formData.short_name}
+                  onChange={(e) => handleChange("short_name", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Телефон офиса</Label>
+                <Label htmlFor="kpp">КПП</Label>
                 <Input
-                  id="phone"
-                  placeholder="+7 (XXX) XXX-XX-XX"
-                  value={formData.phone}
-                  onChange={(e) => handleChange("phone", e.target.value)}
+                  id="kpp"
+                  placeholder="123456789"
+                  value={formData.kpp}
+                  onChange={(e) => handleChange("kpp", e.target.value)}
+                  maxLength={9}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="ogrn">ОГРН</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="info@company.ru"
-                  value={formData.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
+                  id="ogrn"
+                  placeholder="1234567890123"
+                  value={formData.ogrn}
+                  onChange={(e) => handleChange("ogrn", e.target.value)}
+                  maxLength={15}
                 />
               </div>
               <div className="space-y-2">
@@ -165,21 +172,21 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="legalAddress">Юридический адрес</Label>
+                <Label htmlFor="legal_address">Юридический адрес</Label>
                 <Input
-                  id="legalAddress"
+                  id="legal_address"
                   placeholder="г. Москва, ул. ..."
-                  value={formData.legalAddress}
-                  onChange={(e) => handleChange("legalAddress", e.target.value)}
+                  value={formData.legal_address}
+                  onChange={(e) => handleChange("legal_address", e.target.value)}
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="actualAddress">Фактический адрес</Label>
+                <Label htmlFor="actual_address">Фактический адрес</Label>
                 <Input
-                  id="actualAddress"
+                  id="actual_address"
                   placeholder="г. Москва, ул. ..."
-                  value={formData.actualAddress}
-                  onChange={(e) => handleChange("actualAddress", e.target.value)}
+                  value={formData.actual_address}
+                  onChange={(e) => handleChange("actual_address", e.target.value)}
                 />
               </div>
             </div>
@@ -198,58 +205,65 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
           <TabsContent value="contact" className="space-y-4 pt-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="contactPerson">ФИО контактного лица *</Label>
+                <Label htmlFor="director_name">ФИО руководителя</Label>
                 <Input
-                  id="contactPerson"
+                  id="director_name"
                   placeholder="Иванов Иван Иванович"
-                  value={formData.contactPerson}
-                  onChange={(e) => handleChange("contactPerson", e.target.value)}
+                  value={formData.director_name}
+                  onChange={(e) => handleChange("director_name", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactPosition">Должность</Label>
+                <Label htmlFor="director_position">Должность</Label>
                 <Input
-                  id="contactPosition"
+                  id="director_position"
                   placeholder="Генеральный директор"
-                  value={formData.contactPosition}
-                  onChange={(e) => handleChange("contactPosition", e.target.value)}
+                  value={formData.director_position}
+                  onChange={(e) => handleChange("director_position", e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactPhone">Телефон *</Label>
+                <Label htmlFor="contact_phone">Телефон</Label>
                 <Input
-                  id="contactPhone"
+                  id="contact_phone"
                   placeholder="+7 (XXX) XXX-XX-XX"
-                  value={formData.contactPhone}
-                  onChange={(e) => handleChange("contactPhone", e.target.value)}
+                  value={formData.contact_phone}
+                  onChange={(e) => handleChange("contact_phone", e.target.value)}
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="contactEmail">Email *</Label>
+                <Label htmlFor="contact_email">Email</Label>
                 <Input
-                  id="contactEmail"
+                  id="contact_email"
                   type="email"
                   placeholder="contact@company.ru"
-                  value={formData.contactEmail}
-                  onChange={(e) => handleChange("contactEmail", e.target.value)}
+                  value={formData.contact_email}
+                  onChange={(e) => handleChange("contact_email", e.target.value)}
                 />
               </div>
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setActiveTab("company")}>
+              <Button variant="outline" onClick={() => setActiveTab("company")} disabled={isLoading}>
                 Назад
               </Button>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} disabled={isLoading}>
                   Отмена
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!isCompanyValid || !isContactValid}
+                  disabled={!isCompanyValid || isLoading}
                   className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
                 >
-                  Добавить клиента
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : (
+                    "Добавить клиента"
+                  )}
                 </Button>
               </div>
             </div>

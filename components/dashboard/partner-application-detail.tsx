@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Dialog,
   DialogContent,
@@ -30,73 +31,136 @@ import {
   XCircle,
   HelpCircle,
   AlertTriangle,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
+import { useApplication, usePartnerActions } from "@/hooks/use-applications"
+import { toast } from "sonner"
 
 interface PartnerApplicationDetailProps {
   applicationId: string
   onBack: () => void
 }
 
-// Mock application data
-const mockApplicationData = {
-  id: "1",
-  status: "new" as const,
-  receivedAt: "2024-01-25 14:30",
-  deadline: "2024-01-28",
-  product: {
-    type: "Банковская гарантия",
-    amount: 5000000,
-    term: "12 месяцев",
-    purpose: "Обеспечение исполнения контракта",
-  },
-  client: {
-    companyName: 'ООО "Технологии Будущего"',
-    inn: "7707083893",
-    ogrn: "1027700132195",
-    legalAddress: "г. Москва, ул. Примерная, д. 1, офис 100",
-    actualAddress: "г. Москва, ул. Примерная, д. 1, офис 100",
-    contactPerson: "Иванов Иван Иванович",
-    contactPosition: "Генеральный директор",
-    contactPhone: "+7 (999) 123-45-67",
-    contactEmail: "ivanov@techbud.ru",
-  },
-  purchase: {
-    number: "0148300005424000001",
-    customer: "ПАО Газпром",
-    subject: "Поставка оборудования для газоперерабатывающего завода",
-    contractAmount: 50000000,
-    startDate: "2024-02-01",
-    endDate: "2024-12-31",
-  },
-  documents: [
-    { id: "1", name: "Выписка из ЕГРЮЛ.pdf", size: "245 KB" },
-    { id: "2", name: "Устав компании.pdf", size: "1.2 MB" },
-    { id: "3", name: "Бухгалтерский баланс 2023.pdf", size: "890 KB" },
-    { id: "4", name: "Контракт.pdf", size: "2.1 MB" },
-    { id: "5", name: "Техническое задание.pdf", size: "456 KB" },
-  ],
-}
-
 export function PartnerApplicationDetail({ applicationId, onBack }: PartnerApplicationDetailProps) {
-  const [application] = useState(mockApplicationData)
   const [decisionModal, setDecisionModal] = useState<"approve" | "reject" | "request-info" | null>(null)
   const [comment, setComment] = useState("")
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency: "RUB",
-      maximumFractionDigits: 0,
-    }).format(amount)
+  // API Hooks
+  const { application, isLoading, error, refetch } = useApplication(parseInt(applicationId))
+  const { submitDecision, isLoading: submitting } = usePartnerActions()
+
+  // Format currency
+  const formatCurrency = (amount: string | number) => {
+    try {
+      const num = typeof amount === "string" ? parseFloat(amount) : amount
+      return new Intl.NumberFormat("ru-RU", {
+        style: "currency",
+        currency: "RUB",
+        maximumFractionDigits: 0,
+      }).format(num)
+    } catch {
+      return amount.toString()
+    }
   }
 
-  const handleDecision = (type: "approve" | "reject" | "request-info") => {
-    // Here would be the API call to submit decision
-    console.log(`Decision: ${type}`, { comment })
-    setDecisionModal(null)
-    setComment("")
-    onBack()
+  // Format date
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return dateStr
+    }
   }
+
+  // Handle decision submission
+  const handleDecision = async (type: "approve" | "reject" | "request-info") => {
+    const result = await submitDecision(parseInt(applicationId), {
+      decision: type === "approve" ? "approved" : type === "reject" ? "rejected" : "info_requested",
+      comment: comment,
+    })
+
+    if (result) {
+      const messages = {
+        approve: "Заявка одобрена",
+        reject: "Заявка отклонена",
+        "request-info": "Запрос информации отправлен",
+      }
+      toast.success(messages[type])
+      setDecisionModal(null)
+      setComment("")
+      onBack()
+    } else {
+      toast.error("Ошибка при отправке решения")
+    }
+  }
+
+  // Get status badge
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { label: string; className: string }> = {
+      pending: { label: "Новая", className: "bg-[#00d4aa]/10 text-[#00d4aa]" },
+      in_review: { label: "На рассмотрении", className: "bg-blue-500/10 text-blue-500" },
+      approved: { label: "Одобрена", className: "bg-[#00d4aa]/10 text-[#00d4aa]" },
+      rejected: { label: "Отклонена", className: "bg-red-500/10 text-red-500" },
+      info_requested: { label: "Запрос информации", className: "bg-[#f97316]/10 text-[#f97316]" },
+    }
+    const config = statusMap[status] || { label: status, className: "bg-gray-100 text-gray-600" }
+    return <Badge className={`${config.className} text-sm px-3 py-1`}>{config.label}</Badge>
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-10" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !application) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-2xl font-bold">Заявка #{applicationId}</h1>
+        </div>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="flex items-center gap-3 py-8">
+            <AlertCircle className="h-6 w-6 text-red-500" />
+            <div>
+              <p className="font-medium text-red-700">Ошибка загрузки заявки</p>
+              <p className="text-sm text-red-600">{error || "Заявка не найдена"}</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              Повторить
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Calculate deadline urgency (2 days from creation)
+  const createdDate = new Date(application.created_at)
+  const deadline = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000)
+  const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000
 
   return (
     <div className="space-y-6">
@@ -109,31 +173,36 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
           <div>
             <h1 className="text-2xl font-bold text-foreground">Заявка #{applicationId}</h1>
             <p className="text-muted-foreground">
-              Получена: {application.receivedAt} | Срок: {application.deadline}
+              Получена: {formatDate(application.created_at)}
             </p>
           </div>
         </div>
-        <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] text-sm px-3 py-1">Новая</Badge>
+        {getStatusBadge(application.status)}
       </div>
 
       {/* Deadline Warning */}
-      <Card className="border-[#f97316] bg-[#f97316]/5 shadow-sm">
-        <CardContent className="flex items-center gap-4 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f97316]/10">
-            <AlertTriangle className="h-5 w-5 text-[#f97316]" />
-          </div>
-          <div>
-            <p className="font-medium text-[#f97316]">Срок рассмотрения: {application.deadline}</p>
-            <p className="text-sm text-muted-foreground">Осталось менее 3 дней для принятия решения</p>
-          </div>
-        </CardContent>
-      </Card>
+      {isUrgent && (
+        <Card className="border-[#f97316] bg-[#f97316]/5 shadow-sm">
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f97316]/10">
+              <AlertTriangle className="h-5 w-5 text-[#f97316]" />
+            </div>
+            <div>
+              <p className="font-medium text-[#f97316]">
+                Срок рассмотрения: {formatDate(deadline.toISOString())}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Осталось менее 24 часов для принятия решения
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="info" className="space-y-4">
         <TabsList className="bg-muted/50">
           <TabsTrigger value="info">Информация</TabsTrigger>
           <TabsTrigger value="client">Клиент</TabsTrigger>
-          <TabsTrigger value="purchase">Закупка</TabsTrigger>
           <TabsTrigger value="documents">Документы</TabsTrigger>
         </TabsList>
 
@@ -152,7 +221,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Тип продукта</p>
-                      <p className="font-medium">{application.product.type}</p>
+                      <p className="font-medium">{application.product_type_display}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -161,7 +230,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Сумма</p>
-                      <p className="font-medium text-lg">{formatCurrency(application.product.amount)}</p>
+                      <p className="font-medium text-lg">{formatCurrency(application.amount)}</p>
                     </div>
                   </div>
                 </div>
@@ -172,18 +241,20 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Срок</p>
-                      <p className="font-medium">{application.product.term}</p>
+                      <p className="font-medium">{application.term_months} месяцев</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                      <FileText className="h-5 w-5 text-[#00d4aa]" />
+                  {application.notes && (
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
+                        <FileText className="h-5 w-5 text-[#00d4aa]" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Примечания</p>
+                        <p className="font-medium">{application.notes}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Назначение</p>
-                      <p className="font-medium">{application.product.purpose}</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -199,21 +270,17 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             <CardContent className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Наименование</p>
+                  <p className="text-sm text-muted-foreground">Компания</p>
                   <p className="font-medium flex items-center gap-2">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    {application.client.companyName}
+                    {application.company_name || "Не указана"}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">ИНН / ОГРН</p>
+                  <p className="text-sm text-muted-foreground">ИНН</p>
                   <p className="font-medium font-mono">
-                    {application.client.inn} / {application.client.ogrn}
+                    {application.company_inn || "Не указан"}
                   </p>
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                  <p className="text-sm text-muted-foreground">Юридический адрес</p>
-                  <p className="font-medium">{application.client.legalAddress}</p>
                 </div>
               </div>
 
@@ -225,57 +292,16 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                   <div className="flex items-center gap-3">
                     <User className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{application.client.contactPerson}</p>
-                      <p className="text-sm text-muted-foreground">{application.client.contactPosition}</p>
+                      <p className="font-medium">{application.created_by_name || "Не указано"}</p>
+                      <p className="text-sm text-muted-foreground">Заявитель</p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span>{application.client.contactPhone}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span>{application.client.contactEmail}</span>
+                      <span>{application.created_by_email || "Не указан"}</span>
                     </div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Purchase Tab */}
-        <TabsContent value="purchase">
-          <Card className="shadow-sm">
-            <CardHeader>
-              <CardTitle>Информация о закупке</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Номер закупки</p>
-                <p className="font-medium font-mono">{application.purchase.number}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Заказчик</p>
-                <p className="font-medium">{application.purchase.customer}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Предмет закупки</p>
-                <p className="font-medium">{application.purchase.subject}</p>
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Сумма контракта</p>
-                  <p className="font-medium">{formatCurrency(application.purchase.contractAmount)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Начало</p>
-                  <p className="font-medium">{application.purchase.startDate}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Окончание</p>
-                  <p className="font-medium">{application.purchase.endDate}</p>
                 </div>
               </div>
             </CardContent>
@@ -291,62 +317,88 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {application.documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{doc.name}</p>
-                        <p className="text-sm text-muted-foreground">{doc.size}</p>
+                {application.documents && application.documents.length > 0 ? (
+                  application.documents.map((doc: any) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{doc.name}</p>
+                          <p className="text-sm text-muted-foreground">{doc.type_display}</p>
+                        </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => {
+                          if (doc.file_url) {
+                            window.open(doc.file_url, '_blank')
+                          }
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                        Скачать
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <Download className="h-4 w-4" />
-                      Скачать
-                    </Button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>Документы не прикреплены</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* Decision Block */}
-      <Card className="shadow-sm border-2">
-        <CardHeader>
-          <CardTitle>Принять решение</CardTitle>
-          <CardDescription>Выберите действие по заявке</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              className="bg-[#00d4aa] text-white hover:bg-[#00b894] gap-2"
-              onClick={() => setDecisionModal("approve")}
-            >
-              <CheckCircle2 className="h-5 w-5" />
-              Одобрить заявку
-            </Button>
-            <Button size="lg" variant="destructive" className="gap-2" onClick={() => setDecisionModal("reject")}>
-              <XCircle className="h-5 w-5" />
-              Отклонить заявку
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="gap-2 border-[#f97316] text-[#f97316] hover:bg-[#f97316] hover:text-white bg-transparent"
-              onClick={() => setDecisionModal("request-info")}
-            >
-              <HelpCircle className="h-5 w-5" />
-              Запросить информацию
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Decision Block - only show for pending/in_review applications */}
+      {["pending", "in_review", "info_requested"].includes(application.status) && (
+        <Card className="shadow-sm border-2">
+          <CardHeader>
+            <CardTitle>Принять решение</CardTitle>
+            <CardDescription>Выберите действие по заявке</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                size="lg"
+                className="bg-[#00d4aa] text-white hover:bg-[#00b894] gap-2"
+                onClick={() => setDecisionModal("approve")}
+                disabled={submitting}
+              >
+                <CheckCircle2 className="h-5 w-5" />
+                Одобрить заявку
+              </Button>
+              <Button
+                size="lg"
+                variant="destructive"
+                className="gap-2"
+                onClick={() => setDecisionModal("reject")}
+                disabled={submitting}
+              >
+                <XCircle className="h-5 w-5" />
+                Отклонить заявку
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 border-[#f97316] text-[#f97316] hover:bg-[#f97316] hover:text-white bg-transparent"
+                onClick={() => setDecisionModal("request-info")}
+                disabled={submitting}
+              >
+                <HelpCircle className="h-5 w-5" />
+                Запросить информацию
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Decision Modals */}
       <Dialog open={decisionModal === "approve"} onOpenChange={() => setDecisionModal(null)}>
@@ -371,11 +423,22 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDecisionModal(null)}>
+            <Button variant="outline" onClick={() => setDecisionModal(null)} disabled={submitting}>
               Отмена
             </Button>
-            <Button className="bg-[#00d4aa] text-white hover:bg-[#00b894]" onClick={() => handleDecision("approve")}>
-              Подтвердить одобрение
+            <Button
+              className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+              onClick={() => handleDecision("approve")}
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Отправка...
+                </>
+              ) : (
+                "Подтвердить одобрение"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -404,11 +467,22 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDecisionModal(null)}>
+            <Button variant="outline" onClick={() => setDecisionModal(null)} disabled={submitting}>
               Отмена
             </Button>
-            <Button variant="destructive" onClick={() => handleDecision("reject")} disabled={!comment}>
-              Подтвердить отклонение
+            <Button
+              variant="destructive"
+              onClick={() => handleDecision("reject")}
+              disabled={!comment || submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Отправка...
+                </>
+              ) : (
+                "Подтвердить отклонение"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -437,15 +511,22 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDecisionModal(null)}>
+            <Button variant="outline" onClick={() => setDecisionModal(null)} disabled={submitting}>
               Отмена
             </Button>
             <Button
               className="bg-[#f97316] text-white hover:bg-[#ea580c]"
               onClick={() => handleDecision("request-info")}
-              disabled={!comment}
+              disabled={!comment || submitting}
             >
-              Отправить запрос
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Отправка...
+                </>
+              ) : (
+                "Отправить запрос"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

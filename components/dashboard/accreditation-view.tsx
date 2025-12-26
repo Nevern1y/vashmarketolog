@@ -1,14 +1,15 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, Clock, AlertCircle, Upload, FileText, Building2, Users, CreditCard, Shield } from "lucide-react"
+import { CheckCircle2, Clock, AlertCircle, Upload, FileText, Building2, Users, CreditCard, Shield, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useMyCompany } from "@/hooks/use-companies"
+import { useDocuments } from "@/hooks/use-documents"
 
 interface AccreditationStep {
   id: string
@@ -19,51 +20,112 @@ interface AccreditationStep {
   documents?: { name: string; status: "uploaded" | "pending" | "rejected" }[]
 }
 
-const accreditationSteps: AccreditationStep[] = [
-  {
-    id: "company",
-    title: "Данные компании",
-    description: "Заполните информацию о компании",
-    icon: Building2,
-    status: "completed",
-  },
-  {
-    id: "management",
-    title: "Руководство",
-    description: "Добавьте информацию о руководителях",
-    icon: Users,
-    status: "completed",
-  },
-  {
-    id: "bank",
-    title: "Банковские реквизиты",
-    description: "Укажите банковские данные",
-    icon: CreditCard,
-    status: "in-progress",
-    documents: [
-      { name: "Выписка из ЕГРЮЛ", status: "uploaded" },
-      { name: "Устав компании", status: "pending" },
-      { name: "Карточка предприятия", status: "pending" },
-    ],
-  },
-  {
-    id: "documents",
-    title: "Документы",
-    description: "Загрузите необходимые документы",
-    icon: FileText,
-    status: "pending",
-  },
-  {
-    id: "verification",
-    title: "Верификация",
-    description: "Проверка данных модератором",
-    icon: Shield,
-    status: "pending",
-  },
-]
-
 export function AccreditationView() {
-  const [steps] = useState(accreditationSteps)
+  const { company, isLoading: companyLoading, error: companyError } = useMyCompany()
+  const { documents, isLoading: docsLoading, error: docsError } = useDocuments()
+
+  // Compute accreditation steps dynamically based on company profile and documents
+  const steps = useMemo<AccreditationStep[]>(() => {
+    // Helper to check if a string field is filled (not empty/whitespace)
+    const isFilled = (value: string | null | undefined): boolean => {
+      return Boolean(value && value.trim())
+    }
+
+    // Step 1: Company Data
+    const hasCompanyBasic = company && isFilled(company.inn) && isFilled(company.name)
+    const companyStatus: AccreditationStep["status"] = hasCompanyBasic
+      ? "completed"
+      : company ? "in-progress" : "pending"
+
+    // Step 2: Management (Director info)
+    const hasDirector = company && isFilled(company.director_name)
+    const managementStatus: AccreditationStep["status"] = hasDirector
+      ? "completed"
+      : hasCompanyBasic ? "in-progress" : "pending"
+
+    // Step 3: Bank Details
+    const hasBankDetails = company &&
+      isFilled(company.bank_account) &&
+      isFilled(company.bank_bic) &&
+      isFilled(company.bank_name)
+    const bankStatus: AccreditationStep["status"] = hasBankDetails
+      ? "completed"
+      : hasDirector ? "in-progress" : "pending"
+
+    // Step 4: Documents
+    const verifiedDocs = documents.filter(d => d.status === "verified")
+    const pendingDocs = documents.filter(d => d.status === "pending")
+    const hasVerifiedDocs = verifiedDocs.length > 0
+    const documentsStatus: AccreditationStep["status"] = hasVerifiedDocs
+      ? "completed"
+      : (hasBankDetails && documents.length > 0) ? "in-progress" : "pending"
+
+    // Build document list for in-progress bank/documents step
+    const documentsList = [
+      {
+        name: "Выписка из ЕГРЮЛ",
+        status: documents.some(d => d.document_type === "constituent" && d.status === "verified")
+          ? "uploaded" as const
+          : "pending" as const
+      },
+      {
+        name: "Устав компании",
+        status: documents.some(d => d.document_type === "permit" && d.status === "verified")
+          ? "uploaded" as const
+          : "pending" as const
+      },
+      {
+        name: "Финансовая отчётность",
+        status: documents.some(d => d.document_type === "financial" && d.status === "verified")
+          ? "uploaded" as const
+          : "pending" as const
+      },
+    ]
+
+    // Step 5: Verification (requires all previous + admin approval)
+    const allPreviousComplete = hasCompanyBasic && hasDirector && hasBankDetails && hasVerifiedDocs
+    const verificationStatus: AccreditationStep["status"] = "pending" // Always pending until admin verifies
+
+    return [
+      {
+        id: "company",
+        title: "Данные компании",
+        description: "Заполните информацию о компании",
+        icon: Building2,
+        status: companyStatus,
+      },
+      {
+        id: "management",
+        title: "Руководство",
+        description: "Добавьте информацию о руководителях",
+        icon: Users,
+        status: managementStatus,
+      },
+      {
+        id: "bank",
+        title: "Банковские реквизиты",
+        description: "Укажите банковские данные",
+        icon: CreditCard,
+        status: bankStatus,
+        documents: bankStatus === "in-progress" ? documentsList : undefined,
+      },
+      {
+        id: "documents",
+        title: "Документы",
+        description: "Загрузите необходимые документы",
+        icon: FileText,
+        status: documentsStatus,
+        documents: documentsStatus === "in-progress" ? documentsList : undefined,
+      },
+      {
+        id: "verification",
+        title: "Верификация",
+        description: "Проверка данных модератором",
+        icon: Shield,
+        status: allPreviousComplete ? "in-progress" : verificationStatus,
+      },
+    ]
+  }, [company, documents])
 
   const completedSteps = steps.filter((s) => s.status === "completed").length
   const progress = (completedSteps / steps.length) * 100
@@ -90,12 +152,67 @@ export function AccreditationView() {
     }
   }
 
+  // Loading state
+  if (companyLoading || docsLoading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
+          <p className="text-muted-foreground">Загрузка данных аккредитации...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Аккредитация</h1>
         <p className="text-muted-foreground">Пройдите все этапы для получения аккредитации</p>
       </div>
+
+      {/* Accreditation Status Banner */}
+      {completedSteps === steps.length - 1 && (
+        <Card className="shadow-sm border-[#f97316] bg-[#f97316]/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <Clock className="h-6 w-6 text-[#f97316]" />
+              <div>
+                <p className="font-medium text-[#f97316]">Ожидает проверки модератором</p>
+                <p className="text-sm text-muted-foreground">Все данные заполнены. Аккредитация на рассмотрении.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {completedSteps === steps.length && (
+        <Card className="shadow-sm border-[#00d4aa] bg-[#00d4aa]/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-6 w-6 text-[#00d4aa]" />
+              <div>
+                <p className="font-medium text-[#00d4aa]">Аккредитация активна</p>
+                <p className="text-sm text-muted-foreground">Вы можете создавать заявки на финансовые продукты.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {completedSteps === 0 && (
+        <Card className="shadow-sm border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+              <div>
+                <p className="font-medium text-destructive">Не аккредитован</p>
+                <p className="text-sm text-muted-foreground">Заполните профиль компании для получения аккредитации.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress Overview */}
       <Card className="shadow-sm">

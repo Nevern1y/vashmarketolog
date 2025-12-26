@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import type { AppMode, ClientViewType, PartnerViewType, ViewType } from "@/lib/types"
+import type { ClientViewType, PartnerViewType, ViewType } from "@/lib/types"
+import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { ClientSidebar } from "@/components/dashboard/client-sidebar"
 import { PartnerSidebar } from "@/components/dashboard/partner-sidebar"
@@ -18,299 +19,334 @@ import { AdminDashboard } from "@/components/dashboard/admin-dashboard"
 import { ApplicationDetailView } from "@/components/dashboard/application-detail-view"
 import { CreateApplicationWizard } from "@/components/dashboard/create-application-wizard"
 import { AuthPage } from "@/components/auth/auth-page"
-import { DevToolWidget } from "@/components/dev-tool-widget"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { cn } from "@/lib/utils"
+import { Loader2 } from "lucide-react"
 
 export default function DashboardPage() {
-  const [appMode, setAppMode] = useState<AppMode>("agent-dashboard")
+  // Authentication state from context
+  const { user, isLoading, isAuthenticated } = useAuth()
+
+  // View states for each role
   const [agentView, setAgentView] = useState<ViewType>("applications")
   const [clientView, setClientView] = useState<ClientViewType>("applications")
   const [partnerView, setPartnerView] = useState<PartnerViewType>("incoming")
+
+  // UI states
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [selectedApplicationId, setSelectedApplicationId] = useState<string>("BG-2024-001")
   const [selectedPartnerApplicationId, setSelectedPartnerApplicationId] = useState<string>("1")
+  const [showingAgentCRM, setShowingAgentCRM] = useState(false)
+  const [showingAppDetail, setShowingAppDetail] = useState(false)
 
-  // Auth mode
-  if (appMode === "auth") {
+  // Loading state - show spinner while checking auth
+  if (isLoading) {
     return (
-      <>
-        <AuthPage />
-        <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-      </>
-    )
-  }
-
-  // Admin mode
-  if (appMode === "admin-dashboard") {
-    return (
-      <>
-        <AdminDashboard />
-        <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-      </>
-    )
-  }
-
-  if (appMode === "client-dashboard") {
-    return (
-      <div className="flex h-screen overflow-hidden">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <ClientSidebar
-            activeView={clientView}
-            onViewChange={setClientView}
-            onCreateApplication={() => setIsWizardOpen(true)}
-          />
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-[#00d4aa]" />
+          <p className="text-muted-foreground">Загрузка...</p>
         </div>
+      </div>
+    )
+  }
 
-        {/* Mobile Sidebar Drawer */}
-        <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 h-full">
+  // ========================================
+  // AUTH GUARD: Not authenticated → AuthPage
+  // ========================================
+  if (!isAuthenticated || !user) {
+    return <AuthPage />
+  }
+
+  // ========================================
+  // ROLE-BASED DASHBOARD ROUTING
+  // ========================================
+  const role = user.role
+
+  // DEBUG: Log current user role for troubleshooting
+  console.log("[DEBUG] Current User:", { id: user.id, email: user.email, role: user.role })
+
+  switch (role) {
+    // =====================================
+    // ADMIN ROLE
+    // =====================================
+    case "admin":
+      return <AdminDashboard />
+
+    // =====================================
+    // CLIENT ROLE
+    // =====================================
+    case "client":
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
             <ClientSidebar
               activeView={clientView}
-              onViewChange={(view) => {
-                setClientView(view)
-                setIsMobileSidebarOpen(false)
-              }}
-              onCreateApplication={() => {
-                setIsWizardOpen(true)
-                setIsMobileSidebarOpen(false)
-              }}
+              onViewChange={setClientView}
+              onCreateApplication={() => setIsWizardOpen(true)}
             />
           </div>
-        </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-            {clientView === "accreditation" && <AccreditationView />}
-            {clientView === "company" && <MyCompanyView />}
-            {clientView === "documents" && <MyDocumentsView />}
-            {clientView === "applications" && (
-              <MyApplicationsView
-                onOpenDetail={(id) => {
-                  setSelectedApplicationId(id)
-                  setAppMode("agent-app-detail")
+          {/* Mobile Sidebar Drawer */}
+          <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+            <div className="absolute left-0 top-0 h-full">
+              <ClientSidebar
+                activeView={clientView}
+                onViewChange={(view) => {
+                  setClientView(view)
+                  setIsMobileSidebarOpen(false)
+                }}
+                onCreateApplication={() => {
+                  setIsWizardOpen(true)
+                  setIsMobileSidebarOpen(false)
                 }}
               />
-            )}
-            {clientView === "victories" && <MyVictoriesView />}
-            {clientView === "profile-settings" && <ProfileSettingsView />}
-            {(clientView === "calculator" || clientView === "news") && (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-muted-foreground">Раздел в разработке</p>
-              </div>
-            )}
-          </main>
-        </div>
-
-        <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
-        <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-      </div>
-    )
-  }
-
-  if (appMode === "agent-crm") {
-    return (
-      <div className="flex h-screen overflow-hidden">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar
-            activeView="clients"
-            onViewChange={(view) => {
-              setAgentView(view)
-              if (view !== "clients") setAppMode("agent-dashboard")
-            }}
-            onCreateApplication={() => setIsWizardOpen(true)}
-          />
-        </div>
-
-        {/* Mobile Sidebar Drawer */}
-        <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 h-full">
-            <Sidebar
-              activeView="clients"
-              onViewChange={(view) => {
-                setAgentView(view)
-                setIsMobileSidebarOpen(false)
-                if (view !== "clients") setAppMode("agent-dashboard")
-              }}
-              onCreateApplication={() => {
-                setIsWizardOpen(true)
-                setIsMobileSidebarOpen(false)
-              }}
-            />
+            </div>
           </div>
-        </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-            <ClientsListView />
-          </main>
-        </div>
-
-        <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
-        <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-      </div>
-    )
-  }
-
-  if (appMode === "partner-dashboard") {
-    return (
-      <div className="flex h-screen overflow-hidden">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <PartnerSidebar activeView={partnerView} onViewChange={setPartnerView} />
-        </div>
-
-        {/* Mobile Sidebar Drawer */}
-        <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 h-full">
-            <PartnerSidebar
-              activeView={partnerView}
-              onViewChange={(view) => {
-                setPartnerView(view)
-                setIsMobileSidebarOpen(false)
-              }}
-            />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              {clientView === "accreditation" && <AccreditationView />}
+              {clientView === "company" && <MyCompanyView />}
+              {clientView === "documents" && <MyDocumentsView />}
+              {clientView === "applications" && (
+                <MyApplicationsView
+                  onOpenDetail={(id) => {
+                    setSelectedApplicationId(id)
+                    setShowingAppDetail(true)
+                  }}
+                />
+              )}
+              {clientView === "victories" && <MyVictoriesView />}
+              {clientView === "profile-settings" && <ProfileSettingsView />}
+              {(clientView === "calculator" || clientView === "news") && (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-muted-foreground">Раздел в разработке</p>
+                </div>
+              )}
+            </main>
           </div>
-        </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-            {partnerView === "incoming" && (
-              <PartnerIncomingView
-                onOpenDetail={(id) => {
-                  setSelectedPartnerApplicationId(id)
-                  setPartnerView("application-detail")
+          <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+        </div>
+      )
+
+    // =====================================
+    // PARTNER ROLE
+    // =====================================
+    case "partner":
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:block">
+            <PartnerSidebar activeView={partnerView} onViewChange={setPartnerView} />
+          </div>
+
+          {/* Mobile Sidebar Drawer */}
+          <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+            <div className="absolute left-0 top-0 h-full">
+              <PartnerSidebar
+                activeView={partnerView}
+                onViewChange={(view) => {
+                  setPartnerView(view)
+                  setIsMobileSidebarOpen(false)
                 }}
               />
-            )}
-            {partnerView === "application-detail" && (
-              <PartnerApplicationDetail
-                applicationId={selectedPartnerApplicationId}
-                onBack={() => setPartnerView("incoming")}
+            </div>
+          </div>
+
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              {partnerView === "incoming" && (
+                <PartnerIncomingView
+                  onOpenDetail={(id) => {
+                    setSelectedPartnerApplicationId(id)
+                    setPartnerView("application-detail")
+                  }}
+                />
+              )}
+              {partnerView === "application-detail" && (
+                <PartnerApplicationDetail
+                  applicationId={selectedPartnerApplicationId}
+                  onBack={() => setPartnerView("incoming")}
+                />
+              )}
+              {partnerView === "archive" && (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-muted-foreground">Архив заявок в разработке</p>
+                </div>
+              )}
+            </main>
+          </div>
+        </div>
+      )
+
+    // =====================================
+    // AGENT ROLE (Default for agents)
+    // =====================================
+    case "agent":
+      // Agent CRM View (Clients list)
+      if (showingAgentCRM) {
+        return (
+          <div className="flex h-screen overflow-hidden">
+            <div className="hidden lg:block">
+              <Sidebar
+                activeView="clients"
+                onViewChange={(view) => {
+                  setAgentView(view)
+                  if (view !== "clients") setShowingAgentCRM(false)
+                }}
+                onCreateApplication={() => setIsWizardOpen(true)}
               />
-            )}
-            {partnerView === "archive" && (
-              <div className="flex h-full items-center justify-center">
-                <p className="text-muted-foreground">Архив заявок в разработке</p>
+            </div>
+
+            <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+              <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+              <div className="absolute left-0 top-0 h-full">
+                <Sidebar
+                  activeView="clients"
+                  onViewChange={(view) => {
+                    setAgentView(view)
+                    setIsMobileSidebarOpen(false)
+                    if (view !== "clients") setShowingAgentCRM(false)
+                  }}
+                  onCreateApplication={() => {
+                    setIsWizardOpen(true)
+                    setIsMobileSidebarOpen(false)
+                  }}
+                />
               </div>
-            )}
-          </main>
-        </div>
+            </div>
 
-        <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-      </div>
-    )
-  }
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+                <ClientsListView />
+              </main>
+            </div>
 
-  // Agent app detail mode
-  if (appMode === "agent-app-detail") {
-    return (
-      <div className="flex h-screen overflow-hidden">
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar
-            activeView={agentView}
-            onViewChange={setAgentView}
-            onCreateApplication={() => setIsWizardOpen(true)}
-          />
-        </div>
+            <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+          </div>
+        )
+      }
 
-        {/* Mobile Sidebar Drawer */}
-        <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-          <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 h-full">
+      // Agent Application Detail View
+      if (showingAppDetail) {
+        return (
+          <div className="flex h-screen overflow-hidden">
+            <div className="hidden lg:block">
+              <Sidebar
+                activeView={agentView}
+                onViewChange={setAgentView}
+                onCreateApplication={() => setIsWizardOpen(true)}
+              />
+            </div>
+
+            <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+              <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+              <div className="absolute left-0 top-0 h-full">
+                <Sidebar
+                  activeView={agentView}
+                  onViewChange={(view) => {
+                    setAgentView(view)
+                    setIsMobileSidebarOpen(false)
+                  }}
+                  onCreateApplication={() => {
+                    setIsWizardOpen(true)
+                    setIsMobileSidebarOpen(false)
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+                <ApplicationDetailView applicationId={selectedApplicationId} onBack={() => setShowingAppDetail(false)} />
+              </main>
+            </div>
+
+            <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+          </div>
+        )
+      }
+
+      // Default Agent Dashboard
+      return (
+        <div className="flex h-screen overflow-hidden">
+          <div className="hidden lg:block">
             <Sidebar
               activeView={agentView}
               onViewChange={(view) => {
                 setAgentView(view)
-                setIsMobileSidebarOpen(false)
+                if (view === "clients") setShowingAgentCRM(true)
               }}
-              onCreateApplication={() => {
-                setIsWizardOpen(true)
-                setIsMobileSidebarOpen(false)
-              }}
+              onCreateApplication={() => setIsWizardOpen(true)}
             />
           </div>
-        </div>
 
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
-          <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-            <ApplicationDetailView applicationId={selectedApplicationId} onBack={() => setAppMode("agent-dashboard")} />
-          </main>
-        </div>
-
-        <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
-        <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-      </div>
-    )
-  }
-
-  // Default: Agent Dashboard mode
-  return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
-        <Sidebar
-          activeView={agentView}
-          onViewChange={(view) => {
-            setAgentView(view)
-            if (view === "clients") setAppMode("agent-crm")
-          }}
-          onCreateApplication={() => setIsWizardOpen(true)}
-        />
-      </div>
-
-      {/* Mobile Sidebar Drawer */}
-      <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-        <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-        <div className="absolute left-0 top-0 h-full">
-          <Sidebar
-            activeView={agentView}
-            onViewChange={(view) => {
-              setAgentView(view)
-              setIsMobileSidebarOpen(false)
-              if (view === "clients") setAppMode("agent-crm")
-            }}
-            onCreateApplication={() => {
-              setIsWizardOpen(true)
-              setIsMobileSidebarOpen(false)
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-          {agentView === "company" && <MyCompanyView />}
-          {agentView === "applications" && (
-            <MyApplicationsView
-              onOpenDetail={(id) => {
-                setSelectedApplicationId(id)
-                setAppMode("agent-app-detail")
-              }}
-            />
-          )}
-          {agentView !== "company" && agentView !== "applications" && agentView !== "clients" && (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-muted-foreground">Раздел в разработке</p>
+          <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+            <div className="absolute left-0 top-0 h-full">
+              <Sidebar
+                activeView={agentView}
+                onViewChange={(view) => {
+                  setAgentView(view)
+                  setIsMobileSidebarOpen(false)
+                  if (view === "clients") setShowingAgentCRM(true)
+                }}
+                onCreateApplication={() => {
+                  setIsWizardOpen(true)
+                  setIsMobileSidebarOpen(false)
+                }}
+              />
             </div>
-          )}
-        </main>
-      </div>
+          </div>
 
-      <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
-      <DevToolWidget currentMode={appMode} onModeChange={setAppMode} />
-    </div>
-  )
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              {agentView === "company" && <MyCompanyView />}
+              {agentView === "applications" && (
+                <MyApplicationsView
+                  onOpenDetail={(id) => {
+                    setSelectedApplicationId(id)
+                    setShowingAppDetail(true)
+                  }}
+                />
+              )}
+              {agentView !== "company" && agentView !== "applications" && agentView !== "clients" && (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-muted-foreground">Раздел в разработке</p>
+                </div>
+              )}
+            </main>
+          </div>
+
+          <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+        </div>
+      )
+
+    // =====================================
+    // UNKNOWN ROLE - Fallback to AuthPage
+    // =====================================
+    default:
+      console.error(`Unknown user role: ${role}`)
+      return (
+        <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-destructive">Ошибка доступа</h1>
+            <p className="text-muted-foreground mt-2">Неизвестная роль пользователя: {role}</p>
+            <p className="text-sm text-muted-foreground mt-1">Обратитесь в службу поддержки</p>
+          </div>
+          <AuthPage />
+        </div>
+      )
+  }
 }

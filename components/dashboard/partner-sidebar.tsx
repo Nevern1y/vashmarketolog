@@ -5,6 +5,7 @@ import { Inbox, Archive, LogOut, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/auth-context"
 
 interface PartnerSidebarProps {
   activeView: PartnerViewType
@@ -17,6 +18,12 @@ const navItems = [
 ]
 
 export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps) {
+  const { logout, user } = useAuth()
+
+  const handleLogout = async () => {
+    await logout()
+  }
+
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
       {/* Logo */}
@@ -33,10 +40,10 @@ export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps
       {/* Partner Badge */}
       <div className="mx-4 mb-4 rounded-lg bg-[#00d4aa]/10 px-4 py-3">
         <p className="text-xs text-[#00d4aa]">Партнер</p>
-        <p className="text-sm font-semibold">ПАО Сбербанк</p>
+        <p className="text-sm font-semibold">Финансовая организация</p>
       </div>
 
-      {/* Navigation */}
+      {/* Navigation - NO Create Application Button for Partners */}
       <nav className="flex-1 px-3">
         <ul className="space-y-1">
           {navItems.map((item) => (
@@ -65,14 +72,16 @@ export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps
 
       {/* Footer */}
       <div className="border-t border-white/10 p-4">
-        {/* Account Manager */}
+        {/* User Info */}
         <div className="mb-4 flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-[#00d4aa]">
-            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">МК</AvatarFallback>
+            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">
+              {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "П"}
+            </AvatarFallback>
           </Avatar>
           <div>
             <p className="text-xs text-[#94a3b8]">Менеджер ФМ</p>
-            <p className="text-sm font-medium">М. Козлова</p>
+            <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
           </div>
         </div>
 
@@ -91,7 +100,10 @@ export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps
         </div>
 
         {/* Logout */}
-        <button className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors"
+        >
           <LogOut className="h-4 w-4" />
           Выйти
         </button>

@@ -1,6 +1,6 @@
 "use client"
 
-import type { ViewType } from "@/app/page"
+import type { ViewType } from "@/lib/types"
 import {
   Building2,
   FileText,
@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/auth-context"
 
 interface SidebarProps {
   activeView: ViewType
@@ -28,8 +29,7 @@ const mainNavItems = [
   { id: "company" as ViewType, label: "Моя компания", icon: Building2 },
   { id: "applications" as ViewType, label: "Мои заявки", icon: FileText },
   { id: "clients" as ViewType, label: "Клиенты", icon: Users },
-  { id: "reports" as ViewType, label: "Моя отчетность", icon: BarChart3 },
-  { id: "statistics" as ViewType, label: "Моя статистика", icon: PieChart },
+  // REMOVED: reports/statistics per MVP "Manual Mode Only" - focus on Applications List
 ]
 
 const toolsNavItems = [
@@ -39,6 +39,12 @@ const toolsNavItems = [
 ]
 
 export function Sidebar({ activeView, onViewChange, onCreateApplication }: SidebarProps) {
+  const { logout, user } = useAuth()
+
+  const handleLogout = async () => {
+    await logout()
+  }
+
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
       {/* Logo */}
@@ -110,14 +116,16 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
 
       {/* Footer */}
       <div className="border-t border-white/10 p-4">
-        {/* Manager Info */}
+        {/* User Info */}
         <div className="mb-4 flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-[#00d4aa]">
-            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">ДС</AvatarFallback>
+            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">
+              {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "А"}
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs text-[#94a3b8]">Ваш менеджер</p>
-            <p className="text-sm font-medium">Д. Сергеев</p>
+            <p className="text-xs text-[#94a3b8]">Агент</p>
+            <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
           </div>
         </div>
 
@@ -136,7 +144,10 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
         </div>
 
         {/* Logout */}
-        <button className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors"
+        >
           <LogOut className="h-4 w-4" />
           Выйти
         </button>

@@ -7,80 +7,51 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Inbox, Clock, CheckCircle2, AlertCircle, Eye, Building2 } from "lucide-react"
-import type { PartnerApplication } from "@/lib/types"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Search, Inbox, Clock, CheckCircle2, AlertCircle, Eye, Building2, RefreshCw, Loader2 } from "lucide-react"
+import { useApplications, type ApplicationListItem } from "@/hooks/use-applications"
 
 interface PartnerIncomingViewProps {
   onOpenDetail: (id: string) => void
 }
 
-const mockApplications: PartnerApplication[] = [
-  {
-    id: "1",
-    clientCompany: 'ООО "Технологии Будущего"',
-    productType: "Банковская гарантия",
-    amount: 5000000,
-    status: "new",
-    receivedAt: "2024-01-25 14:30",
-    deadline: "2024-01-28",
-  },
-  {
-    id: "2",
-    clientCompany: 'АО "СтройКомплект"',
-    productType: "Тендерный кредит",
-    amount: 12500000,
-    status: "in-review",
-    receivedAt: "2024-01-24 10:15",
-    deadline: "2024-01-27",
-  },
-  {
-    id: "3",
-    clientCompany: 'ООО "ЛогистикПро"',
-    productType: "Банковская гарантия",
-    amount: 3200000,
-    status: "info-requested",
-    receivedAt: "2024-01-23 09:00",
-    deadline: "2024-01-26",
-  },
-  {
-    id: "4",
-    clientCompany: 'ПАО "ЭнергоСеть"',
-    productType: "Банковская гарантия",
-    amount: 8700000,
-    status: "new",
-    receivedAt: "2024-01-25 16:45",
-    deadline: "2024-01-29",
-  },
-]
+type PartnerAppStatus = "pending" | "in_review" | "info_requested" | "approved" | "rejected"
 
 export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) {
-  const [applications] = useState(mockApplications)
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
 
+  // API Hook - backend automatically filters for assigned partner
+  const { applications, isLoading, error, refetch } = useApplications()
+
+  // Filter applications
   const filteredApplications = applications.filter((app) => {
-    const matchesSearch = app.clientCompany.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch =
+      app.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.id.toString().includes(searchQuery)
     const matchesStatus = filterStatus === "all" || app.status === filterStatus
     return matchesSearch && matchesStatus
   })
 
+  // Stats from API data
   const stats = {
     total: applications.length,
-    new: applications.filter((a) => a.status === "new").length,
-    inReview: applications.filter((a) => a.status === "in-review").length,
-    infoRequested: applications.filter((a) => a.status === "info-requested").length,
+    new: applications.filter((a) => a.status === "pending").length,
+    inReview: applications.filter((a) => a.status === "in_review").length,
+    infoRequested: applications.filter((a) => a.status === "info_requested").length,
   }
 
-  const getStatusBadge = (status: PartnerApplication["status"]) => {
+  // Status badge mapping
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case "new":
+      case "pending":
         return (
           <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] gap-1">
             <Inbox className="h-3 w-3" />
             Новая
           </Badge>
         )
-      case "in-review":
+      case "in_review":
         return (
           <Badge className="bg-blue-500/10 text-blue-500 gap-1">
             <Clock className="h-3 w-3" />
@@ -101,36 +72,101 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
             Отклонена
           </Badge>
         )
-      case "info-requested":
+      case "info_requested":
         return (
           <Badge className="bg-[#f97316]/10 text-[#f97316] gap-1">
             <AlertCircle className="h-3 w-3" />
             Запрос информации
           </Badge>
         )
+      default:
+        return <Badge variant="secondary">{status}</Badge>
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ru-RU", {
-      style: "currency",
-      currency: "RUB",
-      maximumFractionDigits: 0,
-    }).format(amount)
+  // Format currency
+  const formatCurrency = (amount: string) => {
+    try {
+      const num = parseFloat(amount)
+      return new Intl.NumberFormat("ru-RU", {
+        style: "currency",
+        currency: "RUB",
+        maximumFractionDigits: 0,
+      }).format(num)
+    } catch {
+      return amount
+    }
   }
 
-  const isUrgent = (deadline?: string) => {
-    if (!deadline) return false
-    const diff = new Date(deadline).getTime() - Date.now()
-    return diff < 24 * 60 * 60 * 1000 // Less than 24 hours
+  // Format date
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    } catch {
+      return dateStr
+    }
   }
+
+  // Check if deadline is urgent (less than 24 hours)
+  const isUrgent = (createdAt: string) => {
+    // Applications older than 2 days are considered urgent
+    const created = new Date(createdAt)
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    return created < twoDaysAgo
+  }
+
+  // Loading skeleton
+  const TableSkeleton = () => (
+    <>
+      {[1, 2, 3, 4].map((i) => (
+        <TableRow key={i}>
+          <TableCell><Skeleton className="h-6 w-40" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-8 w-20" /></TableCell>
+        </TableRow>
+      ))}
+    </>
+  )
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Входящие заявки</h1>
-        <p className="text-muted-foreground">Заявки, ожидающие вашего решения</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Входящие заявки</h1>
+          <p className="text-muted-foreground">Заявки, ожидающие вашего решения</p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => refetch()}
+          disabled={isLoading}
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+        </Button>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertCircle className="h-5 w-5 text-red-500" />
+            <span className="text-red-700">{error}</span>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              Повторить
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -141,7 +177,11 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 <Inbox className="h-6 w-6 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Всего</p>
               </div>
             </div>
@@ -154,7 +194,11 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 <Inbox className="h-6 w-6 text-[#00d4aa]" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.new}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.new}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Новых</p>
               </div>
             </div>
@@ -167,7 +211,11 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 <Clock className="h-6 w-6 text-blue-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.inReview}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.inReview}</p>
+                )}
                 <p className="text-sm text-muted-foreground">На рассмотрении</p>
               </div>
             </div>
@@ -180,7 +228,11 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 <AlertCircle className="h-6 w-6 text-[#f97316]" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.infoRequested}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-12" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.infoRequested}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Запрос информации</p>
               </div>
             </div>
@@ -209,9 +261,9 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="new">Новые</SelectItem>
-                  <SelectItem value="in-review">На рассмотрении</SelectItem>
-                  <SelectItem value="info-requested">Запрос информации</SelectItem>
+                  <SelectItem value="pending">Новые</SelectItem>
+                  <SelectItem value="in_review">На рассмотрении</SelectItem>
+                  <SelectItem value="info_requested">Запрос информации</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -231,37 +283,59 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredApplications.map((app) => (
-                <TableRow key={app.id} className={isUrgent(app.deadline) ? "bg-destructive/5" : ""}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{app.clientCompany}</span>
+              {isLoading ? (
+                <TableSkeleton />
+              ) : filteredApplications.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Inbox className="h-8 w-8" />
+                      <p>Заявки не найдены</p>
                     </div>
                   </TableCell>
-                  <TableCell>{app.productType}</TableCell>
-                  <TableCell className="font-medium">{formatCurrency(app.amount)}</TableCell>
-                  <TableCell>{getStatusBadge(app.status)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{app.receivedAt}</TableCell>
-                  <TableCell>
-                    <span className={isUrgent(app.deadline) ? "text-destructive font-medium" : "text-muted-foreground"}>
-                      {app.deadline}
-                      {isUrgent(app.deadline) && " !"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onOpenDetail(app.id)}
-                      className="gap-1 bg-transparent"
-                    >
-                      <Eye className="h-3 w-3" />
-                      Открыть
-                    </Button>
-                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredApplications.map((app) => (
+                  <TableRow
+                    key={app.id}
+                    className={isUrgent(app.created_at) ? "bg-destructive/5" : ""}
+                  >
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">
+                          {app.company_name || `Заявка #${app.id}`}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{app.product_type_display}</TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(app.amount)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(app.status)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(app.created_at)}
+                    </TableCell>
+                    <TableCell>
+                      <span className={isUrgent(app.created_at) ? "text-destructive font-medium" : "text-muted-foreground"}>
+                        {app.term_months} мес.
+                        {isUrgent(app.created_at) && " ⚠️"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onOpenDetail(app.id.toString())}
+                        className="gap-1 bg-transparent"
+                      >
+                        <Eye className="h-3 w-3" />
+                        Открыть
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

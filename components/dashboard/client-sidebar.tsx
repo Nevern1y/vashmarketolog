@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useAuth } from "@/lib/auth-context"
 
 interface ClientSidebarProps {
   activeView: ClientViewType
@@ -38,6 +39,12 @@ const toolsNavItems = [
 ]
 
 export function ClientSidebar({ activeView, onViewChange, onCreateApplication }: ClientSidebarProps) {
+  const { logout, user } = useAuth()
+
+  const handleLogout = async () => {
+    await logout()
+  }
+
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
       {/* Logo */}
@@ -126,14 +133,16 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
 
       {/* Footer */}
       <div className="border-t border-white/10 p-4">
-        {/* Manager Info */}
+        {/* User Info */}
         <div className="mb-4 flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-[#00d4aa]">
-            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">ДС</AvatarFallback>
+            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">
+              {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "К"}
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs text-[#94a3b8]">Ваш менеджер</p>
-            <p className="text-sm font-medium">Д. Сергеев</p>
+            <p className="text-xs text-[#94a3b8]">Клиент</p>
+            <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
           </div>
         </div>
 
@@ -152,7 +161,10 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
         </div>
 
         {/* Logout */}
-        <button className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors"
+        >
           <LogOut className="h-4 w-4" />
           Выйти
         </button>
