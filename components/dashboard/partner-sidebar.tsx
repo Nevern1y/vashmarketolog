@@ -1,0 +1,101 @@
+"use client"
+
+import type { PartnerViewType } from "@/lib/types"
+import { Inbox, Archive, LogOut, HelpCircle } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+interface PartnerSidebarProps {
+  activeView: PartnerViewType
+  onViewChange: (view: PartnerViewType) => void
+}
+
+const navItems = [
+  { id: "incoming" as PartnerViewType, label: "Входящие заявки", icon: Inbox },
+  { id: "archive" as PartnerViewType, label: "Архив", icon: Archive },
+]
+
+export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps) {
+  return (
+    <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-5 py-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]">
+          <span className="text-lg font-bold text-white">ФМ</span>
+        </div>
+        <div>
+          <p className="text-sm font-semibold leading-tight">ФИНАНСОВЫЙ</p>
+          <p className="text-xs text-[#94a3b8]">МАРКЕТПЛЕЙС</p>
+        </div>
+      </div>
+
+      {/* Partner Badge */}
+      <div className="mx-4 mb-4 rounded-lg bg-[#00d4aa]/10 px-4 py-3">
+        <p className="text-xs text-[#00d4aa]">Партнер</p>
+        <p className="text-sm font-semibold">ПАО Сбербанк</p>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3">
+        <ul className="space-y-1">
+          {navItems.map((item) => (
+            <li key={item.id}>
+              <button
+                onClick={() => onViewChange(item.id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                  activeView === item.id || (activeView === "application-detail" && item.id === "incoming")
+                    ? "bg-white/10 text-white"
+                    : "text-[#94a3b8] hover:bg-white/5 hover:text-white",
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.label}
+                {item.id === "incoming" && (
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#00d4aa] text-xs font-semibold">
+                    3
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-white/10 p-4">
+        {/* Account Manager */}
+        <div className="mb-4 flex items-center gap-3">
+          <Avatar className="h-10 w-10 border-2 border-[#00d4aa]">
+            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">МК</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="text-xs text-[#94a3b8]">Менеджер ФМ</p>
+            <p className="text-sm font-medium">М. Козлова</p>
+          </div>
+        </div>
+
+        {/* Support */}
+        <div className="mb-4">
+          <p className="mb-1 text-xs text-[#94a3b8]">Техподдержка</p>
+          <p className="mb-2 text-sm font-medium">8-800-800-00-00</p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-[#f97316] bg-transparent text-[#f97316] hover:bg-[#f97316] hover:text-white"
+          >
+            <HelpCircle className="mr-2 h-4 w-4" />
+            Связаться
+          </Button>
+        </div>
+
+        {/* Logout */}
+        <button className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors">
+          <LogOut className="h-4 w-4" />
+          Выйти
+        </button>
+      </div>
+    </aside>
+  )
+}
