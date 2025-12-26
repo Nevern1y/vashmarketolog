@@ -18,6 +18,38 @@ export interface ApplicationDocument {
     status: string;
 }
 
+// Nested company data for Partner/Bank view
+export interface CompanyDataForPartner {
+    id: number;
+    inn: string;
+    kpp: string;
+    ogrn: string;
+    name: string;
+    short_name: string;
+    legal_address: string;
+    actual_address: string;
+    director_name: string;
+    director_position: string;
+    // Passport fields
+    passport_series: string | null;
+    passport_number: string | null;
+    passport_issued_by: string | null;
+    passport_date: string | null;
+    passport_code: string | null;
+    // JSON data
+    founders_data: Array<{ name: string; inn?: string; share?: number }>;
+    bank_accounts_data: Array<{ account: string; bic: string; bank_name: string }>;
+    // Bank details
+    bank_name: string;
+    bank_bic: string;
+    bank_account: string;
+    bank_corr_account: string;
+    // Contact
+    contact_person: string;
+    contact_phone: string;
+    contact_email: string;
+}
+
 export interface Application {
     id: number;
     created_by: number;
@@ -26,6 +58,7 @@ export interface Application {
     company: number;
     company_name: string;
     company_inn: string;
+    company_data?: CompanyDataForPartner; // Full company info for Partner/Bank
     product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing';
     product_type_display: string;
     amount: string;
@@ -47,6 +80,7 @@ export interface Application {
     updated_at: string;
     submitted_at: string | null;
 }
+
 
 export interface ApplicationListItem {
     id: number;

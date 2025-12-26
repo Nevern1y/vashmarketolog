@@ -143,29 +143,88 @@ export function useMyCompany() {
         setError(null);
 
         try {
+            console.log("[DEBUG] updateCompany payload:", data);
             const response = await api.patch<Company>('/companies/me/', data);
+            console.log("[DEBUG] updateCompany success:", response);
             setCompany(response);
             return response;
         } catch (err) {
+            console.error("[DEBUG] updateCompany error:", err);
             const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка обновления профиля компании');
+
+            // Extract detailed error message
+            let errorMessage = 'Ошибка обновления профиля компании';
+
+            if (apiError.message && apiError.message !== 'An error occurred') {
+                errorMessage = apiError.message;
+            }
+
+            // Check for field-specific validation errors
+            if (apiError.errors && typeof apiError.errors === 'object') {
+                const fieldErrors = Object.entries(apiError.errors)
+                    .filter(([key]) => key !== 'detail' && key !== 'error' && key !== 'message' && key !== 'status')
+                    .map(([field, messages]) => {
+                        const fieldName = field.replace(/_/g, ' ');
+                        const msg = Array.isArray(messages) ? messages.join(', ') : String(messages);
+                        return `${fieldName}: ${msg}`;
+                    })
+                    .join('; ');
+
+                if (fieldErrors) {
+                    errorMessage = fieldErrors;
+                }
+            }
+
+            console.error("[DEBUG] Parsed error message:", errorMessage);
+            setError(errorMessage);
             return null;
         } finally {
             setIsSaving(false);
         }
     }, []);
 
+
+    // Note: Backend uses get_or_create, so we always use PATCH (not POST)
+    // The /companies/me/ endpoint auto-creates company on first access
     const createCompany = useCallback(async (data: CreateCompanyPayload): Promise<Company | null> => {
         setIsSaving(true);
         setError(null);
 
         try {
-            const response = await api.post<Company>('/companies/me/', data);
+            console.log("[DEBUG] createCompany (using PATCH) payload:", data);
+            // Use PATCH instead of POST - backend auto-creates via get_or_create
+            const response = await api.patch<Company>('/companies/me/', data);
+            console.log("[DEBUG] createCompany success:", response);
             setCompany(response);
             return response;
         } catch (err) {
+            console.error("[DEBUG] createCompany error:", err);
             const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка создания профиля компании');
+
+            // Extract detailed error message
+            let errorMessage = 'Ошибка создания профиля компании';
+
+            if (apiError.message && apiError.message !== 'An error occurred') {
+                errorMessage = apiError.message;
+            }
+
+            // Check for field-specific validation errors
+            if (apiError.errors && typeof apiError.errors === 'object') {
+                const fieldErrors = Object.entries(apiError.errors)
+                    .filter(([key]) => key !== 'detail' && key !== 'error' && key !== 'message' && key !== 'status')
+                    .map(([field, messages]) => {
+                        const fieldName = field.replace(/_/g, ' ');
+                        const msg = Array.isArray(messages) ? messages.join(', ') : String(messages);
+                        return `${fieldName}: ${msg}`;
+                    })
+                    .join('; ');
+
+                if (fieldErrors) {
+                    errorMessage = fieldErrors;
+                }
+            }
+
+            setError(errorMessage);
             return null;
         } finally {
             setIsSaving(false);

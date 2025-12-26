@@ -34,11 +34,24 @@ export default function DashboardPage() {
 
   // UI states
   const [isWizardOpen, setIsWizardOpen] = useState(false)
+  const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [selectedApplicationId, setSelectedApplicationId] = useState<string>("BG-2024-001")
   const [selectedPartnerApplicationId, setSelectedPartnerApplicationId] = useState<string>("1")
   const [showingAgentCRM, setShowingAgentCRM] = useState(false)
   const [showingAppDetail, setShowingAppDetail] = useState(false)
+
+  // Open wizard with optional pre-selected client
+  const openWizard = (clientId?: number) => {
+    setWizardClientId(clientId || null)
+    setIsWizardOpen(true)
+  }
+
+  // Close wizard and reset client
+  const closeWizard = () => {
+    setIsWizardOpen(false)
+    setWizardClientId(null)
+  }
 
   // Loading state - show spinner while checking auth
   if (isLoading) {
@@ -85,7 +98,7 @@ export default function DashboardPage() {
             <ClientSidebar
               activeView={clientView}
               onViewChange={setClientView}
-              onCreateApplication={() => setIsWizardOpen(true)}
+              onCreateApplication={() => openWizard()}
             />
           </div>
 
@@ -100,7 +113,7 @@ export default function DashboardPage() {
                   setIsMobileSidebarOpen(false)
                 }}
                 onCreateApplication={() => {
-                  setIsWizardOpen(true)
+                  openWizard()
                   setIsMobileSidebarOpen(false)
                 }}
               />
@@ -131,7 +144,7 @@ export default function DashboardPage() {
             </main>
           </div>
 
-          <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+          <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
         </div>
       )
 
@@ -202,7 +215,7 @@ export default function DashboardPage() {
                   setAgentView(view)
                   if (view !== "clients") setShowingAgentCRM(false)
                 }}
-                onCreateApplication={() => setIsWizardOpen(true)}
+                onCreateApplication={() => openWizard()}
               />
             </div>
 
@@ -217,7 +230,7 @@ export default function DashboardPage() {
                     if (view !== "clients") setShowingAgentCRM(false)
                   }}
                   onCreateApplication={() => {
-                    setIsWizardOpen(true)
+                    openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
                 />
@@ -227,11 +240,11 @@ export default function DashboardPage() {
             <div className="flex flex-1 flex-col overflow-hidden">
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-                <ClientsListView />
+                <ClientsListView onCreateApplication={(clientId) => openWizard(clientId)} />
               </main>
             </div>
 
-            <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
           </div>
         )
       }
@@ -244,7 +257,7 @@ export default function DashboardPage() {
               <Sidebar
                 activeView={agentView}
                 onViewChange={setAgentView}
-                onCreateApplication={() => setIsWizardOpen(true)}
+                onCreateApplication={() => openWizard()}
               />
             </div>
 
@@ -258,7 +271,7 @@ export default function DashboardPage() {
                     setIsMobileSidebarOpen(false)
                   }}
                   onCreateApplication={() => {
-                    setIsWizardOpen(true)
+                    openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
                 />
@@ -272,7 +285,7 @@ export default function DashboardPage() {
               </main>
             </div>
 
-            <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
           </div>
         )
       }
@@ -287,7 +300,7 @@ export default function DashboardPage() {
                 setAgentView(view)
                 if (view === "clients") setShowingAgentCRM(true)
               }}
-              onCreateApplication={() => setIsWizardOpen(true)}
+              onCreateApplication={() => openWizard()}
             />
           </div>
 
@@ -302,7 +315,7 @@ export default function DashboardPage() {
                   if (view === "clients") setShowingAgentCRM(true)
                 }}
                 onCreateApplication={() => {
-                  setIsWizardOpen(true)
+                  openWizard()
                   setIsMobileSidebarOpen(false)
                 }}
               />
@@ -329,7 +342,7 @@ export default function DashboardPage() {
             </main>
           </div>
 
-          <CreateApplicationWizard isOpen={isWizardOpen} onClose={() => setIsWizardOpen(false)} />
+          <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
         </div>
       )
 

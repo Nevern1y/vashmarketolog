@@ -6,15 +6,38 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Building2, Users, FileText, Phone, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { AddClientModal } from "./add-client-modal"
+import { EditClientSheet } from "./edit-client-sheet"
 import { useCRMClients, useCRMClientMutations, type CreateCompanyPayload } from "@/hooks/use-companies"
 import { toast } from "sonner"
 
-export function ClientsListView() {
+interface ClientsListViewProps {
+  onCreateApplication?: (clientId: number) => void
+}
+
+export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [clientToDelete, setClientToDelete] = useState<{ id: number; name: string } | null>(null)
+
+  // Edit sheet state
+  const [editSheetOpen, setEditSheetOpen] = useState(false)
+  const [clientToEdit, setClientToEdit] = useState<number | null>(null)
 
   // API Hooks
   const { clients, isLoading, error, refetch } = useCRMClients()
@@ -51,16 +74,46 @@ export function ClientsListView() {
     }
   }
 
-  // Handle delete client
-  const handleDeleteClient = async (id: number, name: string) => {
-    if (!confirm(`Удалить клиента "${name}"?`)) return
+  // Open delete confirmation dialog
+  const openDeleteDialog = (id: number, name: string) => {
+    setClientToDelete({ id, name })
+    setDeleteDialogOpen(true)
+  }
 
-    const success = await deleteClient(id)
+  // Confirm delete client
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return
+
+    const success = await deleteClient(clientToDelete.id)
     if (success) {
       toast.success("Клиент удален")
       refetch()
     } else {
       toast.error("Ошибка удаления клиента")
+    }
+
+    setDeleteDialogOpen(false)
+    setClientToDelete(null)
+  }
+
+  // Open edit sheet
+  const openEditSheet = (id: number) => {
+    setClientToEdit(id)
+    setEditSheetOpen(true)
+  }
+
+  // Close edit sheet
+  const closeEditSheet = () => {
+    setEditSheetOpen(false)
+    setClientToEdit(null)
+  }
+
+  // Navigate to create application with pre-selected client
+  const handleCreateApplication = (clientId: number) => {
+    if (onCreateApplication) {
+      onCreateApplication(clientId)
+    } else {
+      toast.info("Функция создания заявки недоступна")
     }
   }
 
@@ -274,21 +327,21 @@ export function ClientsListView() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditSheet(client.id)}>
                             <Eye className="h-4 w-4 mr-2" />
                             Просмотр
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditSheet(client.id)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Редактировать
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleCreateApplication(client.id)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Создать заявку
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive"
-                            onClick={() => handleDeleteClient(client.id, client.name)}
+                            onClick={() => openDeleteDialog(client.id, client.name)}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Удалить
@@ -304,11 +357,49 @@ export function ClientsListView() {
         </CardContent>
       </Card>
 
+      {/* Add Client Modal */}
       <AddClientModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSubmit={handleAddClient}
       />
+
+      {/* Edit Client Sheet */}
+      <EditClientSheet
+        isOpen={editSheetOpen}
+        clientId={clientToEdit}
+        onClose={closeEditSheet}
+        onSaved={() => refetch()}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие необратимо. Клиент <strong>"{clientToDelete?.name}"</strong> и все его заявки будут удалены.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={mutating}>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteClient}
+              disabled={mutating}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {mutating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Удаление...
+                </>
+              ) : (
+                "Удалить"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

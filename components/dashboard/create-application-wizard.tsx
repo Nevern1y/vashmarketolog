@@ -16,6 +16,7 @@ import { toast } from "sonner"
 interface CreateApplicationWizardProps {
   isOpen: boolean
   onClose: () => void
+  initialClientId?: number | null
 }
 
 const steps = [
@@ -44,7 +45,7 @@ const targetBanks = [
   { id: "other", label: "Другой банк" },
 ]
 
-export function CreateApplicationWizard({ isOpen, onClose }: CreateApplicationWizardProps) {
+export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: CreateApplicationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("")
@@ -66,6 +67,21 @@ export function CreateApplicationWizard({ isOpen, onClose }: CreateApplicationWi
   const { documents: verifiedDocs, isLoading: docsLoading } = useVerifiedDocuments()
   const { uploadDocument, isLoading: uploading } = useDocumentMutations()
   const { createApplication, submitApplication, isLoading: submitting, error } = useApplicationMutations()
+
+  // Set initial client when provided (e.g., from CRM "Create Application" action)
+  // Using useRef to track if we've already set the initial client
+  const initialClientSet = useRef(false)
+
+  // Effect to set initial client when wizard opens with a pre-selected client
+  if (isOpen && initialClientId && !initialClientSet.current) {
+    setSelectedCompanyId(initialClientId.toString())
+    initialClientSet.current = true
+  }
+
+  // Reset the flag when wizard closes
+  if (!isOpen && initialClientSet.current) {
+    initialClientSet.current = false
+  }
 
   if (!isOpen) return null
 
@@ -281,6 +297,21 @@ export function CreateApplicationWizard({ isOpen, onClose }: CreateApplicationWi
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Загрузка...
+                      </div>
+                    ) : initialClientId ? (
+                      // Pre-selected client from CRM - show as read-only
+                      <div className="space-y-1">
+                        <Input
+                          type="text"
+                          value={clients.find(c => c.id.toString() === selectedCompanyId)?.name ||
+                            clients.find(c => c.id.toString() === selectedCompanyId)?.short_name ||
+                            "Клиент выбран"}
+                          readOnly
+                          className="bg-muted"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Клиент выбран из CRM
+                        </p>
                       </div>
                     ) : (
                       <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>

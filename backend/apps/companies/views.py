@@ -83,16 +83,28 @@ class MyCompanyView(generics.RetrieveUpdateAPIView):
     serializer_class = CompanyProfileSerializer
 
     def get_object(self):
-        """Get or create user's own company profile."""
+        """Get or create user's own company profile.
+        
+        Uses filter().first() to handle edge case of duplicate records,
+        then creates if none exist.
+        """
         user = self.request.user
-        company, created = CompanyProfile.objects.get_or_create(
+        
+        # First try to get existing company
+        company = CompanyProfile.objects.filter(
             owner=user,
-            is_crm_client=False,
-            defaults={
-                'inn': '',
-                'name': '',
-            }
-        )
+            is_crm_client=False
+        ).first()
+        
+        # If no company exists, create one
+        if company is None:
+            company = CompanyProfile.objects.create(
+                owner=user,
+                is_crm_client=False,
+                inn='',
+                name='',
+            )
+        
         return company
 
 

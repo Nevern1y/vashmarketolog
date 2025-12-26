@@ -27,5 +27,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#  rules
-rules.md

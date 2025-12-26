@@ -218,8 +218,14 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+
+      // Debug logging
+      console.error("[API ERROR] Status:", response.status);
+      console.error("[API ERROR] URL:", response.url);
+      console.error("[API ERROR] Response:", errorData);
+
       const error: ApiError = {
-        message: errorData.detail || errorData.error || 'An error occurred',
+        message: errorData.detail || errorData.error || errorData.non_field_errors?.[0] || 'An error occurred',
         status: response.status,
         errors: errorData,
       };
