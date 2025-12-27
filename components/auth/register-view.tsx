@@ -46,7 +46,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
     }
     setErrors(newErrors)
     if (isValid) {
-      console.log("Register submitted", { role, email, phone, password })
+      console.log("Register submitted", { role, email, phone })
     }
   }
 
@@ -87,18 +87,16 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           <button
             type="button"
             onClick={() => setRole("client")}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${
-              role === "client" ? "bg-[#00d4aa] text-white" : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${role === "client" ? "bg-[#00d4aa] text-white" : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <User className="h-4 w-4" />Я КЛИЕНТ
           </button>
           <button
             type="button"
             onClick={() => setRole("agent")}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${
-              role === "agent" ? "bg-[#00d4aa] text-white" : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-medium transition-colors ${role === "agent" ? "bg-[#00d4aa] text-white" : "text-muted-foreground hover:text-foreground"
+              }`}
           >
             <User className="h-4 w-4" />Я АГЕНТ
           </button>

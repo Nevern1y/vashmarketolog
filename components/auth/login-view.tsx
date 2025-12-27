@@ -30,7 +30,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
     setErrors(newErrors)
     if (isValid) {
       // Handle login
-      console.log("Login submitted", { email, password })
+      console.log("Login submitted", { email })
     }
   }
 

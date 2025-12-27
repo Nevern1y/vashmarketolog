@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -16,7 +17,9 @@ import {
 } from "lucide-react"
 import { ApplicationChat } from "./application-chat"
 import { useApplication } from "@/hooks/use-applications"
+import { useDocumentMutations } from "@/hooks/use-documents"
 import { useAuth } from "@/lib/auth-context"
+import { toast } from "sonner"
 import {
   getStatusConfig,
   getStepFromStatus,
@@ -55,6 +58,44 @@ const formatDate = (isoDate: string | null) => {
 export function ApplicationDetailView({ applicationId, onBack }: ApplicationDetailViewProps) {
   const { user } = useAuth()
   const { application, isLoading, error, refetch } = useApplication(applicationId)
+  const { uploadDocument, isLoading: isUploading } = useDocumentMutations()
+
+  // State for re-upload functionality
+  const [replacingDocId, setReplacingDocId] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Handle re-upload click - opens file picker for specific document
+  const handleReuploadClick = (docId: number) => {
+    setReplacingDocId(docId)
+    fileInputRef.current?.click()
+  }
+
+  // Handle file selection for re-upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !replacingDocId) {
+      setReplacingDocId(null)
+      return
+    }
+
+    // Upload new document (MVP: uploads as new, doesn't actually replace)
+    const doc = await uploadDocument({
+      name: file.name,
+      file: file,
+      document_type: 'other',
+    })
+
+    if (doc?.id) {
+      toast.success(`Документ "${file.name}" загружен`)
+      refetch() // Refresh application to show new state
+    } else {
+      toast.error('Ошибка загрузки документа')
+    }
+
+    // Reset state
+    setReplacingDocId(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
 
   // Derive current step from application status
   const currentStep = application ? getStepFromStatus(application.status) : 0
@@ -231,8 +272,18 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                           <StatusIcon className={cn("h-5 w-5 shrink-0", docConfig.color)} />
                           <span className={cn("text-xs font-medium", docConfig.color)}>{docConfig.label}</span>
                           {showReplaceButton && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs bg-white ml-2">
-                              <RefreshCw className="mr-1 h-3 w-3" />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs bg-white ml-2"
+                              onClick={() => handleReuploadClick(doc.id)}
+                              disabled={isUploading && replacingDocId === doc.id}
+                            >
+                              {isUploading && replacingDocId === doc.id ? (
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="mr-1 h-3 w-3" />
+                              )}
                               Загрузить заново
                             </Button>
                           )}
@@ -247,9 +298,21 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                 </p>
               )}
 
+              {/* Hidden file input for re-upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                onChange={handleFileChange}
+              />
+
               {/* Upload zone (only for drafts or info_requested) */}
               {(application.status === 'draft' || application.status === 'info_requested') && (
-                <div className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center transition-colors hover:border-[#00d4aa] hover:bg-[#00d4aa]/5 cursor-pointer">
+                <div
+                  className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center transition-colors hover:border-[#00d4aa] hover:bg-[#00d4aa]/5 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Upload className="mx-auto h-8 w-8 text-muted-foreground" />
                   <p className="mt-2 text-sm font-medium text-foreground">Загрузить дополнительные файлы</p>
                   <p className="text-xs text-muted-foreground">Перетащите файлы сюда или нажмите для выбора</p>
