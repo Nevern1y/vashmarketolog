@@ -222,7 +222,7 @@ class ApiClient {
       // Debug logging
       console.error("[API ERROR] Status:", response.status);
       console.error("[API ERROR] URL:", response.url);
-      console.error("[API ERROR] Response:", errorData);
+      console.error("[API ERROR] Response:", JSON.stringify(errorData, null, 2));
 
       const error: ApiError = {
         message: errorData.detail || errorData.error || errorData.non_field_errors?.[0] || 'An error occurred',

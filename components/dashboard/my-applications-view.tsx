@@ -52,7 +52,7 @@ export function MyApplicationsView({ onOpenDetail }: MyApplicationsViewProps) {
   const { applications, isLoading, error, refetch } = useApplications()
 
   // Filter applications based on tab, search, and status
-  const filteredApplications = applications.filter((app) => {
+  const filteredApplications = (applications || []).filter((app) => {
     // Filter by tab (product type)
     const appTab = productTypeToTab[app.product_type] || "tenders"
     if (appTab !== activeTab) return false

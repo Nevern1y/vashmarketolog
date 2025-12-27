@@ -66,11 +66,13 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = [
+            'id',  # Include in response for frontend to track uploaded document
             'name',
             'file',
             'document_type',
             'company',
         ]
+        read_only_fields = ['id']  # id is auto-generated
 
     def validate_file(self, value):
         """Validate file size and type."""

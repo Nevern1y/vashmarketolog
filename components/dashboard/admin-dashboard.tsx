@@ -1,221 +1,912 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { Search, Check, X, Shield, Loader2, RefreshCw, Building2 } from "lucide-react"
-import { useApplications } from "@/hooks/use-applications"
+import {
+  Search, Shield, Loader2, RefreshCw, Building2, Eye, FileText,
+  DollarSign, Calendar, User, ExternalLink, Download, MessageSquare,
+  RotateCcw, UserPlus, LogOut, Clock, StickyNote, X, ChevronRight,
+  CheckCircle2, XCircle, AlertTriangle
+} from "lucide-react"
+import { useApplications, useApplication, usePartnerActions } from "@/hooks/use-applications"
+import { usePartners } from "@/hooks/use-partners"
+import { useAuth } from "@/lib/auth-context"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { ApplicationChat } from "./application-chat"
+import { PartnersTab } from "./partners-tab"
 
-const statusConfig: Record<string, { label: string; className: string }> = {
-  approved: { label: "Одобрено", className: "bg-green-100 text-green-700" },
-  rejected: { label: "Отклонено", className: "bg-red-100 text-red-700" },
-  declined: { label: "Отклонено", className: "bg-red-100 text-red-700" },
-  pending: { label: "Новая", className: "bg-cyan-100 text-cyan-700" },
-  in_review: { label: "На рассмотрении", className: "bg-blue-100 text-blue-700" },
-  info_requested: { label: "Запрос информации", className: "bg-orange-100 text-orange-700" },
-  draft: { label: "Черновик", className: "bg-gray-100 text-gray-600" },
-  won: { label: "Выигран", className: "bg-emerald-100 text-emerald-700" },
-  lost: { label: "Проигран", className: "bg-rose-100 text-rose-700" },
+// ============================================
+// TOR-COMPLIANT STATUS CONFIGURATION
+// ============================================
+const statusConfig: Record<string, { label: string; className: string; icon?: React.ReactNode }> = {
+  approved: {
+    label: "Одобрено",
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    icon: <CheckCircle2 className="h-3 w-3" />
+  },
+  rejected: {
+    label: "Отклонено",
+    className: "bg-red-50 text-red-700 border border-red-200",
+    icon: <XCircle className="h-3 w-3" />
+  },
+  declined: {
+    label: "Отклонено",
+    className: "bg-red-50 text-red-700 border border-red-200",
+    icon: <XCircle className="h-3 w-3" />
+  },
+  pending: {
+    label: "Новая",
+    className: "bg-blue-50 text-blue-700 border border-blue-200"
+  },
+  in_review: {
+    label: "В обработке",
+    className: "bg-blue-50 text-blue-700 border border-blue-200"
+  },
+  info_requested: {
+    label: "Запрос инфо",
+    className: "bg-amber-50 text-amber-700 border border-amber-200",
+    icon: <AlertTriangle className="h-3 w-3" />
+  },
+  draft: {
+    label: "Черновик",
+    className: "bg-slate-50 text-slate-600 border border-slate-200"
+  },
+  won: {
+    label: "Выигран",
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    icon: <CheckCircle2 className="h-3 w-3" />
+  },
+  lost: {
+    label: "Проигран",
+    className: "bg-red-50 text-red-700 border border-red-200"
+  },
 }
 
 export function AdminDashboard() {
   const { applications, isLoading, error, refetch } = useApplications()
+  const { partners } = usePartners()
+  const { logout } = useAuth()
+  const { assignPartner, requestInfo, approveApplication, rejectApplication, restoreApplication, saveNotes, isLoading: isActioning } = usePartnerActions()
+
+  // State
+  const [activeTab, setActiveTab] = useState<"applications" | "partners">("applications")
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [selectedAppId, setSelectedAppId] = useState<number | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>("")
+  const [internalNotes, setInternalNotes] = useState<string>("")
+  const [showReturnDialog, setShowReturnDialog] = useState(false)
+  const [showApproveDialog, setShowApproveDialog] = useState(false)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
+  const [noteSaved, setNoteSaved] = useState(false)
 
-  const handleApprove = (id: number) => {
-    // TODO: Implement assign to partner flow
-    console.log("Approve application:", id)
+  // Fetch detailed application data when drawer opens
+  const { application: selectedApp, isLoading: isLoadingApp, refetch: refetchApp } = useApplication(drawerOpen ? selectedAppId : null)
+
+  // Handlers
+  const handleViewDetails = (appId: number) => {
+    setSelectedAppId(appId)
+    setSelectedPartnerId("")
+    setDrawerOpen(true)
   }
 
-  const handleReject = (id: number) => {
-    // TODO: Implement reject flow
-    console.log("Reject application:", id)
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false)
+    setSelectedAppId(null)
+    setSelectedPartnerId("")
   }
 
-  const filteredApplications = applications.filter(
-    (app) =>
-      app.id.toString().includes(searchQuery.toLowerCase()) ||
-      app.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (app.target_bank_name || "").toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const handleAssignPartner = async () => {
+    if (!selectedApp || !selectedPartnerId) return
+    const result = await assignPartner(selectedApp.id, parseInt(selectedPartnerId))
+    if (result) {
+      refetch()
+      refetchApp()
+      setSelectedPartnerId("")
+    }
+  }
 
-  const pendingCount = applications.filter((a) => a.status === "pending" || a.status === "in_review").length
+  const handleRequestInfo = async () => {
+    if (!selectedApp) return
+    const result = await requestInfo(selectedApp.id)
+    if (result) {
+      refetch()
+      refetchApp()
+    }
+    setShowReturnDialog(false)
+  }
+
+  const handleApprove = async () => {
+    if (!selectedApp) return
+    const result = await approveApplication(selectedApp.id)
+    if (result) {
+      refetch()
+      refetchApp()
+    }
+    setShowApproveDialog(false)
+  }
+
+  const handleReject = async () => {
+    if (!selectedApp) return
+    const result = await rejectApplication(selectedApp.id)
+    if (result) {
+      refetch()
+      refetchApp()
+    }
+    setShowRejectDialog(false)
+  }
+
+  const handleRestore = async () => {
+    if (!selectedApp) return
+    const result = await restoreApplication(selectedApp.id)
+    if (result) {
+      refetch()
+      refetchApp()
+    }
+    setShowRestoreDialog(false)
+  }
+
+  const handleSaveNotes = async () => {
+    if (!selectedApp) return
+    const result = await saveNotes(selectedApp.id, internalNotes)
+    if (result) {
+      setNoteSaved(true)
+      setTimeout(() => setNoteSaved(false), 2000)
+    }
+  }
+
+  // Sync notes when selectedApp changes
+  useEffect(() => {
+    if (selectedApp?.notes) {
+      setInternalNotes(selectedApp.notes)
+    } else {
+      setInternalNotes("")
+    }
+    setNoteSaved(false)
+  }, [selectedApp])
+
+  // Filtered applications
+  const filteredApplications = (applications || []).filter((app) => {
+    // Status filter
+    if (statusFilter !== "all" && app.status !== statusFilter) {
+      return false
+    }
+    // Search query
+    const query = searchQuery.toLowerCase()
+    return (
+      app.id.toString().includes(query) ||
+      app.company_name?.toLowerCase().includes(query) ||
+      (app.company_inn || "").toLowerCase().includes(query) ||
+      (app.target_bank_name || "").toLowerCase().includes(query)
+    )
+  })
+
+  const pendingCount = (applications || []).filter((a) => a.status === "pending" || a.status === "in_review").length
+
+  // Formatters
+  const formatCurrency = (amount: string) => {
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "RUB",
+      maximumFractionDigits: 0,
+    }).format(parseFloat(amount))
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
+  }
+
+  const getCheckoUrl = (inn?: string) => {
+    if (!inn) return null
+    return `https://checko.ru/company/${inn}`
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Admin Header */}
-      <header className="border-b bg-[#0a1628] px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#f97316]">
-            <Shield className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <p className="text-lg font-bold text-white">LIDER GARANT | ADMINISTRATOR</p>
-            <p className="text-xs text-white/60">Панель модерации заявок</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* ============================================ */}
+      {/* PREMIUM HEADER */}
+      {/* ============================================ */}
+      <header className="sticky top-0 z-40 border-b bg-slate-900 shadow-lg">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 shadow-lg shadow-orange-500/20">
+                <Shield className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight text-white">LIDER GARANT</h1>
+                <p className="text-xs font-medium text-slate-400">Административная панель</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => logout()}
+              className="gap-2 text-slate-300 hover:text-white hover:bg-slate-800"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Выход</span>
+            </Button>
           </div>
         </div>
       </header>
 
+      {/* ============================================ */}
+      {/* MAIN CONTENT */}
+      {/* ============================================ */}
       <main className="p-6 lg:p-8">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Все заявки</h1>
-            <p className="text-muted-foreground">
-              Ожидают рассмотрения: <span className="font-semibold text-[#f97316]">{pendingCount}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isLoading}
-              className="gap-2"
-            >
-              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-              Обновить
-            </Button>
-            <div className="relative w-full max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Поиск по ID, клиенту, банку..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
+        {/* Tab Navigation */}
+        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 pb-4">
+          <button
+            onClick={() => setActiveTab("applications")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors",
+              activeTab === "applications"
+                ? "bg-blue-100 text-blue-700"
+                : "text-gray-600 hover:bg-gray-100"
+            )}
+          >
+            <FileText className="h-4 w-4" />
+            Заявки
+            <Badge variant="secondary" className="ml-1 bg-amber-100 text-amber-700">
+              {pendingCount}
+            </Badge>
+          </button>
+          <button
+            onClick={() => setActiveTab("partners")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors",
+              activeTab === "partners"
+                ? "bg-blue-100 text-blue-700"
+                : "text-gray-600 hover:bg-gray-100"
+            )}
+          >
+            <Building2 className="h-4 w-4" />
+            Партнёры
+          </button>
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
-            <span className="ml-2 text-muted-foreground">Загрузка заявок...</span>
-          </div>
-        )}
+        {/* Partners Tab Content */}
+        {activeTab === "partners" && <PartnersTab />}
 
-        {/* Error State */}
-        {error && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="py-8 text-center">
-              <p className="text-red-600">{error}</p>
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
-                Повторить
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Applications Table */}
-        {!isLoading && !error && (
-          <Card className="shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">ID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Дата</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Клиент</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Продукт</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Сумма</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Building2 className="h-3.5 w-3.5" />
-                          Целевой банк
-                        </div>
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">Статус</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium uppercase text-muted-foreground">
-                        Действия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredApplications.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
-                          {searchQuery ? "Заявки не найдены" : "Нет заявок"}
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredApplications.map((app, index) => {
-                        const statusCfg = statusConfig[app.status] || { label: app.status_display || app.status, className: "bg-gray-100 text-gray-600" }
-                        const formattedDate = new Date(app.created_at).toLocaleDateString("ru-RU")
-                        const formattedAmount = new Intl.NumberFormat("ru-RU", {
-                          style: "currency",
-                          currency: "RUB",
-                          maximumFractionDigits: 0,
-                        }).format(parseFloat(app.amount))
-
-                        return (
-                          <tr
-                            key={app.id}
-                            className={cn("border-b transition-colors hover:bg-muted/50", index % 2 === 0 ? "bg-white" : "bg-muted/10")}
-                          >
-                            <td className="px-4 py-4 text-sm font-medium">#{app.id}</td>
-                            <td className="px-4 py-4 text-sm text-muted-foreground">{formattedDate}</td>
-                            <td className="px-4 py-4 text-sm">{app.company_name || "—"}</td>
-                            <td className="px-4 py-4 text-sm">{app.product_type_display}</td>
-                            <td className="px-4 py-4 text-sm font-medium">{formattedAmount}</td>
-                            <td className="px-4 py-4 text-sm">
-                              {app.target_bank_name ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
-                                  <Building2 className="h-3 w-3" />
-                                  {app.target_bank_name}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-4">
-                              <span
-                                className={cn(
-                                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                                  statusCfg.className,
-                                )}
-                              >
-                                {statusCfg.label}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleApprove(app.id)}
-                                  disabled={app.status === "approved" || app.status === "won"}
-                                  className="h-8 text-green-600 hover:bg-green-50 hover:text-green-700 disabled:opacity-50"
-                                >
-                                  <Check className="mr-1 h-4 w-4" />
-                                  Назначить
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleReject(app.id)}
-                                  disabled={app.status === "rejected" || app.status === "declined"}
-                                  className="h-8 text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
-                                >
-                                  <X className="mr-1 h-4 w-4" />
-                                  Отклонить
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
+        {/* Applications Tab Content */}
+        {activeTab === "applications" && (
+          <>
+            {/* Page Header */}
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Заявки</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Ожидают рассмотрения: <span className="font-semibold text-amber-600">{pendingCount}</span>
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refetch()}
+                  disabled={isLoading}
+                  className="gap-2 border-gray-300 hover:bg-gray-100"
+                >
+                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                  Обновить
+                </Button>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[160px] bg-white">
+                    <SelectValue placeholder="Статус" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все статусы</SelectItem>
+                    <SelectItem value="pending">Новые</SelectItem>
+                    <SelectItem value="in_review">В обработке</SelectItem>
+                    <SelectItem value="info_requested">Запрос инфо</SelectItem>
+                    <SelectItem value="approved">Одобрено</SelectItem>
+                    <SelectItem value="rejected">Отклонено</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="relative w-full max-w-xs">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    placeholder="Поиск..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+                  <span className="text-sm text-gray-500">Загрузка заявок...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="py-8 text-center">
+                  <XCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
+                  <p className="text-red-700 font-medium">{error}</p>
+                  <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
+                    Повторить
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ============================================ */}
+            {/* PRO DATA GRID */}
+            {/* ============================================ */}
+            {!isLoading && !error && (
+              <Card className="shadow-sm border-gray-200 overflow-hidden bg-white">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    {/* Table Header - TOR Compliant */}
+                    <thead>
+                      <tr className="bg-gray-100/80 border-b border-gray-200">
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">ID</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Дата</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Клиент</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Продукт</th>
+                        <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Сумма</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            Банк
+                          </span>
+                        </th>
+                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Статус</th>
+                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-500">Действие</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredApplications.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-16 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <FileText className="h-10 w-10 text-gray-300" />
+                              <p className="text-gray-500 font-medium">
+                                {searchQuery ? "Заявки не найдены" : "Нет заявок"}
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredApplications.map((app) => {
+                          const statusCfg = statusConfig[app.status] || {
+                            label: app.status_display || app.status,
+                            className: "bg-gray-50 text-gray-600 border border-gray-200"
+                          }
+
+                          return (
+                            <tr
+                              key={app.id}
+                              className="group cursor-pointer transition-colors hover:bg-blue-50/40"
+                              onClick={() => handleViewDetails(app.id)}
+                            >
+                              {/* ID - Monospace */}
+                              <td className="px-4 py-4">
+                                <span className="font-mono text-sm font-medium text-gray-900">#{app.id}</span>
+                              </td>
+
+                              {/* Date */}
+                              <td className="px-4 py-4">
+                                <span className="text-sm text-gray-500">{formatDate(app.created_at)}</span>
+                              </td>
+
+                              {/* Client - Bold + INN */}
+                              <td className="px-4 py-3">
+                                {app.company_name && app.company_name !== '—' ? (
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-900">{app.company_name}</span>
+                                    <span className="text-xs text-gray-500 font-mono">
+                                      ИНН: {app.company_inn && app.company_inn !== '—' ? app.company_inn : "—"}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-gray-400">—</span>
+                                )}
+                              </td>
+
+                              {/* Product */}
+                              <td className="px-4 py-4">
+                                <span className="text-sm text-gray-600">{app.product_type_display}</span>
+                              </td>
+
+                              {/* Amount - Monospace Right-Aligned */}
+                              <td className="px-4 py-4 text-right">
+                                <span className="font-mono text-sm font-semibold text-gray-900">
+                                  {formatCurrency(app.amount)}
+                                </span>
+                              </td>
+
+                              {/* Bank */}
+                              <td className="px-4 py-4">
+                                {app.target_bank_name ? (
+                                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+                                    <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                                    {app.target_bank_name}
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-gray-400">—</span>
+                                )}
+                              </td>
+
+                              {/* Status - TOR Pill */}
+                              <td className="px-4 py-4">
+                                <span className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+                                  statusCfg.className
+                                )}>
+                                  {statusCfg.icon}
+                                  {statusCfg.label}
+                                </span>
+                              </td>
+
+                              {/* Action - Ghost Button */}
+                              <td className="px-4 py-4 text-center">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleViewDetails(app.id)
+                                  }}
+                                  className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </>
         )}
       </main>
+
+      {/* ============================================ */}
+      {/* PREMIUM SLIDE-OVER DRAWER */}
+      {/* ============================================ */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop with blur */}
+          <div
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm transition-opacity"
+            onClick={handleCloseDrawer}
+          />
+
+          {/* Drawer Panel */}
+          <div className="absolute inset-y-0 right-0 w-full max-w-[600px] bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            {/* Sticky Header */}
+            <div className="flex-shrink-0 sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Заявка <span className="font-mono">#{selectedApp?.id}</span>
+                  </h2>
+                  {selectedApp && (
+                    <span className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium",
+                      statusConfig[selectedApp.status]?.className || "bg-gray-100 text-gray-600"
+                    )}>
+                      {statusConfig[selectedApp.status]?.icon}
+                      {statusConfig[selectedApp.status]?.label || selectedApp.status}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCloseDrawer}
+                  className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto">
+              {isLoadingApp ? (
+                <div className="flex items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                </div>
+              ) : selectedApp ? (
+                <div className="p-6 space-y-6">
+                  {/* Client Intelligence Card */}
+                  <Card className="border-gray-200 shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-gray-400" />
+                        Информация о клиенте
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Компания</p>
+                          <p className="text-sm font-semibold text-gray-900 mt-1">
+                            {selectedApp.company_name || "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ИНН</p>
+                          <p className="text-sm font-mono text-gray-900 mt-1">
+                            {selectedApp.company_inn || "—"}
+                          </p>
+                        </div>
+                        {selectedApp.company_data?.director_name && (
+                          <div className="col-span-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Директор</p>
+                            <p className="text-sm text-gray-900 mt-1 flex items-center gap-2">
+                              <User className="h-4 w-4 text-gray-400" />
+                              {selectedApp.company_data.director_name}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedApp.company_inn && (
+                        <a
+                          href={getCheckoUrl(selectedApp.company_inn) || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Проверить на Checko.ru
+                          <ChevronRight className="h-3 w-3" />
+                        </a>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Application Summary */}
+                  <Card className="border-gray-200 shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-400" />
+                        Параметры заявки
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                          <DollarSign className="h-5 w-5 text-green-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Сумма</p>
+                            <p className="font-mono font-semibold text-gray-900">
+                              {formatCurrency(selectedApp.amount)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                          <Calendar className="h-5 w-5 text-blue-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Срок</p>
+                            <p className="font-semibold text-gray-900">{selectedApp.term_months} мес.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                          <FileText className="h-5 w-5 text-purple-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Продукт</p>
+                            <p className="font-semibold text-gray-900">{selectedApp.product_type_display}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                          <Building2 className="h-5 w-5 text-amber-600" />
+                          <div>
+                            <p className="text-xs text-gray-500">Целевой банк</p>
+                            <p className="font-semibold text-gray-900">{selectedApp.target_bank_name || "—"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Manager Notes - Sticky Note Style */}
+                  <Card className="border-amber-200 bg-amber-50/50 shadow-sm">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                        <StickyNote className="h-4 w-4" />
+                        Заметки менеджера
+                      </CardTitle>
+                      <CardDescription className="text-xs text-amber-600">
+                        Только для администратора
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        placeholder="Внутренние заметки по заявке..."
+                        value={internalNotes}
+                        onChange={(e) => setInternalNotes(e.target.value)}
+                        className="min-h-[80px] resize-none bg-white/80 border-amber-200 focus:border-amber-400 focus:ring-amber-400"
+                      />
+                      <div className="flex items-center justify-between mt-2">
+                        <span className={cn(
+                          "text-xs transition-opacity",
+                          noteSaved ? "text-green-600 opacity-100" : "opacity-0"
+                        )}>
+                          ✓ Сохранено
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleSaveNotes}
+                          disabled={isActioning}
+                          className="h-7 px-3 text-xs border-amber-300 text-amber-700 hover:bg-amber-100"
+                        >
+                          💾 Сохранить
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Partner Assignment */}
+                  <Card className="border-gray-200 shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <UserPlus className="h-4 w-4 text-gray-400" />
+                        Назначение партнёра
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-3">
+                        <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
+                          <SelectTrigger className="flex-1 bg-white">
+                            <SelectValue placeholder="Выберите партнёра..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {partners.map((partner) => {
+                              // Extract bank name from last_name (format: "LastName (BankName)")
+                              const lastNameParts = partner.last_name?.match(/(.+?)\s*\((.+)\)/)
+                              const bankName = lastNameParts ? lastNameParts[2] : partner.last_name
+                              const displayName = bankName || `${partner.first_name} ${partner.last_name}`.trim()
+                              return (
+                                <SelectItem key={partner.id} value={partner.id.toString()}>
+                                  {displayName} ({partner.email})
+                                </SelectItem>
+                              )
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={handleAssignPartner}
+                          disabled={!selectedPartnerId || isActioning}
+                          className="gap-2 bg-blue-600 hover:bg-blue-700"
+                        >
+                          {isActioning ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <UserPlus className="h-4 w-4" />
+                          )}
+                          Назначить
+                        </Button>
+                      </div>
+                      {selectedApp.partner_email && (
+                        <p className="mt-3 text-sm text-gray-600">
+                          Текущий партнёр: <span className="font-medium text-blue-600">{selectedApp.partner_email}</span>
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Chat Module */}
+                  <Card className="border-gray-200 shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-gray-400" />
+                        Чат по заявке
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <ApplicationChat applicationId={selectedApp.id} className="border-0 shadow-none" />
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center py-20 text-gray-500">
+                  Заявка не найдена
+                </div>
+              )}
+            </div>
+
+            {/* Sticky Footer Actions */}
+            {selectedApp && (
+              <div className="flex-shrink-0 sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  {/* Show Restore button for rejected applications */}
+                  {selectedApp.status === "rejected" ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowRestoreDialog(true)}
+                      disabled={isActioning}
+                      className="gap-2 flex-1 border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Восстановить
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="destructive"
+                        onClick={() => setShowRejectDialog(true)}
+                        disabled={isActioning}
+                        className="gap-2 flex-1"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Отклонить
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowReturnDialog(true)}
+                        disabled={isActioning || selectedApp.status === "info_requested"}
+                        className="gap-2 flex-1 border-amber-300 text-amber-700 hover:bg-amber-50"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        Вернуть
+                      </Button>
+                      <Button
+                        onClick={() => setShowApproveDialog(true)}
+                        disabled={isActioning || selectedApp.status === "approved" || selectedApp.status === "in_review"}
+                        className="gap-2 flex-1 bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Одобрить
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============================================ */}
+      {/* ALERT DIALOG - Return to Revision */}
+      {/* ============================================ */}
+      <AlertDialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Вернуть заявку на доработку?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Заявка будет возвращена агенту для предоставления дополнительной информации.
+              Статус изменится на «Запрос информации».
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRequestInfo}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Подтвердить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ============================================ */}
+      {/* ALERT DIALOG - Approve Application */}
+      {/* ============================================ */}
+      <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              Одобрить заявку?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Заявка будет переведена в статус «В работе» и станет доступна для партнёров.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleApprove}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              Одобрить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ============================================ */}
+      {/* ALERT DIALOG - Reject Application */}
+      {/* ============================================ */}
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-red-500" />
+              Отклонить заявку?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Заявка будет отклонена. Это действие можно отменить позже, изменив статус вручную.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReject}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Отклонить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ============================================ */}
+      {/* ALERT DIALOG - Restore Application */}
+      {/* ============================================ */}
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-blue-500" />
+              Восстановить заявку?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Заявка будет возвращена на рассмотрение со статусом «Новая».
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRestore}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Восстановить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

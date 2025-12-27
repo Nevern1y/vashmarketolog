@@ -212,3 +212,48 @@ class PartnerDecision(models.Model):
 
     def __str__(self):
         return f"Решение от {self.partner.email}: {self.get_decision_display()}"
+
+
+class TicketMessage(models.Model):
+    """
+    Chat message within an application.
+    
+    Allows Agent <-> Admin <-> Partner communication.
+    Uses REST API + Polling for MVP (WebSocket deferred to Phase 2).
+    """
+    application = models.ForeignKey(
+        Application,
+        on_delete=models.CASCADE,
+        related_name='ticket_chat',
+        verbose_name='Заявка'
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='ticket_messages',
+        verbose_name='Отправитель'
+    )
+    content = models.TextField('Сообщение', blank=True, default='')
+    file = models.FileField(
+        'Вложение',
+        upload_to='chat_files/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text='Документ (PDF, JPG, PNG и др.)'
+    )
+    created_at = models.DateTimeField('Дата отправки', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Сообщение чата'
+        verbose_name_plural = 'Сообщения чата'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Сообщение от {self.sender.email} в заявке #{self.application_id}"
+
+    @property
+    def file_url(self):
+        """Return file URL if file exists."""
+        if self.file:
+            return self.file.url
+        return None

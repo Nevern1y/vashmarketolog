@@ -114,10 +114,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         document_type: "other",
       })
 
-      if (doc) {
+      // Debug: log what we got from upload
+      console.log("[Wizard] uploadDocument response:", doc)
+
+      if (doc && doc.id) {
         setUploadedDocIds(prev => [...prev, doc.id])
-        toast.success(`Документ "${file.name}" загружен`)
+        toast.success(`Документ "${file.name}" загружен (ID: ${doc.id})`)
       } else {
+        console.error("[Wizard] Upload failed or no ID returned:", doc)
         toast.error(`Ошибка загрузки "${file.name}"`)
       }
     }
@@ -149,24 +153,50 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       return
     }
 
-    // Combine selected and uploaded docs
-    const allDocIds = [...selectedDocumentIds, ...uploadedDocIds]
+    // Combine selected and uploaded docs, filter out any falsy values
+    const allDocIds = [...selectedDocumentIds, ...uploadedDocIds].filter(id => id && typeof id === 'number')
+
+    // Debug: log document IDs
+    console.log("[Wizard] selectedDocumentIds:", selectedDocumentIds)
+    console.log("[Wizard] uploadedDocIds:", uploadedDocIds)
+    console.log("[Wizard] allDocIds (filtered):", allDocIds)
 
     // Get target bank label for display
     const targetBankLabel = targetBanks.find(b => b.id === targetBank)?.label || targetBank
 
-    // Create application
-    const app = await createApplication({
+    // Build payload - only include document_ids if there are any
+    const payload: {
+      company: number
+      product_type: string
+      amount: string
+      term_months: number
+      notes: string
+      target_bank_name: string
+      document_ids?: number[]
+    } = {
       company: companyId,
       product_type: selectedProduct,
       amount: amount.replace(/\s/g, ""),
       term_months: parseInt(term),
       notes: notes,
-      document_ids: allDocIds,
       target_bank_name: targetBankLabel,
-    })
+    }
 
-    if (app) {
+    // Only add document_ids if we have valid IDs
+    if (allDocIds.length > 0) {
+      payload.document_ids = allDocIds
+    }
+
+    // Debug: log full payload
+    console.log("[Wizard] Final payload:", JSON.stringify(payload, null, 2))
+
+    // Create application
+    const app = await createApplication(payload)
+
+    // Debug: log what we got back
+    console.log("[Wizard] createApplication response:", app)
+
+    if (app && app.id) {
       // Submit application
       const submitted = await submitApplication(app.id)
 
@@ -177,6 +207,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         toast.success("Заявка создана как черновик")
         resetAndClose()
       }
+    } else if (app) {
+      // Created but no id - still a draft
+      console.warn("[Wizard] Application created but no ID returned:", app)
+      toast.success("Заявка создана как черновик")
+      resetAndClose()
     } else {
       toast.error(error || "Ошибка создания заявки")
     }

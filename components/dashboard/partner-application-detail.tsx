@@ -36,6 +36,7 @@ import {
 } from "lucide-react"
 import { useApplication, usePartnerActions } from "@/hooks/use-applications"
 import { toast } from "sonner"
+import { ApplicationChat } from "./application-chat"
 
 interface PartnerApplicationDetailProps {
   applicationId: string
@@ -204,6 +205,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
           <TabsTrigger value="info">Информация</TabsTrigger>
           <TabsTrigger value="client">Клиент</TabsTrigger>
           <TabsTrigger value="documents">Документы</TabsTrigger>
+          <TabsTrigger value="chat">Чат</TabsTrigger>
         </TabsList>
 
         {/* Product Info Tab */}
@@ -354,6 +356,11 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Chat Tab */}
+        <TabsContent value="chat">
+          <ApplicationChat applicationId={applicationId} />
         </TabsContent>
       </Tabs>
 

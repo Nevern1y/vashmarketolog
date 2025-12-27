@@ -2,7 +2,7 @@
 API Serializers for Applications.
 """
 from rest_framework import serializers
-from .models import Application, PartnerDecision, ProductType, ApplicationStatus
+from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus
 
 
 class CompanyDataForPartnerSerializer(serializers.Serializer):
@@ -40,6 +40,27 @@ class CompanyDataForPartnerSerializer(serializers.Serializer):
     contact_email = serializers.CharField(read_only=True)
 
 
+class ApplicationDocumentSerializer(serializers.Serializer):
+    """
+    Nested serializer for documents within Application detail.
+    """
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    file_url = serializers.SerializerMethodField()
+    document_type = serializers.CharField(read_only=True)
+    type_display = serializers.CharField(source='get_document_type_display', read_only=True)
+    status = serializers.CharField(read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    def get_file_url(self, obj):
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
+
 class ApplicationSerializer(serializers.ModelSerializer):
     """
     Full serializer for Application.
@@ -59,6 +80,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
+    documents = ApplicationDocumentSerializer(many=True, read_only=True)
     decisions_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -85,6 +107,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'assigned_partner',
             'partner_email',
             'document_ids',
+            'documents',  # Nested document objects for detail view
             'has_signature',
             'notes',
             'decisions_count',
@@ -135,6 +158,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Application
         fields = [
+            'id',  # Include in response for frontend to use
             'company',
             'product_type',
             'amount',
@@ -146,6 +170,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             'notes',
             'document_ids',
         ]
+        read_only_fields = ['id']  # id is auto-generated
 
     def validate_company(self, value):
         """Validate user has access to this company."""
@@ -252,7 +277,8 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for listing applications.
     """
-    company_name = serializers.CharField(source='company.short_name', read_only=True)
+    company_name = serializers.SerializerMethodField()
+    company_inn = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     product_type_display = serializers.CharField(source='get_product_type_display', read_only=True)
 
@@ -261,16 +287,39 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'company_name',
+            'company_inn',
             'product_type',
             'product_type_display',
             'amount',
             'term_months',
-            'target_bank_name',  # For Admin routing visibility
+            'target_bank_name',
             'status',
             'status_display',
             'created_at',
         ]
         read_only_fields = fields
+
+    def get_company_name(self, obj):
+        """Return company short_name or fallback to full name."""
+        if obj.company:
+            return obj.company.short_name or obj.company.name or '—'
+        return '—'
+
+    def get_company_inn(self, obj):
+        """Return company INN."""
+        if obj.company:
+            return obj.company.inn or '—'
+        return '—'
+
+
+class AdminNotesSerializer(serializers.ModelSerializer):
+    """
+    Serializer for admin to update notes field only.
+    Bypasses the draft-only restriction.
+    """
+    class Meta:
+        model = Application
+        fields = ['notes']
 
 
 class ApplicationAssignSerializer(serializers.Serializer):
@@ -285,9 +334,10 @@ class ApplicationAssignSerializer(serializers.Serializer):
         User = get_user_model()
         
         try:
-            partner = User.objects.get(id=value, role='partner', is_active=True)
+            # MVP: Allow assigning to any partner (even inactive ones awaiting invite acceptance)
+            partner = User.objects.get(id=value, role='partner')
         except User.DoesNotExist:
-            raise serializers.ValidationError('Партнёр не найден или неактивен.')
+            raise serializers.ValidationError('Партнёр не найден.')
         
         return value
 
@@ -346,4 +396,77 @@ class PartnerDecisionCreateSerializer(serializers.ModelSerializer):
                 'comment': 'При отклонении укажите причину.',
             })
         
+        return attrs
+
+
+class TicketMessageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for chat messages within applications.
+    Supports file attachments via multipart/form-data.
+    """
+    sender_id = serializers.IntegerField(source='sender.id', read_only=True)
+    sender_email = serializers.EmailField(source='sender.email', read_only=True)
+    sender_name = serializers.SerializerMethodField()
+    sender_role = serializers.CharField(source='sender.role', read_only=True)
+    file_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TicketMessage
+        fields = [
+            'id',
+            'application',
+            'sender',
+            'sender_id',
+            'sender_email',
+            'sender_name',
+            'sender_role',
+            'content',
+            'file',
+            'file_url',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'application', 'sender', 'sender_id', 'sender_email', 'sender_name', 'sender_role', 'file_url', 'created_at']
+
+    def get_sender_name(self, obj):
+        """Get sender's full name."""
+        if obj.sender:
+            first = obj.sender.first_name or ''
+            last = obj.sender.last_name or ''
+            full_name = f"{first} {last}".strip()
+            return full_name if full_name else obj.sender.email
+        return None
+
+    def get_file_url(self, obj):
+        """Return absolute file URL."""
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
+
+
+class TicketMessageCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating chat messages.
+    Accepts multipart/form-data for file uploads.
+    """
+    content = serializers.CharField(required=False, allow_blank=True, default='')
+    
+    class Meta:
+        model = TicketMessage
+        fields = ['content', 'file']
+
+    def validate(self, attrs):
+        """Ensure at least content or file is provided."""
+        content = attrs.get('content', '').strip()
+        file = attrs.get('file')
+        
+        if not content and not file:
+            raise serializers.ValidationError({
+                'content': 'Сообщение не может быть пустым без вложения.'
+            })
+        
+        # Normalize content
+        attrs['content'] = content
         return attrs

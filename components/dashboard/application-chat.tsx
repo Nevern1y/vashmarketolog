@@ -1,0 +1,417 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { Send, Paperclip, Loader2, RefreshCw, AlertCircle, FileText, X, Download, Image as ImageIcon, File as FileIcon } from "lucide-react"
+import { useChatPolling, type ChatMessage } from "@/hooks/use-chat"
+import { useAuth } from "@/lib/auth-context"
+
+interface ApplicationChatProps {
+    applicationId: number | string
+    className?: string
+}
+
+export function ApplicationChat({ applicationId, className }: ApplicationChatProps) {
+    const { user } = useAuth()
+    const { messages, isLoading, isSending, error, sendMessage, refetch, clearError } = useChatPolling(applicationId)
+
+    const [inputValue, setInputValue] = useState("")
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
+    const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        if (scrollAreaRef.current) {
+            const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+            if (scrollContainer) {
+                scrollContainer.scrollTop = scrollContainer.scrollHeight
+            }
+        }
+    }, [messages])
+
+    // Handle send message
+    const handleSend = async () => {
+        if (!inputValue.trim() && !selectedFile) return
+
+        const success = await sendMessage(inputValue, selectedFile || undefined)
+        if (success) {
+            setInputValue("")
+            setSelectedFile(null)
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ""
+            }
+        }
+    }
+
+    // Handle file selection
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setSelectedFile(file)
+        }
+    }
+
+    // Handle Enter key
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault()
+            handleSend()
+        }
+    }
+
+    // Get role badge
+    const getRoleBadge = (role: string) => {
+        const badges: Record<string, { label: string; className: string }> = {
+            admin: { label: "Админ", className: "bg-red-100 text-red-700 border-red-200" },
+            partner: { label: "Партнёр", className: "bg-purple-100 text-purple-700 border-purple-200" },
+            agent: { label: "Агент", className: "bg-blue-100 text-blue-700 border-blue-200" },
+            client: { label: "Клиент", className: "bg-green-100 text-green-700 border-green-200" },
+        }
+        const badge = badges[role]
+        if (!badge) return null
+        return (
+            <Badge variant="outline" className={cn("ml-1 text-[10px] px-1.5 py-0 font-normal", badge.className)}>
+                {badge.label}
+            </Badge>
+        )
+    }
+
+    // Get avatar initials
+    const getInitials = (name: string) => {
+        if (!name) return "?"
+        const parts = name.trim().split(' ')
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase()
+        }
+        return name.substring(0, 2).toUpperCase()
+    }
+
+    // Format date
+    const formatDate = (dateStr: string) => {
+        try {
+            const date = new Date(dateStr)
+            const now = new Date()
+            const isToday = date.toDateString() === now.toDateString()
+
+            if (isToday) {
+                return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+            }
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        } catch {
+            return ""
+        }
+    }
+
+    // Format file size
+    const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return `${bytes} Б`
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`
+        return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`
+    }
+
+    // Get file extension and name from URL
+    const parseFileUrl = (url: string) => {
+        try {
+            const fileName = decodeURIComponent(url.split('/').pop() || 'file')
+            const ext = fileName.split('.').pop()?.toLowerCase() || ''
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)
+            return { fileName, ext, isImage }
+        } catch {
+            return { fileName: 'file', ext: '', isImage: false }
+        }
+    }
+
+    // Check if message is from current user
+    const isOwnMessage = (message: ChatMessage) => {
+        return user?.id === message.sender_id
+    }
+
+    return (
+        <Card className={cn("flex flex-col h-[600px] overflow-hidden border-gray-200", className)}>
+            {/* Header */}
+            <CardHeader className="py-3 px-4 border-b bg-white flex-shrink-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <CardTitle className="text-base font-semibold text-gray-900">
+                            Чат по заявке
+                        </CardTitle>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={refetch}
+                        disabled={isLoading}
+                        className="h-8 w-8"
+                    >
+                        <RefreshCw className={cn("h-4 w-4 text-gray-500", isLoading && "animate-spin")} />
+                    </Button>
+                </div>
+            </CardHeader>
+
+            <CardContent className="flex-1 flex flex-col p-0 overflow-hidden min-h-0">
+                {/* Error Alert */}
+                {error && (
+                    <div className="mx-3 mt-3 flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 flex-shrink-0">
+                        <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                        <span className="flex-1 text-sm">{error}</span>
+                        <button onClick={clearError} className="p-1 hover:bg-red-100 rounded">
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                )}
+
+                {/* Messages Area */}
+                <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0">
+                    <div className="p-4 space-y-4">
+                        {isLoading && messages.length === 0 ? (
+                            <div className="flex items-center justify-center py-16">
+                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                            </div>
+                        ) : messages.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-center">
+                                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                                    <Send className="h-6 w-6 text-gray-400" />
+                                </div>
+                                <p className="text-sm font-medium text-gray-600">Нет сообщений</p>
+                                <p className="text-xs text-gray-400 mt-1">Начните переписку</p>
+                            </div>
+                        ) : (
+                            messages.map((message) => {
+                                const isOwn = isOwnMessage(message)
+                                const fileInfo = message.file_url ? parseFileUrl(message.file_url) : null
+
+                                return (
+                                    <div
+                                        key={message.id}
+                                        className={cn(
+                                            "flex gap-2.5",
+                                            isOwn ? "flex-row-reverse" : "flex-row"
+                                        )}
+                                    >
+                                        {/* Avatar */}
+                                        <Avatar className="h-8 w-8 flex-shrink-0">
+                                            <AvatarFallback className={cn(
+                                                "text-xs font-medium",
+                                                isOwn
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-200 text-gray-700"
+                                            )}>
+                                                {getInitials(message.sender_name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+
+                                        {/* Message Content */}
+                                        <div className={cn(
+                                            "max-w-[70%] flex flex-col",
+                                            isOwn ? "items-end" : "items-start"
+                                        )}>
+                                            {/* Sender Info */}
+                                            <div className="flex items-center gap-1 mb-1">
+                                                <span className="text-xs text-gray-500">
+                                                    {isOwn ? "Вы" : message.sender_name}
+                                                </span>
+                                                {!isOwn && getRoleBadge(message.sender_role)}
+                                            </div>
+
+                                            {/* Message Bubble */}
+                                            <div className={cn(
+                                                "rounded-xl px-3.5 py-2",
+                                                isOwn
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-100 text-gray-900"
+                                            )}>
+                                                {/* Text Content */}
+                                                {message.content && (
+                                                    <p className="text-sm whitespace-pre-wrap break-words">
+                                                        {message.content}
+                                                    </p>
+                                                )}
+
+                                                {/* File Attachment */}
+                                                {message.file_url && fileInfo && (
+                                                    <div className={cn(
+                                                        "mt-2",
+                                                        !message.content && "mt-0"
+                                                    )}>
+                                                        {fileInfo.isImage ? (
+                                                            /* Image Preview */
+                                                            <a
+                                                                href={message.file_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="block"
+                                                            >
+                                                                <img
+                                                                    src={message.file_url}
+                                                                    alt={fileInfo.fileName}
+                                                                    className="max-w-[220px] max-h-[160px] rounded-lg object-cover"
+                                                                    onError={(e) => {
+                                                                        // Fallback if image fails to load
+                                                                        const target = e.target as HTMLImageElement
+                                                                        target.style.display = 'none'
+                                                                    }}
+                                                                />
+                                                            </a>
+                                                        ) : (
+                                                            /* Document Card */
+                                                            <a
+                                                                href={message.file_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className={cn(
+                                                                    "flex items-center gap-2.5 p-2.5 rounded-lg transition-colors",
+                                                                    isOwn
+                                                                        ? "bg-blue-500 hover:bg-blue-400"
+                                                                        : "bg-white border border-gray-200 hover:bg-gray-50"
+                                                                )}
+                                                            >
+                                                                {/* Icon */}
+                                                                <div className={cn(
+                                                                    "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+                                                                    isOwn ? "bg-blue-400" : "bg-blue-100"
+                                                                )}>
+                                                                    <FileText className={cn(
+                                                                        "h-4 w-4",
+                                                                        isOwn ? "text-white" : "text-blue-600"
+                                                                    )} />
+                                                                </div>
+
+                                                                {/* Info */}
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className={cn(
+                                                                        "text-sm font-medium truncate",
+                                                                        isOwn ? "text-white" : "text-gray-900"
+                                                                    )}>
+                                                                        {fileInfo.fileName}
+                                                                    </p>
+                                                                    <p className={cn(
+                                                                        "text-xs uppercase",
+                                                                        isOwn ? "text-blue-200" : "text-gray-500"
+                                                                    )}>
+                                                                        {fileInfo.ext || 'файл'}
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Download Icon */}
+                                                                <Download className={cn(
+                                                                    "h-4 w-4 flex-shrink-0",
+                                                                    isOwn ? "text-blue-200" : "text-gray-400"
+                                                                )} />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Timestamp */}
+                                            <span className="text-[10px] text-gray-400 mt-1 px-0.5">
+                                                {formatDate(message.created_at)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )
+                            })
+                        )}
+                    </div>
+                </ScrollArea>
+
+                {/* Input Area */}
+                <div className="p-3 border-t bg-white flex-shrink-0">
+                    {/* Selected File Preview */}
+                    {selectedFile && (
+                        <div className="mb-2 flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                {selectedFile.type.startsWith('image/') ? (
+                                    <ImageIcon className="h-4 w-4 text-blue-600" />
+                                ) : (
+                                    <FileIcon className="h-4 w-4 text-blue-600" />
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                    {selectedFile.name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                    {formatFileSize(selectedFile.size)}
+                                </p>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 hover:bg-red-50 hover:text-red-600"
+                                onClick={() => {
+                                    setSelectedFile(null)
+                                    if (fileInputRef.current) {
+                                        fileInputRef.current.value = ""
+                                    }
+                                }}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Input Row */}
+                    <div className="flex gap-2">
+                        {/* Hidden File Input */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileSelect}
+                            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif"
+                        />
+
+                        {/* Attach Button */}
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSending}
+                            className="h-10 w-10 flex-shrink-0"
+                        >
+                            <Paperclip className="h-4 w-4" />
+                        </Button>
+
+                        {/* Text Input */}
+                        <Input
+                            placeholder="Сообщение..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            disabled={isSending}
+                            className="flex-1 h-10"
+                        />
+
+                        {/* Send Button */}
+                        <Button
+                            onClick={handleSend}
+                            disabled={isSending || (!inputValue.trim() && !selectedFile)}
+                            className="h-10 w-10 flex-shrink-0"
+                        >
+                            {isSending ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Send className="h-4 w-4" />
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}

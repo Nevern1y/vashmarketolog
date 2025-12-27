@@ -1,15 +1,245 @@
 /**
- * WebSocket Chat Hook
+ * Chat Hooks for Applications
  * 
- * Real-time chat for application messages using WebSockets.
+ * Provides both WebSocket (Phase 2) and REST + Polling (MVP) implementations.
+ * MVP Stage 1 uses useChatPolling for stability.
  */
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api, { tokenStorage, type ApiError } from '@/lib/api';
 
-// Types
+// ============================================
+// Types for Chat Messages
+// ============================================
+
 export interface ChatMessage {
+    id: number;
+    application: number;
+    sender: number;
+    sender_id: number;
+    sender_email: string;
+    sender_name: string;
+    sender_role: 'client' | 'agent' | 'partner' | 'admin';
+    content: string;
+    file?: string;
+    file_url?: string | null;
+    created_at: string;
+}
+
+// API response type (matches backend serializer)
+interface ChatMessageResponse {
+    id: number;
+    application: number;
+    sender: number;
+    sender_id: number;
+    sender_email: string;
+    sender_name: string;
+    sender_role: string;
+    content: string;
+    file: string | null;
+    file_url: string | null;
+    created_at: string;
+}
+
+// ============================================
+// REST + POLLING HOOK (MVP Stage 1)
+// ============================================
+
+/**
+ * Hook for chat with REST API + Polling (3 second interval).
+ * This is the recommended hook for MVP - stable and reliable.
+ * 
+ * @param applicationId - The application ID to fetch messages for
+ * @param pollingInterval - Polling interval in ms (default: 3000)
+ */
+export function useChatPolling(applicationId: number | string | null, pollingInterval: number = 3000) {
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSending, setIsSending] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    const lastMessageIdRef = useRef<number>(0);
+
+    // Fetch messages from API
+    const fetchMessages = useCallback(async (showLoading: boolean = false) => {
+        if (!applicationId) return;
+
+        if (showLoading) {
+            setIsLoading(true);
+        }
+        setError(null);
+
+        try {
+            const response = await api.get<ChatMessageResponse[] | { results: ChatMessageResponse[] }>(
+                `/applications/${applicationId}/messages/`
+            );
+
+            // Handle both array and paginated object responses (DRF pagination)
+            const messagesArray: ChatMessageResponse[] = Array.isArray(response)
+                ? response
+                : (response.results || []);
+
+            // Transform response to ChatMessage format
+            const chatMessages: ChatMessage[] = messagesArray.map(msg => ({
+                id: msg.id,
+                application: msg.application,
+                sender: msg.sender,
+                sender_id: msg.sender_id,
+                sender_email: msg.sender_email,
+                sender_name: msg.sender_name || msg.sender_email,
+                sender_role: msg.sender_role as ChatMessage['sender_role'],
+                content: msg.content,
+                file: msg.file || undefined,
+                file_url: msg.file_url,
+                created_at: msg.created_at,
+            }));
+
+            setMessages(chatMessages);
+
+            // Track last message for optimistic updates
+            if (chatMessages.length > 0) {
+                lastMessageIdRef.current = chatMessages[chatMessages.length - 1].id;
+            }
+        } catch (err) {
+            const apiError = err as ApiError;
+            console.error('[Chat] Fetch error:', apiError);
+            setError(apiError.message || 'Ошибка загрузки сообщений');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [applicationId]);
+
+    // Send message with optional file attachment
+    const sendMessage = useCallback(async (content: string, file?: File): Promise<boolean> => {
+        if (!applicationId) return false;
+        if (!content.trim() && !file) return false;
+
+        setIsSending(true);
+        setError(null);
+
+        try {
+            // Use FormData for file upload support
+            const formData = new FormData();
+            formData.append('content', content.trim());
+            if (file) {
+                formData.append('file', file);
+            }
+
+            const response = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/applications/${applicationId}/messages/`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${tokenStorage.getAccessToken()}`,
+                    },
+                    body: formData,
+                }
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('[Chat] Server Error Detail:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorData: errorData,
+                    url: response.url
+                });
+                throw new Error(errorData.error || errorData.detail || errorData.non_field_errors?.[0] || `Ошибка отправки: ${response.status}`);
+            }
+
+            const newMessage: ChatMessageResponse = await response.json();
+
+            // Add new message to state immediately
+            setMessages(prev => [...prev, {
+                id: newMessage.id,
+                application: newMessage.application,
+                sender: newMessage.sender,
+                sender_id: newMessage.sender_id,
+                sender_email: newMessage.sender_email,
+                sender_name: newMessage.sender_name || newMessage.sender_email,
+                sender_role: newMessage.sender_role as ChatMessage['sender_role'],
+                content: newMessage.content,
+                file: newMessage.file || undefined,
+                file_url: newMessage.file_url,
+                created_at: newMessage.created_at,
+            }]);
+
+            return true;
+        } catch (err) {
+            const apiError = err as Error;
+            console.error('[Chat] Send error:', apiError.message);
+            setError(apiError.message || 'Ошибка отправки сообщения');
+            return false;
+        } finally {
+            setIsSending(false);
+        }
+    }, [applicationId]);
+
+    // Start/stop polling
+    const startPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+        }
+
+        pollingRef.current = setInterval(() => {
+            fetchMessages(false);
+        }, pollingInterval);
+    }, [fetchMessages, pollingInterval]);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    // Initialize on mount and when applicationId changes
+    useEffect(() => {
+        if (applicationId) {
+            fetchMessages(true);
+            startPolling();
+        }
+
+        return () => {
+            stopPolling();
+        };
+    }, [applicationId, fetchMessages, startPolling, stopPolling]);
+
+    // Manual refetch
+    const refetch = useCallback(() => {
+        fetchMessages(true);
+    }, [fetchMessages]);
+
+    return {
+        messages,
+        isLoading,
+        isSending,
+        error,
+        sendMessage,
+        refetch,
+        startPolling,
+        stopPolling,
+        clearError: () => setError(null),
+    };
+}
+
+// ============================================
+// LEGACY TYPES (for backward compatibility)
+// ============================================
+
+export interface MessageListItem {
+    id: number;
+    sender_email: string;
+    sender_name: string;
+    sender_role: string;
+    text: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+interface LegacyChatMessage {
     id: number;
     sender: {
         id: number;
@@ -19,16 +249,6 @@ export interface ChatMessage {
     };
     text: string;
     attachment_url?: string;
-    is_read: boolean;
-    created_at: string;
-}
-
-export interface MessageListItem {
-    id: number;
-    sender_email: string;
-    sender_name: string;
-    sender_role: string;
-    text: string;
     is_read: boolean;
     created_at: string;
 }
@@ -52,9 +272,17 @@ interface WebSocketMessage {
 
 const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
 
-// Hook for chat
+// ============================================
+// WEBSOCKET HOOK (Phase 2 - Not for MVP)
+// ============================================
+
+/**
+ * Hook for chat using WebSockets (Phase 2).
+ * DO NOT USE IN MVP - requires Redis/Daphne setup.
+ * @deprecated Use useChatPolling for MVP Stage 1
+ */
 export function useChat(applicationId: number | null) {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [messages, setMessages] = useState<LegacyChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -76,11 +304,10 @@ export function useChat(applicationId: number | null) {
                 application_id: applicationId.toString(),
             });
 
-            // Transform to ChatMessage format
-            const chatMessages: ChatMessage[] = response.map(msg => ({
+            const chatMessages: LegacyChatMessage[] = response.map(msg => ({
                 id: msg.id,
                 sender: {
-                    id: 0, // Not available in list response
+                    id: 0,
                     email: msg.sender_email,
                     name: msg.sender_name,
                     role: msg.sender_role,
@@ -109,7 +336,6 @@ export function useChat(applicationId: number | null) {
             return;
         }
 
-        // Close existing connection
         if (wsRef.current) {
             wsRef.current.close();
         }
@@ -123,7 +349,6 @@ export function useChat(applicationId: number | null) {
             ws.onopen = () => {
                 setIsConnected(true);
                 setError(null);
-                console.log('WebSocket connected');
             };
 
             ws.onmessage = (event) => {
@@ -131,13 +356,9 @@ export function useChat(applicationId: number | null) {
                     const data: WebSocketMessage = JSON.parse(event.data);
 
                     switch (data.type) {
-                        case 'connection_established':
-                            console.log('Chat connected for application:', data.application_id);
-                            break;
-
                         case 'message':
                             if (data.id && data.sender && data.text && data.created_at) {
-                                const newMessage: ChatMessage = {
+                                const newMessage: LegacyChatMessage = {
                                     id: data.id,
                                     sender: data.sender,
                                     text: data.text,
@@ -169,55 +390,41 @@ export function useChat(applicationId: number | null) {
                 }
             };
 
-            ws.onerror = (event) => {
-                console.error('WebSocket error:', event);
+            ws.onerror = () => {
                 setError('Ошибка соединения');
             };
 
             ws.onclose = (event) => {
                 setIsConnected(false);
-                console.log('WebSocket closed:', event.code, event.reason);
-
-                // Reconnect after 3 seconds if not intentionally closed
                 if (event.code !== 1000) {
                     reconnectTimeoutRef.current = setTimeout(() => {
-                        console.log('Attempting to reconnect...');
                         connect();
                     }, 3000);
                 }
             };
         } catch (e) {
-            console.error('Failed to create WebSocket:', e);
             setError('Не удалось подключиться к чату');
         }
     }, [applicationId]);
 
-    // Disconnect
     const disconnect = useCallback(() => {
         if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
         }
-
         if (wsRef.current) {
             wsRef.current.close(1000, 'User disconnected');
             wsRef.current = null;
         }
-
         setIsConnected(false);
     }, []);
 
-    // Send message
     const sendMessage = useCallback((text: string) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
             setError('Нет соединения с чатом');
             return false;
         }
-
         try {
-            wsRef.current.send(JSON.stringify({
-                type: 'message',
-                text: text.trim(),
-            }));
+            wsRef.current.send(JSON.stringify({ type: 'message', text: text.trim() }));
             return true;
         } catch (e) {
             setError('Ошибка отправки сообщения');
@@ -225,38 +432,21 @@ export function useChat(applicationId: number | null) {
         }
     }, []);
 
-    // Send typing indicator
     const sendTyping = useCallback((isTyping: boolean) => {
-        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-            return;
-        }
-
-        // Clear previous timeout
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-        }
-
+        if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         try {
-            wsRef.current.send(JSON.stringify({
-                type: 'typing',
-                is_typing: isTyping,
-            }));
-
-            // Auto-stop typing after 3 seconds
+            wsRef.current.send(JSON.stringify({ type: 'typing', is_typing: isTyping }));
             if (isTyping) {
-                typingTimeoutRef.current = setTimeout(() => {
-                    sendTyping(false);
-                }, 3000);
+                typingTimeoutRef.current = setTimeout(() => sendTyping(false), 3000);
             }
         } catch (e) {
-            // Ignore typing errors
+            // Ignore
         }
     }, []);
 
-    // Mark messages as read
     const markAsRead = useCallback(async (messageIds: number[]) => {
         if (messageIds.length === 0) return;
-
         try {
             await api.post('/chat/mark_read/', { message_ids: messageIds });
             setMessages(prev =>
@@ -265,22 +455,18 @@ export function useChat(applicationId: number | null) {
                 )
             );
         } catch (e) {
-            // Ignore read errors
+            // Ignore
         }
     }, []);
 
-    // Initialize on mount
     useEffect(() => {
         if (applicationId) {
             loadHistory();
             connect();
         }
-
         return () => {
             disconnect();
-            if (typingTimeoutRef.current) {
-                clearTimeout(typingTimeoutRef.current);
-            }
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
         };
     }, [applicationId, loadHistory, connect, disconnect]);
 
@@ -295,43 +481,5 @@ export function useChat(applicationId: number | null) {
         markAsRead,
         reconnect: connect,
         refetch: loadHistory,
-    };
-}
-
-// Hook for sending messages via REST (fallback)
-export function useChatRest(applicationId: number | null) {
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const sendMessage = useCallback(async (text: string, attachment?: File): Promise<boolean> => {
-        if (!applicationId) return false;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const formData = new FormData();
-            formData.append('application', applicationId.toString());
-            formData.append('text', text);
-            if (attachment) {
-                formData.append('attachment', attachment);
-            }
-
-            await api.post('/chat/', formData);
-            return true;
-        } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка отправки сообщения');
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [applicationId]);
-
-    return {
-        isLoading,
-        error,
-        sendMessage,
-        clearError: () => setError(null),
     };
 }

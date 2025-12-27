@@ -38,6 +38,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
   // Edit sheet state
   const [editSheetOpen, setEditSheetOpen] = useState(false)
   const [clientToEdit, setClientToEdit] = useState<number | null>(null)
+  const [sheetMode, setSheetMode] = useState<'view' | 'edit'>('edit')
 
   // API Hooks
   const { clients, isLoading, error, refetch } = useCRMClients()
@@ -96,9 +97,17 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
     setClientToDelete(null)
   }
 
-  // Open edit sheet
+  // Open sheet in view mode
+  const openViewSheet = (id: number) => {
+    setClientToEdit(id)
+    setSheetMode('view')
+    setEditSheetOpen(true)
+  }
+
+  // Open sheet in edit mode
   const openEditSheet = (id: number) => {
     setClientToEdit(id)
+    setSheetMode('edit')
     setEditSheetOpen(true)
   }
 
@@ -327,7 +336,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEditSheet(client.id)}>
+                          <DropdownMenuItem onClick={() => openViewSheet(client.id)}>
                             <Eye className="h-4 w-4 mr-2" />
                             Просмотр
                           </DropdownMenuItem>
@@ -364,12 +373,13 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
         onSubmit={handleAddClient}
       />
 
-      {/* Edit Client Sheet */}
+      {/* Edit/View Client Sheet */}
       <EditClientSheet
         isOpen={editSheetOpen}
         clientId={clientToEdit}
         onClose={closeEditSheet}
         onSaved={() => refetch()}
+        mode={sheetMode}
       />
 
       {/* Delete Confirmation Dialog */}

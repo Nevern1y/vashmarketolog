@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import type { ClientViewType, PartnerViewType, ViewType } from "@/lib/types"
+import type { ClientViewType, ViewType } from "@/lib/types"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { ClientSidebar } from "@/components/dashboard/client-sidebar"
-import { PartnerSidebar } from "@/components/dashboard/partner-sidebar"
+import { PartnerLayout } from "@/components/dashboard/partner-layout"
 import { MyCompanyView } from "@/components/dashboard/my-company-view"
 import { MyApplicationsView } from "@/components/dashboard/my-applications-view"
 import { ClientsListView } from "@/components/dashboard/clients-list-view"
@@ -13,8 +13,6 @@ import { AccreditationView } from "@/components/dashboard/accreditation-view"
 import { MyDocumentsView } from "@/components/dashboard/my-documents-view"
 import { MyVictoriesView } from "@/components/dashboard/my-victories-view"
 import { ProfileSettingsView } from "@/components/dashboard/profile-settings-view"
-import { PartnerIncomingView } from "@/components/dashboard/partner-incoming-view"
-import { PartnerApplicationDetail } from "@/components/dashboard/partner-application-detail"
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard"
 import { ApplicationDetailView } from "@/components/dashboard/application-detail-view"
 import { CreateApplicationWizard } from "@/components/dashboard/create-application-wizard"
@@ -30,14 +28,12 @@ export default function DashboardPage() {
   // View states for each role
   const [agentView, setAgentView] = useState<ViewType>("applications")
   const [clientView, setClientView] = useState<ClientViewType>("applications")
-  const [partnerView, setPartnerView] = useState<PartnerViewType>("incoming")
 
   // UI states
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [selectedApplicationId, setSelectedApplicationId] = useState<string>("BG-2024-001")
-  const [selectedPartnerApplicationId, setSelectedPartnerApplicationId] = useState<string>("1")
   const [showingAgentCRM, setShowingAgentCRM] = useState(false)
   const [showingAppDetail, setShowingAppDetail] = useState(false)
 
@@ -152,53 +148,7 @@ export default function DashboardPage() {
     // PARTNER ROLE
     // =====================================
     case "partner":
-      return (
-        <div className="flex h-screen overflow-hidden">
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block">
-            <PartnerSidebar activeView={partnerView} onViewChange={setPartnerView} />
-          </div>
-
-          {/* Mobile Sidebar Drawer */}
-          <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-            <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-            <div className="absolute left-0 top-0 h-full">
-              <PartnerSidebar
-                activeView={partnerView}
-                onViewChange={(view) => {
-                  setPartnerView(view)
-                  setIsMobileSidebarOpen(false)
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
-            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-              {partnerView === "incoming" && (
-                <PartnerIncomingView
-                  onOpenDetail={(id) => {
-                    setSelectedPartnerApplicationId(id)
-                    setPartnerView("application-detail")
-                  }}
-                />
-              )}
-              {partnerView === "application-detail" && (
-                <PartnerApplicationDetail
-                  applicationId={selectedPartnerApplicationId}
-                  onBack={() => setPartnerView("incoming")}
-                />
-              )}
-              {partnerView === "archive" && (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-muted-foreground">Архив заявок в разработке</p>
-                </div>
-              )}
-            </main>
-          </div>
-        </div>
-      )
+      return <PartnerLayout />
 
     // =====================================
     // AGENT ROLE (Default for agents)

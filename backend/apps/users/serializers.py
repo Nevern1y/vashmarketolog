@@ -169,16 +169,23 @@ class PartnerInviteSerializer(serializers.ModelSerializer):
     """
     Serializer for creating partner invites (Admin only).
     """
+    company_name = serializers.CharField(
+        max_length=255,
+        required=True,
+        help_text='Название банка/компании партнёра'
+    )
+
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name']
+        fields = ['email', 'first_name', 'last_name', 'company_name']
 
     def create(self, validated_data):
         """Create a partner user with invite token."""
+        company_name = validated_data.pop('company_name', '')
         user = User.objects.create(
             email=validated_data['email'],
             first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
+            last_name=f"{validated_data.get('last_name', '')} ({company_name})",  # Store bank name in last_name
             role='partner',
             is_active=False,  # Inactive until invite is accepted
         )

@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context"
 interface PartnerSidebarProps {
   activeView: PartnerViewType
   onViewChange: (view: PartnerViewType) => void
+  newApplicationsCount?: number
 }
 
 const navItems = [
@@ -17,7 +18,7 @@ const navItems = [
   { id: "archive" as PartnerViewType, label: "Архив", icon: Archive },
 ]
 
-export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps) {
+export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount }: PartnerSidebarProps) {
   const { logout, user } = useAuth()
 
   const handleLogout = async () => {
@@ -59,9 +60,9 @@ export function PartnerSidebar({ activeView, onViewChange }: PartnerSidebarProps
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
-                {item.id === "incoming" && (
+                {item.id === "incoming" && newApplicationsCount !== undefined && newApplicationsCount > 0 && (
                   <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#00d4aa] text-xs font-semibold">
-                    3
+                    {newApplicationsCount}
                   </span>
                 )}
               </button>

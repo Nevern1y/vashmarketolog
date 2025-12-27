@@ -16,6 +16,7 @@ export interface ApplicationDocument {
     document_type: string;
     type_display: string;
     status: string;
+    status_display: string;
 }
 
 // Nested company data for Partner/Bank view
@@ -85,11 +86,12 @@ export interface Application {
 export interface ApplicationListItem {
     id: number;
     company_name: string;
+    company_inn?: string;
     product_type: string;
     product_type_display: string;
     amount: string;
     term_months: number;
-    target_bank_name: string; // For Admin Dashboard routing view
+    target_bank_name: string;
     status: string;
     status_display: string;
     created_at: string;
@@ -398,11 +400,98 @@ export function usePartnerActions() {
         }
     }, []);
 
+    const requestInfo = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/request_info/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка запроса информации');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const approveApplication = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/approve/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка одобрения заявки');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const rejectApplication = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/reject/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка отклонения заявки');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const saveNotes = useCallback(async (applicationId: number, notes: string): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Use dedicated save_notes endpoint to bypass draft-only restriction
+            const response = await api.patch<Application>(`/applications/${applicationId}/save_notes/`, { notes });
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка сохранения заметок');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const restoreApplication = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/restore/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка восстановления заявки');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         isLoading,
         error,
         assignPartner,
         submitDecision,
+        requestInfo,
+        approveApplication,
+        rejectApplication,
+        restoreApplication,
+        saveNotes,
         clearError: () => setError(null),
     };
 }
+

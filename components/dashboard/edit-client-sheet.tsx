@@ -12,8 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Loader2, Save, X } from "lucide-react"
+import { Loader2, Save, X, Edit } from "lucide-react"
 import { useCRMClient, useCRMClientMutations, type CreateCompanyPayload } from "@/hooks/use-companies"
 import { toast } from "sonner"
 
@@ -22,6 +21,7 @@ interface EditClientSheetProps {
     clientId: number | null
     onClose: () => void
     onSaved: () => void
+    mode?: 'view' | 'edit' // NEW: view = read-only, edit = editable
 }
 
 // Helper to safely get string value (convert null/undefined to "")
@@ -81,11 +81,14 @@ const initialFormData: CompanyFormData = {
     website: "",
 }
 
-export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClientSheetProps) {
+export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'edit' }: EditClientSheetProps) {
     const { client, isLoading, error: loadError } = useCRMClient(clientId)
     const { updateClient, isLoading: isSaving, error: saveError } = useCRMClientMutations()
 
     const [formData, setFormData] = useState<CompanyFormData>(initialFormData)
+
+    // Determine if read-only mode
+    const isReadOnly = mode === 'view'
 
     // Reset form when client data loads
     useEffect(() => {
@@ -126,12 +129,13 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
 
     // Handle form field change
     const handleChange = (field: keyof CompanyFormData, value: string) => {
+        if (isReadOnly) return // Prevent changes in view mode
         setFormData(prev => ({ ...prev, [field]: value }))
     }
 
     // Handle save
     const handleSave = async () => {
-        if (!clientId) return
+        if (!clientId || isReadOnly) return
 
         const payload: Partial<CreateCompanyPayload> = {
             inn: formData.inn,
@@ -169,11 +173,51 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
         }
     }
 
+    // Input component with read-only support
+    const FormInput = ({
+        label,
+        field,
+        placeholder = "",
+        type = "text",
+        maxLength,
+        required = false,
+        colSpan = 1
+    }: {
+        label: string
+        field: keyof CompanyFormData
+        placeholder?: string
+        type?: string
+        maxLength?: number
+        required?: boolean
+        colSpan?: number
+    }) => (
+        <div className={`space-y-2 ${colSpan === 2 ? 'md:col-span-2' : colSpan === 3 ? 'md:col-span-3' : colSpan === 4 ? 'md:col-span-4' : ''}`}>
+            <Label className={isReadOnly ? "text-muted-foreground" : ""}>
+                {label}{required && !isReadOnly && " *"}
+            </Label>
+            <Input
+                type={type}
+                placeholder={isReadOnly ? "—" : placeholder}
+                value={formData[field]}
+                onChange={(e) => handleChange(field, field.includes("passport_series") || field.includes("passport_number")
+                    ? e.target.value.replace(/\D/g, "")
+                    : e.target.value
+                )}
+                maxLength={maxLength}
+                readOnly={isReadOnly}
+                className={isReadOnly ? "bg-muted cursor-default" : ""}
+            />
+        </div>
+    )
+
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col">
-                <SheetHeader className="px-6 py-4 border-b">
-                    <SheetTitle>Редактирование клиента</SheetTitle>
+            <SheetContent side="right" className="w-full sm:max-w-2xl p-0 flex flex-col h-full">
+                {/* Fixed Header */}
+                <SheetHeader className="px-6 py-4 border-b bg-background shrink-0">
+                    <SheetTitle>
+                        {isReadOnly ? "Карточка клиента" : "Редактирование клиента"}
+                    </SheetTitle>
                     <SheetDescription>
                         {client?.name || client?.short_name || "Загрузка..."}
                     </SheetDescription>
@@ -197,70 +241,22 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
                     </div>
                 ) : (
                     <>
-                        <ScrollArea className="flex-1 px-6 py-4">
-                            <div className="space-y-6">
+                        {/* Scrollable Content Area */}
+                        <div className="flex-1 overflow-y-auto px-6 py-4">
+                            <div className="space-y-6 pb-4">
                                 {/* General Info Section */}
                                 <div className="space-y-4">
                                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                                         Общая информация
                                     </h3>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label>ИНН *</Label>
-                                            <Input
-                                                placeholder="Введите ИНН"
-                                                value={formData.inn}
-                                                onChange={(e) => handleChange("inn", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>КПП</Label>
-                                            <Input
-                                                placeholder="Введите КПП"
-                                                value={formData.kpp}
-                                                onChange={(e) => handleChange("kpp", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>ОГРН</Label>
-                                            <Input
-                                                placeholder="Введите ОГРН"
-                                                value={formData.ogrn}
-                                                onChange={(e) => handleChange("ogrn", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Полное наименование *</Label>
-                                            <Input
-                                                placeholder="Полное наименование организации"
-                                                value={formData.name}
-                                                onChange={(e) => handleChange("name", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2 md:col-span-2">
-                                            <Label>Сокращенное наименование</Label>
-                                            <Input
-                                                placeholder="Сокращенное наименование"
-                                                value={formData.short_name}
-                                                onChange={(e) => handleChange("short_name", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2 md:col-span-2">
-                                            <Label>Юридический адрес</Label>
-                                            <Input
-                                                placeholder="Юридический адрес"
-                                                value={formData.legal_address}
-                                                onChange={(e) => handleChange("legal_address", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2 md:col-span-2">
-                                            <Label>Фактический адрес</Label>
-                                            <Input
-                                                placeholder="Фактический адрес"
-                                                value={formData.actual_address}
-                                                onChange={(e) => handleChange("actual_address", e.target.value)}
-                                            />
-                                        </div>
+                                        <FormInput label="ИНН" field="inn" placeholder="Введите ИНН" required />
+                                        <FormInput label="КПП" field="kpp" placeholder="Введите КПП" />
+                                        <FormInput label="ОГРН" field="ogrn" placeholder="Введите ОГРН" />
+                                        <FormInput label="Полное наименование" field="name" placeholder="Полное наименование организации" required />
+                                        <FormInput label="Сокращенное наименование" field="short_name" placeholder="Сокращенное наименование" colSpan={2} />
+                                        <FormInput label="Юридический адрес" field="legal_address" placeholder="Юридический адрес" colSpan={2} />
+                                        <FormInput label="Фактический адрес" field="actual_address" placeholder="Фактический адрес" colSpan={2} />
                                     </div>
                                 </div>
 
@@ -270,22 +266,8 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
                                         Руководство
                                     </h3>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label>Должность руководителя</Label>
-                                            <Input
-                                                placeholder="Генеральный директор"
-                                                value={formData.director_position}
-                                                onChange={(e) => handleChange("director_position", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>ФИО руководителя</Label>
-                                            <Input
-                                                placeholder="Иванов Иван Иванович"
-                                                value={formData.director_name}
-                                                onChange={(e) => handleChange("director_name", e.target.value)}
-                                            />
-                                        </div>
+                                        <FormInput label="Должность руководителя" field="director_position" placeholder="Генеральный директор" />
+                                        <FormInput label="ФИО руководителя" field="director_name" placeholder="Иванов Иван Иванович" />
                                     </div>
                                 </div>
 
@@ -295,50 +277,12 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
                                         Паспортные данные руководителя
                                     </h3>
                                     <div className="grid gap-4 md:grid-cols-4">
-                                        <div className="space-y-2">
-                                            <Label>Серия</Label>
-                                            <Input
-                                                placeholder="0000"
-                                                maxLength={4}
-                                                value={formData.passport_series}
-                                                onChange={(e) => handleChange("passport_series", e.target.value.replace(/\D/g, ""))}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Номер</Label>
-                                            <Input
-                                                placeholder="000000"
-                                                maxLength={6}
-                                                value={formData.passport_number}
-                                                onChange={(e) => handleChange("passport_number", e.target.value.replace(/\D/g, ""))}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Дата выдачи</Label>
-                                            <Input
-                                                type="date"
-                                                value={formData.passport_date}
-                                                onChange={(e) => handleChange("passport_date", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Код подразделения</Label>
-                                            <Input
-                                                placeholder="000-000"
-                                                maxLength={7}
-                                                value={formData.passport_code}
-                                                onChange={(e) => handleChange("passport_code", e.target.value)}
-                                            />
-                                        </div>
+                                        <FormInput label="Серия" field="passport_series" placeholder="0000" maxLength={4} />
+                                        <FormInput label="Номер" field="passport_number" placeholder="000000" maxLength={6} />
+                                        <FormInput label="Дата выдачи" field="passport_date" type="date" />
+                                        <FormInput label="Код подразделения" field="passport_code" placeholder="000-000" maxLength={7} />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Кем выдан</Label>
-                                        <Input
-                                            placeholder="ОТДЕЛОМ УФМС РОССИИ ПО Г. МОСКВЕ"
-                                            value={formData.passport_issued_by}
-                                            onChange={(e) => handleChange("passport_issued_by", e.target.value)}
-                                        />
-                                    </div>
+                                    <FormInput label="Кем выдан" field="passport_issued_by" placeholder="ОТДЕЛОМ УФМС РОССИИ ПО Г. МОСКВЕ" />
                                 </div>
 
                                 {/* Bank Section */}
@@ -347,38 +291,10 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
                                         Банковские реквизиты
                                     </h3>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <Label>Расчетный счет</Label>
-                                            <Input
-                                                placeholder="40702810000000000000"
-                                                value={formData.bank_account}
-                                                onChange={(e) => handleChange("bank_account", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>БИК</Label>
-                                            <Input
-                                                placeholder="044525000"
-                                                value={formData.bank_bic}
-                                                onChange={(e) => handleChange("bank_bic", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Банк</Label>
-                                            <Input
-                                                placeholder="Название банка"
-                                                value={formData.bank_name}
-                                                onChange={(e) => handleChange("bank_name", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Корр. счет</Label>
-                                            <Input
-                                                placeholder="30101810000000000000"
-                                                value={formData.bank_corr_account}
-                                                onChange={(e) => handleChange("bank_corr_account", e.target.value)}
-                                            />
-                                        </div>
+                                        <FormInput label="Расчетный счет" field="bank_account" placeholder="40702810000000000000" />
+                                        <FormInput label="БИК" field="bank_bic" placeholder="044525000" />
+                                        <FormInput label="Банк" field="bank_name" placeholder="Название банка" />
+                                        <FormInput label="Корр. счет" field="bank_corr_account" placeholder="30101810000000000000" />
                                     </div>
                                 </div>
 
@@ -388,66 +304,40 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved }: EditClie
                                         Контактная информация
                                     </h3>
                                     <div className="grid gap-4 md:grid-cols-3">
-                                        <div className="space-y-2">
-                                            <Label>Контактное лицо</Label>
-                                            <Input
-                                                placeholder="Иванов Иван Иванович"
-                                                value={formData.contact_person}
-                                                onChange={(e) => handleChange("contact_person", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Email</Label>
-                                            <Input
-                                                type="email"
-                                                placeholder="email@example.com"
-                                                value={formData.contact_email}
-                                                onChange={(e) => handleChange("contact_email", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Телефон</Label>
-                                            <Input
-                                                placeholder="+7 (XXX) XXX-XX-XX"
-                                                value={formData.contact_phone}
-                                                onChange={(e) => handleChange("contact_phone", e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="space-y-2 md:col-span-3">
-                                            <Label>Сайт</Label>
-                                            <Input
-                                                placeholder="https://example.com"
-                                                value={formData.website}
-                                                onChange={(e) => handleChange("website", e.target.value)}
-                                            />
-                                        </div>
+                                        <FormInput label="Контактное лицо" field="contact_person" placeholder="Иванов Иван Иванович" />
+                                        <FormInput label="Email" field="contact_email" type="email" placeholder="email@example.com" />
+                                        <FormInput label="Телефон" field="contact_phone" placeholder="+7 (XXX) XXX-XX-XX" />
+                                        <FormInput label="Сайт" field="website" placeholder="https://example.com" colSpan={3} />
                                     </div>
                                 </div>
                             </div>
-                        </ScrollArea>
+                        </div>
 
-                        <SheetFooter className="px-6 py-4 border-t gap-2 sm:gap-2">
+                        {/* Fixed Footer */}
+                        <SheetFooter className="px-6 py-4 border-t bg-muted/30 gap-2 sm:gap-2 shrink-0">
                             <Button variant="outline" onClick={onClose} disabled={isSaving}>
                                 <X className="h-4 w-4 mr-2" />
-                                Отмена
+                                {isReadOnly ? "Закрыть" : "Отмена"}
                             </Button>
-                            <Button
-                                className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
-                                onClick={handleSave}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Сохранение...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4 mr-2" />
-                                        Сохранить
-                                    </>
-                                )}
-                            </Button>
+                            {!isReadOnly && (
+                                <Button
+                                    className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            Сохранение...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="h-4 w-4 mr-2" />
+                                            Сохранить
+                                        </>
+                                    )}
+                                </Button>
+                            )}
                         </SheetFooter>
                     </>
                 )}
