@@ -82,7 +82,7 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Размер файла не должен превышать 10 МБ.')
         
         # Allowed extensions
-        allowed_extensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'sig']
+        allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar', 'sig']
         ext = value.name.split('.')[-1].lower()
         if ext not in allowed_extensions:
             raise serializers.ValidationError(

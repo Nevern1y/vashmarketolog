@@ -467,6 +467,15 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
                 'content': 'Сообщение не может быть пустым без вложения.'
             })
         
+        # Validate file if present
+        if file:
+            allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar']
+            ext = file.name.split('.')[-1].lower()
+            if ext not in allowed_extensions:
+                raise serializers.ValidationError(
+                    f'Недопустимый формат файла. Разрешены: {", ".join(allowed_extensions)}'
+                )
+
         # Normalize content
         attrs['content'] = content
         return attrs
