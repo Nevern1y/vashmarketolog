@@ -91,6 +91,19 @@ class Application(models.Model):
         blank=True
     )
     
+    # Goscontract data - structured JSON for Bank API (Postman Collection) compliance
+    # Stores data for Postman keys:
+    #   goscontract[purchase_number] -> purchase_number (номер закупки)
+    #   goscontract[subject] -> subject (предмет закупки)
+    #   goscontract[is_close_auction] -> is_close_auction ("1" or "0")
+    #   goscontract[contract_number] -> contract_number (номер контракта)
+    goscontract_data = models.JSONField(
+        'Данные тендера (JSON)',
+        default=dict,
+        blank=True,
+        help_text='Структурированные данные о госконтракте для API банка'
+    )
+    
     # Status
     status = models.CharField(
         'Статус',

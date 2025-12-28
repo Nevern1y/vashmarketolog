@@ -10,7 +10,7 @@ import {
   Search, Shield, Loader2, RefreshCw, Building2, Eye, FileText,
   DollarSign, Calendar, User, ExternalLink, Download, MessageSquare,
   RotateCcw, UserPlus, LogOut, Clock, StickyNote, X, ChevronRight,
-  CheckCircle2, XCircle, AlertTriangle
+  CheckCircle2, XCircle, AlertTriangle, Paperclip
 } from "lucide-react"
 import { useApplications, useApplication, usePartnerActions } from "@/hooks/use-applications"
 import { usePartners } from "@/hooks/use-partners"
@@ -641,6 +641,92 @@ export function AdminDashboard() {
                           </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Attached Documents Section */}
+                  <Card className="border-border shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-muted-foreground" />
+                        Прикреплённые документы
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {selectedApp.documents && selectedApp.documents.length > 0
+                          ? `${selectedApp.documents.length} документ(ов)`
+                          : "Нет загруженных документов"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {selectedApp.documents && selectedApp.documents.length > 0 ? (
+                        <div className="space-y-3">
+                          {selectedApp.documents.map((doc) => {
+                            // Document status configuration
+                            const docStatusConfig: Record<string, { label: string; className: string }> = {
+                              pending: {
+                                label: "На проверке",
+                                className: "bg-[#FFD93D]/10 text-[#FFD93D] border border-[#FFD93D]/30"
+                              },
+                              verified: {
+                                label: "Проверен",
+                                className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30"
+                              },
+                              rejected: {
+                                label: "Отклонён",
+                                className: "bg-[#E03E9D]/10 text-[#E03E9D] border border-[#E03E9D]/30"
+                              }
+                            }
+                            const statusCfg = docStatusConfig[doc.status] || docStatusConfig.pending
+
+                            return (
+                              <div
+                                key={doc.id}
+                                className="flex items-center justify-between p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
+                              >
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                  <FileText className="h-5 w-5 text-[#4F7DF3] flex-shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <a
+                                      href={doc.file_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm font-medium text-[#4F7DF3] hover:text-[#3a6dd9] hover:underline truncate block"
+                                      title={doc.name}
+                                    >
+                                      {doc.name}
+                                    </a>
+                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                      {doc.type_display || doc.document_type}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                  <span className={cn(
+                                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                                    statusCfg.className
+                                  )}>
+                                    {statusCfg.label}
+                                  </span>
+                                  <a
+                                    href={doc.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-md text-muted-foreground hover:text-[#3CE8D1] hover:bg-[#3CE8D1]/10 transition-colors"
+                                    title="Скачать"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </a>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-6 text-center">
+                          <Paperclip className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                          <p className="text-sm text-muted-foreground">Документы не загружены</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 

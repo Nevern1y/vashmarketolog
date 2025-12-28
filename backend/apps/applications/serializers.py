@@ -102,6 +102,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'tender_number',
             'tender_platform',
             'tender_deadline',
+            'goscontract_data',  # Structured tender data for Bank API
             'status',
             'status_display',
             'assigned_partner',
@@ -167,6 +168,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             'tender_number',
             'tender_platform',
             'tender_deadline',
+            'goscontract_data',  # Structured tender data for Bank API
             'notes',
             'document_ids',
         ]
@@ -245,6 +247,7 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
             'tender_number',
             'tender_platform',
             'tender_deadline',
+            'goscontract_data',  # Structured tender data for Bank API
             'notes',
             'document_ids',
         ]

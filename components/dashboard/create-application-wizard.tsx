@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2 } from "lucide-react"
+import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2, Hash, FileCheck } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
 import { useVerifiedDocuments, useDocumentMutations } from "@/hooks/use-documents"
@@ -55,6 +55,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
   const [uploadedDocIds, setUploadedDocIds] = useState<number[]>([])
   const [notes, setNotes] = useState("")
+  // Goscontract data fields for Bank API compliance
+  const [purchaseNumber, setPurchaseNumber] = useState("")
+  const [tenderSubject, setTenderSubject] = useState("")
+  const [contractNumber, setContractNumber] = useState("")
+  const [isCloseAuction, setIsCloseAuction] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auth context to check role
@@ -191,6 +196,17 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       payload.document_ids = allDocIds
     }
 
+    // Build goscontract_data if tender details are provided
+    const hasGoscontractData = purchaseNumber || tenderSubject || contractNumber || isCloseAuction
+    if (hasGoscontractData) {
+      ; (payload as any).goscontract_data = {
+        purchase_number: purchaseNumber || "",
+        subject: tenderSubject || "",
+        contract_number: contractNumber || "",
+        is_close_auction: isCloseAuction ? "1" : "0"
+      }
+    }
+
     // Debug: log full payload
     console.log("[Wizard] Final payload:", JSON.stringify(payload, null, 2))
 
@@ -232,6 +248,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setSelectedDocumentIds([])
     setUploadedDocIds([])
     setNotes("")
+    // Reset goscontract fields
+    setPurchaseNumber("")
+    setTenderSubject("")
+    setContractNumber("")
+    setIsCloseAuction(false)
   }
 
   // Format amount with spaces
@@ -483,6 +504,57 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
+
+              {/* Tender/Goscontract Details - for Bank API */}
+              {selectedProduct === "bank_guarantee" && (
+                <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    Данные тендера (опционально)
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Номер закупки</Label>
+                      <Input
+                        type="text"
+                        placeholder="0123456789012345"
+                        value={purchaseNumber}
+                        onChange={(e) => setPurchaseNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Номер контракта</Label>
+                      <Input
+                        type="text"
+                        placeholder="Номер контракта (если есть)"
+                        value={contractNumber}
+                        onChange={(e) => setContractNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Предмет закупки</Label>
+                    <Input
+                      type="text"
+                      placeholder="Описание предмета контракта"
+                      value={tenderSubject}
+                      onChange={(e) => setTenderSubject(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="isCloseAuction"
+                      checked={isCloseAuction}
+                      onChange={(e) => setIsCloseAuction(e.target.checked)}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    <Label htmlFor="isCloseAuction" className="cursor-pointer">
+                      Закрытый аукцион
+                    </Label>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
