@@ -180,12 +180,12 @@ export function useDocumentMutations() {
                 formData.append('company', payload.company.toString());
             }
 
-            // Simulate progress (real progress requires XHR)
-            setUploadProgress(30);
+            const response = await api.uploadWithProgress<Document>(
+                '/documents/',
+                formData,
+                (progress) => setUploadProgress(progress)
+            );
 
-            const response = await api.post<Document>('/documents/', formData);
-
-            setUploadProgress(100);
             return response;
         } catch (err) {
             const apiError = err as ApiError;
