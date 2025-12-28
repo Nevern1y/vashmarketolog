@@ -7,6 +7,8 @@
  * - Token Refresh Logic (refresh on 401)
  */
 
+import axios from 'axios';
+
 // Storage keys
 const ACCESS_TOKEN_KEY = 'lider_garant_access_token';
 const REFRESH_TOKEN_KEY = 'lider_garant_refresh_token';
@@ -300,6 +302,74 @@ class ApiClient {
     }
 
     return this.post<T>(endpoint, formData);
+  }
+
+  // Upload with progress using axios (to support progress tracking)
+  async uploadWithProgress<T>(
+    endpoint: string,
+    data: FormData,
+    onProgress?: (progress: number) => void
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    let accessToken = tokenStorage.getAccessToken();
+
+    const getHeaders = (token: string | null) => {
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return headers;
+    };
+
+    try {
+      const response = await axios.post(url, data, {
+        headers: getHeaders(accessToken),
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(progress);
+          }
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      // Handle 401 Unauthorized - try to refresh token
+      if (error.response?.status === 401) {
+        let newTokens = null;
+        try {
+          newTokens = await refreshAccessToken();
+        } catch (refreshError) {
+          // Refresh failed, will fall through to throw original 401
+        }
+
+        if (newTokens) {
+          // Retry request with new token
+          try {
+            const response = await axios.post(url, data, {
+              headers: getHeaders(newTokens.access),
+              onUploadProgress: (progressEvent) => {
+                if (onProgress && progressEvent.total) {
+                  const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                  onProgress(progress);
+                }
+              },
+            });
+            return response.data;
+          } catch (retryError: any) {
+            // If retry fails, throw THIS error, not the original 401
+            const status = retryError.response?.status || 500;
+            const message = retryError.response?.data?.detail || retryError.message || 'Upload failed';
+            const errors = retryError.response?.data;
+            throw { message, status, errors } as ApiError;
+          }
+        }
+      }
+
+      const status = error.response?.status || 500;
+      const message = error.response?.data?.detail || error.message || 'Upload failed';
+      const errors = error.response?.data;
+      throw { message, status, errors } as ApiError;
+    }
   }
 }
 
