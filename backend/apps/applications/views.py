@@ -156,7 +156,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         logger = logging.getLogger(__name__)
         
         logger.info(f"[Application Create] User: {request.user.email}, Role: {request.user.role}")
-        logger.info(f"[Application Create] Payload: {request.data}")
         
         serializer = self.get_serializer(data=request.data)
         
@@ -166,6 +165,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         try:
             self.perform_create(serializer)
+            logger.info(f"[Application Create] Success. ID: {serializer.instance.id}")
         except Exception as e:
             logger.error(f"[Application Create] Exception: {str(e)}")
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
