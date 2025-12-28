@@ -10,19 +10,46 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api, { type ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 
-// Founder data structure (for founders_data JSONField)
-export interface FounderData {
-    name: string;
-    inn?: string;
-    share?: number;
+// =============================================================================
+// Founder data structure (Phase 2 Ready - Postman API 1.1)
+// Reference: client[founders][n][...] - API_1.1.postman_collection lines 1603-1697
+// =============================================================================
+export interface FounderDocument {
+    series: string;      // Серия паспорта
+    number: string;      // Номер паспорта
+    issued_at: string;   // Дата выдачи (YYYY-MM-DD)
+    authority_name: string; // Наименование подразделения
+    authority_code: string; // Код подразделения (XXX-XXX)
 }
 
-// Bank account data structure (for bank_accounts_data JSONField)
+export interface FounderAddress {
+    value: string;       // Адрес
+    postal_code: string; // Почтовый индекс
+}
+
+export interface FounderData {
+    full_name: string;           // ФИО учредителя
+    inn: string;                 // ИНН учредителя
+    share_relative: number;      // Доля в капитале (%)
+    document: FounderDocument;   // Паспортные данные
+    birth_place: string;         // Место рождения
+    birth_date: string;          // Дата рождения (YYYY-MM-DD)
+    gender: 1 | 2;               // 1 = муж, 2 = жен
+    citizen: string;             // Гражданство
+    legal_address?: FounderAddress;  // Адрес регистрации
+    actual_address?: FounderAddress; // Фактический адрес
+}
+
+// =============================================================================
+// Bank account data structure (Phase 2 Ready - Postman API 1.1)
+// Reference: client[checking_accounts][n][...] - lines 1699-1708
+// =============================================================================
 export interface BankAccountData {
-    account: string;
-    bic: string;
-    bank_name: string;
+    bank_name: string;   // Наименование банка
+    bank_bik: string;    // БИК банка
+    account: string;     // Расчётный счёт
 }
 
 // Types matching backend
@@ -38,6 +65,7 @@ export interface Company {
     short_name: string;
     legal_address: string;
     actual_address: string;
+    region: string;
     director_name: string;
     director_position: string;
     // Passport fields (API-Ready for Realist Bank)
@@ -69,6 +97,8 @@ export interface CompanyListItem {
     inn: string;
     name: string;
     short_name: string;
+    region: string;
+    contact_person: string;
     is_crm_client: boolean;
     created_at: string;
 }
@@ -81,6 +111,7 @@ export interface CreateCompanyPayload {
     short_name?: string;
     legal_address?: string;
     actual_address?: string;
+    region?: string;
     director_name?: string;
     director_position?: string;
     // Passport fields
@@ -247,12 +278,23 @@ export function useMyCompany() {
 }
 
 // Hook for listing CRM clients (Agent only)
+// 🛡️ ROLE GUARD: Only agents can access CRM clients
 export function useCRMClients() {
+    const { user } = useAuth();
     const [clients, setClients] = useState<CompanyListItem[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const isAgent = user?.role === 'agent';
+
     const fetchClients = useCallback(async () => {
+        // 🛑 STOP if not agent - prevents 403 Forbidden error
+        if (!isAgent) {
+            setClients([]);
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
 
@@ -265,11 +307,14 @@ export function useCRMClients() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [isAgent]);
 
     useEffect(() => {
-        fetchClients();
-    }, [fetchClients]);
+        // Only fetch if user is an agent
+        if (isAgent) {
+            fetchClients();
+        }
+    }, [isAgent, fetchClients]);
 
     return {
         clients,

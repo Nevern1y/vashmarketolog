@@ -105,9 +105,9 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
   // Get status badge
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      pending: { label: "Новая", className: "bg-[#00d4aa]/10 text-[#00d4aa]" },
+      pending: { label: "Новая", className: "bg-[#3CE8D1]/10 text-[#3CE8D1]" },
       in_review: { label: "На рассмотрении", className: "bg-blue-500/10 text-blue-500" },
-      approved: { label: "Одобрена", className: "bg-[#00d4aa]/10 text-[#00d4aa]" },
+      approved: { label: "Одобрена", className: "bg-[#3CE8D1]/10 text-[#3CE8D1]" },
       rejected: { label: "Отклонена", className: "bg-red-500/10 text-red-500" },
       info_requested: { label: "Запрос информации", className: "bg-[#f97316]/10 text-[#f97316]" },
     }
@@ -218,8 +218,8 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                      <FileText className="h-5 w-5 text-[#00d4aa]" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                      <FileText className="h-5 w-5 text-[#3CE8D1]" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Тип продукта</p>
@@ -227,8 +227,8 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                      <DollarSign className="h-5 w-5 text-[#00d4aa]" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                      <DollarSign className="h-5 w-5 text-[#3CE8D1]" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Сумма</p>
@@ -238,8 +238,8 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                      <Calendar className="h-5 w-5 text-[#00d4aa]" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                      <Calendar className="h-5 w-5 text-[#3CE8D1]" />
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Срок</p>
@@ -248,8 +248,8 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                   </div>
                   {application.notes && (
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                        <FileText className="h-5 w-5 text-[#00d4aa]" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                        <FileText className="h-5 w-5 text-[#3CE8D1]" />
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Примечания</p>
@@ -375,7 +375,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             <div className="flex flex-wrap gap-3">
               <Button
                 size="lg"
-                className="bg-[#00d4aa] text-white hover:bg-[#00b894] gap-2"
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] gap-2"
                 onClick={() => setDecisionModal("approve")}
                 disabled={submitting}
               >
@@ -412,7 +412,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-[#00d4aa]" />
+              <CheckCircle2 className="h-5 w-5 text-[#3CE8D1]" />
               Одобрить заявку
             </DialogTitle>
             <DialogDescription>
@@ -434,7 +434,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
               Отмена
             </Button>
             <Button
-              className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+              className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
               onClick={() => handleDecision("approve")}
               disabled={submitting}
             >

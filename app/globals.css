@@ -3,76 +3,79 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* 
+ * 🎨 DARK "CYAN CYBERPUNK" THEME
+ * Reference: Lider Garant Brand Colors
+ * Primary: Electric Cyan #3CE8D1
+ * Backgrounds: Deep Navy Gradient
+ */
+
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #00d4aa;
-  --primary-foreground: #ffffff;
-  --secondary: #f97316;
+  /* === MAIN BACKGROUNDS - Deep Navy === */
+  --background: #0d1526;           /* Main App Background (darkest) */
+  --foreground: #ffffff;           /* Main Text (white) */
+
+  /* === SURFACES - Cards & Sheets === */
+  --card: #1a2744;                 /* Cards, modals, elevated surfaces */
+  --card-foreground: #ffffff;
+  --popover: #1a2744;              /* Dropdowns, popovers */
+  --popover-foreground: #ffffff;
+
+  /* === BRAND ACCENTS - Electric Cyan === */
+  --primary: #3CE8D1;              /* The "Glow" Color - buttons, links, active states */
+  --primary-foreground: #0a1628;   /* Dark text on cyan buttons for contrast */
+  
+  /* === SECONDARY & MUTED === */
+  --secondary: #FF521D;            /* Orange accent for secondary actions */
   --secondary-foreground: #ffffff;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #0a1628;
+  --muted: #1a2744;                /* Muted backgrounds (same as card) */
+  --muted-foreground: #94a3b8;     /* Secondary/muted text - cool gray */
+  
+  /* === INTERACTIVE STATES === */
+  --accent: #243352;               /* Hover states, subtle highlights */
   --accent-foreground: #ffffff;
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #00d4aa;
-  --chart-1: #00d4aa;
-  --chart-2: #f97316;
-  --chart-3: #3b82f6;
-  --chart-4: #22c55e;
-  --chart-5: #ef4444;
+  
+  /* === DESTRUCTIVE === */
+  --destructive: #E03E9D;          /* Magenta for errors/destructive */
+  --destructive-foreground: #ffffff;
+  
+  /* === BORDERS & INPUTS === */
+  --border: #2a3a5c;               /* Subtle dark blue borders */
+  --input: #1a2744;                /* Input field background */
+  --ring: #3CE8D1;                 /* Focus ring - cyan glow */
+  
+  /* === CHARTS === */
+  --chart-1: #3CE8D1;              /* Cyan */
+  --chart-2: #FF521D;              /* Orange */
+  --chart-3: #FFD93D;              /* Yellow */
+  --chart-4: #E03E9D;              /* Magenta */
+  --chart-5: #4F7DF3;              /* Blue */
+  
+  /* === RADIUS === */
   --radius: 0.75rem;
-  --sidebar: #0a1628;
+  
+  /* === SIDEBAR - Dark Navy Theme === */
+  --sidebar: #0a1628;              /* Sidebar background */
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #00d4aa;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-primary: #3CE8D1;      /* Active item cyan */
+  --sidebar-primary-foreground: #0a1628;
+  --sidebar-accent: rgba(60, 232, 209, 0.1);  /* Cyan tint for hover */
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #00d4aa;
-  --sidebar-muted: #94a3b8;
+  --sidebar-ring: #3CE8D1;
+  --sidebar-muted: #94a3b8;        /* Muted sidebar text */
+  
+  /* === STATUS COLORS (for badges) === */
+  --status-success: #3CE8D1;       /* Cyan - won, verified */
+  --status-warning: #FFD93D;       /* Yellow - pending, info_requested */
+  --status-danger: #E03E9D;        /* Magenta - rejected, lost */
+  --status-info: #4F7DF3;          /* Blue - in_review */
+  --status-alert: #FF521D;         /* Orange - attention needed */
 }
 
+/* Remove .dark variant - we're dark by default */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* All variables already set for dark mode in :root */
 }
 
 @theme inline {
@@ -123,4 +126,70 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ============================================
+   🎨 CUSTOM SCROLLBAR - Dark Theme
+   ============================================ */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a1628;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #243352;
+  border-radius: 5px;
+  border: 2px solid #0a1628;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3CE8D1;
+}
+
+::-webkit-scrollbar-corner {
+  background: #0a1628;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #243352 #0a1628;
+}
+
+/* ============================================
+   🎨 ADDITIONAL DARK THEME UTILITIES
+   ============================================ */
+
+/* Selection highlight */
+::selection {
+  background: rgba(60, 232, 209, 0.3);
+  color: #ffffff;
+}
+
+/* Focus visible for accessibility */
+:focus-visible {
+  outline: 2px solid #3CE8D1;
+  outline-offset: 2px;
+}
+
+/* Placeholder text */
+::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+/* Input autofill override for dark theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #1a2744 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
 }

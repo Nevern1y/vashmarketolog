@@ -15,13 +15,13 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
       </Button>
 
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00d4aa]">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3CE8D1]">
           <span className="text-sm font-bold text-white">ФМ</span>
         </div>
         <span className="text-sm font-semibold text-white">ФИНАНСОВЫЙ МАРКЕТПЛЕЙС</span>
       </div>
 
-      <Button size="icon" className="bg-[#00d4aa] text-white hover:bg-[#00b894]">
+      <Button size="icon" className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
         <Plus className="h-5 w-5" />
       </Button>
     </header>

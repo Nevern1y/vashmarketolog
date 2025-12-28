@@ -70,10 +70,10 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
     // Get role badge
     const getRoleBadge = (role: string) => {
         const badges: Record<string, { label: string; className: string }> = {
-            admin: { label: "Админ", className: "bg-red-100 text-red-700 border-red-200" },
-            partner: { label: "Партнёр", className: "bg-purple-100 text-purple-700 border-purple-200" },
-            agent: { label: "Агент", className: "bg-blue-100 text-blue-700 border-blue-200" },
-            client: { label: "Клиент", className: "bg-green-100 text-green-700 border-green-200" },
+            admin: { label: "Админ", className: "bg-[#E03E9D]/10 text-[#E03E9D] border-[#E03E9D]/30" },
+            partner: { label: "Партнёр", className: "bg-[#E03E9D]/10 text-[#E03E9D] border-[#E03E9D]/30" },
+            agent: { label: "Агент", className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border-[#4F7DF3]/30" },
+            client: { label: "Клиент", className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border-[#3CE8D1]/30" },
         }
         const badge = badges[role]
         if (!badge) return null
@@ -140,13 +140,13 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
     }
 
     return (
-        <Card className={cn("flex flex-col h-[600px] overflow-hidden border-gray-200", className)}>
+        <Card className={cn("flex flex-col h-[600px] overflow-hidden border-border", className)}>
             {/* Header */}
-            <CardHeader className="py-3 px-4 border-b bg-white flex-shrink-0">
+            <CardHeader className="py-3 px-4 border-b border-border bg-card flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <CardTitle className="text-base font-semibold text-gray-900">
+                        <div className="w-2 h-2 rounded-full bg-[#3CE8D1]" />
+                        <CardTitle className="text-base font-semibold text-foreground">
                             Чат по заявке
                         </CardTitle>
                     </div>
@@ -157,7 +157,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                         disabled={isLoading}
                         className="h-8 w-8"
                     >
-                        <RefreshCw className={cn("h-4 w-4 text-gray-500", isLoading && "animate-spin")} />
+                        <RefreshCw className={cn("h-4 w-4 text-muted-foreground", isLoading && "animate-spin")} />
                     </Button>
                 </div>
             </CardHeader>
@@ -165,10 +165,10 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
             <CardContent className="flex-1 flex flex-col p-0 overflow-hidden min-h-0">
                 {/* Error Alert */}
                 {error && (
-                    <div className="mx-3 mt-3 flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600 flex-shrink-0">
+                    <div className="mx-3 mt-3 flex items-center gap-2 p-2.5 bg-[#E03E9D]/10 border border-[#E03E9D]/30 rounded-lg text-sm text-[#E03E9D] flex-shrink-0">
                         <AlertCircle className="h-4 w-4 flex-shrink-0" />
                         <span className="flex-1 text-sm">{error}</span>
-                        <button onClick={clearError} className="p-1 hover:bg-red-100 rounded">
+                        <button onClick={clearError} className="p-1 hover:bg-[#E03E9D]/20 rounded">
                             <X className="h-3.5 w-3.5" />
                         </button>
                     </div>
@@ -179,15 +179,15 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                     <div className="p-4 space-y-4">
                         {isLoading && messages.length === 0 ? (
                             <div className="flex items-center justify-center py-16">
-                                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center">
-                                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                                    <Send className="h-6 w-6 text-gray-400" />
+                                <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center mb-3">
+                                    <Send className="h-6 w-6 text-muted-foreground" />
                                 </div>
-                                <p className="text-sm font-medium text-gray-600">Нет сообщений</p>
-                                <p className="text-xs text-gray-400 mt-1">Начните переписку</p>
+                                <p className="text-sm font-medium text-muted-foreground">Нет сообщений</p>
+                                <p className="text-xs text-muted-foreground mt-1">Начните переписку</p>
                             </div>
                         ) : (
                             messages.map((message) => {
@@ -207,8 +207,8 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                             <AvatarFallback className={cn(
                                                 "text-xs font-medium",
                                                 isOwn
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-200 text-gray-700"
+                                                    ? "bg-[#3CE8D1] text-[#0a1628]"
+                                                    : "bg-accent text-foreground"
                                             )}>
                                                 {getInitials(message.sender_name)}
                                             </AvatarFallback>
@@ -221,7 +221,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                         )}>
                                             {/* Sender Info */}
                                             <div className="flex items-center gap-1 mb-1">
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-xs text-muted-foreground">
                                                     {isOwn ? "Вы" : message.sender_name}
                                                 </span>
                                                 {!isOwn && getRoleBadge(message.sender_role)}
@@ -231,8 +231,8 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                             <div className={cn(
                                                 "rounded-xl px-3.5 py-2",
                                                 isOwn
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-100 text-gray-900"
+                                                    ? "bg-[#3CE8D1] text-[#0a1628]"
+                                                    : "bg-accent text-foreground"
                                             )}>
                                                 {/* Text Content */}
                                                 {message.content && (
@@ -275,18 +275,18 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 className={cn(
                                                                     "flex items-center gap-2.5 p-2.5 rounded-lg transition-colors",
                                                                     isOwn
-                                                                        ? "bg-blue-500 hover:bg-blue-400"
-                                                                        : "bg-white border border-gray-200 hover:bg-gray-50"
+                                                                        ? "bg-[#3CE8D1]/80 hover:bg-[#3CE8D1]/60"
+                                                                        : "bg-card border border-border hover:bg-accent"
                                                                 )}
                                                             >
                                                                 {/* Icon */}
                                                                 <div className={cn(
                                                                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
-                                                                    isOwn ? "bg-blue-400" : "bg-blue-100"
+                                                                    isOwn ? "bg-[#3CE8D1]/50" : "bg-[#4F7DF3]/10"
                                                                 )}>
                                                                     <FileText className={cn(
                                                                         "h-4 w-4",
-                                                                        isOwn ? "text-white" : "text-blue-600"
+                                                                        isOwn ? "text-[#0a1628]" : "text-[#4F7DF3]"
                                                                     )} />
                                                                 </div>
 
@@ -294,13 +294,13 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 <div className="flex-1 min-w-0">
                                                                     <p className={cn(
                                                                         "text-sm font-medium truncate",
-                                                                        isOwn ? "text-white" : "text-gray-900"
+                                                                        isOwn ? "text-[#0a1628]" : "text-foreground"
                                                                     )}>
                                                                         {fileInfo.fileName}
                                                                     </p>
                                                                     <p className={cn(
                                                                         "text-xs uppercase",
-                                                                        isOwn ? "text-blue-200" : "text-gray-500"
+                                                                        isOwn ? "text-[#0a1628]/70" : "text-muted-foreground"
                                                                     )}>
                                                                         {fileInfo.ext || 'файл'}
                                                                     </p>
@@ -309,7 +309,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 {/* Download Icon */}
                                                                 <Download className={cn(
                                                                     "h-4 w-4 flex-shrink-0",
-                                                                    isOwn ? "text-blue-200" : "text-gray-400"
+                                                                    isOwn ? "text-[#0a1628]/70" : "text-muted-foreground"
                                                                 )} />
                                                             </a>
                                                         )}
@@ -318,7 +318,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                             </div>
 
                                             {/* Timestamp */}
-                                            <span className="text-[10px] text-gray-400 mt-1 px-0.5">
+                                            <span className="text-[10px] text-muted-foreground mt-1 px-0.5">
                                                 {formatDate(message.created_at)}
                                             </span>
                                         </div>
@@ -330,29 +330,29 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                 </ScrollArea>
 
                 {/* Input Area */}
-                <div className="p-3 border-t bg-white flex-shrink-0">
+                <div className="p-3 border-t border-border bg-card flex-shrink-0">
                     {/* Selected File Preview */}
                     {selectedFile && (
-                        <div className="mb-2 flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-lg border border-gray-200">
-                            <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <div className="mb-2 flex items-center gap-2.5 p-2.5 bg-accent rounded-lg border border-border">
+                            <div className="w-9 h-9 rounded-lg bg-[#4F7DF3]/10 flex items-center justify-center flex-shrink-0">
                                 {selectedFile.type.startsWith('image/') ? (
-                                    <ImageIcon className="h-4 w-4 text-blue-600" />
+                                    <ImageIcon className="h-4 w-4 text-[#4F7DF3]" />
                                 ) : (
-                                    <FileIcon className="h-4 w-4 text-blue-600" />
+                                    <FileIcon className="h-4 w-4 text-[#4F7DF3]" />
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
+                                <p className="text-sm font-medium text-foreground truncate">
                                     {selectedFile.name}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-muted-foreground">
                                     {formatFileSize(selectedFile.size)}
                                 </p>
                             </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 hover:bg-red-50 hover:text-red-600"
+                                className="h-7 w-7 hover:bg-[#E03E9D]/10 hover:text-[#E03E9D]"
                                 onClick={() => {
                                     setSelectedFile(null)
                                     if (fileInputRef.current) {

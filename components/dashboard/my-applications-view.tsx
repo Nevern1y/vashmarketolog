@@ -150,7 +150,7 @@ export function MyApplicationsView({ onOpenDetail }: MyApplicationsViewProps) {
             className={cn(
               "whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors",
               activeTab === tab.id
-                ? "bg-[#00d4aa] text-white"
+                ? "bg-[#3CE8D1] text-[#0a1628]"
                 : "bg-muted text-muted-foreground hover:bg-muted/80"
             )}
           >

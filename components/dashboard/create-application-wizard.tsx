@@ -85,6 +85,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
   if (!isOpen) return null
 
+  // 🛡️ Defense in Depth: Show empty state if CLIENT has no company
+  // This catches edge cases where someone bypasses the sidebar guard
+  const clientHasNoCompany = !isAgent && !companyLoading && (!myCompany || !myCompany.id)
+
   // Get selected company data
   const getSelectedCompany = () => {
     if (isAgent && selectedCompanyId) {
@@ -236,16 +240,50 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, " ")
   }
 
+  // 🛡️ Defense in Depth: Empty State for CLIENT without company
+  if (clientHasNoCompany) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="relative w-full max-w-md rounded-xl bg-card shadow-2xl border border-border p-8">
+          {/* Close Button */}
+          <button onClick={resetAndClose} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground z-10">
+            <X className="h-5 w-5" />
+          </button>
+
+          {/* Empty State Content */}
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E03E9D]/10 mb-4">
+              <AlertCircle className="h-8 w-8 text-[#E03E9D]" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              Требуется аккредитация
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Для создания заявки необходимо заполнить профиль компании.
+              Укажите ИНН и основные данные вашей организации в разделе «Моя компания».
+            </p>
+            <Button
+              onClick={resetAndClose}
+              className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+            >
+              Понятно
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-2xl rounded-xl bg-white shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-xl bg-card shadow-2xl max-h-[90vh] overflow-y-auto border border-border">
         {/* Close Button */}
         <button onClick={resetAndClose} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground z-10">
           <X className="h-5 w-5" />
         </button>
 
         {/* Progress Bar */}
-        <div className="border-b px-6 py-4 sticky top-0 bg-white">
+        <div className="border-b border-border px-6 py-4 sticky top-0 bg-card">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex flex-1 items-center">
@@ -254,10 +292,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     className={cn(
                       "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
                       currentStep > step.id
-                        ? "bg-[#00d4aa] text-white"
+                        ? "bg-[#3CE8D1] text-[#0a1628]"
                         : currentStep === step.id
-                          ? "bg-[#00d4aa] text-white"
-                          : "bg-gray-100 text-gray-400",
+                          ? "bg-[#3CE8D1] text-[#0a1628]"
+                          : "bg-accent text-muted-foreground",
                     )}
                   >
                     {currentStep > step.id ? <CheckCircle2 className="h-4 w-4" /> : step.id}
@@ -272,7 +310,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={cn("mx-3 h-0.5 flex-1", currentStep > step.id ? "bg-[#00d4aa]" : "bg-gray-200")} />
+                  <div className={cn("mx-3 h-0.5 flex-1", currentStep > step.id ? "bg-[#3CE8D1]" : "bg-border")} />
                 )}
               </div>
             ))}
@@ -281,7 +319,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
         {/* Error Display */}
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-red-50 text-red-600 flex items-center gap-2">
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-[#E03E9D]/10 text-[#E03E9D] flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
@@ -299,14 +337,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     key={product.id}
                     onClick={() => setSelectedProduct(product.id)}
                     className={cn(
-                      "flex flex-col items-center rounded-xl border-2 p-4 text-center transition-all hover:border-[#00d4aa]/50",
-                      selectedProduct === product.id ? "border-[#00d4aa] bg-[#00d4aa]/5" : "border-gray-200",
+                      "flex flex-col items-center rounded-xl border-2 p-4 text-center transition-all hover:border-[#3CE8D1]/50",
+                      selectedProduct === product.id ? "border-[#3CE8D1] bg-[#3CE8D1]/5" : "border-border",
                     )}
                   >
                     <div
                       className={cn(
                         "mb-3 flex h-12 w-12 items-center justify-center rounded-full",
-                        selectedProduct === product.id ? "bg-[#00d4aa] text-white" : "bg-gray-100 text-gray-500",
+                        selectedProduct === product.id ? "bg-[#3CE8D1] text-[#0a1628]" : "bg-accent text-muted-foreground",
                       )}
                     >
                       <product.icon className="h-6 w-6" />
@@ -455,11 +493,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
               {/* Dropzone */}
               <div
-                className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center transition-colors hover:border-[#00d4aa] hover:bg-[#00d4aa]/5 cursor-pointer"
+                className="rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {uploading ? (
-                  <Loader2 className="mx-auto h-10 w-10 text-[#00d4aa] animate-spin" />
+                  <Loader2 className="mx-auto h-10 w-10 text-[#3CE8D1] animate-spin" />
                 ) : (
                   <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
                 )}
@@ -480,7 +518,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
               {/* Uploaded in this session */}
               {uploadedDocIds.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-[#00d4aa]">
+                  <p className="text-sm font-medium text-[#3CE8D1]">
                     Загружено ({uploadedDocIds.length}):
                   </p>
                   <div className="text-sm text-muted-foreground">
@@ -508,7 +546,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       className={cn(
                         "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
                         selectedDocumentIds.includes(doc.id)
-                          ? "border-[#00d4aa] bg-[#00d4aa]/5"
+                          ? "border-[#3CE8D1] bg-[#3CE8D1]/5"
                           : "hover:bg-muted/50"
                       )}
                       onClick={() => toggleDocumentSelection(doc.id)}
@@ -579,12 +617,12 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex items-center justify-between border-t px-6 py-4 sticky bottom-0 bg-white">
+        <div className="flex items-center justify-between border-t border-border px-6 py-4 sticky bottom-0 bg-card">
           <Button
             variant="outline"
             onClick={handleBack}
             disabled={currentStep === 1 || submitting}
-            className="border-gray-200 bg-transparent"
+            className="border-border bg-transparent"
           >
             Назад
           </Button>
@@ -593,16 +631,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
               onClick={handleNext}
               disabled={
                 (currentStep === 1 && !selectedProduct) ||
-                (currentStep === 2 && (!amount || !term || (isAgent && !selectedCompanyId)))
+                (currentStep === 2 && (!amount || !term || (isAgent && !selectedCompanyId) || (!isAgent && !myCompany?.id)))
               }
-              className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+              className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
             >
               Далее
             </Button>
           ) : (
             <Button
               onClick={handleSubmit}
-              className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+              className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
               disabled={submitting}
             >
               {submitting ? (

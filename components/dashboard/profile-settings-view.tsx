@@ -44,7 +44,7 @@ export function ProfileSettingsView() {
     switch (status) {
       case "active":
         return (
-          <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] gap-1">
+          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] gap-1">
             <CheckCircle2 className="h-3 w-3" />
             Активна
           </Badge>
@@ -124,7 +124,7 @@ export function ProfileSettingsView() {
                 </div>
               </div>
               <div className="flex justify-end pt-4">
-                <Button className="bg-[#00d4aa] text-white hover:bg-[#00b894]">Сохранить изменения</Button>
+                <Button className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">Сохранить изменения</Button>
               </div>
             </CardContent>
           </Card>
@@ -151,7 +151,7 @@ export function ProfileSettingsView() {
                 <Input id="confirmPassword" type="password" />
               </div>
               <div className="flex justify-end pt-4">
-                <Button className="bg-[#00d4aa] text-white hover:bg-[#00b894]">Обновить пароль</Button>
+                <Button className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">Обновить пароль</Button>
               </div>
             </CardContent>
           </Card>
@@ -167,10 +167,10 @@ export function ProfileSettingsView() {
             <CardContent className="space-y-6">
               {/* Upload Area */}
               <div className="flex items-center justify-center w-full">
-                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-[#00d4aa]/30 hover:border-[#00d4aa]">
+                <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors border-[#3CE8D1]/30 hover:border-[#3CE8D1]">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#00d4aa]/10 mb-3">
-                      <FileKey className="h-7 w-7 text-[#00d4aa]" />
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#3CE8D1]/10 mb-3">
+                      <FileKey className="h-7 w-7 text-[#3CE8D1]" />
                     </div>
                     <p className="mb-2 text-sm font-medium">Нажмите или перетащите файл сертификата</p>
                     <p className="text-xs text-muted-foreground">Поддерживаемые форматы: .pfx, .p12, .cer</p>
@@ -186,8 +186,8 @@ export function ProfileSettingsView() {
                   {edsFiles.map((file) => (
                     <div key={file.id} className="flex items-center justify-between rounded-lg border p-4">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                          <Key className="h-5 w-5 text-[#00d4aa]" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                          <Key className="h-5 w-5 text-[#3CE8D1]" />
                         </div>
                         <div>
                           <p className="font-medium">{file.name}</p>

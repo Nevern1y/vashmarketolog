@@ -125,7 +125,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if doc_type:
             queryset = queryset.filter(document_type=doc_type)
         
-        serializer = DocumentListSerializer(queryset, many=True)
+        serializer = DocumentListSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
     @extend_schema(responses={200: DocumentListSerializer(many=True)})
@@ -136,5 +136,5 @@ class DocumentViewSet(viewsets.ModelViewSet):
         GET /api/documents/verified/
         """
         queryset = self.get_queryset().filter(status='verified')
-        serializer = DocumentListSerializer(queryset, many=True)
+        serializer = DocumentListSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)

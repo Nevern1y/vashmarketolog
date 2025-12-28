@@ -38,7 +38,7 @@ export function MyVictoriesView() {
     const displayStatus = getDisplayStatus(status)
     switch (displayStatus) {
       case "completed":
-        return <Badge className="bg-[#00d4aa]/10 text-[#00d4aa]">Исполнен</Badge>
+        return <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1]">Исполнен</Badge>
       case "contract-signed":
         return <Badge className="bg-blue-500/10 text-blue-500">Контракт подписан</Badge>
       case "awaiting-contract":
@@ -63,7 +63,7 @@ export function MyVictoriesView() {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
           <p className="text-muted-foreground">Загрузка побед...</p>
         </div>
       </div>
@@ -119,8 +119,8 @@ export function MyVictoriesView() {
         <Card className="shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                <Trophy className="h-6 w-6 text-[#00d4aa]" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                <Trophy className="h-6 w-6 text-[#3CE8D1]" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{victories.length}</p>

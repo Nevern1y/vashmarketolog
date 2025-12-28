@@ -40,6 +40,7 @@ class CompanyProfile(models.Model):
     # Addresses
     legal_address = models.TextField('Юридический адрес', blank=True, default='')
     actual_address = models.TextField('Фактический адрес', blank=True, default='')
+    region = models.CharField('Регион', max_length=100, blank=True, default='')
     
     # Director info
     director_name = models.CharField('ФИО руководителя', max_length=300, blank=True, default='')
@@ -79,22 +80,71 @@ class CompanyProfile(models.Model):
         help_text='Код подразделения (формат: XXX-XXX)'
     )
     
-    # Founders structure (JSONField for MVP - avoids complex DB relations)
-    # Format: [{"name": "Иванов И.И.", "inn": "123456789012", "share": 50.0}, ...]
+    # =============================================================================
+    # FOUNDERS STRUCTURE (JSONField for MVP - Phase 2 Ready)
+    # Reference: Postman API 1.1 - add_ticket: client[founders][n][...]
+    # Lines 1603-1697 in API_1.1.postman_collection_2025-03
+    # =============================================================================
+    # API Structure (Realist Bank):
+    # client[founders][0][full_name]              - ФИО участника/акционера
+    # client[founders][0][inn]                    - ИНН участника
+    # client[founders][0][share_relative]         - Доля в капитале (%)
+    # client[founders][0][document][series]       - Серия паспорта
+    # client[founders][0][document][number]       - Номер паспорта
+    # client[founders][0][document][issued_at]    - Дата выдачи паспорта
+    # client[founders][0][document][authority_name] - Наименование подразделения
+    # client[founders][0][document][authority_code] - Код подразделения (777-777)
+    # client[founders][0][birth_place]            - Место рождения
+    # client[founders][0][birth_date]             - Дата рождения
+    # client[founders][0][gender]                 - Пол (1=муж, 2=жен)
+    # client[founders][0][citizen]                - Гражданство
+    # client[founders][0][legal_address][value]   - Адрес регистрации
+    # client[founders][0][legal_address][postal_code] - Индекс
+    # client[founders][0][actual_address][value]  - Фактический адрес
+    # client[founders][0][actual_address][postal_code] - Индекс
+    # =============================================================================
     founders_data = models.JSONField(
         'Учредители (JSON)',
         default=list,
         blank=True,
-        help_text='Список учредителей: [{"name": "ФИО", "inn": "ИНН", "share": доля%}]'
+        help_text='''Список учредителей для Phase 2 интеграции:
+        [{
+            "full_name": "ФИО",
+            "inn": "ИНН",
+            "share_relative": доля%,
+            "document": {
+                "series": "серия паспорта",
+                "number": "номер паспорта",
+                "issued_at": "YYYY-MM-DD",
+                "authority_name": "Кем выдан",
+                "authority_code": "XXX-XXX"
+            },
+            "birth_place": "Место рождения",
+            "birth_date": "YYYY-MM-DD",
+            "gender": 1 или 2,
+            "citizen": "РФ"
+        }]'''
     )
     
-    # Bank accounts list (JSONField for MVP)
-    # Format: [{"account": "40702810...", "bic": "044525000", "bank_name": "..."}, ...]
+    # =============================================================================
+    # BANK ACCOUNTS STRUCTURE (JSONField for MVP - Phase 2 Ready)
+    # Reference: Postman API 1.1 - add_ticket: client[checking_accounts][n][...]
+    # Lines 1699-1708 in API_1.1.postman_collection_2025-03
+    # =============================================================================
+    # API Structure (Realist Bank):
+    # client[checking_accounts][0][bank_name] - Наименование банка
+    # client[checking_accounts][0][bank_bik]  - БИК банка
+    # =============================================================================
     bank_accounts_data = models.JSONField(
         'Банковские счета (JSON)',
         default=list,
         blank=True,
-        help_text='Список счетов: [{"account": "р/с", "bic": "БИК", "bank_name": "Банк"}]'
+        help_text='''Список банковских счетов:
+        [{
+            "bank_name": "АО РЕАЛИСТ БАНК",
+            "bank_bik": "044525285",
+            "account": "40702810000000000000"
+        }]'''
     )
     
     # Primary bank details (for backwards compatibility)

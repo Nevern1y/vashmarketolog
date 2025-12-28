@@ -49,8 +49,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]">
-          <span className="text-lg font-bold text-white">ФМ</span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]">
+          <span className="text-lg font-bold text-[#0a1628]">ФМ</span>
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight">ФИНАНСОВЫЙ</p>
@@ -62,7 +62,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
       <div className="px-4 pb-4">
         <Button
           onClick={onCreateApplication}
-          className="w-full bg-[#00d4aa] text-white hover:bg-[#00b894] font-semibold"
+          className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-semibold"
         >
           <Plus className="mr-2 h-4 w-4" />
           СОЗДАТЬ ЗАЯВКУ
@@ -79,8 +79,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   activeView === item.id
-                    ? "bg-white/10 text-white"
-                    : "text-[#94a3b8] hover:bg-white/5 hover:text-white",
+                    ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                    : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -102,8 +102,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   activeView === item.id
-                    ? "bg-white/10 text-white"
-                    : "text-[#94a3b8] hover:bg-white/5 hover:text-white",
+                    ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                    : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -118,8 +118,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
       <div className="border-t border-white/10 p-4">
         {/* User Info */}
         <div className="mb-4 flex items-center gap-3">
-          <Avatar className="h-10 w-10 border-2 border-[#00d4aa]">
-            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">
+          <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
+            <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
               {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "А"}
             </AvatarFallback>
           </Avatar>
@@ -136,7 +136,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
           <Button
             variant="outline"
             size="sm"
-            className="w-full border-[#f97316] bg-transparent text-[#f97316] hover:bg-[#f97316] hover:text-white"
+            className="w-full border-[#FF521D] bg-transparent text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
           >
             <HelpCircle className="mr-2 h-4 w-4" />
             Заказать звонок

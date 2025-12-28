@@ -196,14 +196,14 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                           "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-medium transition-colors",
                           // Completed steps
                           index < currentStep
-                            ? "border-[#00d4aa] bg-[#00d4aa] text-white"
+                            ? "border-[#3CE8D1] bg-[#3CE8D1] text-[#0a1628]"
                             // Current step (or rejected at this step)
                             : index === currentStep
                               ? isRejected && index >= 2
                                 ? "border-red-500 bg-red-500 text-white"
-                                : "border-[#00d4aa] bg-white text-[#00d4aa]"
+                                : "border-[#3CE8D1] bg-white text-[#3CE8D1]"
                               // Future steps
-                              : "border-gray-200 bg-white text-gray-400",
+                              : "border-border bg-card text-muted-foreground",
                         )}
                       >
                         {index < currentStep ? (
@@ -227,7 +227,7 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                       <div
                         className={cn(
                           "mx-2 h-0.5 flex-1 min-w-4",
-                          index < currentStep ? "bg-[#00d4aa]" : "bg-gray-200",
+                          index < currentStep ? "bg-[#3CE8D1]" : "bg-border",
                         )}
                       />
                     )}
@@ -275,7 +275,7 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-7 text-xs bg-white ml-2"
+                              className="h-7 text-xs bg-card ml-2"
                               onClick={() => handleReuploadClick(doc.id)}
                               disabled={isUploading && replacingDocId === doc.id}
                             >
@@ -310,7 +310,7 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
               {/* Upload zone (only for drafts or info_requested) */}
               {(application.status === 'draft' || application.status === 'info_requested') && (
                 <div
-                  className="rounded-lg border-2 border-dashed border-gray-200 p-6 text-center transition-colors hover:border-[#00d4aa] hover:bg-[#00d4aa]/5 cursor-pointer"
+                  className="rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload className="mx-auto h-8 w-8 text-muted-foreground" />

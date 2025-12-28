@@ -133,7 +133,7 @@ export function AccreditationView() {
   const getStatusIcon = (status: AccreditationStep["status"]) => {
     switch (status) {
       case "completed":
-        return <CheckCircle2 className="h-5 w-5 text-[#00d4aa]" />
+        return <CheckCircle2 className="h-5 w-5 text-[#3CE8D1]" />
       case "in-progress":
         return <Clock className="h-5 w-5 text-[#f97316]" />
       case "pending":
@@ -144,7 +144,7 @@ export function AccreditationView() {
   const getStatusBadge = (status: AccreditationStep["status"]) => {
     switch (status) {
       case "completed":
-        return <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] hover:bg-[#00d4aa]/20">Завершено</Badge>
+        return <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] hover:bg-[#3CE8D1]/20">Завершено</Badge>
       case "in-progress":
         return <Badge className="bg-[#f97316]/10 text-[#f97316] hover:bg-[#f97316]/20">В процессе</Badge>
       case "pending":
@@ -157,7 +157,7 @@ export function AccreditationView() {
     return (
       <div className="flex h-[400px] items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
           <p className="text-muted-foreground">Загрузка данных аккредитации...</p>
         </div>
       </div>
@@ -187,12 +187,12 @@ export function AccreditationView() {
       )}
 
       {completedSteps === steps.length && (
-        <Card className="shadow-sm border-[#00d4aa] bg-[#00d4aa]/5">
+        <Card className="shadow-sm border-[#3CE8D1] bg-[#3CE8D1]/5">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-6 w-6 text-[#00d4aa]" />
+              <CheckCircle2 className="h-6 w-6 text-[#3CE8D1]" />
               <div>
-                <p className="font-medium text-[#00d4aa]">Аккредитация активна</p>
+                <p className="font-medium text-[#3CE8D1]">Аккредитация активна</p>
                 <p className="text-sm text-muted-foreground">Вы можете создавать заявки на финансовые продукты.</p>
               </div>
             </div>
@@ -225,7 +225,7 @@ export function AccreditationView() {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold text-[#00d4aa]">{Math.round(progress)}%</p>
+              <p className="text-3xl font-bold text-[#3CE8D1]">{Math.round(progress)}%</p>
             </div>
           </div>
           <Progress value={progress} className="h-3" />
@@ -245,7 +245,7 @@ export function AccreditationView() {
                   <div
                     className={cn(
                       "flex h-10 w-10 items-center justify-center rounded-lg",
-                      step.status === "completed" && "bg-[#00d4aa]/10",
+                      step.status === "completed" && "bg-[#3CE8D1]/10",
                       step.status === "in-progress" && "bg-[#f97316]/10",
                       step.status === "pending" && "bg-muted",
                     )}
@@ -253,7 +253,7 @@ export function AccreditationView() {
                     <step.icon
                       className={cn(
                         "h-5 w-5",
-                        step.status === "completed" && "text-[#00d4aa]",
+                        step.status === "completed" && "text-[#3CE8D1]",
                         step.status === "in-progress" && "text-[#f97316]",
                         step.status === "pending" && "text-muted-foreground",
                       )}
@@ -286,7 +286,7 @@ export function AccreditationView() {
                           <span className="text-sm">{doc.name}</span>
                         </div>
                         {doc.status === "uploaded" ? (
-                          <Badge className="bg-[#00d4aa]/10 text-[#00d4aa]">Загружен</Badge>
+                          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1]">Загружен</Badge>
                         ) : (
                           <Button size="sm" variant="outline" className="gap-2 bg-transparent">
                             <Upload className="h-3 w-3" />

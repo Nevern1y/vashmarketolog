@@ -26,10 +26,12 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
     ogrn: "",
     legal_address: "",
     actual_address: "",
+    region: "",
     director_name: "",
     director_position: "",
     contact_phone: "",
     contact_email: "",
+    contact_person: "",
     website: "",
   })
 
@@ -37,20 +39,8 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleInnLookup = async () => {
-    if (formData.inn.length < 10) return
-    setIsLoading(true)
-    // Simulate API call to lookup company by INN (via DaData in real implementation)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setFormData((prev) => ({
-      ...prev,
-      name: 'ООО "Новая Компания"',
-      short_name: 'ООО "НК"',
-      legal_address: "г. Москва, ул. Новая, д. 1",
-      actual_address: "г. Москва, ул. Новая, д. 1",
-    }))
-    setIsLoading(false)
-  }
+  // Phase 1: Manual mode - no DaData lookup
+  // In Phase 2, this is where we'd integrate DaData API for auto-fill by INN
 
   const handleSubmit = async () => {
     setIsLoading(true)
@@ -65,10 +55,12 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
         ogrn: "",
         legal_address: "",
         actual_address: "",
+        region: "",
         director_name: "",
         director_position: "",
         contact_phone: "",
         contact_email: "",
+        contact_person: "",
         website: "",
       })
       setActiveTab("company")
@@ -100,27 +92,17 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
           </TabsList>
 
           <TabsContent value="company" className="space-y-4 pt-4">
-            {/* INN with lookup */}
+            {/* INN - Manual Entry (Phase 1) */}
             <div className="space-y-2">
               <Label htmlFor="inn">ИНН *</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="inn"
-                  placeholder="Введите ИНН (10 или 12 цифр)"
-                  value={formData.inn}
-                  onChange={(e) => handleChange("inn", e.target.value)}
-                  maxLength={12}
-                />
-                <Button
-                  variant="outline"
-                  onClick={handleInnLookup}
-                  disabled={formData.inn.length < 10 || isLoading}
-                  className="shrink-0 bg-transparent"
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Найти"}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">Введите ИНН для автоматического заполнения данных</p>
+              <Input
+                id="inn"
+                placeholder="Введите ИНН (10 или 12 цифр)"
+                value={formData.inn}
+                onChange={(e) => handleChange("inn", e.target.value)}
+                maxLength={12}
+              />
+              <p className="text-xs text-muted-foreground">Автозаполнение по ИНН будет доступно в Фазе 2</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -189,13 +171,22 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                   onChange={(e) => handleChange("actual_address", e.target.value)}
                 />
               </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="region">Регион</Label>
+                <Input
+                  id="region"
+                  placeholder="Московская область"
+                  value={formData.region}
+                  onChange={(e) => handleChange("region", e.target.value)}
+                />
+              </div>
             </div>
 
             <div className="flex justify-end pt-4">
               <Button
                 onClick={() => setActiveTab("contact")}
                 disabled={!isCompanyValid}
-                className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
               >
                 Далее
               </Button>
@@ -231,7 +222,7 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                   onChange={(e) => handleChange("contact_phone", e.target.value)}
                 />
               </div>
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2">
                 <Label htmlFor="contact_email">Email</Label>
                 <Input
                   id="contact_email"
@@ -239,6 +230,15 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                   placeholder="contact@company.ru"
                   value={formData.contact_email}
                   onChange={(e) => handleChange("contact_email", e.target.value)}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="contact_person">ФИО контактного лица</Label>
+                <Input
+                  id="contact_person"
+                  placeholder="Петров Петр Петрович"
+                  value={formData.contact_person}
+                  onChange={(e) => handleChange("contact_person", e.target.value)}
                 />
               </div>
             </div>
@@ -254,7 +254,7 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                 <Button
                   onClick={handleSubmit}
                   disabled={!isCompanyValid || isLoading}
-                  className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                  className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                 >
                   {isLoading ? (
                     <>

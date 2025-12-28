@@ -25,6 +25,7 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'short_name',
             'legal_address',
             'actual_address',
+            'region',
             'director_name',
             'director_position',
             # Passport fields (API-Ready for Realist Bank)
@@ -67,6 +68,7 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             'short_name',
             'legal_address',
             'actual_address',
+            'region',
             'director_name',
             'director_position',
             # Passport fields (API-Ready)
@@ -106,6 +108,8 @@ class CompanyProfileListSerializer(serializers.ModelSerializer):
             'inn',
             'name',
             'short_name',
+            'region',
+            'contact_person',
             'is_crm_client',
             'created_at',
         ]
@@ -128,6 +132,7 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'short_name',
             'legal_address',
             'actual_address',
+            'region',
             'director_name',
             'director_position',
             # Passport fields (API-Ready)

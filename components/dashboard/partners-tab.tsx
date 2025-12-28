@@ -92,14 +92,14 @@ export function PartnersTab() {
     }
 
     return (
-        <Card className="shadow-sm border-gray-200">
+        <Card className="shadow-sm border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
                 <div>
-                    <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-[#3CE8D1]" />
                         Партнёры (Банки)
                     </CardTitle>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                         Управление банками-партнёрами
                     </p>
                 </div>
@@ -116,7 +116,7 @@ export function PartnersTab() {
 
                     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
+                            <Button size="sm" className="gap-2 bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
                                 <UserPlus className="h-4 w-4" />
                                 Пригласить партнёра
                             </Button>
@@ -124,7 +124,7 @@ export function PartnersTab() {
                         <DialogContent className="sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-blue-600" />
+                                    <Building2 className="h-5 w-5 text-[#3CE8D1]" />
                                     Пригласить партнёра
                                 </DialogTitle>
                                 <DialogDescription>
@@ -140,7 +140,7 @@ export function PartnersTab() {
                                                 Название Банка *
                                             </Label>
                                             <div className="relative">
-                                                <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                                <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                                 <Input
                                                     id="company_name"
                                                     placeholder="Например: Сбербанк"
@@ -156,7 +156,7 @@ export function PartnersTab() {
                                                 Email менеджера *
                                             </Label>
                                             <div className="relative">
-                                                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                                 <Input
                                                     id="email"
                                                     type="email"
@@ -201,7 +201,7 @@ export function PartnersTab() {
                                         <Button
                                             onClick={handleInvite}
                                             disabled={isInviting || !inviteForm.email || !inviteForm.company_name}
-                                            className="gap-2 bg-blue-600 hover:bg-blue-700"
+                                            className="gap-2 bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                                         >
                                             {isInviting ? (
                                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -216,11 +216,11 @@ export function PartnersTab() {
                                 <>
                                     <div className="py-4 space-y-4">
                                         <div className="flex items-center justify-center">
-                                            <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                                                <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                            <div className="h-12 w-12 rounded-full bg-[#3CE8D1]/10 flex items-center justify-center">
+                                                <CheckCircle2 className="h-6 w-6 text-[#3CE8D1]" />
                                             </div>
                                         </div>
-                                        <p className="text-center text-sm text-gray-600">
+                                        <p className="text-center text-sm text-muted-foreground">
                                             Приглашение успешно создано! Скопируйте ссылку и отправьте партнёру.
                                         </p>
 
@@ -230,7 +230,7 @@ export function PartnersTab() {
                                                 <Input
                                                     readOnly
                                                     value={inviteLink}
-                                                    className="font-mono text-xs bg-gray-50"
+                                                    className="font-mono text-xs bg-accent"
                                                 />
                                                 <Button
                                                     variant="outline"
@@ -238,7 +238,7 @@ export function PartnersTab() {
                                                     onClick={handleCopy}
                                                     className={cn(
                                                         "shrink-0 transition-colors",
-                                                        copied && "bg-green-50 border-green-300 text-green-600"
+                                                        copied && "bg-[#3CE8D1]/10 border-[#3CE8D1]/30 text-[#3CE8D1]"
                                                     )}
                                                 >
                                                     {copied ? (
@@ -249,12 +249,12 @@ export function PartnersTab() {
                                                 </Button>
                                             </div>
                                             {copied && (
-                                                <p className="text-xs text-green-600">✓ Скопировано в буфер обмена</p>
+                                                <p className="text-xs text-[#3CE8D1]">✓ Скопировано в буфер обмена</p>
                                             )}
                                         </div>
 
-                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                                            <p className="text-xs text-amber-800">
+                                        <div className="bg-[#FFD93D]/10 border border-[#FFD93D]/30 rounded-lg p-3">
+                                            <p className="text-xs text-[#FFD93D]">
                                                 <strong>Важно:</strong> Отправьте эту ссылку партнёру в WhatsApp, Telegram или по Email.
                                                 После перехода он сможет создать пароль и войти в систему.
                                             </p>
@@ -277,13 +277,13 @@ export function PartnersTab() {
                 {/* Loading */}
                 {isLoading && (
                     <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                        <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
                     </div>
                 )}
 
                 {/* Error */}
                 {error && (
-                    <div className="text-center py-8 text-red-600">
+                    <div className="text-center py-8 text-[#E03E9D]">
                         {error}
                     </div>
                 )}
@@ -293,29 +293,29 @@ export function PartnersTab() {
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                                <tr className="bg-accent/50 border-b border-border">
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                         Банк / Менеджер
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                         Email
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                         Дата приглашения
                                     </th>
-                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
+                                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
                                         Статус
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-border">
                                 {partners.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-4 py-12 text-center">
                                             <div className="flex flex-col items-center gap-2">
-                                                <Building2 className="h-10 w-10 text-gray-300" />
-                                                <p className="text-gray-500">Нет партнёров</p>
-                                                <p className="text-sm text-gray-400">
+                                                <Building2 className="h-10 w-10 text-muted-foreground" />
+                                                <p className="text-muted-foreground">Нет партнёров</p>
+                                                <p className="text-sm text-muted-foreground">
                                                     Нажмите "Пригласить партнёра" чтобы добавить банк
                                                 </p>
                                             </div>
@@ -331,38 +331,38 @@ export function PartnersTab() {
                                         const fullManagerName = `${partner.first_name || ''} ${managerLastName}`.trim() || '—'
 
                                         return (
-                                            <tr key={partner.id} className="hover:bg-gray-50/50">
+                                            <tr key={partner.id} className="hover:bg-[#3CE8D1]/5">
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center">
-                                                            <Building2 className="h-4 w-4 text-blue-600" />
+                                                        <div className="h-9 w-9 rounded-full bg-[#4F7DF3]/10 flex items-center justify-center">
+                                                            <Building2 className="h-4 w-4 text-[#4F7DF3]" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-gray-900">
+                                                            <p className="font-medium text-foreground">
                                                                 {bankName || "—"}
                                                             </p>
-                                                            <p className="text-sm text-gray-500">
+                                                            <p className="text-sm text-muted-foreground">
                                                                 {fullManagerName}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className="text-sm text-gray-600">{partner.email}</span>
+                                                    <span className="text-sm text-muted-foreground">{partner.email}</span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className="text-sm text-gray-500">
+                                                    <span className="text-sm text-muted-foreground">
                                                         {formatDate(partner.date_joined)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     {partner.is_active ? (
-                                                        <Badge className="bg-green-50 text-green-700 border border-green-200 gap-1">
+                                                        <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30 gap-1">
                                                             <CheckCircle2 className="h-3 w-3" />
                                                             Активирован
                                                         </Badge>
                                                     ) : (
-                                                        <Badge className="bg-amber-50 text-amber-700 border border-amber-200 gap-1">
+                                                        <Badge className="bg-[#FFD93D]/10 text-[#FFD93D] border border-[#FFD93D]/30 gap-1">
                                                             <Clock className="h-3 w-3" />
                                                             Ожидает
                                                         </Badge>

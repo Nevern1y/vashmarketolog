@@ -46,7 +46,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
     switch (status) {
       case "pending":
         return (
-          <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] gap-1">
+          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] gap-1">
             <Inbox className="h-3 w-3" />
             Новая
           </Badge>
@@ -60,7 +60,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
         )
       case "approved":
         return (
-          <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] gap-1">
+          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] gap-1">
             <CheckCircle2 className="h-3 w-3" />
             Одобрена
           </Badge>
@@ -190,8 +190,8 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
         <Card className="shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                <Inbox className="h-6 w-6 text-[#00d4aa]" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                <Inbox className="h-6 w-6 text-[#3CE8D1]" />
               </div>
               <div>
                 {isLoading ? (

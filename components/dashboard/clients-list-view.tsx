@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Building2, Users, FileText, Phone, Loader2, AlertCircle, RefreshCw } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Loader2, AlertCircle, RefreshCw } from "lucide-react"
 import { AddClientModal } from "./add-client-modal"
 import { EditClientSheet } from "./edit-client-sheet"
 import { useCRMClients, useCRMClientMutations, type CreateCompanyPayload } from "@/hooks/use-companies"
@@ -44,24 +44,13 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
   const { clients, isLoading, error, refetch } = useCRMClients()
   const { createClient, deleteClient, isLoading: mutating, error: mutationError } = useCRMClientMutations()
 
-  // Filter clients by search
+  // Filter clients by search (by name/inn/short_name)
   const filteredClients = clients.filter(
     (client) =>
       client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.inn?.includes(searchQuery) ||
       client.short_name?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
-
-  // Stats (calculated from API data)
-  const stats = {
-    totalClients: clients.length,
-    totalApplications: 0, // Would need separate API call
-    newThisMonth: clients.filter((c) => {
-      const created = new Date(c.created_at)
-      const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      return created > monthAgo
-    }).length,
-  }
 
   // Handle add client
   const handleAddClient = async (newClient: CreateCompanyPayload) => {
@@ -135,17 +124,15 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
     }
   }
 
-  // Loading skeleton
+  // Loading skeleton (5 columns)
   const TableSkeleton = () => (
     <>
       {[1, 2, 3].map((i) => (
         <TableRow key={i}>
-          <TableCell><Skeleton className="h-10 w-40" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-8 w-32" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+          <TableCell><Skeleton className="h-10 w-48" /></TableCell>
+          <TableCell><Skeleton className="h-8 w-24" /></TableCell>
           <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8" /></TableCell>
         </TableRow>
       ))}
@@ -169,7 +156,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           <Button
-            className="bg-[#00d4aa] text-white hover:bg-[#00b894] gap-2"
+            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] gap-2"
             onClick={() => setIsAddModalOpen(true)}
             disabled={mutating}
           >
@@ -191,58 +178,6 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                <Users className="h-6 w-6 text-[#00d4aa]" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats.totalClients}</p>
-                )}
-                <p className="text-sm text-muted-foreground">Всего клиентов</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#f97316]/10">
-                <FileText className="h-6 w-6 text-[#f97316]" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">—</p>
-                <p className="text-sm text-muted-foreground">Всего заявок</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-                <Building2 className="h-6 w-6 text-blue-500" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats.newThisMonth}</p>
-                )}
-                <p className="text-sm text-muted-foreground">Новых за месяц</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Clients Table */}
       <Card className="shadow-sm">
         <CardHeader>
@@ -264,11 +199,9 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Компания</TableHead>
-                <TableHead>ИНН</TableHead>
-                <TableHead>Контакт</TableHead>
-                <TableHead>Телефон</TableHead>
+                <TableHead>Реквизиты</TableHead>
                 <TableHead>Заявок</TableHead>
-                <TableHead>Добавлен</TableHead>
+                <TableHead>Статус</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -277,7 +210,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                 <TableSkeleton />
               ) : filteredClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Users className="h-8 w-8" />
                       <p>Клиенты не найдены</p>
@@ -287,6 +220,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
               ) : (
                 filteredClients.map((client) => (
                   <TableRow key={client.id}>
+                    {/* Column 1: Company Name + Contact Person */}
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0a1628] text-white text-xs font-semibold">
@@ -298,32 +232,31 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                         <div>
                           <p className="font-medium">{client.short_name || client.name}</p>
                           <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {client.name}
+                            {client.contact_person || "—"}
                           </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">{client.inn}</TableCell>
+                    {/* Column 2: INN + Region */}
                     <TableCell>
                       <div>
-                        <p className="font-medium">—</p>
-                        <p className="text-xs text-muted-foreground">—</p>
+                        <p className="font-mono text-sm font-medium">{client.inn}</p>
+                        <p className="text-xs text-muted-foreground">{client.region || "—"}</p>
                       </div>
                     </TableCell>
+                    {/* Column 3: Active Applications Count */}
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-sm">—</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#00d4aa]/10 text-xs font-semibold text-[#00d4aa]">
+                      <span className="inline-flex h-6 min-w-6 px-2 items-center justify-center rounded-full bg-[#3CE8D1]/10 text-xs font-semibold text-[#3CE8D1]">
                         —
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDate(client.created_at)}
+                    {/* Column 4: Status Badge */}
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400">
+                        Новый
+                      </span>
                     </TableCell>
+                    {/* Column 5: Actions */}
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

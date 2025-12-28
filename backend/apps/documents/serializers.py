@@ -100,15 +100,19 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
 class DocumentListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for listing documents.
+    Includes file and file_url for download functionality.
     """
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     type_display = serializers.CharField(source='get_document_type_display', read_only=True)
+    file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
         fields = [
             'id',
             'name',
+            'file',
+            'file_url',
             'document_type',
             'type_display',
             'status',
@@ -116,6 +120,15 @@ class DocumentListSerializer(serializers.ModelSerializer):
             'uploaded_at',
         ]
         read_only_fields = fields
+
+    def get_file_url(self, obj):
+        """Get full URL for file download."""
+        if obj.file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.file.url)
+            return obj.file.url
+        return None
 
 
 class DocumentVerifySerializer(serializers.Serializer):

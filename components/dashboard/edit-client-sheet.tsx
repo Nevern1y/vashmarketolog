@@ -36,6 +36,7 @@ interface CompanyFormData {
     short_name: string
     legal_address: string
     actual_address: string
+    region: string
     director_name: string
     director_position: string
     // Passport fields
@@ -64,6 +65,7 @@ const initialFormData: CompanyFormData = {
     short_name: "",
     legal_address: "",
     actual_address: "",
+    region: "",
     director_name: "",
     director_position: "",
     passport_series: "",
@@ -101,6 +103,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 short_name: safeString(client.short_name),
                 legal_address: safeString(client.legal_address),
                 actual_address: safeString(client.actual_address),
+                region: safeString(client.region),
                 director_name: safeString(client.director_name),
                 director_position: safeString(client.director_position),
                 passport_series: safeString(client.passport_series),
@@ -145,6 +148,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
             short_name: formData.short_name,
             legal_address: formData.legal_address,
             actual_address: formData.actual_address,
+            region: formData.region,
             director_name: formData.director_name,
             director_position: formData.director_position,
             passport_series: formData.passport_series || undefined,
@@ -226,7 +230,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 {isLoading ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="flex flex-col items-center gap-4">
-                            <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
+                            <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
                             <p className="text-muted-foreground">Загрузка данных клиента...</p>
                         </div>
                     </div>
@@ -254,7 +258,8 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                         <FormInput label="КПП" field="kpp" placeholder="Введите КПП" />
                                         <FormInput label="ОГРН" field="ogrn" placeholder="Введите ОГРН" />
                                         <FormInput label="Полное наименование" field="name" placeholder="Полное наименование организации" required />
-                                        <FormInput label="Сокращенное наименование" field="short_name" placeholder="Сокращенное наименование" colSpan={2} />
+                                        <FormInput label="Сокращенное наименование" field="short_name" placeholder="Сокращенное наименование" />
+                                        <FormInput label="Регион" field="region" placeholder="Московская область" />
                                         <FormInput label="Юридический адрес" field="legal_address" placeholder="Юридический адрес" colSpan={2} />
                                         <FormInput label="Фактический адрес" field="actual_address" placeholder="Фактический адрес" colSpan={2} />
                                     </div>
@@ -305,7 +310,14 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                     </h3>
                                     <div className="grid gap-4 md:grid-cols-3">
                                         <FormInput label="Контактное лицо" field="contact_person" placeholder="Иванов Иван Иванович" />
-                                        <FormInput label="Email" field="contact_email" type="email" placeholder="email@example.com" />
+                                        <div className="space-y-2">
+                                            <FormInput label="Email" field="contact_email" type="email" placeholder="email@example.com" />
+                                            {formData.contact_email && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-500">
+                                                    Email не подтвержден
+                                                </span>
+                                            )}
+                                        </div>
                                         <FormInput label="Телефон" field="contact_phone" placeholder="+7 (XXX) XXX-XX-XX" />
                                         <FormInput label="Сайт" field="website" placeholder="https://example.com" colSpan={3} />
                                     </div>
@@ -321,7 +333,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                             </Button>
                             {!isReadOnly && (
                                 <Button
-                                    className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                                    className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                                     onClick={handleSave}
                                     disabled={isSaving}
                                 >

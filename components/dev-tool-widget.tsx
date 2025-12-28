@@ -44,7 +44,7 @@ export function DevToolWidget({ currentMode, onModeChange }: DevToolWidgetProps)
                 }}
                 className={cn(
                   "flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors",
-                  currentMode === mode.id ? "bg-[#00d4aa]/10 text-[#00d4aa]" : "hover:bg-muted",
+                  currentMode === mode.id ? "bg-[#3CE8D1]/10 text-[#3CE8D1]" : "hover:bg-muted",
                 )}
               >
                 <span className="text-sm font-medium">{mode.label}</span>

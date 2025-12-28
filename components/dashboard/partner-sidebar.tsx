@@ -29,8 +29,8 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00d4aa]">
-          <span className="text-lg font-bold text-white">ФМ</span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]">
+          <span className="text-lg font-bold text-[#0a1628]">ФМ</span>
         </div>
         <div>
           <p className="text-sm font-semibold leading-tight">ФИНАНСОВЫЙ</p>
@@ -39,8 +39,8 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
       </div>
 
       {/* Partner Badge */}
-      <div className="mx-4 mb-4 rounded-lg bg-[#00d4aa]/10 px-4 py-3">
-        <p className="text-xs text-[#00d4aa]">Партнер</p>
+      <div className="mx-4 mb-4 rounded-lg bg-[#3CE8D1]/10 px-4 py-3">
+        <p className="text-xs text-[#3CE8D1]">Партнер</p>
         <p className="text-sm font-semibold">Финансовая организация</p>
       </div>
 
@@ -54,14 +54,14 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   activeView === item.id || (activeView === "application-detail" && item.id === "incoming")
-                    ? "bg-white/10 text-white"
-                    : "text-[#94a3b8] hover:bg-white/5 hover:text-white",
+                    ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                    : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
                 )}
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
                 {item.id === "incoming" && newApplicationsCount !== undefined && newApplicationsCount > 0 && (
-                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#00d4aa] text-xs font-semibold">
+                  <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#3CE8D1] text-[#0a1628] text-xs font-semibold">
                     {newApplicationsCount}
                   </span>
                 )}
@@ -75,8 +75,8 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
       <div className="border-t border-white/10 p-4">
         {/* User Info */}
         <div className="mb-4 flex items-center gap-3">
-          <Avatar className="h-10 w-10 border-2 border-[#00d4aa]">
-            <AvatarFallback className="bg-[#00d4aa] text-white text-sm">
+          <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
+            <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
               {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "П"}
             </AvatarFallback>
           </Avatar>
@@ -93,7 +93,7 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
           <Button
             variant="outline"
             size="sm"
-            className="w-full border-[#f97316] bg-transparent text-[#f97316] hover:bg-[#f97316] hover:text-white"
+            className="w-full border-[#FF521D] bg-transparent text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
           >
             <HelpCircle className="mr-2 h-4 w-4" />
             Связаться

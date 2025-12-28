@@ -41,7 +41,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center">
               <svg viewBox="0 0 40 40" className="h-10 w-10">
-                <path d="M8 32 L20 8 L32 32 Z" fill="#00d4aa" />
+                <path d="M8 32 L20 8 L32 32 Z" fill="#3CE8D1" />
                 <path d="M14 32 L20 20 L26 32 Z" fill="#0a1628" />
               </svg>
             </div>
@@ -105,7 +105,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
           <Button
             type="submit"
             disabled={!isValid}
-            className="w-full bg-[#00d4aa] text-white hover:bg-[#00b894] disabled:opacity-50"
+            className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] disabled:opacity-50"
           >
             ВОЙТИ
           </Button>
@@ -115,7 +115,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
       <CardFooter className="justify-center border-t pt-6">
         <p className="text-sm text-muted-foreground">
           Нет аккаунта?{" "}
-          <button onClick={onSwitchToRegister} className="font-medium text-[#00d4aa] hover:underline">
+          <button onClick={onSwitchToRegister} className="font-medium text-[#3CE8D1] hover:underline">
             Зарегистрироваться
           </button>
         </p>

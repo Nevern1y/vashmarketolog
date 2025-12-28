@@ -83,7 +83,7 @@ export function MyDocumentsView() {
     switch (status) {
       case "verified":
         return (
-          <Badge className="bg-[#00d4aa]/10 text-[#00d4aa] hover:bg-[#00d4aa]/20 gap-1">
+          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] hover:bg-[#3CE8D1]/20 gap-1">
             <CheckCircle2 className="h-3 w-3" />
             Подтвержден
           </Badge>
@@ -235,7 +235,7 @@ export function MyDocumentsView() {
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
           <Button
-            className="bg-[#00d4aa] text-white hover:bg-[#00b894] gap-2"
+            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] gap-2"
             onClick={() => setIsUploadOpen(true)}
           >
             <Upload className="h-4 w-4" />
@@ -296,7 +296,7 @@ export function MyDocumentsView() {
                 <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg hover:bg-muted/50 transition-colors">
                   {uploadFile ? (
                     <div className="flex flex-col items-center text-center px-4">
-                      <FileText className="h-8 w-8 text-[#00d4aa] mb-2" />
+                      <FileText className="h-8 w-8 text-[#3CE8D1] mb-2" />
                       <p className="text-sm font-medium truncate max-w-full">{uploadFile.name}</p>
                       <p className="text-xs text-muted-foreground">
                         {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
@@ -324,7 +324,7 @@ export function MyDocumentsView() {
                 Отмена
               </Button>
               <Button
-                className="bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                 onClick={handleUpload}
                 disabled={uploading || !uploadFile || !uploadName || !uploadType}
               >
@@ -405,8 +405,8 @@ export function MyDocumentsView() {
         <Card className="shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#00d4aa]/10">
-                <CheckCircle2 className="h-6 w-6 text-[#00d4aa]" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                <CheckCircle2 className="h-6 w-6 text-[#3CE8D1]" />
               </div>
               <div>
                 {isLoading ? (
@@ -529,9 +529,9 @@ export function MyDocumentsView() {
                         href={getFileUrl(doc)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 hover:text-[#00d4aa] transition-colors group"
+                        className="flex items-center gap-3 hover:text-[#3CE8D1] transition-colors group"
                       >
-                        <FileText className="h-4 w-4 text-muted-foreground group-hover:text-[#00d4aa]" />
+                        <FileText className="h-4 w-4 text-muted-foreground group-hover:text-[#3CE8D1]" />
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{doc.name}</p>
                           <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />

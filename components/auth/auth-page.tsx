@@ -114,8 +114,8 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         <CardHeader className="space-y-4 pb-2">
           {/* Logo */}
           <div className="flex items-center justify-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#00d4aa]">
-              <span className="text-xl font-bold text-white">ФМ</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#3CE8D1]">
+              <span className="text-xl font-bold text-[#0a1628]">ФМ</span>
             </div>
             <div>
               <p className="text-lg font-bold">ФИНАНСОВЫЙ</p>
@@ -130,7 +130,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
               className={cn(
                 "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
                 activeTab === "login"
-                  ? "bg-white text-foreground shadow-sm"
+                  ? "bg-[#3CE8D1]/10 text-[#3CE8D1] shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -141,7 +141,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
               className={cn(
                 "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
                 activeTab === "register"
-                  ? "bg-white text-foreground shadow-sm"
+                  ? "bg-[#3CE8D1]/10 text-[#3CE8D1] shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -153,7 +153,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         <CardContent className="space-y-4">
           {/* Error message */}
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+            <div className="rounded-md bg-[#E03E9D]/10 p-3 text-sm text-[#E03E9D]">
               {error}
             </div>
           )}
@@ -193,7 +193,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -210,7 +210,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-[#00d4aa] text-[#00d4aa] hover:bg-[#00d4aa]/10"
+                className="w-full border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
                 onClick={handleEDSLogin}
                 disabled={isLoading}
               >
@@ -220,7 +220,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
               <p className="text-center text-sm text-muted-foreground">
                 Забыли пароль?{" "}
-                <a href="#" className="text-[#00d4aa] hover:underline">
+                <a href="#" className="text-[#3CE8D1] hover:underline">
                   Восстановить
                 </a>
               </p>
@@ -236,7 +236,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                     onClick={() => setRole("client")}
                     className={cn(
                       "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
-                      role === "client" ? "bg-[#00d4aa] text-white" : "text-muted-foreground hover:text-foreground",
+                      role === "client" ? "bg-[#3CE8D1] text-[#0a1628]" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     Клиент
@@ -246,7 +246,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                     onClick={() => setRole("agent")}
                     className={cn(
                       "flex-1 rounded-md py-2 text-sm font-medium transition-colors",
-                      role === "agent" ? "bg-[#00d4aa] text-white" : "text-muted-foreground hover:text-foreground",
+                      role === "agent" ? "bg-[#3CE8D1] text-[#0a1628]" : "text-muted-foreground hover:text-foreground",
                     )}
                   >
                     Агент
@@ -341,7 +341,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
               <Button
                 type="submit"
-                className="w-full bg-[#00d4aa] text-white hover:bg-[#00b894]"
+                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                 disabled={isLoading || (registerPassword !== registerPasswordConfirm)}
               >
                 {isLoading ? (
@@ -356,7 +356,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
 
               <p className="text-center text-xs text-muted-foreground">
                 Нажимая кнопку, вы соглашаетесь с{" "}
-                <a href="#" className="text-[#00d4aa] hover:underline">
+                <a href="#" className="text-[#3CE8D1] hover:underline">
                   условиями использования
                 </a>
               </p>

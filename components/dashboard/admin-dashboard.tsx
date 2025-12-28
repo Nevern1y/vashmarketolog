@@ -43,44 +43,44 @@ import { PartnersTab } from "./partners-tab"
 const statusConfig: Record<string, { label: string; className: string; icon?: React.ReactNode }> = {
   approved: {
     label: "Одобрено",
-    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30",
     icon: <CheckCircle2 className="h-3 w-3" />
   },
   rejected: {
     label: "Отклонено",
-    className: "bg-red-50 text-red-700 border border-red-200",
+    className: "bg-[#E03E9D]/10 text-[#E03E9D] border border-[#E03E9D]/30",
     icon: <XCircle className="h-3 w-3" />
   },
   declined: {
     label: "Отклонено",
-    className: "bg-red-50 text-red-700 border border-red-200",
+    className: "bg-[#E03E9D]/10 text-[#E03E9D] border border-[#E03E9D]/30",
     icon: <XCircle className="h-3 w-3" />
   },
   pending: {
     label: "Новая",
-    className: "bg-blue-50 text-blue-700 border border-blue-200"
+    className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border border-[#4F7DF3]/30"
   },
   in_review: {
     label: "В обработке",
-    className: "bg-blue-50 text-blue-700 border border-blue-200"
+    className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30"
   },
   info_requested: {
     label: "Запрос инфо",
-    className: "bg-amber-50 text-amber-700 border border-amber-200",
+    className: "bg-[#FFD93D]/10 text-[#FFD93D] border border-[#FFD93D]/30",
     icon: <AlertTriangle className="h-3 w-3" />
   },
   draft: {
     label: "Черновик",
-    className: "bg-slate-50 text-slate-600 border border-slate-200"
+    className: "bg-slate-700/50 text-slate-400 border border-slate-600/30"
   },
   won: {
     label: "Выигран",
-    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    className: "bg-[#3CE8D1]/15 text-[#3CE8D1] border border-[#3CE8D1]/30",
     icon: <CheckCircle2 className="h-3 w-3" />
   },
   lost: {
     label: "Проигран",
-    className: "bg-red-50 text-red-700 border border-red-200"
+    className: "bg-[#FF521D]/10 text-[#FF521D] border border-[#FF521D]/30"
   },
 }
 
@@ -230,7 +230,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* ============================================ */}
       {/* PREMIUM HEADER */}
       {/* ============================================ */}
@@ -264,14 +264,14 @@ export function AdminDashboard() {
       {/* ============================================ */}
       <main className="p-6 lg:p-8">
         {/* Tab Navigation */}
-        <div className="mb-6 flex items-center gap-2 border-b border-gray-200 pb-4">
+        <div className="mb-6 flex items-center gap-2 border-b border-border pb-4">
           <button
             onClick={() => setActiveTab("applications")}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors",
               activeTab === "applications"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                : "text-muted-foreground hover:bg-accent"
             )}
           >
             <FileText className="h-4 w-4" />
@@ -285,8 +285,8 @@ export function AdminDashboard() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors",
               activeTab === "partners"
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-600 hover:bg-gray-100"
+                ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                : "text-muted-foreground hover:bg-accent"
             )}
           >
             <Building2 className="h-4 w-4" />
@@ -303,9 +303,9 @@ export function AdminDashboard() {
             {/* Page Header */}
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Заявки</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Ожидают рассмотрения: <span className="font-semibold text-amber-600">{pendingCount}</span>
+                <h2 className="text-2xl font-bold text-foreground">Заявки</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Ожидают рассмотрения: <span className="font-semibold text-[#FFD93D]">{pendingCount}</span>
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -314,13 +314,13 @@ export function AdminDashboard() {
                   size="sm"
                   onClick={() => refetch()}
                   disabled={isLoading}
-                  className="gap-2 border-gray-300 hover:bg-gray-100"
+                  className="gap-2 border-border hover:bg-accent"
                 >
                   <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
                   Обновить
                 </Button>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[160px] bg-white">
+                  <SelectTrigger className="w-[160px] bg-card border-border">
                     <SelectValue placeholder="Статус" />
                   </SelectTrigger>
                   <SelectContent>
@@ -338,7 +338,7 @@ export function AdminDashboard() {
                     placeholder="Поиск..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    className="pl-10 bg-card border-border focus:border-[#3CE8D1] focus:ring-[#3CE8D1]"
                   />
                 </div>
               </div>
@@ -348,8 +348,8 @@ export function AdminDashboard() {
             {isLoading && (
               <div className="flex items-center justify-center py-16">
                 <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-                  <span className="text-sm text-gray-500">Загрузка заявок...</span>
+                  <Loader2 className="h-10 w-10 animate-spin text-[#3CE8D1]" />
+                  <span className="text-sm text-muted-foreground">Загрузка заявок...</span>
                 </div>
               </div>
             )}
@@ -371,12 +371,12 @@ export function AdminDashboard() {
             {/* PRO DATA GRID */}
             {/* ============================================ */}
             {!isLoading && !error && (
-              <Card className="shadow-sm border-gray-200 overflow-hidden bg-white">
+              <Card className="shadow-sm border-border overflow-hidden bg-card">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     {/* Table Header - TOR Compliant */}
                     <thead>
-                      <tr className="bg-gray-100/80 border-b border-gray-200">
+                      <tr className="bg-accent/50 border-b border-border">
                         <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">ID</th>
                         <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Дата</th>
                         <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Клиент</th>
@@ -392,7 +392,7 @@ export function AdminDashboard() {
                         <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-500">Действие</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-border">
                       {filteredApplications.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-4 py-16 text-center">
@@ -408,31 +408,31 @@ export function AdminDashboard() {
                         filteredApplications.map((app) => {
                           const statusCfg = statusConfig[app.status] || {
                             label: app.status_display || app.status,
-                            className: "bg-gray-50 text-gray-600 border border-gray-200"
+                            className: "bg-slate-700/50 text-slate-400 border border-slate-600/30"
                           }
 
                           return (
                             <tr
                               key={app.id}
-                              className="group cursor-pointer transition-colors hover:bg-blue-50/40"
+                              className="group cursor-pointer transition-colors hover:bg-[#3CE8D1]/5"
                               onClick={() => handleViewDetails(app.id)}
                             >
                               {/* ID - Monospace */}
                               <td className="px-4 py-4">
-                                <span className="font-mono text-sm font-medium text-gray-900">#{app.id}</span>
+                                <span className="font-mono text-sm font-medium text-foreground">#{app.id}</span>
                               </td>
 
                               {/* Date */}
                               <td className="px-4 py-4">
-                                <span className="text-sm text-gray-500">{formatDate(app.created_at)}</span>
+                                <span className="text-sm text-muted-foreground">{formatDate(app.created_at)}</span>
                               </td>
 
                               {/* Client - Bold + INN */}
                               <td className="px-4 py-3">
                                 {app.company_name && app.company_name !== '—' ? (
                                   <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-gray-900">{app.company_name}</span>
-                                    <span className="text-xs text-gray-500 font-mono">
+                                    <span className="text-sm font-semibold text-foreground">{app.company_name}</span>
+                                    <span className="text-xs text-muted-foreground font-mono">
                                       ИНН: {app.company_inn && app.company_inn !== '—' ? app.company_inn : "—"}
                                     </span>
                                   </div>
@@ -443,12 +443,12 @@ export function AdminDashboard() {
 
                               {/* Product */}
                               <td className="px-4 py-4">
-                                <span className="text-sm text-gray-600">{app.product_type_display}</span>
+                                <span className="text-sm text-muted-foreground">{app.product_type_display}</span>
                               </td>
 
                               {/* Amount - Monospace Right-Aligned */}
                               <td className="px-4 py-4 text-right">
-                                <span className="font-mono text-sm font-semibold text-gray-900">
+                                <span className="font-mono text-sm font-semibold text-foreground">
                                   {formatCurrency(app.amount)}
                                 </span>
                               </td>
@@ -456,8 +456,8 @@ export function AdminDashboard() {
                               {/* Bank */}
                               <td className="px-4 py-4">
                                 {app.target_bank_name ? (
-                                  <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-                                    <Building2 className="h-3.5 w-3.5 text-gray-400" />
+                                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                                     {app.target_bank_name}
                                   </span>
                                 ) : (
@@ -485,7 +485,7 @@ export function AdminDashboard() {
                                     e.stopPropagation()
                                     handleViewDetails(app.id)
                                   }}
-                                  className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
@@ -515,12 +515,12 @@ export function AdminDashboard() {
           />
 
           {/* Drawer Panel */}
-          <div className="absolute inset-y-0 right-0 w-full max-w-[600px] bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="absolute inset-y-0 right-0 w-full max-w-[600px] bg-card shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             {/* Sticky Header */}
-            <div className="flex-shrink-0 sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex-shrink-0 sticky top-0 z-10 bg-card border-b border-border px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-bold text-gray-900">
+                  <h2 className="text-lg font-bold text-foreground">
                     Заявка <span className="font-mono">#{selectedApp?.id}</span>
                   </h2>
                   {selectedApp && (
@@ -537,7 +537,7 @@ export function AdminDashboard() {
                   variant="ghost"
                   size="sm"
                   onClick={handleCloseDrawer}
-                  className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -548,37 +548,37 @@ export function AdminDashboard() {
             <div className="flex-1 overflow-y-auto">
               {isLoadingApp ? (
                 <div className="flex items-center justify-center py-20">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
                 </div>
               ) : selectedApp ? (
                 <div className="p-6 space-y-6">
                   {/* Client Intelligence Card */}
-                  <Card className="border-gray-200 shadow-sm">
+                  <Card className="border-border shadow-sm">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-gray-400" />
+                      <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
                         Информация о клиенте
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Компания</p>
-                          <p className="text-sm font-semibold text-gray-900 mt-1">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Компания</p>
+                          <p className="text-sm font-semibold text-foreground mt-1">
                             {selectedApp.company_name || "—"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">ИНН</p>
-                          <p className="text-sm font-mono text-gray-900 mt-1">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">ИНН</p>
+                          <p className="text-sm font-mono text-foreground mt-1">
                             {selectedApp.company_inn || "—"}
                           </p>
                         </div>
                         {selectedApp.company_data?.director_name && (
                           <div className="col-span-2">
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Директор</p>
-                            <p className="text-sm text-gray-900 mt-1 flex items-center gap-2">
-                              <User className="h-4 w-4 text-gray-400" />
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Директор</p>
+                            <p className="text-sm text-foreground mt-1 flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
                               {selectedApp.company_data.director_name}
                             </p>
                           </div>
@@ -590,7 +590,7 @@ export function AdminDashboard() {
                           href={getCheckoUrl(selectedApp.company_inn) || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                          className="inline-flex items-center gap-2 text-sm font-medium text-[#3CE8D1] hover:text-[#2fd4c0] transition-colors"
                         >
                           <ExternalLink className="h-4 w-4" />
                           Проверить на Checko.ru
@@ -601,43 +601,43 @@ export function AdminDashboard() {
                   </Card>
 
                   {/* Application Summary */}
-                  <Card className="border-gray-200 shadow-sm">
+                  <Card className="border-border shadow-sm">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-gray-400" />
+                      <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
                         Параметры заявки
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                          <DollarSign className="h-5 w-5 text-green-600" />
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-accent">
+                          <DollarSign className="h-5 w-5 text-[#3CE8D1]" />
                           <div>
-                            <p className="text-xs text-gray-500">Сумма</p>
-                            <p className="font-mono font-semibold text-gray-900">
+                            <p className="text-xs text-muted-foreground">Сумма</p>
+                            <p className="font-mono font-semibold text-foreground">
                               {formatCurrency(selectedApp.amount)}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                          <Calendar className="h-5 w-5 text-blue-600" />
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-accent">
+                          <Calendar className="h-5 w-5 text-[#4F7DF3]" />
                           <div>
-                            <p className="text-xs text-gray-500">Срок</p>
-                            <p className="font-semibold text-gray-900">{selectedApp.term_months} мес.</p>
+                            <p className="text-xs text-muted-foreground">Срок</p>
+                            <p className="font-semibold text-foreground">{selectedApp.term_months} мес.</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                          <FileText className="h-5 w-5 text-purple-600" />
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-accent">
+                          <FileText className="h-5 w-5 text-[#E03E9D]" />
                           <div>
-                            <p className="text-xs text-gray-500">Продукт</p>
-                            <p className="font-semibold text-gray-900">{selectedApp.product_type_display}</p>
+                            <p className="text-xs text-muted-foreground">Продукт</p>
+                            <p className="font-semibold text-foreground">{selectedApp.product_type_display}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
-                          <Building2 className="h-5 w-5 text-amber-600" />
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-accent">
+                          <Building2 className="h-5 w-5 text-[#FFD93D]" />
                           <div>
-                            <p className="text-xs text-gray-500">Целевой банк</p>
-                            <p className="font-semibold text-gray-900">{selectedApp.target_bank_name || "—"}</p>
+                            <p className="text-xs text-muted-foreground">Целевой банк</p>
+                            <p className="font-semibold text-foreground">{selectedApp.target_bank_name || "—"}</p>
                           </div>
                         </div>
                       </div>
@@ -645,13 +645,13 @@ export function AdminDashboard() {
                   </Card>
 
                   {/* Manager Notes - Sticky Note Style */}
-                  <Card className="border-amber-200 bg-amber-50/50 shadow-sm">
+                  <Card className="border-[#FFD93D]/30 bg-[#FFD93D]/5 shadow-sm">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+                      <CardTitle className="text-sm font-semibold text-[#FFD93D] flex items-center gap-2">
                         <StickyNote className="h-4 w-4" />
                         Заметки менеджера
                       </CardTitle>
-                      <CardDescription className="text-xs text-amber-600">
+                      <CardDescription className="text-xs text-[#FFD93D]/70">
                         Только для администратора
                       </CardDescription>
                     </CardHeader>
@@ -660,12 +660,12 @@ export function AdminDashboard() {
                         placeholder="Внутренние заметки по заявке..."
                         value={internalNotes}
                         onChange={(e) => setInternalNotes(e.target.value)}
-                        className="min-h-[80px] resize-none bg-white/80 border-amber-200 focus:border-amber-400 focus:ring-amber-400"
+                        className="min-h-[80px] resize-none bg-card border-[#FFD93D]/30 focus:border-[#FFD93D] focus:ring-[#FFD93D]"
                       />
                       <div className="flex items-center justify-between mt-2">
                         <span className={cn(
                           "text-xs transition-opacity",
-                          noteSaved ? "text-green-600 opacity-100" : "opacity-0"
+                          noteSaved ? "text-[#3CE8D1] opacity-100" : "opacity-0"
                         )}>
                           ✓ Сохранено
                         </span>
@@ -674,7 +674,7 @@ export function AdminDashboard() {
                           variant="outline"
                           onClick={handleSaveNotes}
                           disabled={isActioning}
-                          className="h-7 px-3 text-xs border-amber-300 text-amber-700 hover:bg-amber-100"
+                          className="h-7 px-3 text-xs border-[#FFD93D]/30 text-[#FFD93D] hover:bg-[#FFD93D]/10"
                         >
                           💾 Сохранить
                         </Button>
@@ -683,17 +683,17 @@ export function AdminDashboard() {
                   </Card>
 
                   {/* Partner Assignment */}
-                  <Card className="border-gray-200 shadow-sm">
+                  <Card className="border-border shadow-sm">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        <UserPlus className="h-4 w-4 text-gray-400" />
+                      <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <UserPlus className="h-4 w-4 text-muted-foreground" />
                         Назначение партнёра
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center gap-3">
                         <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
-                          <SelectTrigger className="flex-1 bg-white">
+                          <SelectTrigger className="flex-1 bg-card border-border">
                             <SelectValue placeholder="Выберите партнёра..." />
                           </SelectTrigger>
                           <SelectContent>
@@ -713,7 +713,7 @@ export function AdminDashboard() {
                         <Button
                           onClick={handleAssignPartner}
                           disabled={!selectedPartnerId || isActioning}
-                          className="gap-2 bg-blue-600 hover:bg-blue-700"
+                          className="gap-2 bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                         >
                           {isActioning ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -724,18 +724,18 @@ export function AdminDashboard() {
                         </Button>
                       </div>
                       {selectedApp.partner_email && (
-                        <p className="mt-3 text-sm text-gray-600">
-                          Текущий партнёр: <span className="font-medium text-blue-600">{selectedApp.partner_email}</span>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          Текущий партнёр: <span className="font-medium text-[#3CE8D1]">{selectedApp.partner_email}</span>
                         </p>
                       )}
                     </CardContent>
                   </Card>
 
                   {/* Chat Module */}
-                  <Card className="border-gray-200 shadow-sm">
+                  <Card className="border-border shadow-sm">
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4 text-gray-400" />
+                      <CardTitle className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
                         Чат по заявке
                       </CardTitle>
                     </CardHeader>
@@ -753,7 +753,7 @@ export function AdminDashboard() {
 
             {/* Sticky Footer Actions */}
             {selectedApp && (
-              <div className="flex-shrink-0 sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4">
+              <div className="flex-shrink-0 sticky bottom-0 bg-card border-t border-border px-6 py-4">
                 <div className="flex items-center gap-3">
                   {/* Show Restore button for rejected applications */}
                   {selectedApp.status === "rejected" ? (

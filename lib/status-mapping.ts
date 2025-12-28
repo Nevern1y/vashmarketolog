@@ -6,6 +6,10 @@
  * - Frontend is ADAPTER: Maps to visual steps from PDF
  * 
  * This file is the SINGLE SOURCE of mapping between Django and TOR visuals.
+ * 
+ * 🎨 DARK THEME UPDATE:
+ * Colors updated for Cyan Cyberpunk theme with neon-style badges
+ * on dark backgrounds.
  */
 
 // Django Application Status values (from backend/apps/applications/models.py)
@@ -27,7 +31,7 @@ export interface StatusConfig {
     step: StepIndex;
     label: string;         // TOR label (Russian)
     stepLabel: string;     // Step name for stepper
-    color: string;         // Tailwind color class
+    color: string;         // Tailwind text color class
     bgColor: string;       // Background color class
     isNegative: boolean;   // Is this a rejection/loss state?
 }
@@ -35,6 +39,11 @@ export interface StatusConfig {
 /**
  * Maps Django status to visual configuration
  * Reference: PDF "Приложение А. Статусная модель"
+ * 
+ * 🎨 DARK THEME COLORS:
+ * - Use bright neon text colors for visibility
+ * - Use 10-20% opacity backgrounds for glow effect
+ * - Colors: Cyan (#3CE8D1), Yellow (#FFD93D), Magenta (#E03E9D), Orange (#FF521D)
  */
 export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
     // Step 1: Draft / Анкета
@@ -42,8 +51,8 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
         step: 0,
         label: 'Черновик',
         stepLabel: 'Анкета',
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-100',
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-700/50',
         isNegative: false,
     },
 
@@ -52,24 +61,24 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
         step: 1,
         label: 'На рассмотрении',
         stepLabel: 'Прескоринг',
-        color: 'text-cyan-700',
-        bgColor: 'bg-cyan-100',
+        color: 'text-[#3CE8D1]',
+        bgColor: 'bg-[#3CE8D1]/10',
         isNegative: false,
     },
     in_review: {
         step: 1,
         label: 'В работе',
         stepLabel: 'Проверка документов',
-        color: 'text-blue-700',
-        bgColor: 'bg-blue-100',
+        color: 'text-[#4F7DF3]',
+        bgColor: 'bg-[#4F7DF3]/10',
         isNegative: false,
     },
     info_requested: {
         step: 1,
         label: 'Дозаполнение',
         stepLabel: 'Запрос информации',
-        color: 'text-yellow-700',
-        bgColor: 'bg-yellow-100',
+        color: 'text-[#FFD93D]',
+        bgColor: 'bg-[#FFD93D]/10',
         isNegative: false,
     },
 
@@ -78,16 +87,16 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
         step: 2,
         label: 'Одобрено',
         stepLabel: 'Одобрено',
-        color: 'text-green-700',
-        bgColor: 'bg-green-100',
+        color: 'text-[#3CE8D1]',
+        bgColor: 'bg-[#3CE8D1]/15',
         isNegative: false,
     },
     rejected: {
         step: 2,
         label: 'Отклонено',
         stepLabel: 'Отклонено',
-        color: 'text-red-700',
-        bgColor: 'bg-red-100',
+        color: 'text-[#E03E9D]',
+        bgColor: 'bg-[#E03E9D]/10',
         isNegative: true,
     },
 
@@ -96,16 +105,16 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
         step: 3,
         label: 'Выигран',
         stepLabel: 'Выпущена',
-        color: 'text-emerald-700',
-        bgColor: 'bg-emerald-100',
+        color: 'text-[#3CE8D1]',
+        bgColor: 'bg-[#3CE8D1]/20',
         isNegative: false,
     },
     lost: {
         step: 3,
         label: 'Проигран',
         stepLabel: 'Проигран',
-        color: 'text-orange-700',
-        bgColor: 'bg-orange-100',
+        color: 'text-[#FF521D]',
+        bgColor: 'bg-[#FF521D]/10',
         isNegative: true,
     },
 };
@@ -130,8 +139,8 @@ export function getStatusConfig(status: string): StatusConfig {
         step: 0,
         label: status,
         stepLabel: status,
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-100',
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-700/50',
         isNegative: false,
     };
 }
@@ -188,6 +197,7 @@ export function getDocumentTypeLabel(productDocumentId: number | undefined, fall
 // ============================================
 // DOCUMENT STATUS MAPPING
 // Reference: Django DocumentStatus model
+// 🎨 Updated for Dark Theme
 // ============================================
 
 export type DjangoDocumentStatus = 'pending' | 'verified' | 'rejected';
@@ -202,20 +212,20 @@ export interface DocStatusConfig {
 export const DOC_STATUS_CONFIG: Record<DjangoDocumentStatus, DocStatusConfig> = {
     pending: {
         label: 'На проверке',
-        color: 'text-amber-600',
-        bgColor: 'bg-amber-50',
+        color: 'text-[#FFD93D]',
+        bgColor: 'bg-[#FFD93D]/10',
         iconType: 'clock',
     },
     verified: {
         label: 'Принят',
-        color: 'text-green-600',
-        bgColor: 'bg-green-50',
+        color: 'text-[#3CE8D1]',
+        bgColor: 'bg-[#3CE8D1]/10',
         iconType: 'check',
     },
     rejected: {
         label: 'Отклонён',
-        color: 'text-red-600',
-        bgColor: 'bg-red-50',
+        color: 'text-[#E03E9D]',
+        bgColor: 'bg-[#E03E9D]/10',
         iconType: 'x',
     },
 };
@@ -230,8 +240,8 @@ export function getDocStatusConfig(status: string): DocStatusConfig {
     // Fallback
     return {
         label: status,
-        color: 'text-gray-600',
-        bgColor: 'bg-gray-50',
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-700/50',
         iconType: 'clock',
     };
 }

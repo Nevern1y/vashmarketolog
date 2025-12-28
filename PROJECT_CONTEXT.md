@@ -139,13 +139,37 @@ director_name, director_position
 # Паспорт директора (API-Ready)
 passport_series, passport_number, passport_issued_by, passport_date, passport_code
 
-# JSONField для сложных структур
-founders_data       # [{name, inn, share}]
-bank_accounts_data  # [{account, bic, bank_name}]
+# JSONField для сложных структур (Phase 2 Ready - Postman API 1.1)
+founders_data       # См. структуру ниже (ВАЖНО: включает паспорт учредителя!)
+bank_accounts_data  # [{bank_name, bank_bik, account}]
 
 # CRM
 is_crm_client: Boolean  # True = клиент агента
 owner: FK(User)         # Владелец
+```
+
+### ВАЖНО: Структура founders_data (Postman API)
+```json
+[
+  {
+    "full_name": "Участников Участник Участникович",
+    "inn": "1234567890",
+    "share_relative": 80,
+    "document": {
+      "series": "99 99",
+      "number": "999999",
+      "issued_at": "2000-01-01",
+      "authority_name": "Наименование подразделения",
+      "authority_code": "777-777"
+    },
+    "birth_place": "Москва",
+    "birth_date": "1985-01-01",
+    "gender": 1,
+    "citizen": "РФ",
+    "legal_address": {"value": "...", "postal_code": "123456"},
+    "actual_address": {"value": "...", "postal_code": "123456"}
+  }
+]
 ```
 
 ### Application (apps/applications/models.py)
