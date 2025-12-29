@@ -128,6 +128,7 @@ export default function DashboardPage() {
                     setSelectedApplicationId(id)
                     setShowingAppDetail(true)
                   }}
+                  onCreateApplication={() => openWizard()}
                 />
               )}
               {clientView === "victories" && <MyVictoriesView />}
@@ -282,6 +283,7 @@ export default function DashboardPage() {
                     setSelectedApplicationId(id)
                     setShowingAppDetail(true)
                   }}
+                  onCreateApplication={() => openWizard()}
                 />
               )}
               {agentView !== "company" && agentView !== "applications" && agentView !== "clients" && (

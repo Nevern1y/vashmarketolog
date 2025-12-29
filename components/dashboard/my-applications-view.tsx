@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { Search, Loader2, AlertCircle, RefreshCw } from "lucide-react"
+import { Search, Loader2, AlertCircle, RefreshCw, FileText, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useApplications, type ApplicationListItem } from "@/hooks/use-applications"
 
@@ -14,6 +14,7 @@ type TabType = "tenders" | "accounts" | "special" | "credit"
 
 interface MyApplicationsViewProps {
   onOpenDetail?: (id: string) => void
+  onCreateApplication?: () => void
 }
 
 const tabs: { id: TabType; label: string }[] = [
@@ -43,7 +44,7 @@ const productTypeToTab: Record<string, TabType> = {
   leasing: "credit",
 }
 
-export function MyApplicationsView({ onOpenDetail }: MyApplicationsViewProps) {
+export function MyApplicationsView({ onOpenDetail, onCreateApplication }: MyApplicationsViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>("tenders")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilters, setStatusFilters] = useState<string[]>([])
@@ -188,19 +189,38 @@ export function MyApplicationsView({ onOpenDetail }: MyApplicationsViewProps) {
 
           {/* Empty State */}
           {!isLoading && !error && filteredApplications.length === 0 && (
-            <Card className="p-8">
-              <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                <p>Заявки не найдены</p>
-                {(searchQuery || statusFilters.length > 0) && (
+            <Card className="border-dashed border-2 border-[#3CE8D1]/20 bg-[#3CE8D1]/5 p-12">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#3CE8D1]/10 mb-4">
+                  <FileText className="h-8 w-8 text-[#3CE8D1]" />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  {searchQuery || statusFilters.length > 0 ? "Ничего не найдено" : "Нет активных заявок"}
+                </h3>
+                <p className="text-muted-foreground max-w-sm mb-6">
+                  {searchQuery || statusFilters.length > 0
+                    ? "Попробуйте изменить параметры поиска или фильтры."
+                    : "Создайте свою первую заявку прямо сейчас, чтобы получить финансирование."}
+                </p>
+
+                {searchQuery || statusFilters.length > 0 ? (
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => {
                       setSearchQuery("")
                       setStatusFilters([])
                     }}
+                    className="border-[#3CE8D1]/50 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
                   >
                     Сбросить фильтры
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={onCreateApplication}
+                    className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] shadow-[0_0_20px_rgba(60,232,209,0.3)] transition-all hover:scale-105"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Создать заявку
                   </Button>
                 )}
               </div>

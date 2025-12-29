@@ -1,3 +1,3 @@
-## 2024-05-23 - Accessibility Improvements in Auth Flows
-**Learning:** Adding `aria-label` and `aria-invalid` to form elements is a critical first step for accessibility, but it must be localized to match the UI language. Users relying on screen readers need context in their native language (Russian in this case) to understand controls like password toggles. Also, visual error states (red borders) are insufficient for screen readers; `aria-invalid` bridges this gap.
-**Action:** Always check the UI language before adding `aria-labels`. If the app is in Russian, `aria-label` must be in Russian. Ensure all form validation states communicate programmatically, not just visually.
+## 2024-05-23 - Client Empty State Onboarding
+**Learning:** "Zero-data" states are critical onboarding opportunities. Instead of a dead-end "No results found" message, we should present a clear Call-to-Action (CTA) that guides the user to the next step (e.g., "Create Application").
+**Action:** Implemented a Tiffany-themed empty state card with a prominent "Create Application" button. This required lifting the `onCreateApplication` handler up to the parent `DashboardPage` and passing it down, ensuring the empty state is actionable.
