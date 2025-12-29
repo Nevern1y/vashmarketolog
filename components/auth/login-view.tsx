@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -17,11 +17,12 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ email?: boolean; password?: boolean }>({})
 
   const isValid = email.trim() !== "" && password.trim() !== ""
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const newErrors = {
       email: email.trim() === "",
@@ -29,8 +30,11 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
     }
     setErrors(newErrors)
     if (isValid) {
-      // Handle login
+      setIsLoading(true)
+      // Simulate network request
+      await new Promise((resolve) => setTimeout(resolve, 1000))
       console.log("Login submitted", { email })
+      setIsLoading(false)
     }
   }
 
@@ -66,6 +70,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
                   setEmail(e.target.value)
                   setErrors((prev) => ({ ...prev, email: false }))
                 }}
+                aria-invalid={!!errors.email}
                 className={`pl-10 ${errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
             </div>
@@ -84,12 +89,14 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
                   setPassword(e.target.value)
                   setErrors((prev) => ({ ...prev, password: false }))
                 }}
+                aria-invalid={!!errors.password}
                 className={`pl-10 pr-10 ${errors.password ? "border-red-500 focus-visible:ring-red-500" : ""}`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
@@ -104,9 +111,10 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
 
           <Button
             type="submit"
-            disabled={!isValid}
+            disabled={!isValid || isLoading}
             className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] disabled:opacity-50"
           >
+            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             ВОЙТИ
           </Button>
         </form>
