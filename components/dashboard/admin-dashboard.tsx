@@ -58,11 +58,13 @@ const statusConfig: Record<string, { label: string; className: string; icon?: Re
   },
   pending: {
     label: "Новая",
-    className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border border-[#4F7DF3]/30"
+    className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border border-[#4F7DF3]/30",
+    icon: <Clock className="h-3 w-3" />
   },
   in_review: {
     label: "В обработке",
-    className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30"
+    className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30",
+    icon: <RefreshCw className="h-3 w-3" />
   },
   info_requested: {
     label: "Запрос инфо",
@@ -71,7 +73,8 @@ const statusConfig: Record<string, { label: string; className: string; icon?: Re
   },
   draft: {
     label: "Черновик",
-    className: "bg-slate-700/50 text-slate-400 border border-slate-600/30"
+    className: "bg-slate-700/50 text-slate-400 border border-slate-600/30",
+    icon: <StickyNote className="h-3 w-3" />
   },
   won: {
     label: "Выигран",
@@ -80,7 +83,8 @@ const statusConfig: Record<string, { label: string; className: string; icon?: Re
   },
   lost: {
     label: "Проигран",
-    className: "bg-[#FF521D]/10 text-[#FF521D] border border-[#FF521D]/30"
+    className: "bg-[#FF521D]/10 text-[#FF521D] border border-[#FF521D]/30",
+    icon: <XCircle className="h-3 w-3" />
   },
 }
 
@@ -377,12 +381,12 @@ export function AdminDashboard() {
                     {/* Table Header - TOR Compliant */}
                     <thead>
                       <tr className="bg-accent/50 border-b border-border">
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">ID</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Дата</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Клиент</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Продукт</th>
-                        <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Сумма</th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">ID</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Дата</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Клиент</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Продукт</th>
+                        <th className="px-4 py-2 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Сумма</th>
+                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" />
                             Банк
@@ -418,17 +422,17 @@ export function AdminDashboard() {
                               onClick={() => handleViewDetails(app.id)}
                             >
                               {/* ID - Monospace */}
-                              <td className="px-4 py-4">
+                              <td className="px-4 py-3">
                                 <span className="font-mono text-sm font-medium text-foreground">#{app.id}</span>
                               </td>
 
                               {/* Date */}
-                              <td className="px-4 py-4">
+                              <td className="px-4 py-3">
                                 <span className="text-sm text-muted-foreground">{formatDate(app.created_at)}</span>
                               </td>
 
                               {/* Client - Bold + INN */}
-                              <td className="px-4 py-3">
+                              <td className="px-4 py-2">
                                 {app.company_name && app.company_name !== '—' ? (
                                   <div className="flex flex-col">
                                     <span className="text-sm font-semibold text-foreground">{app.company_name}</span>
@@ -442,19 +446,19 @@ export function AdminDashboard() {
                               </td>
 
                               {/* Product */}
-                              <td className="px-4 py-4">
+                              <td className="px-4 py-3">
                                 <span className="text-sm text-muted-foreground">{app.product_type_display}</span>
                               </td>
 
                               {/* Amount - Monospace Right-Aligned */}
-                              <td className="px-4 py-4 text-right">
+                              <td className="px-4 py-3 text-right">
                                 <span className="font-mono text-sm font-semibold text-foreground">
                                   {formatCurrency(app.amount)}
                                 </span>
                               </td>
 
                               {/* Bank */}
-                              <td className="px-4 py-4">
+                              <td className="px-4 py-3">
                                 {app.target_bank_name ? (
                                   <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                                     <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -466,7 +470,7 @@ export function AdminDashboard() {
                               </td>
 
                               {/* Status - TOR Pill */}
-                              <td className="px-4 py-4">
+                              <td className="px-4 py-3">
                                 <span className={cn(
                                   "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
                                   statusCfg.className
@@ -477,7 +481,7 @@ export function AdminDashboard() {
                               </td>
 
                               {/* Action - Ghost Button */}
-                              <td className="px-4 py-4 text-center">
+                              <td className="px-4 py-3 text-center">
                                 <Button
                                   size="sm"
                                   variant="ghost"
