@@ -96,8 +96,13 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'company_data',  # Full company info for Partner
             'product_type',
             'product_type_display',
+            'guarantee_type',     # BG subtype
+            'tender_law',         # Tender law
             'amount',
             'term_months',
+            'credit_sub_type',      # Credit subtype (corporate_credit)
+            'financing_term_days',  # Term in days for credits
+            'pledge_description',   # Collateral description
             'target_bank_name',  # For Admin routing
             'tender_number',
             'tender_platform',
@@ -162,8 +167,13 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             'id',  # Include in response for frontend to use
             'company',
             'product_type',
+            'guarantee_type',  # BG subtype (ТЗ requirement)
+            'tender_law',      # Tender law (ТЗ requirement)
             'amount',
             'term_months',
+            'credit_sub_type',      # Credit subtype (corporate_credit)
+            'financing_term_days',  # Term in days for credits
+            'pledge_description',   # Collateral description
             'target_bank_name',  # For Admin routing
             'tender_number',
             'tender_platform',
@@ -241,8 +251,13 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
         model = Application
         fields = [
             'product_type',
+            'guarantee_type',  # BG subtype
+            'tender_law',      # Tender law
             'amount',
             'term_months',
+            'credit_sub_type',      # Credit subtype (corporate_credit)
+            'financing_term_days',  # Term in days for credits
+            'pledge_description',   # Collateral description
             'target_bank_name',  # For Admin routing
             'tender_number',
             'tender_platform',
@@ -293,8 +308,10 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'company_inn',
             'product_type',
             'product_type_display',
+            'credit_sub_type',      # Credit subtype for filtering
             'amount',
             'term_months',
+            'financing_term_days',  # Term in days for credits
             'target_bank_name',
             'status',
             'status_display',

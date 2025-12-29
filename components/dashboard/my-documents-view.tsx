@@ -31,20 +31,46 @@ import {
 import { useDocuments, useDocumentMutations, type DocumentListItem } from "@/hooks/use-documents"
 import { toast } from "sonner"
 
-// Document type mappings
+// Document type mappings - aligned with backend DocumentType enum
 const documentTypeMap: Record<string, string> = {
-  constituent: "Учредительные",
-  financial: "Финансовые",
-  tax: "Налоговые",
-  permit: "Разрешительные",
+  // Legal / Founders
+  passport_all_pages: "Паспорт (все страницы)",
+  founder_passport: "Паспорт учредителя",
+  appointment_order: "Приказ о назначении директора",
+  statute: "Устав",
+  lease_contract: "Договор аренды",
+  // Financials
+  account_card_51: "Карточка 51 счета",
+  account_card_60_62: "Карточка 60/62 счета",
+  balance_sheet_f1: "Бухгалтерский баланс Ф1",
+  financial_results_f2: "Отчет о прибылях и убытках Ф2",
+  tax_declaration: "Налоговая декларация",
+  osv_all: "ОСВ (общая)",
+  // Contracts / Business
+  contract_register: "Реестр контрактов",
+  executed_contracts: "Исполненные контракты",
+  // Other
   other: "Прочие",
 }
 
 const documentTypeOptions = [
-  { value: "constituent", label: "Учредительные" },
-  { value: "financial", label: "Финансовые" },
-  { value: "tax", label: "Налоговые" },
-  { value: "permit", label: "Разрешительные" },
+  // Legal / Founders
+  { value: "passport_all_pages", label: "Паспорт (все страницы)" },
+  { value: "founder_passport", label: "Паспорт учредителя" },
+  { value: "appointment_order", label: "Приказ о назначении директора" },
+  { value: "statute", label: "Устав" },
+  { value: "lease_contract", label: "Договор аренды" },
+  // Financials
+  { value: "account_card_51", label: "Карточка 51 счета" },
+  { value: "account_card_60_62", label: "Карточка 60/62 счета" },
+  { value: "balance_sheet_f1", label: "Бухгалтерский баланс Ф1" },
+  { value: "financial_results_f2", label: "Отчет о прибылях и убытках Ф2" },
+  { value: "tax_declaration", label: "Налоговая декларация" },
+  { value: "osv_all", label: "ОСВ (общая)" },
+  // Contracts / Business
+  { value: "contract_register", label: "Реестр контрактов" },
+  { value: "executed_contracts", label: "Исполненные контракты" },
+  // Other
   { value: "other", label: "Прочие" },
 ]
 

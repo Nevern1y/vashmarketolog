@@ -28,7 +28,8 @@ const steps = [
 
 const productTypes = [
   { id: "bank_guarantee", label: "Госзакупки / БГ", icon: Gavel, description: "Банковские гарантии для участия в тендерах" },
-  { id: "tender_loan", label: "Кредит / Овердрафт", icon: Banknote, description: "Кредитование и кредитные линии" },
+  { id: "contract_loan", label: "Кредит на контракт", icon: Banknote, description: "Кредит на исполнение контракта" },
+  { id: "corporate_credit", label: "Корп. кредит", icon: Banknote, description: "Кредитование бизнеса" },
   { id: "leasing", label: "Лизинг", icon: Truck, description: "Лизинг оборудования и транспорта" },
 ]
 
@@ -43,6 +44,35 @@ const targetBanks = [
   { id: "otkritie", label: "Открытие" },
   { id: "promsvyaz", label: "Промсвязьбанк" },
   { id: "other", label: "Другой банк" },
+]
+
+// Guarantee types (ТЗ requirements)
+const guaranteeTypes = [
+  { id: "application_security", label: "Обеспечение заявки" },
+  { id: "contract_execution", label: "Исполнение контракта" },
+  { id: "advance_return", label: "Возврат аванса" },
+  { id: "warranty_obligations", label: "Гарантийные обязательства" },
+  { id: "payment_guarantee", label: "Гарантии оплаты товара" },
+  { id: "customs_guarantee", label: "Таможенные гарантии" },
+  { id: "vat_refund", label: "Возмещение НДС" },
+]
+
+// Tender law types (ТЗ requirements)
+const tenderLaws = [
+  { id: "44_fz", label: "44-ФЗ" },
+  { id: "223_fz", label: "223-ФЗ" },
+  { id: "615_pp", label: "615-ПП" },
+  { id: "185_fz", label: "185-ФЗ" },
+  { id: "kbg", label: "КБГ (Коммерческая)" },
+  { id: "commercial", label: "Коммерческий" },
+]
+
+// Credit sub-types for corporate_credit
+const creditSubTypes = [
+  { id: "one_time_credit", label: "Разовый кредит" },
+  { id: "non_revolving_line", label: "Невозобновляемая КЛ" },
+  { id: "revolving_line", label: "Возобновляемая КЛ" },
+  { id: "overdraft", label: "Овердрафт" },
 ]
 
 export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: CreateApplicationWizardProps) {
@@ -60,6 +90,25 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const [tenderSubject, setTenderSubject] = useState("")
   const [contractNumber, setContractNumber] = useState("")
   const [isCloseAuction, setIsCloseAuction] = useState(false)
+
+  // NEW: Bank Guarantee specific fields (ТЗ requirements)
+  const [guaranteeType, setGuaranteeType] = useState("")
+  const [tenderLaw, setTenderLaw] = useState("")
+  const [hasPrepayment, setHasPrepayment] = useState(false)
+  const [isRecollateralization, setIsRecollateralization] = useState(false)
+  const [isSoleSupplier, setIsSoleSupplier] = useState(false)
+  const [withoutEis, setWithoutEis] = useState(false)
+  const [auctionNotHeld, setAuctionNotHeld] = useState(false)
+  const [initialPrice, setInitialPrice] = useState("")
+  const [offeredPrice, setOfferedPrice] = useState("")
+  const [beneficiaryInn, setBeneficiaryInn] = useState("")
+  const [needWorkingCapitalCredit, setNeedWorkingCapitalCredit] = useState(false)
+
+  // NEW: Credit-specific fields (Phase 2)
+  const [creditSubType, setCreditSubType] = useState("")
+  const [termDays, setTermDays] = useState("")
+  const [pledgeDescription, setPledgeDescription] = useState("")
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auth context to check role
@@ -181,6 +230,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       term_months: number
       notes: string
       target_bank_name: string
+      guarantee_type?: string
+      tender_law?: string
+      credit_sub_type?: string
+      financing_term_days?: number
+      pledge_description?: string
       document_ids?: number[]
     } = {
       company: companyId,
@@ -191,19 +245,59 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       target_bank_name: targetBankLabel,
     }
 
+    // Add BG specific fields if BG product
+    if (selectedProduct === "bank_guarantee") {
+      if (guaranteeType) payload.guarantee_type = guaranteeType
+      if (tenderLaw) payload.tender_law = tenderLaw
+    }
+
+    // Add credit-specific fields
+    if (selectedProduct === "contract_loan" || selectedProduct === "corporate_credit") {
+      if (creditSubType) payload.credit_sub_type = creditSubType
+      if (termDays) payload.financing_term_days = parseInt(termDays)
+      if (pledgeDescription) payload.pledge_description = pledgeDescription
+    }
+
     // Only add document_ids if we have valid IDs
     if (allDocIds.length > 0) {
       payload.document_ids = allDocIds
     }
 
-    // Build goscontract_data if tender details are provided
-    const hasGoscontractData = purchaseNumber || tenderSubject || contractNumber || isCloseAuction
-    if (hasGoscontractData) {
+    // Build goscontract_data for Bank Guarantee
+    if (selectedProduct === "bank_guarantee") {
+      ; (payload as any).goscontract_data = {
+        // Tender info
+        purchase_number: purchaseNumber || "",
+        subject: tenderSubject || "",
+        contract_number: contractNumber || "",
+
+        // Booleans
+        is_close_auction: isCloseAuction,
+        is_sole_supplier: isSoleSupplier,
+        without_eis: withoutEis,
+        has_prepayment: hasPrepayment,
+        is_recollateralization: isRecollateralization,
+        auction_not_held: auctionNotHeld,
+
+        // Financials
+        initial_price: initialPrice ? initialPrice.replace(/\s/g, "") : null,
+        offered_price: !auctionNotHeld && offeredPrice ? offeredPrice.replace(/\s/g, "") : null,
+
+        // Beneficiary
+        beneficiary_inn: beneficiaryInn || "",
+
+        // Upsell
+        need_credit: needWorkingCapitalCredit
+      }
+    }
+
+    // Build goscontract_data for Contract Loan (reuses tender fields)
+    if (selectedProduct === "contract_loan") {
       ; (payload as any).goscontract_data = {
         purchase_number: purchaseNumber || "",
         subject: tenderSubject || "",
         contract_number: contractNumber || "",
-        is_close_auction: isCloseAuction ? "1" : "0"
+        beneficiary_inn: beneficiaryInn || "",
       }
     }
 
@@ -253,6 +347,22 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setTenderSubject("")
     setContractNumber("")
     setIsCloseAuction(false)
+    // Reset new BG fields
+    setGuaranteeType("")
+    setTenderLaw("")
+    setHasPrepayment(false)
+    setIsRecollateralization(false)
+    setIsSoleSupplier(false)
+    setWithoutEis(false)
+    setAuctionNotHeld(false)
+    setInitialPrice("")
+    setOfferedPrice("")
+    setBeneficiaryInn("")
+    setNeedWorkingCapitalCredit(false)
+    // Reset credit-specific fields
+    setCreditSubType("")
+    setTermDays("")
+    setPledgeDescription("")
   }
 
   // Format amount with spaces
@@ -508,9 +618,48 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
               {/* Tender/Goscontract Details - for Bank API */}
               {selectedProduct === "bank_guarantee" && (
                 <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                  {/* Section 1: Guarantee Type & Tender Law */}
                   <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <FileCheck className="h-4 w-4" />
+                    Параметры гарантии
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Тип гарантии *</Label>
+                      <Select value={guaranteeType} onValueChange={setGuaranteeType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип БГ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {guaranteeTypes.map((gt) => (
+                            <SelectItem key={gt.id} value={gt.id}>
+                              {gt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Закон о закупках</Label>
+                      <Select value={tenderLaw} onValueChange={setTenderLaw}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите закон" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tenderLaws.map((law) => (
+                            <SelectItem key={law.id} value={law.id}>
+                              {law.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Tender Data */}
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
                     <Hash className="h-4 w-4" />
-                    Данные тендера (опционально)
+                    Данные тендера
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -541,17 +690,259 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       onChange={(e) => setTenderSubject(e.target.value)}
                     />
                   </div>
+
+                  {/* Checkboxes */}
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isCloseAuction"
+                        checked={isCloseAuction}
+                        onChange={(e) => setIsCloseAuction(e.target.checked)}
+                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                      />
+                      <Label htmlFor="isCloseAuction" className="cursor-pointer text-sm">
+                        Закрытый аукцион
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isSoleSupplier"
+                        checked={isSoleSupplier}
+                        onChange={(e) => setIsSoleSupplier(e.target.checked)}
+                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                      />
+                      <Label htmlFor="isSoleSupplier" className="cursor-pointer text-sm">
+                        Единственный поставщик
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="withoutEis"
+                        checked={withoutEis}
+                        onChange={(e) => setWithoutEis(e.target.checked)}
+                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                      />
+                      <Label htmlFor="withoutEis" className="cursor-pointer text-sm">
+                        Без размещения в ЕИС
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="hasPrepayment"
+                        checked={hasPrepayment}
+                        onChange={(e) => setHasPrepayment(e.target.checked)}
+                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                      />
+                      <Label htmlFor="hasPrepayment" className="cursor-pointer text-sm">
+                        Наличие аванса
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isRecollateralization"
+                        checked={isRecollateralization}
+                        onChange={(e) => setIsRecollateralization(e.target.checked)}
+                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                      />
+                      <Label htmlFor="isRecollateralization" className="cursor-pointer text-sm">
+                        Является переобеспечением
+                      </Label>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Financials */}
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
+                    <Banknote className="h-4 w-4" />
+                    Параметры сделки
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Начальная цена контракта</Label>
+                      <Input
+                        type="text"
+                        placeholder="1 000 000"
+                        value={initialPrice}
+                        onChange={(e) => setInitialPrice(formatAmount(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className={auctionNotHeld ? "text-muted-foreground" : ""}>
+                          Предложенная цена контракта
+                        </Label>
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="950 000"
+                        value={offeredPrice}
+                        onChange={(e) => setOfferedPrice(formatAmount(e.target.value))}
+                        disabled={auctionNotHeld}
+                        className={auctionNotHeld ? "bg-muted opacity-50" : ""}
+                      />
+                    </div>
+                  </div>
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      id="isCloseAuction"
-                      checked={isCloseAuction}
-                      onChange={(e) => setIsCloseAuction(e.target.checked)}
-                      className="h-4 w-4 rounded border-border"
+                      id="auctionNotHeld"
+                      checked={auctionNotHeld}
+                      onChange={(e) => setAuctionNotHeld(e.target.checked)}
+                      className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
                     />
-                    <Label htmlFor="isCloseAuction" className="cursor-pointer">
-                      Закрытый аукцион
+                    <Label htmlFor="auctionNotHeld" className="cursor-pointer text-sm">
+                      Торги еще не проведены
                     </Label>
+                  </div>
+
+                  {/* Section 4: Beneficiary */}
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
+                    <Building2 className="h-4 w-4" />
+                    Бенефициар (Заказчик)
+                  </h3>
+                  <div className="space-y-2">
+                    <Label>ИНН Заказчика</Label>
+                    <Input
+                      type="text"
+                      placeholder="10 или 12 цифр"
+                      value={beneficiaryInn}
+                      onChange={(e) => setBeneficiaryInn(e.target.value)}
+                      maxLength={12}
+                    />
+                  </div>
+
+                  {/* Section 5: Upsell */}
+                  <div className="mt-4 p-4 rounded-lg bg-[#3CE8D1]/5 border border-[#3CE8D1]/20">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="needWorkingCapitalCredit"
+                        checked={needWorkingCapitalCredit}
+                        onChange={(e) => setNeedWorkingCapitalCredit(e.target.checked)}
+                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                      />
+                      <Label htmlFor="needWorkingCapitalCredit" className="cursor-pointer text-sm">
+                        💡 Клиенту нужен кредит на пополнение оборотных средств
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CONTRACT LOAN: Similar to BG but with different fields */}
+              {selectedProduct === "contract_loan" && (
+                <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Hash className="h-4 w-4" />
+                    Данные контракта
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Номер закупки</Label>
+                      <Input
+                        type="text"
+                        placeholder="0123456789012345"
+                        value={purchaseNumber}
+                        onChange={(e) => setPurchaseNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Номер контракта</Label>
+                      <Input
+                        type="text"
+                        placeholder="Номер контракта"
+                        value={contractNumber}
+                        onChange={(e) => setContractNumber(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Предмет контракта</Label>
+                    <Input
+                      type="text"
+                      placeholder="Описание предмета контракта"
+                      value={tenderSubject}
+                      onChange={(e) => setTenderSubject(e.target.value)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>ИНН Заказчика</Label>
+                      <Input
+                        type="text"
+                        placeholder="10 или 12 цифр"
+                        value={beneficiaryInn}
+                        onChange={(e) => setBeneficiaryInn(e.target.value)}
+                        maxLength={12}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Срок финансирования (дней)</Label>
+                      <Input
+                        type="number"
+                        placeholder="180"
+                        value={termDays}
+                        onChange={(e) => setTermDays(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Описание залога / обеспечения</Label>
+                    <Input
+                      type="text"
+                      placeholder="Недвижимость, транспорт, депозит и т.д."
+                      value={pledgeDescription}
+                      onChange={(e) => setPledgeDescription(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* CORPORATE CREDIT: No tender, has sub-type */}
+              {selectedProduct === "corporate_credit" && (
+                <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                    <Banknote className="h-4 w-4" />
+                    Параметры кредита
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Тип кредита *</Label>
+                      <Select value={creditSubType} onValueChange={setCreditSubType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {creditSubTypes.map((ct) => (
+                            <SelectItem key={ct.id} value={ct.id}>
+                              {ct.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Срок финансирования (дней)</Label>
+                      <Input
+                        type="number"
+                        placeholder="365"
+                        value={termDays}
+                        onChange={(e) => setTermDays(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Описание залога / обеспечения</Label>
+                    <Input
+                      type="text"
+                      placeholder="Недвижимость, транспорт, депозит и т.д."
+                      value={pledgeDescription}
+                      onChange={(e) => setPledgeDescription(e.target.value)}
+                    />
                   </div>
                 </div>
               )}

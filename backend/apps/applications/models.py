@@ -10,8 +10,39 @@ class ProductType(models.TextChoices):
     """Financial product types."""
     BANK_GUARANTEE = 'bank_guarantee', 'Банковская гарантия'
     TENDER_LOAN = 'tender_loan', 'Тендерный кредит'
+    CONTRACT_LOAN = 'contract_loan', 'Кредит на исполнение контракта'
+    CORPORATE_CREDIT = 'corporate_credit', 'Корпоративный кредит'
     FACTORING = 'factoring', 'Факторинг'
     LEASING = 'leasing', 'Лизинг'
+
+
+class GuaranteeType(models.TextChoices):
+    """Bank Guarantee subtypes per TZ requirements."""
+    APPLICATION_SECURITY = 'application_security', 'Обеспечение заявки'
+    CONTRACT_EXECUTION = 'contract_execution', 'Исполнение контракта'
+    ADVANCE_RETURN = 'advance_return', 'Возврат аванса'
+    WARRANTY_OBLIGATIONS = 'warranty_obligations', 'Гарантийные обязательства'
+    PAYMENT_GUARANTEE = 'payment_guarantee', 'Гарантии оплаты товара'
+    CUSTOMS_GUARANTEE = 'customs_guarantee', 'Таможенные гарантии'
+    VAT_REFUND = 'vat_refund', 'Возмещение НДС'
+
+
+class TenderLaw(models.TextChoices):
+    """Tender law types."""
+    FZ_44 = '44_fz', '44-ФЗ'
+    FZ_223 = '223_fz', '223-ФЗ'
+    PP_615 = '615_pp', '615-ПП'
+    FZ_185 = '185_fz', '185-ФЗ'
+    KBG = 'kbg', 'КБГ (Коммерческая)'
+    COMMERCIAL = 'commercial', 'Коммерческий'
+
+
+class CreditSubType(models.TextChoices):
+    """Corporate credit sub-types."""
+    ONE_TIME_CREDIT = 'one_time_credit', 'Разовый кредит'
+    NON_REVOLVING_LINE = 'non_revolving_line', 'Невозобновляемая КЛ'
+    REVOLVING_LINE = 'revolving_line', 'Возобновляемая КЛ'
+    OVERDRAFT = 'overdraft', 'Овердрафт'
 
 
 class ApplicationStatus(models.TextChoices):
@@ -56,12 +87,51 @@ class Application(models.Model):
         max_length=30,
         choices=ProductType.choices
     )
+    # Bank Guarantee specific fields
+    guarantee_type = models.CharField(
+        'Тип гарантии',
+        max_length=30,
+        choices=GuaranteeType.choices,
+        blank=True,
+        default='',
+        help_text='Тип БГ (только для bank_guarantee)'
+    )
+    tender_law = models.CharField(
+        'Закон о закупках',
+        max_length=20,
+        choices=TenderLaw.choices,
+        blank=True,
+        default='',
+        help_text='Федеральный закон (44-ФЗ, 223-ФЗ, 185-ФЗ, КБГ)'
+    )
     amount = models.DecimalField(
         'Сумма',
         max_digits=15,
         decimal_places=2
     )
     term_months = models.IntegerField('Срок (месяцы)')
+    
+    # Credit-specific fields
+    credit_sub_type = models.CharField(
+        'Тип кредита',
+        max_length=30,
+        choices=CreditSubType.choices,
+        blank=True,
+        default='',
+        help_text='Подтип кредита (только для corporate_credit)'
+    )
+    financing_term_days = models.IntegerField(
+        'Срок в днях',
+        null=True,
+        blank=True,
+        help_text='Срок финансирования в днях (альтернатива term_months)'
+    )
+    pledge_description = models.TextField(
+        'Описание залога',
+        blank=True,
+        default='',
+        help_text='Обеспечение/залог: недвижимость, транспорт, депозит и т.д.'
+    )
     
     # Target Bank - for Admin routing to specific Partner
     target_bank_name = models.CharField(

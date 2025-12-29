@@ -63,20 +63,20 @@ export function AccreditationView() {
     // Build document list for in-progress bank/documents step
     const documentsList = [
       {
-        name: "Выписка из ЕГРЮЛ",
-        status: documents.some(d => d.document_type === "constituent" && d.status === "verified")
+        name: "Паспорт (все страницы)",
+        status: documents.some(d => d.document_type === "passport_all_pages" && d.status === "verified")
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Устав компании",
-        status: documents.some(d => d.document_type === "permit" && d.status === "verified")
+        status: documents.some(d => d.document_type === "statute" && d.status === "verified")
           ? "uploaded" as const
           : "pending" as const
       },
       {
-        name: "Финансовая отчётность",
-        status: documents.some(d => d.document_type === "financial" && d.status === "verified")
+        name: "Бухгалтерский баланс Ф1",
+        status: documents.some(d => d.document_type === "balance_sheet_f1" && d.status === "verified")
           ? "uploaded" as const
           : "pending" as const
       },

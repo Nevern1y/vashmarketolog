@@ -18,7 +18,11 @@ export interface Document {
     name: string;
     file: string;
     file_url: string;
-    document_type: 'constituent' | 'financial' | 'tax' | 'permit' | 'other';
+    document_type:
+    | 'passport_all_pages' | 'founder_passport' | 'appointment_order' | 'statute' | 'lease_contract'
+    | 'account_card_51' | 'account_card_60_62' | 'balance_sheet_f1' | 'financial_results_f2' | 'tax_declaration' | 'osv_all'
+    | 'contract_register' | 'executed_contracts'
+    | 'other';
     type_display: string;
     status: 'pending' | 'verified' | 'rejected';
     status_display: string;

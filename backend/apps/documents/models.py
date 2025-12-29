@@ -7,11 +7,24 @@ from django.conf import settings
 
 
 class DocumentType(models.TextChoices):
-    """Document type categories."""
-    CONSTITUENT = 'constituent', 'Учредительные'
-    FINANCIAL = 'financial', 'Финансовые'
-    TAX = 'tax', 'Налоговые'
-    PERMIT = 'permit', 'Разрешительные'
+    """Document type categories - aligned with CSV specification."""
+    # Legal / Founders (Юридические / Учредительные)
+    PASSPORT_ALL_PAGES = 'passport_all_pages', 'Паспорт (все страницы)'
+    FOUNDER_PASSPORT = 'founder_passport', 'Паспорт учредителя'
+    APPOINTMENT_ORDER = 'appointment_order', 'Приказ о назначении директора'
+    STATUTE = 'statute', 'Устав'
+    LEASE_CONTRACT = 'lease_contract', 'Договор аренды'
+    # Financials (Финансовые / Бухгалтерские)
+    ACCOUNT_CARD_51 = 'account_card_51', 'Карточка 51 счета'
+    ACCOUNT_CARD_60_62 = 'account_card_60_62', 'Карточка 60/62 счета'
+    BALANCE_SHEET_F1 = 'balance_sheet_f1', 'Бухгалтерский баланс Ф1'
+    FINANCIAL_RESULTS_F2 = 'financial_results_f2', 'Отчет о прибылях и убытках Ф2'
+    TAX_DECLARATION = 'tax_declaration', 'Налоговая декларация'
+    OSV_ALL = 'osv_all', 'ОСВ (общая)'
+    # Contracts / Business (Договоры / Бизнес)
+    CONTRACT_REGISTER = 'contract_register', 'Реестр контрактов'
+    EXECUTED_CONTRACTS = 'executed_contracts', 'Исполненные контракты'
+    # Other (Прочие)
     OTHER = 'other', 'Прочие'
 
 
@@ -56,7 +69,7 @@ class Document(models.Model):
     file = models.FileField('Файл', upload_to=document_upload_path)
     document_type = models.CharField(
         'Тип документа',
-        max_length=20,
+        max_length=30,
         choices=DocumentType.choices,
         default=DocumentType.OTHER
     )
