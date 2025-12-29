@@ -183,11 +183,13 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                             </div>
                         ) : messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center">
-                                <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center mb-3">
-                                    <Send className="h-6 w-6 text-muted-foreground" />
+                                <div className="w-14 h-14 rounded-full bg-[#3CE8D1]/10 flex items-center justify-center mb-3">
+                                    <Send className="h-6 w-6 text-[#3CE8D1]" />
                                 </div>
-                                <p className="text-sm font-medium text-muted-foreground">Нет сообщений</p>
-                                <p className="text-xs text-muted-foreground mt-1">Начните переписку</p>
+                                <p className="text-sm font-medium text-foreground">Нет сообщений</p>
+                                <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+                                    Отправьте сообщение, чтобы начать обсуждение заявки
+                                </p>
                             </div>
                         ) : (
                             messages.map((message) => {
@@ -229,14 +231,14 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
 
                                             {/* Message Bubble */}
                                             <div className={cn(
-                                                "rounded-xl px-3.5 py-2",
+                                                "rounded-xl px-4 py-2.5 shadow-sm",
                                                 isOwn
-                                                    ? "bg-[#3CE8D1] text-[#0a1628]"
-                                                    : "bg-accent text-foreground"
+                                                    ? "bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]"
+                                                    : "bg-card border border-border text-foreground"
                                             )}>
                                                 {/* Text Content */}
                                                 {message.content && (
-                                                    <p className="text-sm whitespace-pre-wrap break-words">
+                                                    <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                                                         {message.content}
                                                     </p>
                                                 )}
@@ -401,7 +403,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                         <Button
                             onClick={handleSend}
                             disabled={isSending || (!inputValue.trim() && !selectedFile)}
-                            className="h-10 w-10 flex-shrink-0"
+                            className="h-10 w-10 flex-shrink-0 bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] shadow-[0_0_10px_rgba(60,232,209,0.2)] border-0"
                         >
                             {isSending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
