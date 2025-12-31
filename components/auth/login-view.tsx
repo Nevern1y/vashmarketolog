@@ -2,23 +2,35 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "sonner"
 
 interface LoginViewProps {
   onSwitchToRegister: () => void
 }
 
 export function LoginView({ onSwitchToRegister }: LoginViewProps) {
+  const router = useRouter()
+  const { login, isLoading: authLoading, error: authError, clearError } = useAuth()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<{ email?: boolean; password?: boolean }>({})
+
+  // Clear auth errors when inputs change
+  useEffect(() => {
+    if (authError) {
+      clearError()
+    }
+  }, [email, password])
 
   const isValid = email.trim() !== "" && password.trim() !== ""
 
@@ -29,12 +41,16 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
       password: password.trim() === "",
     }
     setErrors(newErrors)
-    if (isValid) {
-      setIsLoading(true)
-      // Simulate network request
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      console.log("Login submitted", { email })
-      setIsLoading(false)
+
+    if (!isValid) return
+
+    try {
+      await login(email, password)
+      toast.success("Вход выполнен успешно!")
+      router.push("/")
+    } catch (err) {
+      // Error is already displayed via authError
+      console.error("Login failed:", err)
     }
   }
 
@@ -56,6 +72,13 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
       </CardHeader>
 
       <CardContent>
+        {/* Auth Error Display */}
+        {authError && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+            {authError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -111,10 +134,10 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
 
           <Button
             type="submit"
-            disabled={!isValid || isLoading}
+            disabled={!isValid || authLoading}
             className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] disabled:opacity-50"
           >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             ВОЙТИ
           </Button>
         </form>

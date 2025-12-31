@@ -13,8 +13,12 @@ import {
   Upload,
   RefreshCw,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Send,
+  Building2
 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import api from "@/lib/api"
 import { ApplicationChat } from "./application-chat"
 import { useApplication } from "@/hooks/use-applications"
 import { useDocumentMutations } from "@/hooks/use-documents"
@@ -63,6 +67,61 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
   // State for re-upload functionality
   const [replacingDocId, setReplacingDocId] = useState<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // State for send to bank functionality (Phase 7)
+  const [isSending, setIsSending] = useState(false)
+
+  // State for sync status functionality (Phase 7.2)
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  // Response types for bank integration
+  interface SendToBankResponse {
+    message: string
+    ticket_id: string
+    bank_status: string
+  }
+
+  interface SyncStatusResponse {
+    message: string
+    bank_status: string
+    bank_status_id: number
+    changed: boolean
+  }
+
+  // Handler for sending application to Realist Bank
+  const handleSendToBank = async () => {
+    if (!application || isSending) return
+
+    setIsSending(true)
+    try {
+      const response = await api.post<SendToBankResponse>(`/applications/${applicationId}/send_to_bank/`)
+      toast.success(response.message || 'Заявка успешно отправлена в банк!')
+      refetch() // Refresh to show updated external_id
+    } catch (error: any) {
+      const errorMsg = error.message || 'Ошибка при отправке в банк'
+      toast.error(errorMsg)
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  // Handler for syncing status from Realist Bank (Phase 7.2)
+  const handleSyncStatus = async () => {
+    if (!application || isSyncing || !application.external_id) return
+
+    setIsSyncing(true)
+    try {
+      const response = await api.post<SyncStatusResponse>(`/applications/${applicationId}/sync_status/`)
+      const newStatus = response.bank_status || 'Обновлено'
+      toast.success(`Статус обновлен: ${newStatus}`)
+      refetch() // Refresh to show updated bank_status
+    } catch (error: any) {
+      const errorMsg = error.message || 'Не удалось получить статус от банка'
+      toast.error(errorMsg)
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // Handle re-upload click - opens file picker for specific document
   const handleReuploadClick = (docId: number) => {
@@ -172,9 +231,64 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
             </div>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Show external_id badge with sync button if sent to bank */}
+          {application.external_id && (
+            <div className="flex items-center gap-1">
+              <Badge variant="outline" className="text-green-500 border-green-500/30 bg-green-500/10">
+                <Building2 className="h-3 w-3 mr-1" />
+                Банк ID: {application.external_id}
+                {application.bank_status && application.bank_status !== 'new' && application.bank_status !== 'sent' && (
+                  <span className="ml-1 text-xs opacity-75">({application.bank_status})</span>
+                )}
+              </Badge>
+              {/* Sync status button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-green-500 hover:text-green-600 hover:bg-green-500/10"
+                onClick={handleSyncStatus}
+                disabled={isSyncing}
+                title="Обновить статус из банка"
+              >
+                <RefreshCw className={cn("h-3 w-3", isSyncing && "animate-spin")} />
+              </Button>
+            </div>
+          )}
+
+          {/* SIGNING BUTTON - appears when bank provides signing_url */}
+          {application.signing_url && (
+            <Button
+              onClick={() => window.open(application.signing_url!, '_blank')}
+              className="bg-gradient-to-r from-[#E03E9D] to-[#9b2575] hover:from-[#c93589] hover:to-[#841f63] text-white shadow-lg animate-pulse"
+              size="sm"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Подписать в Банке
+            </Button>
+          )}
+
+          {/* Send to Bank button - visible for agents when not yet sent */}
+          {(user?.role === 'agent' || user?.role === 'admin') && !application.external_id && (
+            <Button
+              onClick={handleSendToBank}
+              disabled={isSending}
+              className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white"
+              size="sm"
+            >
+              {isSending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4 mr-2" />
+              )}
+              Отправить в банк
+            </Button>
+          )}
+
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Main Content Grid - 65/35 split */}
@@ -234,6 +348,74 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* About Application Card - Shows product-specific fields */}
+          <Card className="shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">О заявке</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {/* Basic Info */}
+                <div>
+                  <span className="text-muted-foreground">Продукт:</span>
+                  <p className="font-medium">{application.product_type_display || application.product_type}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Сумма:</span>
+                  <p className="font-medium">{Number(application.amount).toLocaleString('ru-RU')} ₽</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Срок:</span>
+                  <p className="font-medium">{application.term_months} мес.</p>
+                </div>
+                {application.target_bank_name && (
+                  <div>
+                    <span className="text-muted-foreground">Целевой банк:</span>
+                    <p className="font-medium">{application.target_bank_name}</p>
+                  </div>
+                )}
+
+                {/* Product-Specific Fields from goscontract_data */}
+                {application.goscontract_data?.contractor_inn && (
+                  <div>
+                    <span className="text-muted-foreground">ИНН Контрагента:</span>
+                    <p className="font-medium">{application.goscontract_data.contractor_inn}</p>
+                  </div>
+                )}
+                {application.goscontract_data?.country && (
+                  <div>
+                    <span className="text-muted-foreground">Страна:</span>
+                    <p className="font-medium">{application.goscontract_data.country}</p>
+                  </div>
+                )}
+                {application.goscontract_data?.equipment_type && (
+                  <div>
+                    <span className="text-muted-foreground">Предмет лизинга:</span>
+                    <p className="font-medium">{application.goscontract_data.equipment_type}</p>
+                  </div>
+                )}
+                {application.goscontract_data?.purchase_number && (
+                  <div>
+                    <span className="text-muted-foreground">Номер закупки:</span>
+                    <p className="font-medium">{application.goscontract_data.purchase_number}</p>
+                  </div>
+                )}
+                {application.goscontract_data?.beneficiary_inn && (
+                  <div>
+                    <span className="text-muted-foreground">ИНН Заказчика:</span>
+                    <p className="font-medium">{application.goscontract_data.beneficiary_inn}</p>
+                  </div>
+                )}
+              </div>
+              {application.notes && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <span className="text-sm text-muted-foreground">Примечания:</span>
+                  <p className="text-sm mt-1">{application.notes}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

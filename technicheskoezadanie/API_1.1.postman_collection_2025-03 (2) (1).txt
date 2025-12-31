@@ -1,0 +1,3890 @@
+{
+	"info": {
+		"name": "Реалист Банк. Интеграция агента. API 1.1",
+		"description": "# Введение\n\nОписание от 2025-03-07.\n\nМетоды API доступны для пользователей Портала роли Агент после активации опции интеграции со стороны Банка.\n\nВ каждом запросе должны передаваться логин (login) и пароль (password) зарегистрированного на Портале пользователя роли Агент. По соответствию логина и пароля запрос либо выполняется, либо отвергается.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Настройка профиля интеграции",
+			"item": [
+				{
+					"name": "set_ticket_process_status_changed_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_process_status_changed_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_process_status_changed_url"
+							]
+						},
+						"description": "Установка значения переменной TICKET_PROCESS_STATUS_CHANGED_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_PROCESS_STATUS_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://stagebg.realistbank.ru/agent_api1_1/set_ticket_process_status_changed_url",
+									"protocol": "https",
+									"host": [
+										"stagebg",
+										"realistbank",
+										"ru"
+									],
+									"path": [
+										"agent_api1_1",
+										"set_ticket_process_status_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 09:45:26 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Данные успешно изменены\"\n}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_PROCESS_STATUS_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_process_status_changed_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_process_status_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 09:45:26 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_chat_message_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"description": "Требуемое значение TICKET_CHAT_MESSAGE_URL",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_chat_message_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_chat_message_url"
+							]
+						},
+						"description": "Установка значения переменной TICKET_CHAT_MESSAGE_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_CHAT_MESSAGE_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://stagebg.realistbank.ru/agent_api1_1/set_ticket_chat_message_url",
+									"protocol": "https",
+									"host": [
+										"stagebg",
+										"realistbank",
+										"ru"
+									],
+									"path": [
+										"agent_api1_1",
+										"set_ticket_chat_message_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:04:46 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Данные успешно изменены\"\n}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_CHAT_MESSAGE_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_chat_message_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_chat_message_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:04:46 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_manager_changed_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"description": "Требуемое значение TICKET_MANAGER_CHANGED_URL",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_manager_changed_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_manager_changed_url"
+							]
+						},
+						"description": "Установка значения переменной TICKET_MANAGER_CHANGED_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_MANAGER_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://stagebg.realistbank.ru/agent_api1_1/set_ticket_manager_changed_url",
+									"protocol": "https",
+									"host": [
+										"stagebg",
+										"realistbank",
+										"ru"
+									],
+									"path": [
+										"agent_api1_1",
+										"set_ticket_manager_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:10:02 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=UTF-8"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\"status\":\"success\",\"message\":\"Данные успешно изменены\"}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_MANAGER_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_manager_changed_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_manager_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:10:02 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_payment_status_changed_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"description": "Требуемое значение TICKET_PAYMENT_STATUS_CHANGED_URL",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_payment_status_changed_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_payment_status_changed_url"
+							]
+						},
+						"description": "Установка значения переменной TICKET_PAYMENT_STATUS_CHANGED_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_PAYMENT_STATUS_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://stagebg.realistbank.ru/agent_api1_1/set_ticket_payment_status_changed_url",
+									"protocol": "https",
+									"host": [
+										"stagebg",
+										"realistbank",
+										"ru"
+									],
+									"path": [
+										"agent_api1_1",
+										"set_ticket_payment_status_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:18:13 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=UTF-8"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\"status\":\"success\",\"message\":\"Данные успешно изменены\"}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_PAYMENT_STATUS_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_payment_status_changed_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_payment_status_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:18:13 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_document_changed_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"description": "Требуемое значение TICKET_DOCUMENT_CHANGED_URL",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_document_changed_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_document_changed_url"
+							]
+						},
+						"description": "Установка значения переменной TICKET_DOCUMENT_CHANGED_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_DOCUMENT_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://stagebg.realistbank.ru/agent_api1_1/set_ticket_document_changed_url",
+									"protocol": "https",
+									"host": [
+										"stagebg",
+										"realistbank",
+										"ru"
+									],
+									"path": [
+										"agent_api1_1",
+										"set_ticket_document_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:20:49 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Данные успешно изменены\"\n}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_DOCUMENT_CHANGED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_document_changed_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_document_changed_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:20:49 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_document_deleted_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"description": "Требуемое значение TICKET_DOCUMENT_DELETED_URL",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_document_deleted_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_document_deleted_url"
+							]
+						},
+						"description": "Установка значения переменной TICKET_DOCUMENT_DELETED_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_DOCUMENT_DELETED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "https://stagebg.realistbank.ru/agent_api1_1/set_ticket_document_deleted_url",
+									"protocol": "https",
+									"host": [
+										"stagebg",
+										"realistbank",
+										"ru"
+									],
+									"path": [
+										"agent_api1_1",
+										"set_ticket_document_deleted_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:56:49 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Данные успешно изменены\"\n}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TICKET_DOCUMENT_DELETED_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_document_deleted_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_document_deleted_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:56:49 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				},
+				{
+					"name": "set_token_url",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "url",
+									"value": "https://agent_url.com",
+									"description": "Требуемое значение TOKEN_URL",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_token_url",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_token_url"
+							]
+						},
+						"description": "Установка значения переменной TOKEN_URL."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TOKEN_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_token_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_token_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "html",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:58:41 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "text/html; charset=UTF-8"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\"status\":\"success\",\"message\":\"Данные успешно изменены\"}"
+						},
+						{
+							"name": "Ошибка",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "url",
+											"value": "https://agent_url.com",
+											"description": "Требуемое значение TOKEN_URL",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_token_url",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_token_url"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 10:58:41 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"error\",\n    \"message\": \"Неверный логин или пароль\"\n}"
+						}
+					]
+				}
+			],
+			"description": "## Переменные профиля\n\n| **Переменная** | **Описание** |\n| --- | --- |\n| TICKET_PROCESS_STATUS_CHANGED_URL | URL для передачи триггера изменения статуса по заявке от Банка |\n| TICKET_CHAT_MESSAGE_URL | URL для передачи триггера создания нового сообщения в чат по заявке от Банка |\n| TICKET_MANAGER_CHANGED_URL | URL для передачи триггера изменения ответственного Менеджера по заявке от Банка |\n| TICKET_PAYMENT_STATUS_CHANGED_URL | URL для передачи триггера изменения статуса оплаты по заявке от Банка |\n| TICKET_DOCUMENT_CHANGED_URL | URL для передачи триггера изменения документа по заявке от Банка |\n| TICKET_DOCUMENT_DELETED_URL | URL для передачи триггера удаления документа из заявки в Банке |\n| TOKEN_URL | URL для передачи ссылки на страницу подписания документов от Банка |"
+		},
+		{
+			"name": "Работа с заявкой",
+			"item": [
+				{
+					"name": "add_ticket",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket[product_id]",
+									"value": "{{product_id}}",
+									"description": "ID продукта (по умолчанию 1)",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][sum]",
+									"value": "500000",
+									"description": "Сумма запрашиваемой БГ, руб.",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][start_at_type_id]",
+									"value": "1",
+									"description": "ID типа даты начала запрашиваемой БГ",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][start_at]",
+									"value": "2025-02-20",
+									"description": "Дата начала запрашиваемой БГ (требуется, если ticket[bg][start_at_type_id] = 2)",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][end_at]",
+									"value": "2026-02-20",
+									"description": "Дата окончания запрашиваемой БГ",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][type_id]",
+									"value": "1",
+									"description": "ID типа запрашиваемой БГ",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][reason_id]",
+									"value": "2",
+									"description": "ID вида запрашиваемой БГ",
+									"type": "text"
+								},
+								{
+									"key": "ticket[bg][form_id]",
+									"value": "1",
+									"description": "ID формы запрашиваемой БГ",
+									"type": "text"
+								},
+								{
+									"key": "ticket[kik][sum]",
+									"value": "3000000",
+									"description": "Сумма запрашиваемого КИК, руб.",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "ticket[kik][start_at_type_id]",
+									"value": "1",
+									"description": "ID типа даты начала запрашиваемого КИК",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "ticket[kik][start_at]",
+									"value": "2025-02-20",
+									"description": "Дата начала запрашиваемого КИК (требуется, если ticket[kik][start_at_type_id] = 2)",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "ticket[kik][end_at]",
+									"value": "2026-02-20",
+									"description": "Дата окончания запрашиваемого КИК",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "ticket[kik][type_id]",
+									"value": "2",
+									"description": "ID вида запрашиваемого КИК",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "goscontract[purchase_number]",
+									"value": "0848600005323000300",
+									"description": "Реестровый номер торгов (требуется, если goscontract[is_single_supplier] = 0 или если goscontract[is_single_supplier] = 1 и goscontract[contract_number] = '')",
+									"type": "text"
+								},
+								{
+									"key": "goscontract[subject]",
+									"value": "Благоустройство лесопарка Авангард по адресу: Московская область, г. Электросталь, Фрязевское шоссе, с северо-западной стороны от стадиона «Авангард» (Видеонаблюдение, Электроснабжение и электроосвещение, Водоснабжение и канализация, Озеленение)",
+									"description": "Предмет контракта",
+									"type": "text"
+								},
+								{
+									"key": "goscontract[is_close_auction]",
+									"value": "0",
+									"description": "Признак закрытого аукциона",
+									"type": "text"
+								},
+								{
+									"key": "goscontract[is_single_supplier]",
+									"value": "0",
+									"description": "Признак единственного поставщика",
+									"type": "text"
+								},
+								{
+									"key": "goscontract[contract_number]",
+									"value": "",
+									"description": "Номер контракта (требуется, если goscontract[is_single_supplier] = 1 и goscontract[purchase_number] = '')",
+									"type": "text"
+								},
+								{
+									"key": "client[inn]",
+									"value": "7718925608",
+									"description": "ИНН Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[actual_address][is_equal_to_legal_address]",
+									"value": "0",
+									"description": "Признак соответствия фактического адреса Принципала юридическому",
+									"type": "text"
+								},
+								{
+									"key": "client[actual_address][value]",
+									"value": "г. Москва, вн.тер.г. муниципальный округ Преображенское, пл. Преображенская, дом 7а, пом vii к 11",
+									"description": "Фактический адрес Принципала (без индекса) (требуется, если client[actual_address][is_equal_to_legal_address] = 0)",
+									"type": "text"
+								},
+								{
+									"key": "client[actual_address][postal_code]",
+									"value": "107076",
+									"description": "Индекс фактического адреса Принципала (требуется, если client[actual_address][is_equal_to_legal_address] = 0)",
+									"type": "text"
+								},
+								{
+									"key": "client[post_address][is_equal_to_legal_address]",
+									"value": "0",
+									"description": "Признак соответствия почтового адреса Принципала юридическому",
+									"type": "text"
+								},
+								{
+									"key": "client[post_address][value]",
+									"value": "г. Москва, вн.тер.г. муниципальный округ Преображенское, пл. Преображенская, дом 7а, пом vii к 11",
+									"description": "Фактический адрес Принципала (без индекса) (требуется, если client[post_address][is_equal_to_legal_address] = 0)",
+									"type": "text"
+								},
+								{
+									"key": "client[post_address][postal_code]",
+									"value": "107076",
+									"description": "Индекс фактического адреса Принципала (требуется, если client[post_address][is_equal_to_legal_address] = 0)",
+									"type": "text"
+								},
+								{
+									"key": "client[employee_count]",
+									"value": "8",
+									"description": "Средняя численность работников Принципала за предшествующий календарный год",
+									"type": "text"
+								},
+								{
+									"key": "client[contact_person][full_name]",
+									"value": "Контактов Контакт Контактович",
+									"description": "ФИО уполномоченного представителя Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[contact_person][phone]",
+									"value": "+7 (999) 999 99 99",
+									"description": "Контактный номер телефона Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[contact_person][email]",
+									"value": "example@example.ru",
+									"description": "Контактный адрес email Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[website]",
+									"value": "www.site.ru",
+									"description": "Сайт (доменное имя, которое используется при оказании услуг) (при наличии)",
+									"type": "text"
+								},
+								{
+									"key": "client[is_mchd]",
+									"value": "1",
+									"description": "Наличие Подписанта по доверенности",
+									"type": "text"
+								},
+								{
+									"key": "client[mchd_full_name]",
+									"value": "Подписантов Подписант Подписантович",
+									"description": "ФИО Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+									"type": "text"
+								},
+								{
+									"key": "client[mchd_inn]",
+									"value": "123456789012",
+									"description": "ИНН Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+									"type": "text"
+								},
+								{
+									"key": "client[mchd_number]",
+									"value": "111",
+									"description": "Номер доверенности Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+									"type": "text"
+								},
+								{
+									"key": "client[mchd_date]",
+									"value": "2025-02-20",
+									"description": "Дата доверенности Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][full_name]",
+									"value": "Участников Участник Участникович",
+									"description": "ФИО участника / акционера Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][inn]",
+									"value": "1234567890",
+									"description": "ИНН участника / акционера Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][share_relative]",
+									"value": "80",
+									"description": "Доля участника / акционера Принципала, %",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][legal_address][value]",
+									"value": "Адрес регистрации",
+									"description": "Адрес регистрации участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем) (без индекса)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][legal_address][postal_code]",
+									"value": "123456",
+									"description": "Индекс адреса регистрации бенефициарного владельца Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][actual_address][value]",
+									"value": "Фактический адрес",
+									"description": "Фактический адрес участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем) (без индекса)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][actual_address][postal_code]",
+									"value": "123456",
+									"description": "Индекс фактического адреса бенефициарного владельца Принципала",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][document][series]",
+									"value": "99 99",
+									"description": "Серия паспорта участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][document][number]",
+									"value": "999999",
+									"description": "Номер паспорта участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][document][issued_at]",
+									"value": "2000-01-01",
+									"description": "Дата выдачи паспорта участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][document][authority_name]",
+									"value": "Наименование подразделения",
+									"description": "Наименование подразделения, выдавшего паспорт участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][document][authority_code]",
+									"value": "777-777",
+									"description": "Код подразделения, выдавшего паспорт участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][birth_place]",
+									"value": "Москва",
+									"description": "Место рождения участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][birth_date]",
+									"value": "1985-01-01",
+									"description": "Дата рождения участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][gender]",
+									"value": "1",
+									"description": "Пол участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем) (1 - мужской, 2 - женский)",
+									"type": "text"
+								},
+								{
+									"key": "client[founders][0][citizen]",
+									"value": "РФ",
+									"description": "Гражданство участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+									"type": "text"
+								},
+								{
+									"key": "client[checking_accounts][0][bank_name]",
+									"value": "АО \"РЕАЛИСТ БАНК\"",
+									"description": "Наименование банка, в котором у Принципала открыты счета",
+									"type": "text"
+								},
+								{
+									"key": "client[checking_accounts][0][bank_bik]",
+									"value": "044525285",
+									"description": "БИК банка, в котором у Принципала открыты счета",
+									"type": "text"
+								},
+								{
+									"key": "client[has_beneficiaries_comment]",
+									"value": "отсутствует",
+									"description": "Наличие Выгодоприобретателей (по умолчанию - \"отсутствует\")",
+									"type": "text"
+								},
+								{
+									"key": "client[relationship_purpose]",
+									"value": "получение Гарантии",
+									"description": "Цель установления и предполагаемый характер деловых отношений с Гарантом (по умолчанию для ticket[product_id] = 1 - \"получение Гарантии\", для ticket[product_id] = 2 - \"получение кредитных средств\")",
+									"type": "text"
+								},
+								{
+									"key": "client[expected_relationship_duration]",
+									"value": "долгосрочный",
+									"description": "Планируемый период отношений с Гарантом (по умолчанию - \"долгосрочный\")",
+									"type": "text"
+								},
+								{
+									"key": "client[business_objectives]",
+									"value": "получение прибыли",
+									"description": "Цели финансово-хозяйственной деятельности (по умолчанию - \"получение прибыли\")",
+									"type": "text"
+								},
+								{
+									"key": "client[business_reputation]",
+									"value": "положительная",
+									"description": "Деловая репутация (по умолчанию - \"положительная\")",
+									"type": "text"
+								},
+								{
+									"key": "client[funds_source]",
+									"value": "результат финансовой деятельности",
+									"description": "Источник происхождения денежных средств и (или) иного имущества (по умолчанию - \"результат финансовой деятельности\")",
+									"type": "text"
+								},
+								{
+									"key": "client[has_executive_board]",
+									"value": "0",
+									"description": "Наличие коллегиального исполнительного органа (по умолчанию - 0)",
+									"type": "text"
+								},
+								{
+									"key": "client[is_pdl]",
+									"value": "0",
+									"description": "Признак, что ЕИО, представитель принципала ПЛД, является родственником ИПДЛ, РПДЛ, МПДЛ (по умолчанию - 0)",
+									"type": "text"
+								},
+								{
+									"key": "beneficiary[inn]",
+									"value": "5053057835",
+									"description": "ИНН Бенефициара",
+									"type": "text"
+								},
+								{
+									"key": "beneficiary[legal_address][value]",
+									"value": "144007, обл Московская, г Электросталь, ул Пионерская, дом 4А, пом 4",
+									"description": "Адрес местонахождения Бенефициара (указанный в ЕГРЮЛ)",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/add_ticket",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"add_ticket"
+							]
+						},
+						"description": "Создание новой заявки."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket[product_id]",
+											"value": "{{product_id}}",
+											"description": "ID продукта (по умолчанию 1)",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][sum]",
+											"value": "500000",
+											"description": "Сумма запрашиваемой БГ, руб.",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][start_at_type_id]",
+											"value": "1",
+											"description": "ID типа даты начала запрашиваемой БГ",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][start_at]",
+											"value": "2025-02-20",
+											"description": "Дата начала запрашиваемой БГ (требуется, если ticket[bg][start_at_type_id] = 2)",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][end_at]",
+											"value": "2026-02-20",
+											"description": "Дата окончания запрашиваемой БГ",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][type_id]",
+											"value": "1",
+											"description": "ID типа запрашиваемой БГ",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][reason_id]",
+											"value": "2",
+											"description": "ID вида запрашиваемой БГ",
+											"type": "text"
+										},
+										{
+											"key": "ticket[bg][form_id]",
+											"value": "1",
+											"description": "ID формы запрашиваемой БГ",
+											"type": "text"
+										},
+										{
+											"key": "ticket[kik][sum]",
+											"value": "3000000",
+											"description": "Сумма запрашиваемого КИК, руб.",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "ticket[kik][start_at_type_id]",
+											"value": "1",
+											"description": "ID типа даты начала запрашиваемого КИК",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "ticket[kik][start_at]",
+											"value": "2025-02-20",
+											"description": "Дата начала запрашиваемого КИК (требуется, если ticket[kik][start_at_type_id] = 2)",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "ticket[kik][end_at]",
+											"value": "2026-02-20",
+											"description": "Дата окончания запрашиваемого КИК",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "ticket[kik][type_id]",
+											"value": "2",
+											"description": "ID вида запрашиваемого КИК",
+											"type": "text",
+											"disabled": true
+										},
+										{
+											"key": "goscontract[purchase_number]",
+											"value": "0848600005323000300",
+											"description": "Реестровый номер торгов (требуется, если goscontract[is_single_supplier] = 0 или если goscontract[is_single_supplier] = 1 и goscontract[contract_number] = '')",
+											"type": "text"
+										},
+										{
+											"key": "goscontract[subject]",
+											"value": "Благоустройство лесопарка Авангард по адресу: Московская область, г. Электросталь, Фрязевское шоссе, с северо-западной стороны от стадиона «Авангард» (Видеонаблюдение, Электроснабжение и электроосвещение, Водоснабжение и канализация, Озеленение)",
+											"description": "Предмет контракта",
+											"type": "text"
+										},
+										{
+											"key": "goscontract[is_close_auction]",
+											"value": "0",
+											"description": "Признак закрытого аукциона",
+											"type": "text"
+										},
+										{
+											"key": "goscontract[is_single_supplier]",
+											"value": "0",
+											"description": "Признак единственного поставщика",
+											"type": "text"
+										},
+										{
+											"key": "goscontract[contract_number]",
+											"value": "",
+											"description": "Номер контракта (требуется, если goscontract[is_single_supplier] = 1 и goscontract[purchase_number] = '')",
+											"type": "text"
+										},
+										{
+											"key": "client[inn]",
+											"value": "7718925608",
+											"description": "ИНН Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[actual_address][is_equal_to_legal_address]",
+											"value": "0",
+											"description": "Признак соответствия фактического адреса Принципала юридическому",
+											"type": "text"
+										},
+										{
+											"key": "client[actual_address][value]",
+											"value": "г. Москва, вн.тер.г. муниципальный округ Преображенское, пл. Преображенская, дом 7а, пом vii к 11",
+											"description": "Фактический адрес Принципала (без индекса) (требуется, если client[actual_address][is_equal_to_legal_address] = 0)",
+											"type": "text"
+										},
+										{
+											"key": "client[actual_address][postal_code]",
+											"value": "107076",
+											"description": "Индекс фактического адреса Принципала (требуется, если client[actual_address][is_equal_to_legal_address] = 0)",
+											"type": "text"
+										},
+										{
+											"key": "client[post_address][is_equal_to_legal_address]",
+											"value": "0",
+											"description": "Признак соответствия почтового адреса Принципала юридическому",
+											"type": "text"
+										},
+										{
+											"key": "client[post_address][value]",
+											"value": "г. Москва, вн.тер.г. муниципальный округ Преображенское, пл. Преображенская, дом 7а, пом vii к 11",
+											"description": "Фактический адрес Принципала (без индекса) (требуется, если client[post_address][is_equal_to_legal_address] = 0)",
+											"type": "text"
+										},
+										{
+											"key": "client[post_address][postal_code]",
+											"value": "107076",
+											"description": "Индекс фактического адреса Принципала (требуется, если client[post_address][is_equal_to_legal_address] = 0)",
+											"type": "text"
+										},
+										{
+											"key": "client[employee_count]",
+											"value": "8",
+											"description": "Средняя численность работников Принципала за предшествующий календарный год",
+											"type": "text"
+										},
+										{
+											"key": "client[contact_person][full_name]",
+											"value": "Контактов Контакт Контактович",
+											"description": "ФИО уполномоченного представителя Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[contact_person][phone]",
+											"value": "+7 (999) 999 99 99",
+											"description": "Контактный номер телефона Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[contact_person][email]",
+											"value": "example@example.ru",
+											"description": "Контактный адрес email Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[website]",
+											"value": "www.site.ru",
+											"description": "Сайт (доменное имя, которое используется при оказании услуг) (при наличии)",
+											"type": "text"
+										},
+										{
+											"key": "client[is_mchd]",
+											"value": "1",
+											"description": "Наличие Подписанта по доверенности",
+											"type": "text"
+										},
+										{
+											"key": "client[mchd_full_name]",
+											"value": "Подписантов Подписант Подписантович",
+											"description": "ФИО Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+											"type": "text"
+										},
+										{
+											"key": "client[mchd_inn]",
+											"value": "123456789012",
+											"description": "ИНН Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+											"type": "text"
+										},
+										{
+											"key": "client[mchd_number]",
+											"value": "111",
+											"description": "Номер доверенности Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+											"type": "text"
+										},
+										{
+											"key": "client[mchd_date]",
+											"value": "2025-02-20",
+											"description": "Дата доверенности Подписанта по доверенности (требуется, если client[is_mchd] = 1)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][full_name]",
+											"value": "Участников Участник Участникович",
+											"description": "ФИО участника / акционера Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][inn]",
+											"value": "1234567890",
+											"description": "ИНН участника / акционера Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][share_relative]",
+											"value": "80",
+											"description": "Доля участника / акционера Принципала, %",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][legal_address][value]",
+											"value": "Адрес регистрации",
+											"description": "Адрес регистрации участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем) (без индекса)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][legal_address][postal_code]",
+											"value": "123456",
+											"description": "Индекс адреса регистрации бенефициарного владельца Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][actual_address][value]",
+											"value": "Фактический адрес",
+											"description": "Фактический адрес участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем) (без индекса)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][actual_address][postal_code]",
+											"value": "123456",
+											"description": "Индекс фактического адреса бенефициарного владельца Принципала",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][document][series]",
+											"value": "99 99",
+											"description": "Серия паспорта участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][document][number]",
+											"value": "999999",
+											"description": "Номер паспорта участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][document][issued_at]",
+											"value": "2000-01-01",
+											"description": "Дата выдачи паспорта участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][document][authority_name]",
+											"value": "Наименование подразделения",
+											"description": "Наименование подразделения, выдавшего паспорт участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][document][authority_code]",
+											"value": "777-777",
+											"description": "Код подразделения, выдавшего паспорт участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][birth_place]",
+											"value": "Москва",
+											"description": "Место рождения участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][birth_date]",
+											"value": "1985-01-01",
+											"description": "Дата рождения участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][gender]",
+											"value": "1",
+											"description": "Пол участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем) (1 - мужской, 2 - женский)",
+											"type": "text"
+										},
+										{
+											"key": "client[founders][0][citizen]",
+											"value": "РФ",
+											"description": "Гражданство участника / акционера Принципала (требуется, если участник / акционер является бенефициарным владельцем)",
+											"type": "text"
+										},
+										{
+											"key": "client[checking_accounts][0][bank_name]",
+											"value": "АО \"РЕАЛИСТ БАНК\"",
+											"description": "Наименование банка, в котором у Принципала открыты счета",
+											"type": "text"
+										},
+										{
+											"key": "client[checking_accounts][0][bank_bik]",
+											"value": "044525285",
+											"description": "БИК банка, в котором у Принципала открыты счета",
+											"type": "text"
+										},
+										{
+											"key": "client[has_beneficiaries_comment]",
+											"value": "отсутствует",
+											"description": "Наличие Выгодоприобретателей (по умолчанию - \"отсутствует\")",
+											"type": "text"
+										},
+										{
+											"key": "client[relationship_purpose]",
+											"value": "получение Гарантии",
+											"description": "Цель установления и предполагаемый характер деловых отношений с Гарантом (по умолчанию для ticket[product_id] = 1 - \"получение Гарантии\", для ticket[product_id] = 2 - \"получение кредитных средств\")",
+											"type": "text"
+										},
+										{
+											"key": "client[expected_relationship_duration]",
+											"value": "долгосрочный",
+											"description": "Планируемый период отношений с Гарантом (по умолчанию - \"долгосрочный\")",
+											"type": "text"
+										},
+										{
+											"key": "client[business_objectives]",
+											"value": "получение прибыли",
+											"description": "Цели финансово-хозяйственной деятельности (по умолчанию - \"получение прибыли\")",
+											"type": "text"
+										},
+										{
+											"key": "client[business_reputation]",
+											"value": "положительная",
+											"description": "Деловая репутация (по умолчанию - \"положительная\")",
+											"type": "text"
+										},
+										{
+											"key": "client[funds_source]",
+											"value": "результат финансовой деятельности",
+											"description": "Источник происхождения денежных средств и (или) иного имущества (по умолчанию - \"результат финансовой деятельности\")",
+											"type": "text"
+										},
+										{
+											"key": "client[has_executive_board]",
+											"value": "0",
+											"description": "Наличие коллегиального исполнительного органа (по умолчанию - 0)",
+											"type": "text"
+										},
+										{
+											"key": "client[is_pdl]",
+											"value": "0",
+											"description": "Признак, что ЕИО, представитель принципала ПЛД, является родственником ИПДЛ, РПДЛ, МПДЛ (по умолчанию - 0)",
+											"type": "text"
+										},
+										{
+											"key": "beneficiary[inn]",
+											"value": "5053057835",
+											"description": "ИНН Бенефициара",
+											"type": "text"
+										},
+										{
+											"key": "beneficiary[legal_address][value]",
+											"value": "144007, обл Московская, г Электросталь, ул Пионерская, дом 4А, пом 4",
+											"description": "Адрес местонахождения Бенефициара (указанный в ЕГРЮЛ)",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/add_ticket",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"add_ticket"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Fri, 21 Feb 2025 08:27:07 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Заявка успешно создана\",\n    \"data\": {\n        \"ticket\": {\n            \"id\": 1000,\n            \"status\": {\n                \"id\": 102,\n                \"name\": \"Предзаявка\",\n                \"comment\": \"\",\n                \"changed_at\": \"2025-02-20 00:00:00\"\n            },\n            \"manager\": {\n                \"full_name\": \"Менеджеров Менеджер Менеджерович\"\n            },\n            \"commission\": {\n                \"total\": 10800,\n                \"bank\": 7560,\n                \"agent\": 3240,\n                \"default\": 10800\n            },\n            \"payment_status\": {\n                \"id\": 2,\n                \"name\": \"Не оплачено\",\n                \"changed_at\": \"0000-00-00 00:00:00\"\n            }\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "get_ticket_info",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"description": "ID заявки",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/get_ticket_info",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"get_ticket_info"
+							]
+						},
+						"description": "Получение сведений о заявке."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"description": "ID заявки",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/get_ticket_info",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"get_ticket_info"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 11:01:21 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"\",\n    \"data\": {\n        \"ticket\": {\n            \"id\": 1000,\n            \"status\": {\n                \"id\": 210,\n                \"name\": \"Проверка документов\",\n                \"comment\": \"\",\n                \"changed_at\": \"2025-02-20 00:00:00\"\n            },\n            \"manager\": {\n                \"full_name\": \"Менеджеров Менеджер Менеджерович\"\n            },\n            \"commission\": {\n                \"total\": 10800,\n                \"bank\": 7560,\n                \"agent\": 3240,\n                \"default\": 10800\n            },\n            \"payment_status\": {\n                \"id\": 2,\n                \"name\": \"Не оплачено\",\n                \"changed_at\": \"0000-00-00 00:00:00\"\n            }\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_commission",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"description": "ID заявки",
+									"type": "text"
+								},
+								{
+									"key": "total_commission",
+									"value": "50000",
+									"description": "Сумма комиссии, руб.",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_commission",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_commission"
+							]
+						},
+						"description": "Установка желаемой комиссии."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"description": "ID заявки",
+											"type": "text"
+										},
+										{
+											"key": "total_commission",
+											"value": "50000",
+											"description": "Сумма комиссии, руб.",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_commission",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_commission"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:33:44 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Данные успешно изменены\",\n    \"data\": {\n        \"ticket\": {\n            \"id\": 1000,\n            \"status\": {\n                \"id\": 210,\n                \"name\": \"Проверка документов\",\n                \"comment\": \"\",\n                \"changed_at\": \"2025-02-20 00:00:00\"\n            },\n            \"manager\": {\n                \"full_name\": \"Менеджеров Менеджер Менеджерович\"\n            },\n            \"commission\": {\n                \"total\": 10800,\n                \"bank\": 7560,\n                \"agent\": 3240,\n                \"default\": 10800\n            },\n            \"payment_status\": {\n                \"id\": 2,\n                \"name\": \"Не оплачено\",\n                \"changed_at\": \"0000-00-00 00:00:00\"\n            }\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "set_ticket_process_status",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"description": "ID заявки",
+									"type": "text"
+								},
+								{
+									"key": "status_id",
+									"value": "{{ticket_process_status_id}}",
+									"description": "ID статуса рассмотрения заявки",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/set_ticket_process_status",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"set_ticket_process_status"
+							]
+						},
+						"description": "Установка статуса по заявке."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"description": "ID заявки",
+											"type": "text"
+										},
+										{
+											"key": "status_id",
+											"value": "{{ticket_process_status_id}}",
+											"description": "ID статуса рассмотрения заявки",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/set_ticket_process_status",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"set_ticket_process_status"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:31:04 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"\",\n    \"data\": {\n        \"ticket\": {\n            \"id\": 1000,\n            \"status\": {\n                \"id\": 210,\n                \"name\": \"Дозаполнение заявки\",\n                \"comment\": \"\",\n                \"changed_at\": \"2025-02-20 00:00:00\"\n            },\n            \"manager\": {\n                \"full_name\": \"Менеджеров Менеджер Менеджерович\"\n            },\n            \"commission\": {\n                \"total\": 10800,\n                \"bank\": 7560,\n                \"agent\": 3240,\n                \"default\": 10800\n            },\n            \"payment_status\": {\n                \"id\": 2,\n                \"name\": \"Не оплачено\",\n                \"changed_at\": \"0000-00-00 00:00:00\"\n            }\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "add_message",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"description": "ID заявки",
+									"type": "text"
+								},
+								{
+									"key": "content",
+									"value": "Сообщение",
+									"description": "Содержимое сообщения",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/add_message",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"add_message"
+							]
+						},
+						"description": "Передача сообщения в чат по заявке."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"description": "ID заявки",
+											"type": "text"
+										},
+										{
+											"key": "content",
+											"value": "Сообщение",
+											"description": "Содержимое сообщения",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/add_message",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"add_message"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:29:16 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"\",\n    \"data\": {\n        \"message\": {\n            \"id\": 1000,\n            \"content\": \"Сообщение\",\n            \"created_at\": \"2025-02-20 00:00:00\"\n        }\n    }\n}"
+						}
+					]
+				}
+			],
+			"description": "## Справочник продуктов\n\n| ID | Наименование |\n| --- | --- |\n| 1 | Банковская гарантия |\n| 2 | Кредит на исполнение контракта |\n\n## Справочник статусов оплаты по заявке\n\n| **ID** | **Наименование** |\n| --- | --- |\n| 1 | Оплачено |\n| 2 | Не оплачено |\n\n## Справочник типов БГ\n\n| **ID** | **Наименование** |\n| --- | --- |\n| 1 | Государственный контракт (44-ФЗ, 223-ФЗ, 185-ФЗ, 615ПП) |\n| 2 | Коммерческий контракт |\n| 3 | В пользу гос. заказчика |\n\n## Справочник видов БГ\n\n| **ID** | **Наименование** | **Примечание** |\n| --- | --- | --- |\n| 0 | Обеспечение заявки на участие | |\n| 1 | Возврат аванса | |\n| 2 | Обеспечение исполнения контракта | |\n| 3 | Гарантийные обязательства | |\n| 4 | Обеспечение исполнения контракта и возврата аванса | |\n| 5 | Обеспечение исполнения контракта и гарантийных обязательств | |\n| 7 | Обеспечение исполнения контракта, возврата аванса и гарантийных обязательств | |\n| 8 | Гарантия оплаты | Только для типа БГ \"Коммерческий контракт\" |\n| 9 | Возврат арендных платежей | Только для типа БГ \"Коммерческий контракт\" |\n\n## Справочник форм БГ\n\n| **ID** | **Наименование** |\n| --- | --- |\n| 1 | В электронном виде |\n| 2 | На бумажном носителе |\n\n## Справочник типов даты начала БГ / КИК\n\n| **ID** | **Наименование** |\n| --- | --- |\n| 1 | С даты выдачи |\n| 2 | Указать конкретную дату |\n\n## Справочник видов КИК\n\n| **ID** | **Наименование** |\n| --- | --- |\n| 1 | НКЛ |\n| 2 | Кредит |"
+		},
+		{
+			"name": "Работа с документами",
+			"item": [
+				{
+					"name": "get_ticket_docs_info",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"description": "ID заявки",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/get_ticket_docs_info",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"get_ticket_docs_info"
+							]
+						},
+						"description": "Получение списка документов по заявке"
+					},
+					"response": [
+						{
+							"name": "get_ticket_docs_info",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"description": "ID заявки",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/get_ticket_docs_info",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"get_ticket_docs_info"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:25:37 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"\",\n    \"data\": {\n        \"docs\": [\n            {\n                \"product_document_id\": 63,\n                \"is_obligatory\": 0,\n                \"fileext\": \"\",\n                \"description\": \"\",\n                \"is_need_client_sign\": 0,\n                \"is_need_bank_sign\": 0,\n                \"id\": 1000,\n                \"name\": \"Бухгалтерская отчетность Ф1 и Ф2 за последний год.pdf\",\n                \"modified_at\": \"2025-02-20 00:00:00\",\n                \"is_client_signed\": 0,\n                \"is_bank_signed\": 0,\n                \"is_loaded\": 1\n            },\n            {\n                \"product_document_id\": 17,\n                \"is_obligatory\": 1,\n                \"fileext\": \"\",\n                \"description\": \"\",\n                \"is_need_client_sign\": 1,\n                \"is_need_bank_sign\": 0,\n                \"id\": 1001,\n                \"name\": \"Заявление.docx\",\n                \"modified_at\": \"2025-02-20 00:00:00\",\n                \"is_client_signed\": 0,\n                \"is_bank_signed\": 0,\n                \"is_loaded\": 1\n            },\n            {\n                \"product_document_id\": 21,\n                \"is_obligatory\": 1,\n                \"fileext\": \"\",\n                \"description\": \"Страницы с фотографией и регистрацией\",\n                \"is_need_client_sign\": 0,\n                \"is_need_bank_sign\": 0,\n                \"id\": 1002,\n                \"name\": \"Паспорт генерального директора.docx\",\n                \"modified_at\": \"2025-02-20 00:00:00\",\n                \"is_client_signed\": 0,\n                \"is_bank_signed\": 0,\n                \"is_loaded\": 1\n            },\n            {\n                \"product_document_id\": 43,\n                \"is_obligatory\": 0,\n                \"fileext\": \"\",\n                \"description\": \"\",\n                \"is_need_client_sign\": 0,\n                \"is_need_bank_sign\": 0,\n                \"id\": 0,\n                \"name\": \"Скан БГ\",\n                \"modified_at\": \"\",\n                \"is_client_signed\": 0,\n                \"is_bank_signed\": 0,\n                \"is_loaded\": 0\n            },\n            {\n                \"product_document_id\": 38,\n                \"is_obligatory\": 0,\n                \"fileext\": \"\",\n                \"description\": \"\",\n                \"is_need_client_sign\": 0,\n                \"is_need_bank_sign\": 0,\n                \"id\": 1003,\n                \"name\": \"Счет на оплату.doc\",\n                \"modified_at\": \"2025-02-20 00:00:00\",\n                \"is_client_signed\": 0,\n                \"is_bank_signed\": 0,\n                \"is_loaded\": 1\n            },\n            {\n                \"product_document_id\": 42,\n                \"is_obligatory\": 0,\n                \"fileext\": \"\",\n                \"description\": \"\",\n                \"is_need_client_sign\": 0,\n                \"is_need_bank_sign\": 0,\n                \"id\": 0,\n                \"name\": \"БГ по форме заказчика\",\n                \"modified_at\": \"\",\n                \"is_client_signed\": 0,\n                \"is_bank_signed\": 0,\n                \"is_loaded\": 0\n            }\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "download_document_file",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "document_id",
+									"value": "{{document_id}}",
+									"description": "ID документа",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/download_document_file",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"download_document_file"
+							]
+						},
+						"description": "Получение файла документа.\n\nСодержимое файла возвращается в формате base64."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "document_id",
+											"value": "{{document_id}}",
+											"description": "ID документа",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/download_document_file",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"download_document_file"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:14:57 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Документ успешно получен\",\n    \"data\": {\n        \"file\": {\n            \"name\": \"test.pdf\",\n            \"content\": \"JVBER...GCg==\"\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "upload_document_file",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"type": "text"
+								},
+								{
+									"key": "product_document_id",
+									"value": "{{product_document_id}}",
+									"type": "text"
+								},
+								{
+									"key": "file[name]",
+									"value": "{{file_name}}",
+									"type": "text"
+								},
+								{
+									"key": "file[content]",
+									"value": "{{file_content}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/upload_document_file",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"upload_document_file"
+							]
+						},
+						"description": "Передача файла документа.\n\nСодержимое файла передаётся в формате base64."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"type": "text"
+										},
+										{
+											"key": "product_document_id",
+											"value": "{{product_document_id}}",
+											"type": "text"
+										},
+										{
+											"key": "file[name]",
+											"value": "{{file_name}}",
+											"type": "text"
+										},
+										{
+											"key": "file[content]",
+											"value": "{{file_content}}",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/upload_document_file",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"upload_document_file"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:22:11 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Документ успешно загружен\",\n    \"data\": {\n        \"document\": {\n            \"id\": 1000\n        }\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "upload_signed_document_file",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"type": "text"
+								},
+								{
+									"key": "document_id",
+									"value": "{{document_id}}",
+									"type": "text"
+								},
+								{
+									"key": "file[name]",
+									"value": "{{file_name}}",
+									"type": "text"
+								},
+								{
+									"key": "file[content]",
+									"value": "{{file_content}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/upload_signed_document_file",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"upload_signed_document_file"
+							]
+						},
+						"description": "Передача файла подписи документа.\n\nСодержимое файла подписи передаётся в формате base64."
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"type": "text"
+										},
+										{
+											"key": "product_document_id",
+											"value": "{{product_document_id}}",
+											"type": "text"
+										},
+										{
+											"key": "file[name]",
+											"value": "{{file_name}}",
+											"type": "text"
+										},
+										{
+											"key": "file[content]",
+											"value": "{{file_content}}",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/upload_document_file",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"upload_document_file"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:22:11 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Документ успешно подписан\"\n}"
+						}
+					]
+				},
+				{
+					"name": "get_ticket_token",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "ticket_id",
+									"value": "{{ticket_id}}",
+									"description": "ID заявки",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/get_ticket_token",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"get_ticket_token"
+							]
+						},
+						"description": "Передача файла документа"
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "ticket_id",
+											"value": "{{ticket_id}}",
+											"description": "ID заявки",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/get_ticket_token",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"get_ticket_token"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:10:41 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Токен успешно отправлен\",\n    \"data\": {\n        \"token\": {\n            \"url\": \"{{siteUrl}}/token/index?token_name=634eec8cdf3b87dfcd563f424f4b9dc6\"\n        }\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Работа с клиентами",
+			"item": [
+				{
+					"name": "get_client_limits",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "login",
+									"value": "{{login}}",
+									"description": "Логин",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{password}}",
+									"description": "Пароль",
+									"type": "text"
+								},
+								{
+									"key": "inn",
+									"value": "{{client_inn}}",
+									"description": "ИНН Принципала",
+									"type": "text"
+								},
+								{
+									"key": "product_id",
+									"value": "{{product_id}}",
+									"description": "ID продукта",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/get_client_limits",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"get_client_limits"
+							]
+						},
+						"description": "Получение доступного лимита по клиенту"
+					},
+					"response": [
+						{
+							"name": "Успех",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "login",
+											"value": "{{login}}",
+											"description": "Логин",
+											"type": "text"
+										},
+										{
+											"key": "password",
+											"value": "{{password}}",
+											"description": "Пароль",
+											"type": "text"
+										},
+										{
+											"key": "inn",
+											"value": "{{client_inn}}",
+											"description": "ИНН Принципала",
+											"type": "text"
+										},
+										{
+											"key": "product_id",
+											"value": "{{product_id}}",
+											"description": "ID продукта",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{baseUrl}}/get_client_limits",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"get_client_limits"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Server",
+									"value": "nginx/1.24.0"
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 20 Feb 2025 18:08:52 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "gzip"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"success\",\n    \"message\": \"Лимит успешно получен\",\n    \"data\": {\n        \"client\": {\n            \"limit\": {\n                \"available\": 45000000\n            }\n        }\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Вебхуки",
+			"item": [
+				{
+					"name": "TICKET_PROCESS_STATUS_CHANGED_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_PROCESS_STATUS_CHANGED_URL",
+							"host": [
+								"TICKET_PROCESS_STATUS_CHANGED_URL"
+							]
+						},
+						"description": "Банк отправляет данные на TICKET_PROCESS_STATUS_CHANGED_URL при изменении статуса заявки."
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TICKET_PROCESS_STATUS_CHANGED_URL",
+									"host": [
+										"TICKET_PROCESS_STATUS_CHANGED_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n\t\"status\": \"success\",\n\t\"message\": \"Статус заявки ID1000\",\n\t\"data\": {\n\t\t\"ticket\": {\n\t\t\t\"id\": 1000,\n\t\t\t\"process_status\": 210\n\t\t}\n\t}\n}"
+						}
+					]
+				},
+				{
+					"name": "TICKET_CHAT_MESSAGE_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_CHAT_MESSAGE_URL",
+							"host": [
+								"TICKET_CHAT_MESSAGE_URL"
+							]
+						},
+						"description": "Банк отправляет данные на TICKET_CHAT_MESSAGE_URL при поступлении нового сообщения в чат по заявке."
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TICKET_CHAT_MESSAGE_URL",
+									"host": [
+										"TICKET_CHAT_MESSAGE_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n\t\"status\": \"success\",\n\t\"message\": \"Новое сообщение в заявке ID1000\",\n\t\"data\": {\n\t\t\"ticket\": {\n\t\t\t\"id\": 1000\n\t\t},\n\t\t\"message\": {\n\t\t\t\"content\": \"\",\n\t\t\t\"created_at\": \"2025-02-20 00:00:00\"\n\t\t}\n\t}\n}"
+						}
+					]
+				},
+				{
+					"name": "TICKET_MANAGER_CHANGED_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_MANAGER_CHANGED_URL",
+							"host": [
+								"TICKET_MANAGER_CHANGED_URL"
+							]
+						},
+						"description": "Банк отправляет данные на TICKET_MANAGER_CHANGED_URL при изменении ответственного менеджера по заявке."
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TICKET_MANAGER_CHANGED_URL",
+									"host": [
+										"TICKET_MANAGER_CHANGED_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n\t\"status\": \"success\",\n\t\"message\": \"Ответственный менеджер по заявке ID1000\",\n\t\"data\": {\n\t\t\"ticket\": {\n\t\t\t\"id\": 1000,\n\t\t\t\"manager\": {\n\t\t\t\t\"full_name\": \"Менеджеров Менеджер Менеджерович\"\n\t\t\t}\n\t\t}\n\t}\n}"
+						}
+					]
+				},
+				{
+					"name": "TICKET_PAYMENT_STATUS_CHANGED_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_PAYMENT_STATUS_CHANGED_URL",
+							"host": [
+								"TICKET_PAYMENT_STATUS_CHANGED_URL"
+							]
+						},
+						"description": "Банк отправляет данные на TICKET_PAYMENT_STATUS_CHANGED_URL при изменении статуса оплаты по заявке."
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TICKET_PAYMENT_STATUS_CHANGED_URL",
+									"host": [
+										"TICKET_PAYMENT_STATUS_CHANGED_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n\t\"status\": \"success\",\n\t\"message\": \"Статус оплаты по заявке ID1000\",\n\t\"data\": {\n\t\t\"ticket\": {\n\t\t\t\"id\": 1000,\n\t\t\t\"payment_status\": {\n\t\t\t\t\"id\": 2\n\t\t\t}\n\t\t}\n\t}\n}"
+						}
+					]
+				},
+				{
+					"name": "TICKET_DOCUMENT_CHANGED_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_DOCUMENT_CHANGED_URL",
+							"host": [
+								"TICKET_DOCUMENT_CHANGED_URL"
+							]
+						},
+						"description": "Банк отправляет данные на TICKET_DOCUMENT_CHANGED_URL при изменении документа в заявке со стороны Банка."
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TICKET_DOCUMENT_CHANGED_URL",
+									"host": [
+										"TICKET_DOCUMENT_CHANGED_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n\t\"status\": \"success\",\n\t\"message\": \"Изменён документ\",\n\t\"data\": {\n\t\t\"ticket\": {\n\t\t\t\"id\": 1000\n\t\t},\n\t\t\"document\": {\n\t\t\t\"id\": 1001,\n\t\t\t\"product_document_id\": 35,\n\t\t\t\"name\": \"БГ 44-ФЗ.docx\"\n\t\t}\n\t}\n}"
+						}
+					]
+				},
+				{
+					"name": "TICKET_DOCUMENT_DELETED_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_DOCUMENT_DELETED_URL",
+							"host": [
+								"TICKET_DOCUMENT_DELETED_URL"
+							]
+						},
+						"description": "Банк отправляет данные на TICKET_DOCUMENT_DELETED_URL при удалении документа из заявки со стороны Банка."
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TICKET_DOCUMENT_CHANGED_URL",
+									"host": [
+										"TICKET_DOCUMENT_CHANGED_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n\t\"status\": \"success\",\n\t\"message\": \"Изменён документ\",\n\t\"data\": {\n\t\t\"ticket\": {\n\t\t\t\"id\": 1000\n\t\t},\n\t\t\"document\": {\n\t\t\t\"id\": 1001,\n\t\t\t\"product_document_id\": 35,\n\t\t\t\"name\": \"БГ 44-ФЗ.docx\"\n\t\t}\n\t}\n}"
+						}
+					]
+				},
+				{
+					"name": "TOKEN_URL",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "TICKET_DOCUMENT_DELETED_URL",
+							"host": [
+								"TICKET_DOCUMENT_DELETED_URL"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Пример",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "TOKEN_URL",
+									"host": [
+										"TOKEN_URL"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"description": "",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": ""
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "siteUrl",
+			"value": "https://stagebg.realistbank.ru",
+			"type": "string"
+		},
+		{
+			"key": "baseUrl",
+			"value": "https://stagebg.realistbank.ru/agent_api1_1",
+			"type": "string"
+		},
+		{
+			"key": "login",
+			"value": "agent",
+			"type": "string"
+		},
+		{
+			"key": "password",
+			"value": "1234",
+			"type": "string"
+		},
+		{
+			"key": "ticket_id",
+			"value": "1000",
+			"type": "string"
+		},
+		{
+			"key": "client_inn",
+			"value": "3801002781",
+			"type": "string"
+		},
+		{
+			"key": "document_id",
+			"value": "1000",
+			"type": "string"
+		},
+		{
+			"key": "product_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "product_document_id",
+			"value": "21",
+			"type": "string"
+		},
+		{
+			"key": "file_name",
+			"value": "Паспорт генерального директора.docx",
+			"type": "string"
+		},
+		{
+			"key": "file_content",
+			"value": "JVBER...GCg==",
+			"type": "string"
+		},
+		{
+			"key": "ticket_process_status_id",
+			"value": "210",
+			"type": "string"
+		}
+	]
+}

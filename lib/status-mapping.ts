@@ -245,3 +245,65 @@ export function getDocStatusConfig(status: string): DocStatusConfig {
         iconType: 'clock',
     };
 }
+
+
+// ============================================
+// BANK STATUS MAPPING (Приложение А PDF)
+// Строго по ТЗ: ID статусов банковской системы
+// ============================================
+
+export interface BankStatusConfig {
+    label: string;
+    color: string;
+    bgColor: string;
+}
+
+/**
+ * Bank API Status IDs → Visual Config
+ * СТРОГО по Приложению А PDF
+ */
+export const BANK_STATUS_CONFIG: Record<number, BankStatusConfig> = {
+    101: { label: 'Анкета', color: 'text-slate-400', bgColor: 'bg-slate-700/50' },
+    102: { label: 'Предзаявка', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    110: { label: 'Прескоринг', color: 'text-indigo-400', bgColor: 'bg-indigo-400/10' },
+    120: { label: 'Дозаполнение', color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
+    210: { label: 'Проверка документов', color: 'text-[#FFD93D]', bgColor: 'bg-[#FFD93D]/10' },
+    530: { label: 'Отклонена', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    707: { label: 'Решение принято', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    910: { label: 'Гарантия выпущена', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10' },
+};
+
+/**
+ * Get bank status configuration by ID
+ * Falls back to generic config if ID is unknown
+ */
+export function getBankStatusConfig(statusId: number): BankStatusConfig {
+    return BANK_STATUS_CONFIG[statusId] || {
+        label: `Статус ${statusId}`,
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-700/50',
+    };
+}
+
+/**
+ * Parse bank status from string (handles both numeric IDs and text)
+ */
+export function parseBankStatus(status: string | number | null): BankStatusConfig {
+    if (status === null || status === undefined || status === '') {
+        return { label: '—', color: 'text-slate-400', bgColor: 'bg-slate-700/50' };
+    }
+
+    // If it's a number or numeric string, use the config
+    const statusId = typeof status === 'number' ? status : parseInt(status, 10);
+    if (!isNaN(statusId)) {
+        return getBankStatusConfig(statusId);
+    }
+
+    // If it's a text status, return as-is with neutral styling
+    return {
+        label: String(status),
+        color: 'text-slate-400',
+        bgColor: 'bg-slate-700/50',
+    };
+}
+

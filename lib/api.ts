@@ -52,6 +52,7 @@ export interface RegisterPayload {
   role: 'client' | 'agent';
   first_name?: string;
   last_name?: string;
+  referral_id?: number | null;  // Partner ID who invited this user
 }
 
 // Token management

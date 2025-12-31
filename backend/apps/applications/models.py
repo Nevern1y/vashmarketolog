@@ -7,13 +7,73 @@ from django.conf import settings
 
 
 class ProductType(models.TextChoices):
-    """Financial product types."""
+    """Financial product types - 11 types per ТЗ Калькулятор."""
+    # Original 6 products
     BANK_GUARANTEE = 'bank_guarantee', 'Банковская гарантия'
     TENDER_LOAN = 'tender_loan', 'Тендерный кредит'
     CONTRACT_LOAN = 'contract_loan', 'Кредит на исполнение контракта'
     CORPORATE_CREDIT = 'corporate_credit', 'Корпоративный кредит'
     FACTORING = 'factoring', 'Факторинг'
     LEASING = 'leasing', 'Лизинг'
+    # Phase 1 additions from ТЗ
+    VED = 'ved', 'ВЭД (Валютные операции)'
+    INSURANCE = 'insurance', 'Страхование'
+    RKO = 'rko', 'РКО'
+    SPECIAL_ACCOUNT = 'special_account', 'Спецсчет'
+    TENDER_SUPPORT = 'tender_support', 'Тендерное сопровождение'
+
+
+class InsuranceCategory(models.TextChoices):
+    """Insurance categories per ТЗ Страхование."""
+    PERSONNEL = 'personnel', 'Персонал'
+    TRANSPORT = 'transport', 'Транспорт'
+    PROPERTY = 'property', 'Имущество'
+    LIABILITY = 'liability', 'Ответственность'
+
+
+class InsuranceProductType(models.TextChoices):
+    """Insurance product subtypes per ТЗ."""
+    # Personnel
+    DMS = 'dms', 'Добровольное медицинское страхование (ДМС)'
+    CRITICAL_ILLNESS = 'critical_illness', 'Страхование критических заболеваний'
+    ACCIDENT = 'accident', 'Страхование несчастных случаев'
+    TRAVEL = 'travel', 'Комплексное страхование в поездках'
+    # Transport
+    OSAGO = 'osago', 'ОСАГО юридических лиц'
+    FLEET = 'fleet', 'Комплексное страхование автопарков'
+    SPECIAL_TECH = 'special_tech', 'Страхование специальной техники'
+    CARRIER_LIABILITY = 'carrier_liability', 'Страхование ответственности перевозчика'
+    # Property
+    CONSTRUCTION = 'construction', 'Страхование объектов строительства'
+    CARGO = 'cargo', 'Страхование грузов и перевозок'
+    COMPANY_PROPERTY = 'company_property', 'Страхование имущества компаний'
+    BUSINESS_INTERRUPTION = 'business_interruption', 'Страхование перерывов деятельности'
+    # Liability
+    CIVIL_LIABILITY = 'civil_liability', 'Страхование гражданской ответственности'
+    HAZARDOUS_OBJECTS = 'hazardous_objects', 'Страхование опасных объектов'
+    PROFESSIONAL_RISKS = 'professional_risks', 'Страхование профессиональных рисков'
+    QUALITY_LIABILITY = 'quality_liability', 'Страхование ответственности за качество'
+
+
+class FactoringType(models.TextChoices):
+    """Factoring types per ТЗ Факторинг."""
+    CLASSIC = 'classic', 'Классический факторинг'
+    CLOSED = 'closed', 'Закрытый факторинг'
+    PROCUREMENT = 'procurement', 'Закупочный факторинг'
+
+
+class TenderSupportType(models.TextChoices):
+    """Tender support types per ТЗ Тендерное сопровождение."""
+    ONE_TIME = 'one_time', 'Разовое сопровождение'
+    FULL_CYCLE = 'full_cycle', 'Тендерное сопровождение под ключ'
+
+
+class PurchaseCategory(models.TextChoices):
+    """Purchase category types per ТЗ."""
+    GOV_44 = 'gov_44', 'Госзакупки по 44-ФЗ'
+    GOV_223 = 'gov_223', 'Закупки по 223-ФЗ'
+    PROPERTY = 'property', 'Имущественные торги'
+    COMMERCIAL = 'commercial', 'Коммерческие закупки'
 
 
 class GuaranteeType(models.TextChoices):
@@ -133,6 +193,95 @@ class Application(models.Model):
         help_text='Обеспечение/залог: недвижимость, транспорт, депозит и т.д.'
     )
     
+    # =============================================================================
+    # PRODUCT-SPECIFIC FIELDS (Phase 1: ТЗ Compliance)
+    # =============================================================================
+    
+    # Insurance fields (ТЗ: Страхование)
+    insurance_category = models.CharField(
+        'Категория страхования',
+        max_length=30,
+        choices=InsuranceCategory.choices,
+        blank=True,
+        default='',
+        help_text='Персонал/Транспорт/Имущество/Ответственность'
+    )
+    insurance_product_type = models.CharField(
+        'Страховой продукт',
+        max_length=40,
+        choices=InsuranceProductType.choices,
+        blank=True,
+        default='',
+        help_text='Подтип страхования (ДМС, ОСАГО, и т.д.)'
+    )
+    
+    # Factoring fields (ТЗ: Факторинг)
+    factoring_type = models.CharField(
+        'Тип факторинга',
+        max_length=20,
+        choices=FactoringType.choices,
+        blank=True,
+        default='',
+        help_text='Классический/Закрытый/Закупочный'
+    )
+    contractor_inn = models.CharField(
+        'ИНН контрагента',
+        max_length=12,
+        blank=True,
+        default='',
+        help_text='ИНН дебитора для факторинга'
+    )
+    
+    # VED fields (ТЗ: ВЭД)
+    ved_currency = models.CharField(
+        'Валюта ВЭД',
+        max_length=10,
+        blank=True,
+        default='',
+        help_text='Валюта платежа (USD, EUR, CNY, RUB)'
+    )
+    ved_country = models.CharField(
+        'Страна контрагента',
+        max_length=100,
+        blank=True,
+        default='',
+        help_text='Страна платежа для ВЭД'
+    )
+    
+    # Tender Support fields (ТЗ: Тендерное сопровождение)
+    tender_support_type = models.CharField(
+        'Тип сопровождения',
+        max_length=20,
+        choices=TenderSupportType.choices,
+        blank=True,
+        default='',
+        help_text='Разовое/Под ключ'
+    )
+    purchase_category = models.CharField(
+        'Категория закупок',
+        max_length=20,
+        choices=PurchaseCategory.choices,
+        blank=True,
+        default='',
+        help_text='44-ФЗ/223-ФЗ/Имущественные/Коммерческие'
+    )
+    industry = models.CharField(
+        'Отрасль закупок',
+        max_length=200,
+        blank=True,
+        default='',
+        help_text='Интересующая отрасль закупок'
+    )
+    
+    # RKO/SpecAccount type (ТЗ: РКО и Спецсчета)
+    account_type = models.CharField(
+        'Тип счета',
+        max_length=20,
+        blank=True,
+        default='',
+        help_text='РКО или Спецсчет'
+    )
+    
     # Target Bank - for Admin routing to specific Partner
     target_bank_name = models.CharField(
         'Целевой банк',
@@ -172,6 +321,20 @@ class Application(models.Model):
         default=dict,
         blank=True,
         help_text='Структурированные данные о госконтракте для API банка'
+    )
+    
+    # Phase 1: Full client data for Bank API compliance (API 1.1)
+    # Stores complete client[] payload structure:
+    #   - actual_address, post_address (with postal_code)
+    #   - founders[] (with passport data, addresses)
+    #   - checking_accounts[]
+    #   - contact_person (full_name, phone, email)
+    #   - beneficiary (inn, legal_address)
+    full_client_data = models.JSONField(
+        'Полные данные клиента (JSON)',
+        default=dict,
+        blank=True,
+        help_text='Полная структура client[] для API банка (учредители, адреса, счета)'
     )
     
     # Status
@@ -215,6 +378,38 @@ class Application(models.Model):
     
     # Comments/Notes
     notes = models.TextField('Примечания', blank=True, default='')
+    
+    # Bank Integration fields (Phase 7)
+    external_id = models.CharField(
+        'ID заявки в банке',
+        max_length=100,
+        null=True,
+        blank=True,
+        db_index=True,  # Index for efficient webhook lookups by ticket_id
+        help_text='ID заявки, возвращённый банком после отправки (ticket_id)'
+    )
+    bank_status = models.CharField(
+        'Статус в банке',
+        max_length=50,
+        default='new',
+        blank=True,
+        help_text='Статус заявки в банке (new, sent, scoring, approved, rejected)'
+    )
+    
+    # Bank API Integration Fields (from API_1.1 analysis)
+    commission_data = models.JSONField(
+        'Комиссия (JSON)',
+        default=dict,
+        blank=True,
+        help_text='Структура комиссии от банка: {total, bank, agent, default}'
+    )
+    signing_url = models.URLField(
+        'URL для подписи',
+        max_length=500,
+        blank=True,
+        default='',
+        help_text='URL для подписи документов в банке (из get_ticket_token)'
+    )
     
     # Timestamps
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
@@ -325,6 +520,13 @@ class TicketMessage(models.Model):
         help_text='Документ (PDF, JPG, PNG и др.)'
     )
     created_at = models.DateTimeField('Дата отправки', auto_now_add=True)
+    
+    # Bank integration: distinguish messages from bank webhook
+    is_bank_message = models.BooleanField(
+        'Сообщение от банка',
+        default=False,
+        help_text='True если сообщение получено через вебхук TICKET_CHAT_MESSAGE_URL'
+    )
 
     class Meta:
         verbose_name = 'Сообщение чата'

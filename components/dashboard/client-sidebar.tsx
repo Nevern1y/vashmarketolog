@@ -46,9 +46,11 @@ const mainNavItems = [
   { id: "victories" as ClientViewType, label: "Мои победы", icon: Trophy },
 ]
 
+// Client menu items per CSV specification (ЛК Клиента Меню)
 const toolsNavItems = [
   { id: "calculator" as ClientViewType, label: "Калькулятор", icon: Calculator },
   { id: "news" as ClientViewType, label: "Новости", icon: Newspaper },
+  { id: "help" as ClientViewType, label: "Помощь", icon: HelpCircle },
 ]
 
 export function ClientSidebar({ activeView, onViewChange, onCreateApplication }: ClientSidebarProps) {

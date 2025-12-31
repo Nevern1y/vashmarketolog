@@ -2,13 +2,16 @@
 
 import type React from "react"
 
-import { useState } from "react"
-import { Mail, Lock, Eye, EyeOff, Phone, User, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Mail, Lock, Eye, EyeOff, Phone, User, Loader2, UserPlus } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useAuth } from "@/lib/auth-context"
+import { useRouter, useSearchParams } from "next/navigation"
+import { toast } from "sonner"
 
 interface RegisterViewProps {
   onSwitchToLogin: () => void
@@ -17,6 +20,13 @@ interface RegisterViewProps {
 type RoleType = "client" | "agent"
 
 export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { register, isLoading: authLoading, error: authError, clearError } = useAuth()
+
+  // Get referral ID from URL (?ref=123)
+  const referralId = searchParams.get("ref")
+
   const [role, setRole] = useState<RoleType>("client")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
@@ -25,8 +35,21 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, boolean>>({})
+
+  // If user came from a referral link, default to "agent" role
+  useEffect(() => {
+    if (referralId) {
+      setRole("agent")
+    }
+  }, [referralId])
+
+  // Clear auth error when inputs change
+  useEffect(() => {
+    if (authError) {
+      clearError()
+    }
+  }, [email, password, phone])
 
   const isValid =
     email.trim() !== "" &&
@@ -38,6 +61,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     const newErrors = {
       email: email.trim() === "",
       phone: phone.trim() === "",
@@ -46,12 +70,31 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
       terms: !agreedToTerms,
     }
     setErrors(newErrors)
-    if (isValid) {
-      setIsLoading(true)
-      // Simulate network request
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      console.log("Register submitted", { role, email, phone })
-      setIsLoading(false)
+
+    if (!isValid) return
+
+    try {
+      await register({
+        email,
+        phone: phone.replace(/\D/g, ""), // Send only digits
+        password,
+        password_confirm: confirmPassword,
+        role,
+        referral_id: referralId ? parseInt(referralId, 10) : null,
+      })
+
+      // Success - user is now logged in
+      toast.success("Регистрация успешна!", {
+        description: referralId
+          ? "Вы зарегистрированы как агент партнёра"
+          : "Добро пожаловать в Лидер Гарант!",
+      })
+
+      // Redirect to dashboard
+      router.push("/dashboard")
+    } catch (err) {
+      // Error is already handled by useAuth and displayed via authError
+      console.error("Registration failed:", err)
     }
   }
 
@@ -87,6 +130,14 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
         </div>
         <h1 className="text-center text-2xl font-semibold text-foreground">Регистрация</h1>
 
+        {/* Referral Banner */}
+        {referralId && (
+          <div className="flex items-center gap-2 rounded-lg bg-[#3CE8D1]/10 p-3 text-sm text-[#0a1628]">
+            <UserPlus className="h-5 w-5 text-[#3CE8D1]" />
+            <span>Вы регистрируетесь по приглашению партнёра</span>
+          </div>
+        )}
+
         {/* Role Selector */}
         <div className="flex rounded-lg border border-border p-1">
           <button
@@ -111,6 +162,13 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
       </CardHeader>
 
       <CardContent>
+        {/* Auth Error Display */}
+        {authError && (
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+            {authError}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="reg-email">Email</Label>
@@ -224,10 +282,10 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
 
           <Button
             type="submit"
-            disabled={!isValid || isLoading}
+            disabled={!isValid || authLoading}
             className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] disabled:opacity-50"
           >
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             ЗАРЕГИСТРИРОВАТЬСЯ
           </Button>
         </form>

@@ -1,7 +1,7 @@
 "use client"
 
 import type { PartnerViewType } from "@/lib/types"
-import { Inbox, Archive, LogOut, HelpCircle } from "lucide-react"
+import { Landmark, Users, UserCheck, FileText, LogOut, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -13,9 +13,12 @@ interface PartnerSidebarProps {
   newApplicationsCount?: number
 }
 
+// Partner menu items per CSV specification (ЛК Партнера Меню)
 const navItems = [
-  { id: "incoming" as PartnerViewType, label: "Входящие заявки", icon: Inbox },
-  { id: "archive" as PartnerViewType, label: "Архив", icon: Archive },
+  { id: "my_bank" as PartnerViewType, label: "Мой банк/МФО", icon: Landmark },
+  { id: "clients" as PartnerViewType, label: "Мои клиенты", icon: Users },
+  { id: "agents" as PartnerViewType, label: "Мои агенты", icon: UserCheck },
+  { id: "applications" as PartnerViewType, label: "Мои заявки", icon: FileText },
 ]
 
 export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount }: PartnerSidebarProps) {
@@ -53,14 +56,14 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
                 onClick={() => onViewChange(item.id)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  activeView === item.id || (activeView === "application-detail" && item.id === "incoming")
+                  activeView === item.id || (activeView === "application-detail" && item.id === "applications")
                     ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
                     : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
                 )}
               >
                 <item.icon className="h-5 w-5" />
                 {item.label}
-                {item.id === "incoming" && newApplicationsCount !== undefined && newApplicationsCount > 0 && (
+                {item.id === "applications" && newApplicationsCount !== undefined && newApplicationsCount > 0 && (
                   <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-[#3CE8D1] text-[#0a1628] text-xs font-semibold">
                     {newApplicationsCount}
                   </span>
@@ -81,7 +84,7 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xs text-[#94a3b8]">Менеджер ФМ</p>
+            <p className="text-xs text-[#94a3b8]">Партнер</p>
             <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
           </div>
         </div>

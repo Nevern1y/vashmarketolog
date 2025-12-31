@@ -60,7 +60,7 @@ export interface Application {
     company_name: string;
     company_inn: string;
     company_data?: CompanyDataForPartner; // Full company info for Partner/Bank
-    product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing';
+    product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing' | 'ved' | 'contract_loan' | 'corporate_credit';
     product_type_display: string;
     amount: string;
     term_months: number;
@@ -68,6 +68,24 @@ export interface Application {
     tender_number: string;
     tender_platform: string;
     tender_deadline: string | null;
+    // Structured JSON data for product-specific fields
+    goscontract_data?: {
+        // BG / Contract Loan fields
+        purchase_number?: string;
+        subject?: string;
+        contract_number?: string;
+        is_close_auction?: boolean;
+        beneficiary_inn?: string;
+        initial_price?: string;
+        offered_price?: string;
+        // Factoring fields
+        contractor_inn?: string;
+        // VED fields
+        currency?: string;
+        country?: string;
+        // Leasing fields
+        equipment_type?: string;
+    };
     status: 'draft' | 'pending' | 'in_review' | 'info_requested' | 'approved' | 'rejected' | 'won' | 'lost';
     status_display: string;
     assigned_partner: number | null;
@@ -77,6 +95,16 @@ export interface Application {
     has_signature: boolean;
     notes: string;
     decisions_count: number;
+    // Bank integration fields (Phase 7)
+    external_id: string | null;
+    bank_status: string;
+    signing_url: string | null;  // URL from bank's get_ticket_token
+    commission_data: {           // Commission breakdown from add_ticket response
+        total?: number;
+        bank?: number;
+        agent?: number;
+        default?: number;
+    } | null;
     created_at: string;
     updated_at: string;
     submitted_at: string | null;
@@ -94,6 +122,12 @@ export interface ApplicationListItem {
     target_bank_name: string;
     status: string;
     status_display: string;
+    // Creator info for partner agent stats
+    created_by_email?: string;
+    created_by_name?: string;
+    // Bank integration fields (Phase 7)
+    external_id: string | null;
+    bank_status: string;
     created_at: string;
 }
 

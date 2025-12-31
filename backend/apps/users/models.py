@@ -109,6 +109,45 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name='Приглашён пользователем'
     )
     
+    # Phase 4: Agent Accreditation
+    class AccreditationStatus(models.TextChoices):
+        NONE = 'none', 'Не подана'
+        PENDING = 'pending', 'На проверке'
+        APPROVED = 'approved', 'Аккредитован'
+        REJECTED = 'rejected', 'Отклонена'
+    
+    accreditation_status = models.CharField(
+        'Статус аккредитации',
+        max_length=20,
+        choices=AccreditationStatus.choices,
+        default=AccreditationStatus.NONE,
+        help_text='Статус аккредитации агента (только для роли Agent)'
+    )
+    accreditation_submitted_at = models.DateTimeField(
+        'Дата подачи аккредитации',
+        null=True,
+        blank=True
+    )
+    accreditation_reviewed_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_accreditations',
+        verbose_name='Проверил'
+    )
+    accreditation_reviewed_at = models.DateTimeField(
+        'Дата проверки',
+        null=True,
+        blank=True
+    )
+    accreditation_comment = models.TextField(
+        'Комментарий администратора',
+        blank=True,
+        default='',
+        help_text='Причина отклонения или примечания'
+    )
+    
     # Timestamps
     date_joined = models.DateTimeField('Дата регистрации', default=timezone.now)
     updated_at = models.DateTimeField('Дата обновления', auto_now=True)

@@ -5,6 +5,10 @@ import type { PartnerViewType } from "@/lib/types"
 import { PartnerSidebar } from "@/components/dashboard/partner-sidebar"
 import { PartnerIncomingView } from "@/components/dashboard/partner-incoming-view"
 import { PartnerApplicationDetail } from "@/components/dashboard/partner-application-detail"
+import { PartnerBankView } from "@/components/dashboard/partner/partner-bank-view"
+import { PartnerAgentsView } from "@/components/dashboard/partner/partner-agents-view"
+import { PartnerClientsView } from "@/components/dashboard/partner/partner-clients-view"
+import { PartnerApplicationsView } from "@/components/dashboard/partner/partner-applications-view"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { useApplications } from "@/hooks/use-applications"
 import { cn } from "@/lib/utils"
@@ -14,12 +18,12 @@ import { cn } from "@/lib/utils"
  * 
  * Handles:
  * - Data fetching via useApplications() (respects Rules of Hooks)
- * - View state management
+ * - View state management for all partner menu items
  * - Sidebar badge count calculation
  */
 export function PartnerLayout() {
-    // View state
-    const [activeView, setActiveView] = useState<PartnerViewType>("incoming")
+    // View state - default to "my_bank" which is the first menu item
+    const [activeView, setActiveView] = useState<PartnerViewType>("my_bank")
     const [selectedApplicationId, setSelectedApplicationId] = useState<string>("1")
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
@@ -41,6 +45,50 @@ export function PartnerLayout() {
     const handleViewChange = (view: PartnerViewType) => {
         setActiveView(view)
         setIsMobileSidebarOpen(false)
+    }
+
+    // Render the appropriate view based on activeView state
+    const renderContent = () => {
+        switch (activeView) {
+            case "my_bank":
+                return <PartnerBankView />
+
+            case "clients":
+                return <PartnerClientsView />
+
+            case "agents":
+                return <PartnerAgentsView />
+
+            case "applications":
+                return <PartnerApplicationsView onOpenDetail={handleOpenDetail} />
+
+            case "application-detail":
+                return (
+                    <PartnerApplicationDetail
+                        applicationId={selectedApplicationId}
+                        onBack={() => setActiveView("applications")}
+                    />
+                )
+
+            // Legacy views for backward compatibility
+            case "incoming":
+                return <PartnerIncomingView onOpenDetail={handleOpenDetail} />
+
+            case "archive":
+                return (
+                    <div className="flex h-full items-center justify-center">
+                        <p className="text-muted-foreground">Архив заявок в разработке</p>
+                    </div>
+                )
+
+            default:
+                // Fallback for any unhandled view
+                return (
+                    <div className="flex h-full items-center justify-center">
+                        <p className="text-muted-foreground">Раздел в разработке</p>
+                    </div>
+                )
+        }
     }
 
     return (
@@ -70,20 +118,7 @@ export function PartnerLayout() {
             <div className="flex flex-1 flex-col overflow-hidden">
                 <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
                 <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-                    {activeView === "incoming" && (
-                        <PartnerIncomingView onOpenDetail={handleOpenDetail} />
-                    )}
-                    {activeView === "application-detail" && (
-                        <PartnerApplicationDetail
-                            applicationId={selectedApplicationId}
-                            onBack={() => setActiveView("incoming")}
-                        />
-                    )}
-                    {activeView === "archive" && (
-                        <div className="flex h-full items-center justify-center">
-                            <p className="text-muted-foreground">Архив заявок в разработке</p>
-                        </div>
-                    )}
+                    {renderContent()}
                 </main>
             </div>
         </div>

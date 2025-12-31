@@ -108,11 +108,44 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
 
   // Navigate to create application with pre-selected client
   const handleCreateApplication = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId)
+    // Block if client is not confirmed (per PDF agent_add_client spec)
+    if (client && getClientStatus(client) !== 'confirmed') {
+      toast.error("Создание заявки доступно только для закрепленных клиентов")
+      return
+    }
     if (onCreateApplication) {
       onCreateApplication(clientId)
     } else {
       toast.info("Функция создания заявки недоступна")
     }
+  }
+
+  // Get client status label and style per PDF spec
+  type ClientStatus = 'pending' | 'confirmed'
+  const getClientStatus = (client: typeof clients[0]): ClientStatus => {
+    // If client has owner (user_id), they have registered
+    if (client.owner) return 'confirmed'
+    // If explicitly set in backend
+    if (client.client_status === 'confirmed') return 'confirmed'
+    // Default: pending (just added by agent)
+    return 'pending'
+  }
+
+  const getStatusBadge = (client: typeof clients[0]) => {
+    const status = getClientStatus(client)
+    if (status === 'confirmed') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#3CE8D1]/10 text-[#3CE8D1]">
+          Закреплен
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFD93D]/10 text-[#FFD93D]">
+        На рассмотрении
+      </span>
+    )
   }
 
   // Format date
@@ -252,9 +285,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                     </TableCell>
                     {/* Column 4: Status Badge */}
                     <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400">
-                        Новый
-                      </span>
+                      {getStatusBadge(client)}
                     </TableCell>
                     {/* Column 5: Actions */}
                     <TableCell>
@@ -277,7 +308,11 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                             <Edit className="h-4 w-4 mr-2" />
                             Редактировать
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleCreateApplication(client.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleCreateApplication(client.id)}
+                            disabled={getClientStatus(client) !== 'confirmed'}
+                            className={getClientStatus(client) !== 'confirmed' ? 'opacity-50 cursor-not-allowed' : ''}
+                          >
                             <Plus className="h-4 w-4 mr-2" />
                             Создать заявку
                           </DropdownMenuItem>

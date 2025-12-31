@@ -1,13 +1,17 @@
 // View types for different dashboards
 export type AgentViewType =
   | "company"
+  | "accreditation"
   | "applications"
   | "clients"
-  | "reports"
-  | "statistics"
   | "calculator"
+  | "check_counterparty"
+  | "acts"
+  | "settings"
+  | "bank_conditions"
+  | "individual_terms"
   | "news"
-  | "calls"
+  | "help"
 
 export type ClientViewType =
   | "accreditation"
@@ -17,9 +21,17 @@ export type ClientViewType =
   | "victories"
   | "calculator"
   | "news"
+  | "help"
   | "profile-settings"
 
-export type PartnerViewType = "incoming" | "archive" | "application-detail"
+export type PartnerViewType =
+  | "my_bank"
+  | "clients"
+  | "agents"
+  | "applications"
+  | "application-detail"
+  | "incoming"  // Legacy: keep for backward compatibility
+  | "archive"   // Legacy: keep for backward compatibility
 
 export type ViewType = AgentViewType | ClientViewType | PartnerViewType
 

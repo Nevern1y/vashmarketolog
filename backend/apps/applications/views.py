@@ -462,6 +462,129 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             'has_signature': True
         })
 
+    @extend_schema(
+        request=None,
+        responses={200: ApplicationSerializer}
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsClientOrAgent])
+    def send_to_bank(self, request, pk=None):
+        """
+        Send application to Realist Bank API.
+        POST /api/applications/{id}/send_to_bank/
+        
+        Phase 7: Sends the application payload to the bank's add_ticket endpoint.
+        On success, saves the returned ticket_id to application.external_id.
+        
+        Only for Agent/Admin roles (via IsClientOrAgent permission).
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        application = self.get_object()
+        
+        # Validate application hasn't already been sent
+        if application.external_id:
+            return Response(
+                {'error': f'Заявка уже отправлена в банк (ID: {application.external_id})'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate application has required data
+        if not application.company:
+            return Response(
+                {'error': 'Заявка не привязана к компании'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from apps.integrations.services import BankIntegrationService
+            
+            service = BankIntegrationService()
+            result = service.send_application(pk)
+            
+            # Refresh application from db
+            application.refresh_from_db()
+            
+            logger.info(f"Application {pk} sent to bank successfully. Ticket ID: {result['ticket_id']}")
+            
+            return Response({
+                'message': result['message'],
+                'ticket_id': result['ticket_id'],
+                'bank_status': result['bank_status'],
+                'application': ApplicationSerializer(application, context={'request': request}).data
+            })
+            
+        except ValueError as e:
+            logger.warning(f"Failed to send application {pk} to bank: {e}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Unexpected error sending application {pk} to bank")
+            return Response(
+                {'error': f'Ошибка при отправке в банк: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        request=None,
+        responses={200: ApplicationSerializer}
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsClientOrAgent])
+    def sync_status(self, request, pk=None):
+        """
+        Sync application status from Realist Bank API.
+        POST /api/applications/{id}/sync_status/
+        
+        Phase 7.2: Polls the bank to get current ticket status
+        and updates the local bank_status field.
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        application = self.get_object()
+        
+        # Validate application has been sent to bank
+        if not application.external_id:
+            return Response(
+                {'error': 'Заявка ещё не отправлена в банк'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from apps.integrations.services import BankIntegrationService
+            
+            service = BankIntegrationService()
+            result = service.sync_application_status(pk)
+            
+            # Refresh application from db
+            application.refresh_from_db()
+            
+            logger.info(f"Synced status for application {pk}: {result['bank_status']}")
+            
+            return Response({
+                'message': result['message'],
+                'bank_status': result['bank_status'],
+                'bank_status_id': result['bank_status_id'],
+                'manager_name': result.get('manager_name', ''),
+                'payment_status': result.get('payment_status', ''),
+                'changed': result['changed'],
+                'application': ApplicationSerializer(application, context={'request': request}).data
+            })
+            
+        except ValueError as e:
+            logger.warning(f"Failed to sync status for application {pk}: {e}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Unexpected error syncing status for application {pk}")
+            return Response(
+                {'error': 'Не удалось получить статус от банка'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 @extend_schema(tags=['Partner Decisions'])
 class PartnerDecisionViewSet(viewsets.ReadOnlyModelViewSet):

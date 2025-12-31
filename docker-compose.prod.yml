@@ -1,0 +1,151 @@
+# =============================================================================
+# Docker Compose - Production Configuration
+# Target: lk.lider-garant.ru
+# =============================================================================
+#
+# USAGE:
+#   1. Create .env.prod file with production secrets
+#   2. docker-compose -f docker-compose.prod.yml up -d --build
+#
+# REQUIRED ENV VARS (put in .env.prod):
+#   - SECRET_KEY (generate with: python -c "import secrets; print(secrets.token_urlsafe(50))")
+#   - DB_PASSWORD (strong password)
+#   - BANK_API_LOGIN
+#   - BANK_API_PASSWORD
+#
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # PostgreSQL Database
+  # ==========================================================================
+  db:
+    image: postgres:15-alpine
+    container_name: lider_prod_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-lider_garant}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ==========================================================================
+  # Redis (for Django Channels WebSocket)
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: lider_prod_redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+  # ==========================================================================
+  # Django Backend (Gunicorn)
+  # ==========================================================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: lider_prod_backend
+    restart: always
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - DEBUG=False
+      - DB_NAME=${DB_NAME:-lider_garant}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ALLOWED_HOSTS=.lider-garant.ru,lk.lider-garant.ru,localhost
+      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru
+      - SECURE_SSL_REDIRECT=False # Nginx handles SSL
+      # Bank API
+      - BANK_API_URL=${BANK_API_URL:-https://stagebg.realistbank.ru/agent_api1_1}
+      - BANK_API_LOGIN=${BANK_API_LOGIN:-}
+      - BANK_API_PASSWORD=${BANK_API_PASSWORD:-}
+    volumes:
+      - backend_media:/app/media
+      - backend_static:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput --clear &&
+             gunicorn --bind 0.0.0.0:8000 --workers 4 --threads 2 config.wsgi:application"
+    networks:
+      - internal
+    expose:
+      - "8000"
+
+  # ==========================================================================
+  # Next.js Frontend (Node Server)
+  # ==========================================================================
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - NEXT_PUBLIC_API_URL=https://lk.lider-garant.ru/api
+    container_name: lider_prod_frontend
+    restart: always
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - internal
+    expose:
+      - "3000"
+
+  # ==========================================================================
+  # Nginx Reverse Proxy (SSL Termination)
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: lider_prod_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - backend_static:/var/www/static:ro
+      - backend_media:/var/www/media:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - internal
+      - external
+
+networks:
+  internal:
+    driver: bridge
+  external:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_media:
+  backend_static:

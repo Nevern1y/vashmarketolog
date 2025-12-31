@@ -23,9 +23,40 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'ogrn',
             'name',
             'short_name',
+            # Phase 1: New company info fields (ТЗ Клиенты)
+            'foreign_name',
+            'legal_form',
+            'is_resident',
+            # Addresses with postal codes
             'legal_address',
+            'legal_address_postal_code',
             'actual_address',
+            'actual_address_postal_code',
+            'post_address',
+            'post_address_postal_code',
             'region',
+            # State registration (ТЗ Клиенты - Гос. регистрация)
+            'okato',
+            'oktmo',
+            'okpo',
+            'okfs',
+            'okogu',
+            'okved',
+            'registration_date',
+            'registration_authority',
+            'authorized_capital_declared',
+            'authorized_capital_paid',
+            'authorized_capital_paid_date',
+            # Employee and contract counts
+            'employee_count',
+            'contracts_count',
+            'contracts_44fz_count',
+            'contracts_223fz_count',
+            # Official contacts
+            'company_website',
+            'company_email',
+            'office_phone',
+            # Director info
             'director_name',
             'director_position',
             # Passport fields (API-Ready for Realist Bank)
@@ -37,6 +68,16 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             # JSONField data (founders & bank accounts)
             'founders_data',
             'bank_accounts_data',
+            # New Phase 1 JSONFields (ТЗ Клиенты)
+            'leadership_data',
+            'activities_data',
+            'licenses_data',
+            'etp_accounts_data',
+            'contact_persons_data',
+            # Tax and signatory settings (ТЗ Настройки → Реквизиты)
+            'signatory_basis',
+            'tax_system',
+            'vat_rate',
             # Bank details
             'bank_name',
             'bank_bic',
@@ -80,6 +121,10 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             # JSONField data
             'founders_data',
             'bank_accounts_data',
+            # Tax and signatory settings
+            'signatory_basis',
+            'tax_system',
+            'vat_rate',
             # Bank details
             'bank_name',
             'bank_bic',
@@ -144,6 +189,10 @@ class CRMClientSerializer(serializers.ModelSerializer):
             # JSONField data
             'founders_data',
             'bank_accounts_data',
+            # Tax and signatory settings
+            'signatory_basis',
+            'tax_system',
+            'vat_rate',
             # Bank details
             'bank_name',
             'bank_bic',

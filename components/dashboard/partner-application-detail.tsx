@@ -163,6 +163,24 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
   const deadline = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000)
   const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000
 
+  // Generate composite application ID (TZ requirement)
+  const getCompositeId = () => {
+    const year = new Date(application.created_at).getFullYear()
+    const paddedId = application.id.toString().padStart(5, '0')
+
+    const prefixMap: Record<string, string> = {
+      bank_guarantee: 'БГ',
+      tender_loan: 'ТК',
+      contract_loan: 'КИК',
+      corporate_credit: 'КК',
+      factoring: 'ФК',
+      leasing: 'ЛЗ',
+    }
+    const prefix = prefixMap[application.product_type] || 'ЗА'
+
+    return `${prefix}-${year}-${paddedId}`
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -172,7 +190,9 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Заявка #{applicationId}</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Заявка <span className="font-mono text-[#3CE8D1]">{getCompositeId()}</span>
+            </h1>
             <p className="text-muted-foreground">
               Получена: {formatDate(application.created_at)}
             </p>

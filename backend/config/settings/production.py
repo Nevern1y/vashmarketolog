@@ -1,26 +1,114 @@
 """
 Production settings for Lider Garant project.
+Deployment target: lk.lider-garant.ru
 """
+import os
 from .base import *
 
+# =============================================================================
+# CORE SECURITY SETTINGS
+# =============================================================================
 DEBUG = False
 
-# Security settings for production
+# Allowed hosts - pull from environment, with defaults for the production domain
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS', 
+    '.lider-garant.ru,lk.lider-garant.ru,localhost,127.0.0.1'
+).split(',')
+
+# =============================================================================
+# HTTPS / SSL ENFORCEMENT
+# =============================================================================
+# These should be True when behind an HTTPS reverse proxy (Nginx with SSL)
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True').lower() == 'true'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# HSTS (HTTP Strict Transport Security)
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# =============================================================================
+# COOKIE SECURITY
+# =============================================================================
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_HTTPONLY = True
+
+# CSRF trusted origins for the production domain
+CSRF_TRUSTED_ORIGINS = [
+    'https://lk.lider-garant.ru',
+    'https://*.lider-garant.ru',
+]
+
+# =============================================================================
+# CONTENT SECURITY
+# =============================================================================
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
 
-# CORS - strict origins in production
+# =============================================================================
+# CORS CONFIGURATION
+# =============================================================================
 CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'https://lk.lider-garant.ru,https://www.lider-garant.ru'
+).split(',')
+CORS_ALLOW_CREDENTIALS = True
 
-# Channels - use Redis in production
+# =============================================================================
+# CHANNELS - REDIS IN PRODUCTION
+# =============================================================================
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [(os.getenv('REDIS_HOST', '127.0.0.1'), 6379)],
+            'hosts': [(os.getenv('REDIS_HOST', 'redis'), int(os.getenv('REDIS_PORT', 6379)))],
         },
     }
+}
+
+# =============================================================================
+# STATIC FILES - USE WHITENOISE FOR PRODUCTION
+# =============================================================================
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# =============================================================================
+# LOGGING - PRODUCTION LEVEL
+# =============================================================================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }

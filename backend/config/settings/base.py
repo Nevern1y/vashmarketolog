@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'apps.documents',
     'apps.applications',
     'apps.chat',
+    'apps.integrations',
 ]
 
 MIDDLEWARE = [
@@ -253,3 +254,14 @@ LOGGING = {
         },
     },
 }
+
+
+# =============================================================================
+# Bank API Integration (Realist Bank)
+# =============================================================================
+# Phase 2: External bank integration for application submission
+# Reference: API_1.1.postman_collection_2025-03
+# =============================================================================
+BANK_API_URL = os.getenv('BANK_API_URL', 'https://stagebg.realistbank.ru/agent_api1_1')
+BANK_API_LOGIN = os.getenv('BANK_API_LOGIN', '')
+BANK_API_PASSWORD = os.getenv('BANK_API_PASSWORD', '')

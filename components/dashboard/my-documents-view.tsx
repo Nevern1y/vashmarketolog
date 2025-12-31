@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Search,
@@ -30,49 +30,19 @@ import {
 } from "lucide-react"
 import { useDocuments, useDocumentMutations, type DocumentListItem } from "@/hooks/use-documents"
 import { toast } from "sonner"
+import {
+  DOCUMENT_TYPES,
+  DOCUMENT_TYPE_MAP,
+  DOCUMENT_GROUPS,
+  getGroupedDocumentTypes,
+  COMMON_DOCUMENT_TYPES
+} from "@/lib/document-types"
 
-// Document type mappings - aligned with backend DocumentType enum
-const documentTypeMap: Record<string, string> = {
-  // Legal / Founders
-  passport_all_pages: "Паспорт (все страницы)",
-  founder_passport: "Паспорт учредителя",
-  appointment_order: "Приказ о назначении директора",
-  statute: "Устав",
-  lease_contract: "Договор аренды",
-  // Financials
-  account_card_51: "Карточка 51 счета",
-  account_card_60_62: "Карточка 60/62 счета",
-  balance_sheet_f1: "Бухгалтерский баланс Ф1",
-  financial_results_f2: "Отчет о прибылях и убытках Ф2",
-  tax_declaration: "Налоговая декларация",
-  osv_all: "ОСВ (общая)",
-  // Contracts / Business
-  contract_register: "Реестр контрактов",
-  executed_contracts: "Исполненные контракты",
-  // Other
-  other: "Прочие",
-}
+// Use shared document type map for display
+const documentTypeMap = DOCUMENT_TYPE_MAP
 
-const documentTypeOptions = [
-  // Legal / Founders
-  { value: "passport_all_pages", label: "Паспорт (все страницы)" },
-  { value: "founder_passport", label: "Паспорт учредителя" },
-  { value: "appointment_order", label: "Приказ о назначении директора" },
-  { value: "statute", label: "Устав" },
-  { value: "lease_contract", label: "Договор аренды" },
-  // Financials
-  { value: "account_card_51", label: "Карточка 51 счета" },
-  { value: "account_card_60_62", label: "Карточка 60/62 счета" },
-  { value: "balance_sheet_f1", label: "Бухгалтерский баланс Ф1" },
-  { value: "financial_results_f2", label: "Отчет о прибылях и убытках Ф2" },
-  { value: "tax_declaration", label: "Налоговая декларация" },
-  { value: "osv_all", label: "ОСВ (общая)" },
-  // Contracts / Business
-  { value: "contract_register", label: "Реестр контрактов" },
-  { value: "executed_contracts", label: "Исполненные контракты" },
-  // Other
-  { value: "other", label: "Прочие" },
-]
+// Use common types for filter dropdown (first 20 most used)
+const documentTypeOptions = COMMON_DOCUMENT_TYPES
 
 type DocumentStatus = "pending" | "verified" | "rejected"
 

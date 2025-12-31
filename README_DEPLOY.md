@@ -1,6 +1,7 @@
-# 🚀 DEPLOYMENT GUIDE: Financial Marketplace MVP Phase 1
+# 🚀 DEPLOYMENT GUIDE: Financial Marketplace MVP + Audit Waves
 
-**Version:** `1.0.0-manual-mode`  
+**Version:** `1.1.0-audit-complete`  
+**Last Update:** 2025-12-31  
 **Django Status Model:** TextChoices (in code, no fixtures needed)
 
 ---
@@ -9,8 +10,8 @@
 
 - Python 3.10+
 - Node.js 18+
-- PostgreSQL 14+ (or SQLite for dev)
-- Docker (optional)
+- PostgreSQL 14+ (required for JSONField)
+- Docker (recommended)
 
 ---
 
@@ -129,19 +130,55 @@ No database seeding required - statuses are defined in code.
 
 ---
 
-## 🎉 PHASE 1 COMPLETE
+## 🎉 AUDIT WAVES COMPLETE (31.12.2024)
 
-This deployment represents **MVP Phase 1: Manual Mode**.
+### What's New in v1.1.0:
 
-**What's Working:**
-- ✅ Agent creates applications for CRM clients
-- ✅ Admin reviews and assigns to Partners (Banks)
-- ✅ Partner views full client data and makes decisions
-- ✅ Real-time chat (polling-based)
-- ✅ Document upload and management
-- ✅ Mobile-responsive for all roles
+**Wave 1: Calculator UX**
+- ✅ Bank Selection Table with sorting (ready/rejected)
+- ✅ Collapsible rejected banks with reasons
+- ✅ "Лидер-Гарант" hardcoded row
+- ✅ Multi-bank selection in application payload
 
-**Phase 2 (Future):**
+**Wave 2: API Compliance**
+- ✅ MCHD Signatory tab with conditional fields
+- ✅ Employee count field
+- ✅ Postal codes for all addresses
+- ✅ Founder addresses (legal + actual)
+
+**Wave 3: Partner Settings**
+- ✅ Requisites tab (bank + tax info)
+- ✅ Referrals tab (link + QR placeholder)
+- ✅ Documents tab (download list)
+
+---
+
+## 📁 NEW COMPONENTS
+
+| Component | Purpose |
+|-----------|---------|
+| `create-application-wizard.tsx` | Updated with Bank Selection Table (Step 3) |
+| `edit-client-sheet.tsx` | 6 tabs including Signatory (MCHD) |
+| `profile-settings-view.tsx` | **NEW** — Partner settings with 4 tabs |
+
+---
+
+## 📚 DOCUMENTATION
+
+| File | Content |
+|------|---------|
+| `PROJECT_CONTEXT.md` | Full project context for AI/devs |
+| `rules.md` | System prompt and coding rules |
+| `technicheskoezadanie/` | All ТЗ files from Google Docs |
+| `API_1.1.postman_collection...` | Реалист Банк API specification |
+| `Приложения А, Б.pdf` | Bank status ID mappings |
+
+---
+
+## 🚧 PHASE 2 (FUTURE)
+
 - Bank API integration (Realist Protocol)
 - WebSocket chat
-- Automated status updates
+- Automated status updates from bank webhooks
+- ЕГРЮЛ/ЕИС auto-fill by INN
+- Real QR code generation

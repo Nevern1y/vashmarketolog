@@ -36,11 +36,121 @@ class CompanyProfile(models.Model):
     # Company names
     name = models.CharField('Полное наименование', max_length=500)
     short_name = models.CharField('Краткое наименование', max_length=200, blank=True, default='')
+    foreign_name = models.CharField(
+        'Наименование на иностранном языке', 
+        max_length=500, 
+        blank=True, 
+        default='',
+        help_text='Наименование на иностранном языке (если имеется)'
+    )
+    legal_form = models.CharField(
+        'Организационно-правовая форма',
+        max_length=100,
+        blank=True,
+        default='',
+        help_text='ООО, АО, ИП и т.д.'
+    )
+    is_resident = models.BooleanField(
+        'Резидент РФ',
+        default=True,
+        help_text='Является ли резидентом РФ'
+    )
     
     # Addresses
     legal_address = models.TextField('Юридический адрес', blank=True, default='')
+    legal_address_postal_code = models.CharField(
+        'Индекс юр. адреса',
+        max_length=6,
+        blank=True,
+        default=''
+    )
     actual_address = models.TextField('Фактический адрес', blank=True, default='')
+    actual_address_postal_code = models.CharField(
+        'Индекс факт. адреса',
+        max_length=6,
+        blank=True,
+        default=''
+    )
+    post_address = models.TextField(
+        'Почтовый адрес',
+        blank=True,
+        default='',
+        help_text='Адрес для корреспонденции'
+    )
+    post_address_postal_code = models.CharField(
+        'Индекс почт. адреса',
+        max_length=6,
+        blank=True,
+        default=''
+    )
     region = models.CharField('Регион', max_length=100, blank=True, default='')
+    
+    # =============================================================================
+    # STATE REGISTRATION (ТЗ: Раздел Клиенты - Блок "Государственная регистрация")
+    # =============================================================================
+    okato = models.CharField('ОКАТО', max_length=11, blank=True, default='')
+    oktmo = models.CharField('ОКТМО', max_length=11, blank=True, default='')
+    okpo = models.CharField('ОКПО', max_length=10, blank=True, default='')
+    okfs = models.CharField('ОКФС', max_length=2, blank=True, default='')
+    okogu = models.CharField('ОКОГУ', max_length=10, blank=True, default='')
+    okved = models.TextField('ОКВЭД (основной)', blank=True, default='')
+    registration_date = models.DateField(
+        'Дата гос. регистрации',
+        null=True,
+        blank=True
+    )
+    registration_authority = models.CharField(
+        'Наименование регистрирующего органа',
+        max_length=500,
+        blank=True,
+        default=''
+    )
+    authorized_capital_declared = models.DecimalField(
+        'Объявленный уставный капитал',
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    authorized_capital_paid = models.DecimalField(
+        'Оплаченный уставный капитал',
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    authorized_capital_paid_date = models.DateField(
+        'Дата изменения оплаченного УК',
+        null=True,
+        blank=True
+    )
+    
+    # Employee and contract counts
+    employee_count = models.IntegerField(
+        'Количество сотрудников',
+        null=True,
+        blank=True
+    )
+    contracts_count = models.IntegerField(
+        'Количество контрактов',
+        null=True,
+        blank=True
+    )
+    contracts_44fz_count = models.IntegerField(
+        'Контрактов по 44-ФЗ',
+        null=True,
+        blank=True
+    )
+    contracts_223fz_count = models.IntegerField(
+        'Контрактов по 223-ФЗ',
+        null=True,
+        blank=True
+    )
+    
+    # Official company contacts
+    company_website = models.URLField('Сайт компании', blank=True, default='')
+    company_email = models.EmailField('Email компании', blank=True, default='')
+    office_phone = models.CharField('Тел. офиса', max_length=20, blank=True, default='')
     
     # Director info
     director_name = models.CharField('ФИО руководителя', max_length=300, blank=True, default='')
@@ -145,6 +255,149 @@ class CompanyProfile(models.Model):
             "bank_bik": "044525285",
             "account": "40702810000000000000"
         }]'''
+    )
+    
+    # =============================================================================
+    # LEADERSHIP DATA (ТЗ: Раздел Клиенты - Блок "Руководство")
+    # =============================================================================
+    leadership_data = models.JSONField(
+        'Руководство (JSON)',
+        default=list,
+        blank=True,
+        help_text='''Список руководителей компании:
+        [{
+            "position": "Должность",
+            "full_name": "ФИО",
+            "share_percent": доля%,
+            "citizenship": "РФ",
+            "birth_date": "YYYY-MM-DD",
+            "birth_place": "Место рождения",
+            "email": "email@example.com",
+            "phone": "+7...",
+            "passport": {
+                "document_type": "passport_rf",
+                "series": "1234",
+                "number": "567890",
+                "issued_date": "YYYY-MM-DD",
+                "issued_by": "Кем выдан",
+                "department_code": "XXX-XXX",
+                "registration_address": "Адрес"
+            }
+        }]'''
+    )
+    
+    # =============================================================================
+    # ACTIVITIES AND LICENSES (ТЗ: Раздел Клиенты - Блок "Деятельность и лицензии")
+    # =============================================================================
+    activities_data = models.JSONField(
+        'Деятельность/ОКВЭД (JSON)',
+        default=list,
+        blank=True,
+        help_text='''Виды деятельности и ОКВЭД:
+        [{
+            "code": "62.01",
+            "name": "Разработка компьютерного ПО",
+            "is_primary": true
+        }]'''
+    )
+    licenses_data = models.JSONField(
+        'Лицензии (JSON)',
+        default=list,
+        blank=True,
+        help_text='''СРО и лицензии:
+        [{
+            "type": "СРО",
+            "name": "Наименование",
+            "number": "Номер",
+            "issued_date": "YYYY-MM-DD",
+            "valid_until": "YYYY-MM-DD"
+        }]'''
+    )
+    
+    # =============================================================================
+    # ETP ACCOUNTS (ТЗ: Раздел Клиенты - Блок "Реквизиты счетов ЭТП")
+    # 16 площадок: ЕЭТП, РТС, ЭТП НЭП, СБЕРБАНК-АСТ, АГЗ РТ, ГАЗПРОМ, etc.
+    # =============================================================================
+    etp_accounts_data = models.JSONField(
+        'Счета ЭТП (JSON)',
+        default=list,
+        blank=True,
+        help_text='''Реквизиты счетов на электронных площадках:
+        [{
+            "platform": "ЕЭТП (roseltorg.ru)",
+            "account": "40702810...",
+            "bik": "044525285",
+            "bank_name": "Сбербанк",
+            "corr_account": "30101810..."
+        }]'''
+    )
+    
+    # =============================================================================
+    # CONTACT PERSONS (ТЗ: Раздел Клиенты - Блок "Контактные лица")
+    # =============================================================================
+    contact_persons_data = models.JSONField(
+        'Контактные лица (JSON)',
+        default=list,
+        blank=True,
+        help_text='''Список контактных лиц:
+        [{
+            "position": "Должность",
+            "last_name": "Фамилия",
+            "first_name": "Имя",
+            "patronymic": "Отчество",
+            "email": "email@example.com",
+            "phone": "+7..."
+        }]'''
+    )
+    
+    # =============================================================================
+    # TAX AND SIGNATORY SETTINGS (ТЗ Настройки → Реквизиты)
+    # =============================================================================
+    
+    # Signatory basis - on what grounds the director signs documents
+    SIGNATORY_BASIS_CHOICES = [
+        ('charter', 'Устава'),
+        ('power_of_attorney', 'Доверенности'),
+    ]
+    signatory_basis = models.CharField(
+        'Действует на основании',
+        max_length=20,
+        choices=SIGNATORY_BASIS_CHOICES,
+        default='charter',
+        blank=True
+    )
+    
+    # Tax system - ОСН, УСН and variants
+    TAX_SYSTEM_CHOICES = [
+        ('osn', 'ОСН (Общая)'),
+        ('usn_income', 'УСН (Доходы)'),
+        ('usn_income_expense', 'УСН (Доходы-Расходы)'),
+        ('esn', 'ЕСХН'),
+        ('patent', 'ПСН (Патент)'),
+    ]
+    tax_system = models.CharField(
+        'Система налогообложения',
+        max_length=20,
+        choices=TAX_SYSTEM_CHOICES,
+        null=True,
+        blank=True
+    )
+    
+    # VAT rate - НДС ставка
+    VAT_RATE_CHOICES = [
+        ('none', 'НДС не облагается'),
+        ('0', '0%'),
+        ('5', '5%'),
+        ('7', '7%'),
+        ('10', '10%'),
+        ('20', '20%'),
+    ]
+    vat_rate = models.CharField(
+        'Ставка НДС',
+        max_length=10,
+        choices=VAT_RATE_CHOICES,
+        null=True,
+        blank=True
     )
     
     # Primary bank details (for backwards compatibility)

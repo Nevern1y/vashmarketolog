@@ -276,3 +276,143 @@ class UserListView(generics.ListAPIView):
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
         return queryset
+
+
+@extend_schema(tags=['Admin - Accreditation'])
+class AccreditationListView(generics.ListAPIView):
+    """
+    List agents pending accreditation review (Admin only).
+    GET /api/auth/admin/accreditation/
+    
+    Optional query params:
+    - status: filter by accreditation_status ('none', 'pending', 'approved', 'rejected')
+    """
+    from .serializers import AgentAccreditationSerializer
+    serializer_class = AgentAccreditationSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        queryset = User.objects.filter(role='agent')
+        
+        # Filter by accreditation status (default: pending)
+        status_filter = self.request.query_params.get('status', 'pending')
+        if status_filter and status_filter != 'all':
+            queryset = queryset.filter(accreditation_status=status_filter)
+        
+        return queryset.order_by('-accreditation_submitted_at')
+
+
+@extend_schema(tags=['Admin - Accreditation'])
+class AccreditationDecisionView(APIView):
+    """
+    Approve or reject agent accreditation (Admin only).
+    POST /api/auth/admin/accreditation/<user_id>/
+    
+    Body:
+    - action: 'approve' | 'reject'
+    - comment: string (optional, used for rejection reason)
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def post(self, request, pk):
+        from django.utils import timezone
+        
+        try:
+            agent = User.objects.get(pk=pk, role='agent')
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Агент не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        action = request.data.get('action')
+        comment = request.data.get('comment', '')
+        
+        if action not in ['approve', 'reject']:
+            return Response(
+                {'error': 'Неверное действие. Допустимо: approve, reject'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if action == 'approve':
+            agent.accreditation_status = 'approved'
+        else:
+            agent.accreditation_status = 'rejected'
+        
+        agent.accreditation_comment = comment
+        agent.accreditation_reviewed_by = request.user
+        agent.accreditation_reviewed_at = timezone.now()
+        agent.save()
+        
+        return Response({
+            'status': 'ok',
+            'message': 'Аккредитация одобрена' if action == 'approve' else 'Аккредитация отклонена',
+            'new_status': agent.accreditation_status,
+        })
+
+
+@extend_schema(tags=['Agent Accreditation'])
+class SubmitAccreditationView(APIView):
+    """
+    Submit accreditation request (Agent only).
+    POST /api/auth/accreditation/submit/
+    
+    Agents call this after completing the accreditation form.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from django.utils import timezone
+        
+        user = request.user
+        if user.role != 'agent':
+            return Response(
+                {'error': 'Только агенты могут подать заявку на аккредитацию'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if user.accreditation_status == 'approved':
+            return Response(
+                {'error': 'Вы уже аккредитованы'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if user.accreditation_status == 'pending':
+            return Response(
+                {'error': 'Ваша заявка уже на рассмотрении'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user.accreditation_status = 'pending'
+        user.accreditation_submitted_at = timezone.now()
+        user.save()
+        
+        return Response({
+            'status': 'ok',
+            'message': 'Заявка на аккредитацию отправлена',
+            'accreditation_status': user.accreditation_status,
+            'submitted_at': user.accreditation_submitted_at,
+        })
+
+
+@extend_schema(tags=['Partner - Agent Management'])
+class MyAgentsView(generics.ListAPIView):
+    """
+    List agents invited by the current partner.
+    GET /api/auth/my-agents/
+    
+    Returns agents who registered via this partner's referral link.
+    """
+    from .serializers import AgentAccreditationSerializer
+    serializer_class = AgentAccreditationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Return agents invited by this user (via referral link)
+        return User.objects.filter(
+            role='agent',
+            invited_by=user
+        ).order_by('-date_joined')
+
+

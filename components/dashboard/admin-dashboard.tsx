@@ -36,6 +36,8 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { ApplicationChat } from "./application-chat"
 import { PartnersTab } from "./partners-tab"
+import { AdminAccreditationCenter } from "./admin-accreditation-center"
+import { Users } from "lucide-react"
 
 // ============================================
 // TOR-COMPLIANT STATUS CONFIGURATION
@@ -95,7 +97,7 @@ export function AdminDashboard() {
   const { assignPartner, requestInfo, approveApplication, rejectApplication, restoreApplication, saveNotes, isLoading: isActioning } = usePartnerActions()
 
   // State
-  const [activeTab, setActiveTab] = useState<"applications" | "partners">("applications")
+  const [activeTab, setActiveTab] = useState<"applications" | "partners" | "accreditation">("applications")
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedAppId, setSelectedAppId] = useState<number | null>(null)
@@ -233,6 +235,26 @@ export function AdminDashboard() {
     return `https://checko.ru/company/${inn}`
   }
 
+  // Generate composite application ID (TZ requirement)
+  // Format: БГ-2025-00001 (Product prefix + Year + Zero-padded ID)
+  const getCompositeId = (app: { id: number; product_type: string; created_at: string }) => {
+    const year = new Date(app.created_at).getFullYear()
+    const paddedId = app.id.toString().padStart(5, '0')
+
+    // Product type prefix mapping
+    const prefixMap: Record<string, string> = {
+      bank_guarantee: 'БГ',
+      tender_loan: 'ТК',
+      contract_loan: 'КИК',
+      corporate_credit: 'КК',
+      factoring: 'ФК',
+      leasing: 'ЛЗ',
+    }
+    const prefix = prefixMap[app.product_type] || 'ЗА'
+
+    return `${prefix}-${year}-${paddedId}`
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* ============================================ */}
@@ -296,10 +318,25 @@ export function AdminDashboard() {
             <Building2 className="h-4 w-4" />
             Партнёры
           </button>
+          <button
+            onClick={() => setActiveTab("accreditation")}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors",
+              activeTab === "accreditation"
+                ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                : "text-muted-foreground hover:bg-accent"
+            )}
+          >
+            <Users className="h-4 w-4" />
+            Аккредитация
+          </button>
         </div>
 
         {/* Partners Tab Content */}
         {activeTab === "partners" && <PartnersTab />}
+
+        {/* Accreditation Tab Content */}
+        {activeTab === "accreditation" && <AdminAccreditationCenter />}
 
         {/* Applications Tab Content */}
         {activeTab === "applications" && (
@@ -421,9 +458,9 @@ export function AdminDashboard() {
                               className="group cursor-pointer transition-colors hover:bg-[#3CE8D1]/5"
                               onClick={() => handleViewDetails(app.id)}
                             >
-                              {/* ID - Monospace */}
+                              {/* ID - Composite Format */}
                               <td className="px-4 py-3">
-                                <span className="font-mono text-sm font-medium text-foreground">#{app.id}</span>
+                                <span className="font-mono text-sm font-semibold text-[#3CE8D1]">{getCompositeId(app)}</span>
                               </td>
 
                               {/* Date */}
@@ -525,7 +562,7 @@ export function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-bold text-foreground">
-                    Заявка <span className="font-mono">#{selectedApp?.id}</span>
+                    Заявка <span className="font-mono text-[#3CE8D1]">{selectedApp ? getCompositeId(selectedApp) : ''}</span>
                   </h2>
                   {selectedApp && (
                     <span className={cn(

@@ -1,7 +1,7 @@
 # 📋 LIDER GARANT: SaaS Financial Marketplace
 
-**Последнее обновление:** 2025-12-28T03:38  
-**Статус:** MVP Stage 1 — **ГОТОВ** ✅  
+**Последнее обновление:** 2025-12-31T03:08  
+**Статус:** MVP Stage 1 — **ГОТОВ + АУДИТ ВОЛН 1-3** ✅  
 **Архитектура:** API-Ready + Manual Mode + **Adapter Pattern**
 
 ---
@@ -13,7 +13,7 @@
 |-----------|------------------|-------------------|
 | Статусы | Текстовые: `draft`, `pending`, `in_review` | Числовые ID: 101, 110, 210 |
 | Документы | `status`: pending/verified/rejected | `is_loaded`, `product_document_id` |
-| API Банков | ❌ Не используем | ✅ Реалист Банк и др. |
+| API Банков | ❌ Не используем | ✅ Реалист Банк API 1.1 |
 
 ### Правило Адаптера
 ```
@@ -25,14 +25,36 @@ Backend (Django) = SOURCE OF TRUTH
 Frontend (Next.js) = VISUAL ADAPTER
 ├── lib/status-mapping.ts = Централизованный маппинг
 ├── STATUS_CONFIG: Django → Step + Label + Colors
-├── DOC_STATUS_CONFIG: Document → Icon + Colors
+├── BANK_STATUS_CONFIG: Bank ID → Label (из Приложения А, Б)
 └── STEPPER_LABELS: ["Черновик", "На проверке", "Решение", "Выпущена"]
 ```
 
-### Фаза 1: Ручной режим
-1. **Никаких внешних интеграций:** НЕ подключаем API банков, ФНС, DaData или ЭЦП
-2. **СТРОГО ЗАПРЕЩЕНЫ Mock-данные:** Весь Frontend работает с реальным API Django
-3. **Заглушки:** Разрешены ТОЛЬКО для Фазы 2 (кнопка "Вход по ЭЦП", "Отправить в банк")
+---
+
+## 🔥 ПОСЛЕДНИЙ АУДИТ (31.12.2024) — 3 ВОЛНЫ ЗАВЕРШЕНЫ
+
+### Волна 1: Калькулятор (Bank Selection) ✅
+| Компонент | Статус |
+|-----------|--------|
+| Таблица банков с сортировкой (готовы/отказ) | ✅ Реализовано |
+| Collapsible отказники с причиной | ✅ Реализовано |
+| Hardcoded строка "Лидер-Гарант" | ✅ Реализовано |
+| Multi-select банков в payload | ✅ Реализовано |
+
+### Волна 2: API Compliance (Client Form) ✅
+| Компонент | Статус |
+|-----------|--------|
+| Поле `employee_count` | ✅ Реализовано |
+| Вкладка "Подписант" (MCHD) | ✅ Реализовано |
+| Адреса учредителей + индексы | ✅ Реализовано |
+| Postal codes для 3 типов адресов | ✅ Реализовано |
+
+### Волна 3: Кабинет (Settings) ✅
+| Компонент | Статус |
+|-----------|--------|
+| Вкладка "Реквизиты" (БИК, Р/С, НДС) | ✅ Реализовано |
+| Вкладка "Рефералы" + QR + Copy | ✅ Реализовано |
+| Вкладка "Документы" | ✅ Реализовано |
 
 ---
 
@@ -67,10 +89,11 @@ d:\New folder\dashboarddesignanalysis\
 ├── components/dashboard/
 │   ├── admin-dashboard.tsx           # Premium UI (Pro Data Grid + Drawer)
 │   ├── application-detail-view.tsx   # Детали заявки (uses status-mapping.ts)
-│   ├── partner-layout.tsx            # Container для Partner Dashboard
+│   ├── create-application-wizard.tsx # Wizard + Bank Selection Table (Wave 1)
+│   ├── edit-client-sheet.tsx         # 6 вкладок + MCHD Signatory (Wave 2)
+│   ├── profile-settings-view.tsx     # Реквизиты/Рефералы/Документы (Wave 3)
 │   ├── my-company-view.tsx           # Профиль компании + паспорт
-│   ├── edit-client-sheet.tsx         # View/Edit режимы клиента + паспорт
-│   └── create-application-wizard.tsx # Мастер создания заявки
+│   └── partner-layout.tsx            # Container для Partner Dashboard
 │
 ├── lib/
 │   ├── api.ts                        # HTTP клиент (baseURL: localhost:8000/api)
@@ -82,35 +105,39 @@ d:\New folder\dashboarddesignanalysis\
 │   ├── use-companies.ts              # Компании
 │   └── use-documents.ts              # Документы
 │
+├── technicheskoezadanie/             # 📚 ТЗ ДОКУМЕНТАЦИЯ
+│   ├── API_1.1.postman_collection... # Реалист Банк API (add_ticket)
+│   ├── Приложения А, Б (2) (1).pdf   # Справочники статусов банка
+│   └── *.txt                         # Текстовые ТЗ из Google Docs
+│
 └── docker-compose.yml                # PostgreSQL + MinIO + Redis
 ```
 
 ---
 
-## 🔄 LIB/STATUS-MAPPING.TS (Ключевой файл)
+## 🔄 API МАППИНГ (Postman API 1.1)
 
-Централизованный маппинг Django → Visual TOR:
+### Структура `add_ticket` (создание заявки в банк)
 
-```typescript
-// Django Status → Visual Step
-STATUS_CONFIG = {
-  draft:         { step: 0, label: 'Черновик',        stepLabel: 'Анкета' },
-  pending:       { step: 1, label: 'На рассмотрении', stepLabel: 'Прескоринг' },
-  in_review:     { step: 1, label: 'В работе',        stepLabel: 'Проверка документов' },
-  info_requested:{ step: 1, label: 'Дозаполнение',    stepLabel: 'Запрос информации' },
-  approved:      { step: 2, label: 'Одобрено',        stepLabel: 'Одобрено' },
-  rejected:      { step: 2, label: 'Отклонено',       stepLabel: 'Отклонено', isNegative: true },
-  won:           { step: 3, label: 'Выигран',         stepLabel: 'Выпущена' },
-  lost:          { step: 3, label: 'Проигран',        stepLabel: 'Проигран', isNegative: true },
-}
-
-// Document Type ID → Label (Phase 2 preparation)
-DOCUMENT_TYPE_LABELS = {
-  17: 'Заявление',
-  20: 'Бухгалтерская отчетность (Ф1, Ф2)',
-  21: 'Паспорт генерального директора',
-  30: 'Налоговая декларация',
-  75: 'Устав',
+```json
+{
+  "ticket": {
+    "product_id": 1,           // 1=БГ, 2=КИК
+    "bg": { "sum", "type_id", "start_at", "end_at" },
+    "kik": { "sum", "type_id" }
+  },
+  "goscontract": {
+    "purchase_number", "subject", "contract_number",
+    "is_close_auction", "is_single_supplier"
+  },
+  "client": {
+    "inn", "employee_count", "website",
+    "actual_address": { "value", "postal_code" },
+    "post_address": { "value", "postal_code" },
+    "is_mchd", "mchd_full_name", "mchd_inn", "mchd_number", "mchd_date",
+    "founders": [{ "full_name", "inn", "share_relative", "document", "legal_address", "actual_address" }]
+  },
+  "beneficiary": { "inn", "legal_address" }
 }
 ```
 
@@ -129,102 +156,54 @@ DOCUMENT_TYPE_LABELS = {
 
 ## 🗄️ КЛЮЧЕВЫЕ МОДЕЛИ
 
-### CompanyProfile (apps/companies/models.py)
+### CompanyProfile (apps/companies/models.py) — WAVE 2 UPDATED
 ```python
 # Идентификация
 inn, kpp, ogrn, name, short_name
-legal_address, actual_address
-director_name, director_position
+legal_address, actual_address, post_address
+legal_address_postal_code, actual_address_postal_code, post_address_postal_code  # WAVE 2
 
-# Паспорт директора (API-Ready)
-passport_series, passport_number, passport_issued_by, passport_date, passport_code
+# Сотрудники
+employee_count  # WAVE 2
 
-# JSONField для сложных структур (Phase 2 Ready - Postman API 1.1)
-founders_data       # См. структуру ниже (ВАЖНО: включает паспорт учредителя!)
+# Подписант (MCHD) — WAVE 2
+signatory_basis  # "charter" | "power_of_attorney"
+is_mchd, mchd_full_name, mchd_inn, mchd_number, mchd_date
+
+# JSONField для структур
+founders_data       # + legal_address, actual_address, postal_codes (WAVE 2)
 bank_accounts_data  # [{bank_name, bank_bik, account}]
-
-# CRM
-is_crm_client: Boolean  # True = клиент агента
-owner: FK(User)         # Владелец
 ```
 
-### ВАЖНО: Структура founders_data (Postman API)
-```json
-[
-  {
-    "full_name": "Участников Участник Участникович",
-    "inn": "1234567890",
-    "share_relative": 80,
-    "document": {
-      "series": "99 99",
-      "number": "999999",
-      "issued_at": "2000-01-01",
-      "authority_name": "Наименование подразделения",
-      "authority_code": "777-777"
-    },
-    "birth_place": "Москва",
-    "birth_date": "1985-01-01",
-    "gender": 1,
-    "citizen": "РФ",
-    "legal_address": {"value": "...", "postal_code": "123456"},
-    "actual_address": {"value": "...", "postal_code": "123456"}
-  }
-]
-```
-
-### Application (apps/applications/models.py)
+### Application (apps/applications/models.py) — WAVE 1 UPDATED
 ```python
 product_type: Enum (bank_guarantee, tender_loan, factoring, leasing)
 amount: DecimalField(15,2)
 term_months: IntegerField
-target_bank_name: CharField    # Для маршрутизации Admin
+selected_banks: JSONField  # WAVE 1 — массив выбранных банков
 status: Enum (draft → pending → in_review → approved/rejected → won/lost)
 assigned_partner: FK(User)
-documents: M2M(Document)       # Вложенные через ApplicationDocumentSerializer
-created_by: FK(User)
-company: FK(CompanyProfile)
-```
-
-### Document (apps/documents/models.py)
-```python
-owner: FK(User)
-company: FK(CompanyProfile) optional
-name, file, document_type
-status: Enum (pending, verified, rejected)
+documents: M2M(Document)
 ```
 
 ---
 
-## ✅ РЕАЛИЗОВАННЫЙ ФУНКЦИОНАЛ (MVP Stage 1)
+## ✅ РЕАЛИЗОВАННЫЙ ФУНКЦИОНАЛ (MVсP + Audit Waves)
 
 | Функционал | Статус | Файл |
 |------------|--------|------|
 | Централизованный маппинг статусов | ✅ | lib/status-mapping.ts |
 | Регистрация Client/Agent | ✅ | auth-page.tsx |
-| Кнопка "Вход по ЭЦП" (заглушка) | ✅ | auth-page.tsx |
 | Профиль компании + Паспорт | ✅ | my-company-view.tsx |
 | CRM Клиенты + Паспорт | ✅ | edit-client-sheet.tsx |
-| Создание заявки (Wizard) | ✅ | create-application-wizard.tsx |
-| Детали заявки (без моков) | ✅ | application-detail-view.tsx |
+| **Bank Selection Table (WAVE 1)** | ✅ | create-application-wizard.tsx |
+| **Collapsible отказники (WAVE 1)** | ✅ | create-application-wizard.tsx |
+| **MCHD Подписант (WAVE 2)** | ✅ | edit-client-sheet.tsx |
+| **Адреса учредителей (WAVE 2)** | ✅ | edit-client-sheet.tsx |
+| **Настройки партнера (WAVE 3)** | ✅ | profile-settings-view.tsx |
 | Admin Dashboard | ✅ | admin-dashboard.tsx |
 | Partner видит company_data | ✅ | serializers.py |
-| Динамический badge Partner | ✅ | partner-layout.tsx |
 | Чат в заявках | ✅ | application-chat.tsx |
-
----
-
-## 🔧 ПОСЛЕДНИЕ ИСПРАВЛЕНИЯ (28.12.2025)
-
-### Глобальный Аудит Phase 1
-| Задача | Результат |
-|--------|-----------|
-| Создан `lib/status-mapping.ts` | ✅ Центральный маппинг Django→Visual |
-| `application-detail-view.tsx` рефакторинг | ✅ Убраны все моки, импорт из status-mapping |
-| `ApplicationSerializer` обновлён | ✅ Вложенные `documents[]` с status/file_url |
-| Проверен `admin-dashboard.tsx` | ✅ Реальный API |
-| Проверен `partner-layout.tsx` | ✅ Реальный badge из useApplications() |
-| Проверен `my-company-view.tsx` | ✅ Паспортные поля + PATCH |
-| Проверен `edit-client-sheet.tsx` | ✅ Паспортные поля + PATCH |
 
 ---
 
@@ -252,13 +231,18 @@ npm run dev
 Проект: LIDER GARANT — SaaS Financial Marketplace
 Путь: d:\New folder\dashboarddesignanalysis
 Стек: Django REST + Next.js 14 + PostgreSQL (Docker)
-Статус: MVP Stage 1 ГОТОВ ✅
+Статус: MVP Stage 1 ГОТОВ + АУДИТ 3 ВОЛН ✅
 Архитектура: Adapter Pattern (Backend=Truth, Frontend=Adapter)
 
-КЛЮЧЕВОЙ ФАЙЛ: lib/status-mapping.ts
-- Маппинг Django статусов → Visual Steps
-- Маппинг Document Types → Labels
-- ОБЯЗАТЕЛЬНО использовать во всех компонентах
+КЛЮЧЕВЫЕ ФАЙЛЫ:
+- lib/status-mapping.ts — Маппинг статусов + банков
+- create-application-wizard.tsx — Bank Selection Table
+- edit-client-sheet.tsx — 6 вкладок + MCHD
+- profile-settings-view.tsx — Реквизиты + Рефералы
+
+ДОКУМЕНТАЦИЯ:
+- technicheskoezadanie/ — Все ТЗ (txt) + API Postman
+- Приложения А, Б.pdf — Справочники банка
 
 ЗАПУСК:
 1. Docker Desktop → docker-compose up -d
@@ -274,4 +258,5 @@ npm run dev
 
 ---
 
-**Документ создан для передачи контекста другим разработчикам/AI.**
+**Документ создан для передачи контекста другим разработчикам/AI.**  
+**Последний аудит:** Все 3 волны ТЗ закрыты (31.12.2024)

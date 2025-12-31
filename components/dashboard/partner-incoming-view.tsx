@@ -121,6 +121,26 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
     return created < twoDaysAgo
   }
 
+  // Generate composite application ID (TZ requirement)
+  // Format: БГ-2025-00001 (Product prefix + Year + Zero-padded ID)
+  const getCompositeId = (app: ApplicationListItem) => {
+    const year = new Date(app.created_at).getFullYear()
+    const paddedId = app.id.toString().padStart(5, '0')
+
+    // Product type prefix mapping
+    const prefixMap: Record<string, string> = {
+      bank_guarantee: 'БГ',
+      tender_loan: 'ТК',
+      contract_loan: 'КИК',
+      corporate_credit: 'КК',
+      factoring: 'ФК',
+      leasing: 'ЛЗ',
+    }
+    const prefix = prefixMap[app.product_type] || 'ЗА'
+
+    return `${prefix}-${year}-${paddedId}`
+  }
+
   // Loading skeleton
   const TableSkeleton = () => (
     <>
@@ -273,7 +293,8 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Компания</TableHead>
+                <TableHead>№ Заявки</TableHead>
+                <TableHead>Клиент / ИНН</TableHead>
                 <TableHead>Продукт</TableHead>
                 <TableHead>Сумма</TableHead>
                 <TableHead>Статус</TableHead>
@@ -287,7 +308,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 <TableSkeleton />
               ) : filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Inbox className="h-8 w-8" />
                       <p>Заявки не найдены</p>
@@ -300,12 +321,26 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                     key={app.id}
                     className={isUrgent(app.created_at) ? "bg-destructive/5" : ""}
                   >
+                    {/* Composite ID Column */}
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">
-                          {app.company_name || `Заявка #${app.id}`}
-                        </span>
+                      <span className="font-mono text-sm font-semibold text-[#3CE8D1]">
+                        {getCompositeId(app)}
+                      </span>
+                    </TableCell>
+                    {/* Client + INN Column */}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {app.company_name || `Заявка #${app.id}`}
+                          </span>
+                        </div>
+                        {app.company_inn && (
+                          <span className="text-xs text-muted-foreground font-mono ml-6">
+                            ИНН: {app.company_inn}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{app.product_type_display}</TableCell>

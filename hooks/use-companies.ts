@@ -87,9 +87,13 @@ export interface Company {
     contact_phone: string;
     contact_email: string;
     website: string;
+    email: string;  // Added for accreditation form
+    acts_on_basis: string;  // "Устава" / "Доверенности" - for document generation
     // Timestamps
     created_at: string;
     updated_at: string;
+    // Client status for CRM (per PDF agent_add_client spec)
+    client_status: 'pending' | 'confirmed' | null;  // pending = "На рассмотрении", confirmed = "Закреплен"
 }
 
 export interface CompanyListItem {
@@ -101,6 +105,9 @@ export interface CompanyListItem {
     contact_person: string;
     is_crm_client: boolean;
     created_at: string;
+    // Client status for CRM (per PDF agent_add_client spec)
+    client_status: 'pending' | 'confirmed' | null;  // pending = "На рассмотрении", confirmed = "Закреплен"
+    owner?: number;  // If owner exists, client has registered
 }
 
 export interface CreateCompanyPayload {
@@ -133,6 +140,8 @@ export interface CreateCompanyPayload {
     contact_phone?: string;
     contact_email?: string;
     website?: string;
+    email?: string;  // Added for accreditation form
+    acts_on_basis?: string;  // "Устава" / "Доверенности"
 }
 
 export interface PaginatedResponse<T> {

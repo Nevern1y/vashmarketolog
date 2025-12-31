@@ -103,6 +103,17 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'credit_sub_type',      # Credit subtype (corporate_credit)
             'financing_term_days',  # Term in days for credits
             'pledge_description',   # Collateral description
+            # Phase 1: Product-specific fields (ТЗ compliance)
+            'insurance_category',       # Insurance
+            'insurance_product_type',   # Insurance
+            'factoring_type',          # Factoring
+            'contractor_inn',          # Factoring debtor
+            'ved_currency',            # VED
+            'ved_country',             # VED
+            'tender_support_type',     # Tender Support
+            'purchase_category',       # Tender Support
+            'industry',                # Tender Support
+            'account_type',            # RKO/SpecAccount
             'target_bank_name',  # For Admin routing
             'tender_number',
             'tender_platform',
@@ -117,6 +128,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'has_signature',
             'notes',
             'decisions_count',
+            'external_id',     # Bank ticket ID (Phase 7)
+            'bank_status',     # Bank-specific status (Phase 7)
             'created_at',
             'updated_at',
             'submitted_at',
@@ -133,6 +146,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'partner_email',
             'has_signature',
             'decisions_count',
+            'external_id',
+            'bank_status',
             'created_at',
             'updated_at',
             'submitted_at',
@@ -315,6 +330,8 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'target_bank_name',
             'status',
             'status_display',
+            'external_id',      # Bank ticket ID (Phase 7)
+            'bank_status',      # Bank status (Phase 7)
             'created_at',
         ]
         read_only_fields = fields
