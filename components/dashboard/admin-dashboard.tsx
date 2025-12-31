@@ -37,6 +37,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { ApplicationChat } from "./application-chat"
 import { PartnersTab } from "./partners-tab"
 import { AdminAccreditationCenter } from "./admin-accreditation-center"
+import { AdminApplicationsMonitor } from "./admin-applications-monitor"
+import { AdminApplicationDetail } from "./admin-application-detail"
 import { Users } from "lucide-react"
 
 // ============================================
@@ -339,208 +341,20 @@ export function AdminDashboard() {
         {activeTab === "accreditation" && <AdminAccreditationCenter />}
 
         {/* Applications Tab Content */}
-        {activeTab === "applications" && (
-          <>
-            {/* Page Header */}
-            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground">Заявки</h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Ожидают рассмотрения: <span className="font-semibold text-[#FFD93D]">{pendingCount}</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                  className="gap-2 border-border hover:bg-accent"
-                >
-                  <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-                  Обновить
-                </Button>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[160px] bg-card border-border">
-                    <SelectValue placeholder="Статус" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все статусы</SelectItem>
-                    <SelectItem value="pending">Новые</SelectItem>
-                    <SelectItem value="in_review">В обработке</SelectItem>
-                    <SelectItem value="info_requested">Запрос инфо</SelectItem>
-                    <SelectItem value="approved">Одобрено</SelectItem>
-                    <SelectItem value="rejected">Отклонено</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative w-full max-w-xs">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    placeholder="Поиск..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-card border-border focus:border-[#3CE8D1] focus:ring-[#3CE8D1]"
-                  />
-                </div>
-              </div>
-            </div>
+        {activeTab === "applications" && !selectedAppId && (
+          <AdminApplicationsMonitor
+            onSelectApplication={(id) => {
+              setSelectedAppId(parseInt(id))
+            }}
+          />
+        )}
 
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex items-center justify-center py-16">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="h-10 w-10 animate-spin text-[#3CE8D1]" />
-                  <span className="text-sm text-muted-foreground">Загрузка заявок...</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <Card className="border-red-200 bg-red-50">
-                <CardContent className="py-8 text-center">
-                  <XCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-                  <p className="text-red-700 font-medium">{error}</p>
-                  <Button variant="outline" size="sm" onClick={() => refetch()} className="mt-4">
-                    Повторить
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* ============================================ */}
-            {/* PRO DATA GRID */}
-            {/* ============================================ */}
-            {!isLoading && !error && (
-              <Card className="shadow-sm border-border overflow-hidden bg-card">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    {/* Table Header - TOR Compliant */}
-                    <thead>
-                      <tr className="bg-accent/50 border-b border-border">
-                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">ID</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Дата</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Клиент</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Продукт</th>
-                        <th className="px-4 py-2 text-right text-[11px] font-bold uppercase tracking-wider text-gray-500">Сумма</th>
-                        <th className="px-4 py-2 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Building2 className="h-3 w-3" />
-                            Банк
-                          </span>
-                        </th>
-                        <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-gray-500">Статус</th>
-                        <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wider text-gray-500">Действие</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {filteredApplications.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="px-4 py-16 text-center">
-                            <div className="flex flex-col items-center gap-2">
-                              <FileText className="h-10 w-10 text-gray-300" />
-                              <p className="text-gray-500 font-medium">
-                                {searchQuery ? "Заявки не найдены" : "Нет заявок"}
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredApplications.map((app) => {
-                          const statusCfg = statusConfig[app.status] || {
-                            label: app.status_display || app.status,
-                            className: "bg-slate-700/50 text-slate-400 border border-slate-600/30"
-                          }
-
-                          return (
-                            <tr
-                              key={app.id}
-                              className="group cursor-pointer transition-colors hover:bg-[#3CE8D1]/5"
-                              onClick={() => handleViewDetails(app.id)}
-                            >
-                              {/* ID - Composite Format */}
-                              <td className="px-4 py-3">
-                                <span className="font-mono text-sm font-semibold text-[#3CE8D1]">{getCompositeId(app)}</span>
-                              </td>
-
-                              {/* Date */}
-                              <td className="px-4 py-3">
-                                <span className="text-sm text-muted-foreground">{formatDate(app.created_at)}</span>
-                              </td>
-
-                              {/* Client - Bold + INN */}
-                              <td className="px-4 py-2">
-                                {app.company_name && app.company_name !== '—' ? (
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-semibold text-foreground">{app.company_name}</span>
-                                    <span className="text-xs text-muted-foreground font-mono">
-                                      ИНН: {app.company_inn && app.company_inn !== '—' ? app.company_inn : "—"}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-sm text-gray-400">—</span>
-                                )}
-                              </td>
-
-                              {/* Product */}
-                              <td className="px-4 py-3">
-                                <span className="text-sm text-muted-foreground">{app.product_type_display}</span>
-                              </td>
-
-                              {/* Amount - Monospace Right-Aligned */}
-                              <td className="px-4 py-3 text-right">
-                                <span className="font-mono text-sm font-semibold text-foreground">
-                                  {formatCurrency(app.amount)}
-                                </span>
-                              </td>
-
-                              {/* Bank */}
-                              <td className="px-4 py-3">
-                                {app.target_bank_name ? (
-                                  <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                    {app.target_bank_name}
-                                  </span>
-                                ) : (
-                                  <span className="text-sm text-gray-400">—</span>
-                                )}
-                              </td>
-
-                              {/* Status - TOR Pill */}
-                              <td className="px-4 py-3">
-                                <span className={cn(
-                                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-                                  statusCfg.className
-                                )}>
-                                  {statusCfg.icon}
-                                  {statusCfg.label}
-                                </span>
-                              </td>
-
-                              {/* Action - Ghost Button */}
-                              <td className="px-4 py-3 text-center">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleViewDetails(app.id)
-                                  }}
-                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </td>
-                            </tr>
-                          )
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            )}
-          </>
+        {/* Application Detail View */}
+        {activeTab === "applications" && selectedAppId && (
+          <AdminApplicationDetail
+            applicationId={selectedAppId.toString()}
+            onBack={() => setSelectedAppId(null)}
+          />
         )}
       </main>
 
