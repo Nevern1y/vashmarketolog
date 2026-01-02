@@ -25,7 +25,7 @@ print("=" * 60)
 # =====================
 # 1. CREATE AGENT USER
 # =====================
-agent_email = "agent@test.com"
+agent_email = "agent@lidergarantpanel.com"
 agent_user, created = User.objects.get_or_create(
     email=agent_email,
     defaults={
@@ -37,7 +37,7 @@ agent_user, created = User.objects.get_or_create(
     }
 )
 if created:
-    agent_user.set_password('agent123')
+    agent_user.set_password('Admin123!')
     agent_user.save()
     print(f"✓ Создан Agent: {agent_email}")
 else:
@@ -89,7 +89,7 @@ except CompanyProfile.DoesNotExist:
 # =====================
 # 3. CREATE PARTNER USER (Bank)
 # =====================
-partner_email = "partner@sberbank.test"
+partner_email = "partner@lidergarantpanel.com"
 partner_user, created = User.objects.get_or_create(
     email=partner_email,
     defaults={
@@ -101,7 +101,7 @@ partner_user, created = User.objects.get_or_create(
     }
 )
 if created:
-    partner_user.set_password('partner123')
+    partner_user.set_password('Admin123!')
     partner_user.save()
     print(f"✓ Создан Partner (Bank): {partner_email}")
 else:
@@ -143,10 +143,26 @@ else:
     print(f"  - Целевой банк: {application.target_bank_name}")
     print(f"  - Статус: {application.get_status_display()}")
 
+# =====================
+# 5. CREATE SUPERUSER (Admin)
+# =====================
+admin_email = "admin@lidergarantpanel.com"
+if not User.objects.filter(email=admin_email).exists():
+    User.objects.create_superuser(
+        email=admin_email,
+        password='Admin123!',
+        first_name='Admin',
+        last_name='User'
+    )
+    print(f"✓ Создан Superuser: {admin_email}")
+else:
+    print(f"• Superuser уже существует: {admin_email}")
+
 print("=" * 60)
 print("SEED DATA: Готово!")
 print("=" * 60)
 print("\nДанные для входа:")
-print(f"  Agent:   {agent_email} / agent123")
-print(f"  Partner: {partner_email} / partner123")
+print(f"  Agent:   {agent_email} / Admin123!")
+print(f"  Partner: {partner_email} / Admin123!")
+print(f"  Admin:   {admin_email} / Admin123!")
 print("=" * 60)
