@@ -335,17 +335,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         Approve application (Admin only).
         POST /api/applications/{id}/approve/
         
-        Sets status to IN_REVIEW (ready for partner processing).
+        Sets status to APPROVED.
         """
         application = self.get_object()
         
-        if application.status in [ApplicationStatus.APPROVED, ApplicationStatus.REJECTED]:
+        if application.status == ApplicationStatus.APPROVED:
             return Response(
-                {'error': 'Заявка уже обработана'},
+                {'error': 'Заявка уже одобрена'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        application.status = ApplicationStatus.IN_REVIEW
+        application.status = ApplicationStatus.APPROVED
         application.save()
         
         return Response(ApplicationSerializer(application, context={'request': request}).data)

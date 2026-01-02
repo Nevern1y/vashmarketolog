@@ -20,6 +20,8 @@ from .views import (
     SubmitAccreditationView,
     # Partner: My Agents
     MyAgentsView,
+    # Client invitation registration
+    InvitedClientRegisterView,
 )
 
 app_name = 'users'
@@ -39,6 +41,9 @@ urlpatterns = [
     # Partner invite endpoints
     path('accept-invite/<uuid:token>/', PartnerAcceptInviteView.as_view(), name='accept_invite'),
     
+    # Client invitation registration (by agent)
+    path('register/invited/<str:token>/', InvitedClientRegisterView.as_view(), name='register_invited'),
+    
     # Agent accreditation endpoint
     path('accreditation/submit/', SubmitAccreditationView.as_view(), name='submit_accreditation'),
     
@@ -51,5 +56,4 @@ urlpatterns = [
     path('admin/accreditation/', AccreditationListView.as_view(), name='accreditation_list'),
     path('admin/accreditation/<int:pk>/', AccreditationDecisionView.as_view(), name='accreditation_decision'),
 ]
-
 

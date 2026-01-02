@@ -45,3 +45,9 @@ coverage.xml
 *.cover
 *.log
 .pytest_cache/
+
+# trash
+/trash/
+
+/technicheskoezadanie
+/technicheskoezadanie/*

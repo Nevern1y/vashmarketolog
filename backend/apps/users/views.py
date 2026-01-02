@@ -416,3 +416,131 @@ class MyAgentsView(generics.ListAPIView):
         ).order_by('-date_joined')
 
 
+@extend_schema(tags=['Authentication'])
+class InvitedClientRegisterView(APIView):
+    """
+    Register as client via agent invitation token.
+    POST /api/auth/register/invited/<token>/
+    
+    Creates new client user and links them to the company created by agent.
+    After client passes accreditation, company status changes to 'confirmed'.
+    
+    Body:
+    - email: string (must match invitation_email or any valid email)
+    - password: string
+    - password_confirm: string
+    - first_name: string (optional)
+    - last_name: string (optional)
+    - phone: string (optional)
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, token):
+        from apps.companies.models import CompanyProfile
+        from rest_framework_simplejwt.tokens import RefreshToken
+        
+        # Find company by invitation token
+        try:
+            company = CompanyProfile.objects.get(
+                invitation_token=token,
+                is_crm_client=True
+            )
+        except CompanyProfile.DoesNotExist:
+            return Response(
+                {'error': 'Недействительный токен приглашения'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if already registered
+        if company.client_status == 'confirmed':
+            return Response(
+                {'error': 'Компания уже зарегистрирована'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate request data
+        email = request.data.get('email', '').strip()
+        password = request.data.get('password', '')
+        password_confirm = request.data.get('password_confirm', '')
+        first_name = request.data.get('first_name', '').strip()
+        last_name = request.data.get('last_name', '').strip()
+        phone = request.data.get('phone', '').strip()
+        
+        if not email:
+            return Response(
+                {'error': 'Email обязателен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not password:
+            return Response(
+                {'error': 'Пароль обязателен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if password != password_confirm:
+            return Response(
+                {'error': 'Пароли не совпадают'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(password) < 8:
+            return Response(
+                {'error': 'Пароль должен быть не менее 8 символов'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user already exists
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create new client user
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone,
+            role='client',
+            is_active=True,
+        )
+        
+        # Link company to new user (keep original owner as agent)
+        # Create a new company for this client instead of changing ownership
+        new_company = CompanyProfile.objects.create(
+            owner=user,
+            is_crm_client=False,  # This is client's own company
+            inn=company.inn,
+            name=company.name,
+            short_name=company.short_name,
+            contact_email=email,
+            contact_phone=phone,
+            contact_person=f"{first_name} {last_name}".strip() or company.contact_person,
+        )
+        
+        # Update original CRM client company status to 'confirmed'
+        company.client_status = 'confirmed'
+        company.save()
+        
+        # Generate tokens for immediate login
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'message': 'Регистрация успешна',
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'phone': user.phone,
+                'role': user.role,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'is_active': user.is_active,
+            },
+            'company_id': new_company.id,
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }, status=status.HTTP_201_CREATED)
+

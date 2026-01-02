@@ -28,6 +28,35 @@ class CompanyProfile(models.Model):
         help_text='True = клиент агента (CRM), False = собственная компания'
     )
     
+    # =============================================================================
+    # CLIENT STATUS (ТЗ: Скриншот 3, 6 - статус клиента агента)
+    # =============================================================================
+    CLIENT_STATUS_CHOICES = [
+        ('pending', 'На рассмотрении'),
+        ('confirmed', 'Закреплен'),
+    ]
+    client_status = models.CharField(
+        'Статус клиента',
+        max_length=20,
+        choices=CLIENT_STATUS_CHOICES,
+        default='pending',
+        help_text='pending = добавлен агентом, confirmed = зарегистрирован и аккредитован'
+    )
+    invitation_email = models.EmailField(
+        'Email для приглашения',
+        blank=True,
+        default='',
+        help_text='Email на который отправлено приглашение'
+    )
+    invitation_token = models.CharField(
+        'Токен приглашения',
+        max_length=64,
+        blank=True,
+        default='',
+        help_text='Уникальный токен для связывания регистрации клиента'
+    )
+
+    
     # Company identification (Manual Entry Only - no validation against external DBs)
     inn = models.CharField('ИНН', max_length=12)
     kpp = models.CharField('КПП', max_length=9, blank=True, default='')

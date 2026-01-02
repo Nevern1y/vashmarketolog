@@ -90,8 +90,8 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           : "Добро пожаловать в Лидер Гарант!",
       })
 
-      // Redirect to dashboard
-      router.push("/dashboard")
+      // Redirect to home (main dashboard)
+      router.push("/")
     } catch (err) {
       // Error is already handled by useAuth and displayed via authError
       console.error("Registration failed:", err)
@@ -118,15 +118,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
     <Card className="rounded-xl shadow-2xl border-0">
       <CardHeader className="space-y-4 pb-4">
         <div className="flex justify-center">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center">
-              <svg viewBox="0 0 40 40" className="h-10 w-10">
-                <path d="M8 32 L20 8 L32 32 Z" fill="#3CE8D1" />
-                <path d="M14 32 L20 20 L26 32 Z" fill="#0a1628" />
-              </svg>
-            </div>
-            <span className="text-xl font-bold text-[#0a1628]">ЛИДЕР ГАРАНТ</span>
-          </div>
+          <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-14 w-auto" />
         </div>
         <h1 className="text-center text-2xl font-semibold text-foreground">Регистрация</h1>
 

@@ -111,6 +111,14 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                     </div>
                 </DialogHeader>
 
+                {/* Invitation Info Block */}
+                <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-3 text-sm">
+                    <p className="text-foreground">
+                        После добавления клиент получит <strong>письмо с приглашением</strong> на портал Лидер Гарант.
+                        После регистрации и прохождения аккредитации статус изменится на <strong>«Закреплен»</strong>.
+                    </p>
+                </div>
+
                 <div className="space-y-4 py-4">
                     {/* ИНН */}
                     <div className="space-y-2">

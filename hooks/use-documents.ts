@@ -2,13 +2,16 @@
  * API Hooks for Documents
  * 
  * Custom hooks for document library management.
+ * 
+ * BREAKING CHANGE: Updated to use numeric document_type_id per Appendix B.
  */
 "use client"
 
 import { useState, useEffect, useCallback } from 'react';
 import api, { type ApiError } from '@/lib/api';
+import { getDocumentTypeName } from '@/lib/document-types';
 
-// Types matching backend
+// Types matching backend (updated for numeric IDs)
 export interface Document {
     id: number;
     owner: number;
@@ -18,13 +21,11 @@ export interface Document {
     name: string;
     file: string;
     file_url: string;
-    document_type:
-    | 'passport_all_pages' | 'founder_passport' | 'appointment_order' | 'statute' | 'lease_contract'
-    | 'account_card_51' | 'account_card_60_62' | 'balance_sheet_f1' | 'financial_results_f2' | 'tax_declaration' | 'osv_all'
-    | 'contract_register' | 'executed_contracts'
-    | 'other';
+    document_type_id: number;    // NEW: Numeric ID from Appendix B
+    product_type: string;         // NEW: Product context
     type_display: string;
-    status: 'pending' | 'verified' | 'rejected';
+    source_display?: string;      // NEW: Who uploads ("Агент", "Банк", "Автоматически")
+    status: 'pending' | 'verified' | 'rejected' | 'not_allowed';
     status_display: string;
     rejection_reason: string;
     verified_at: string | null;
@@ -38,17 +39,20 @@ export interface DocumentListItem {
     name: string;
     file: string;
     file_url: string;
-    document_type: string;
+    document_type_id: number;    // NEW: Numeric ID
+    product_type: string;         // NEW: Product context
     type_display: string;
     status: string;
     status_display: string;
     uploaded_at: string;
+    owner_email?: string;
 }
 
 export interface UploadDocumentPayload {
     name: string;
     file: File;
-    document_type: string;
+    document_type_id: number;    // NEW: Numeric ID
+    product_type?: string;        // NEW: Product context (optional)
     company?: number;
 }
 
@@ -60,7 +64,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Hook for listing documents
-export function useDocuments(params?: { document_type?: string; status?: string }) {
+export function useDocuments(params?: { document_type_id?: number; product_type?: string; status?: string }) {
     const [documents, setDocuments] = useState<DocumentListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -71,7 +75,10 @@ export function useDocuments(params?: { document_type?: string; status?: string 
 
         try {
             const queryParams: Record<string, string> = {};
-            if (params?.document_type) queryParams.document_type = params.document_type;
+            if (params?.document_type_id !== undefined) {
+                queryParams.document_type_id = String(params.document_type_id);
+            }
+            if (params?.product_type) queryParams.product_type = params.product_type;
             if (params?.status) queryParams.status = params.status;
 
             const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
@@ -82,7 +89,7 @@ export function useDocuments(params?: { document_type?: string; status?: string 
         } finally {
             setIsLoading(false);
         }
-    }, [params?.document_type, params?.status]);
+    }, [params?.document_type_id, params?.product_type, params?.status]);
 
     useEffect(() => {
         fetchDocuments();
@@ -97,7 +104,7 @@ export function useDocuments(params?: { document_type?: string; status?: string 
 }
 
 // Hook for verified documents (for application attachment)
-export function useVerifiedDocuments() {
+export function useVerifiedDocuments(productType?: string) {
     const [documents, setDocuments] = useState<DocumentListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -107,15 +114,27 @@ export function useVerifiedDocuments() {
         setError(null);
 
         try {
-            const response = await api.get<DocumentListItem[]>('/documents/verified/');
-            setDocuments(response);
+            const queryParams: Record<string, string> = {};
+            if (productType) {
+                queryParams.product_type = productType;
+            }
+
+            const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
+            const allDocs = response.results;
+
+            // Filter to include only verified and pending (exclude rejected)
+            const availableDocs = allDocs.filter(
+                doc => doc.status === 'verified' || doc.status === 'pending'
+            );
+
+            setDocuments(availableDocs);
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError.message || 'Ошибка загрузки документов');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [productType]);
 
     useEffect(() => {
         fetchDocuments();
@@ -179,7 +198,10 @@ export function useDocumentMutations() {
             const formData = new FormData();
             formData.append('name', payload.name);
             formData.append('file', payload.file);
-            formData.append('document_type', payload.document_type);
+            formData.append('document_type_id', String(payload.document_type_id));
+            if (payload.product_type) {
+                formData.append('product_type', payload.product_type);
+            }
             if (payload.company) {
                 formData.append('company', payload.company.toString());
             }
@@ -218,7 +240,7 @@ export function useDocumentMutations() {
 
     const verifyDocument = useCallback(async (
         id: number,
-        status: 'verified' | 'rejected',
+        status: 'verified' | 'rejected' | 'not_allowed',
         rejectionReason?: string
     ): Promise<Document | null> => {
         setIsLoading(true);
@@ -248,4 +270,39 @@ export function useDocumentMutations() {
         verifyDocument,
         clearError: () => setError(null),
     };
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get document type display name.
+ * Uses the document-types library for resolution.
+ */
+export function formatDocumentType(doc: DocumentListItem | Document): string {
+    // First try the server-provided display name
+    if (doc.type_display && doc.type_display !== `Документ (ID: ${doc.document_type_id})`) {
+        return doc.type_display;
+    }
+    // Fall back to client-side resolution
+    return getDocumentTypeName(doc.document_type_id, doc.product_type || 'general');
+}
+
+/**
+ * Get status badge color class.
+ */
+export function getDocumentStatusColor(status: string): string {
+    switch (status) {
+        case 'verified':
+            return 'bg-green-500/20 text-green-400 border-green-500/30';
+        case 'pending':
+            return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+        case 'rejected':
+            return 'bg-red-500/20 text-red-400 border-red-500/30';
+        case 'not_allowed':
+            return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+        default:
+            return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
 }

@@ -89,14 +89,8 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
     <>
       <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]">
-            <span className="text-lg font-bold text-[#0a1628]">ФМ</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold leading-tight">ФИНАНСОВЫЙ</p>
-            <p className="text-xs text-[#94a3b8]">МАРКЕТПЛЕЙС</p>
-          </div>
+        <div className="flex items-center px-5 py-6">
+          <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />
         </div>
 
         {/* Main CTA */}

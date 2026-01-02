@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2, Hash, FileCheck, Globe, Shield, CreditCard, Briefcase, ChevronDown, ChevronUp, Star, Clock, Percent, XCircle } from "lucide-react"
+import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2, Hash, FileCheck, Globe, Shield, CreditCard, Briefcase, ChevronDown, ChevronUp, Star, Clock, Percent, XCircle, Plus } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
@@ -121,11 +121,13 @@ const creditSubTypes = [
   { id: "overdraft", label: "Овердрафт" },
 ]
 
-// Import document types from shared module (135 types per ТЗ Клиенты)
-import { DOCUMENT_TYPES, COMMON_DOCUMENT_TYPES, getGroupedDocumentTypes } from "@/lib/document-types"
-
-// Use common document types for the wizard dropdown
-const documentTypeOptions = COMMON_DOCUMENT_TYPES
+// Import document types from shared module (Appendix B numeric IDs)
+import {
+  getAgentUploadableTypes,
+  getDocumentTypesForProduct,
+  getDocumentTypeName,
+  type DocumentTypeOption
+} from "@/lib/document-types"
 
 export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: CreateApplicationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1)
@@ -186,8 +188,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Document type for upload (Phase 3)
-  const [uploadDocType, setUploadDocType] = useState<string>("other")
+  // Document type for upload - now uses numeric ID (Appendix B)
+  const [uploadDocTypeId, setUploadDocTypeId] = useState<number>(0)  // 0 = "Дополнительный документ"
 
   // Auth context to check role
   const { user } = useAuth()
@@ -223,15 +225,31 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
   // Get selected company data
   const getSelectedCompany = () => {
-    if (isAgent && selectedCompanyId) {
-      return clients.find(c => c.id.toString() === selectedCompanyId)
+    if (isAgent) {
+      // Agent: return selected CRM client, or null if none selected
+      if (selectedCompanyId) {
+        return clients.find(c => c.id.toString() === selectedCompanyId) || null
+      }
+      return null  // No client selected yet
     }
+    // Client: return their own company
     return myCompany
   }
 
   const selectedCompany = getSelectedCompany()
 
   const handleNext = () => {
+    // Step 1 validation: Agent must select client, all must select product
+    if (currentStep === 1) {
+      if (isAgent && !selectedCompanyId) {
+        toast.error("Выберите клиента для создания заявки")
+        return
+      }
+      if (!selectedProduct) {
+        toast.error("Выберите тип продукта")
+        return
+      }
+    }
     if (currentStep < 5) setCurrentStep(currentStep + 1)
   }
 
@@ -273,7 +291,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       const doc = await uploadDocument({
         name: file.name,
         file: file,
-        document_type: uploadDocType,
+        document_type_id: uploadDocTypeId,  // NEW: Numeric ID per Appendix B
+        product_type: selectedProduct || 'general',  // NEW: Product context
       })
 
       // Debug: log what we got from upload
@@ -281,7 +300,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
       if (doc && doc.id) {
         setUploadedDocIds(prev => [...prev, doc.id])
-        toast.success(`Документ "${file.name}" загружен (ID: ${doc.id})`)
+        const typeName = getDocumentTypeName(uploadDocTypeId, selectedProduct || 'general')
+        toast.success(`Документ "${file.name}" загружен (${typeName})`)
       } else {
         console.error("[Wizard] Upload failed or no ID returned:", doc)
         toast.error(`Ошибка загрузки "${file.name}"`)
@@ -312,6 +332,18 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
     if (!companyId) {
       toast.error("Выберите компанию")
+      return
+    }
+
+    // === VALIDATION: Check company exists in current data ===
+    if (isAgent) {
+      const companyExists = clients.some(c => c.id === companyId)
+      if (!companyExists) {
+        toast.error("Выбранный клиент не найден. Обновите страницу и выберите клиента заново.")
+        return
+      }
+    } else if (!myCompany || myCompany.id !== companyId) {
+      toast.error("Профиль компании не найден. Обновите страницу.")
       return
     }
 
@@ -637,7 +669,91 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         <div className="p-6">
           {/* Step 1: Product Selection */}
           {currentStep === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Agent Client Selector with Info Panel */}
+              {isAgent && (
+                <div className="grid grid-cols-3 gap-4">
+                  {/* Client Dropdown - 2 columns */}
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-base font-semibold">Выберите клиента *</Label>
+                    {clientsLoading ? (
+                      <div className="flex items-center gap-2 text-muted-foreground py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Загрузка клиентов...
+                      </div>
+                    ) : (
+                      <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Выберите клиента" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Only show confirmed clients for applications */}
+                          {clients
+                            .filter(client => client.client_status === 'confirmed')
+                            .map((client) => (
+                              <SelectItem key={client.id} value={client.id.toString()}>
+                                {client.short_name || client.name} (ИНН: {client.inn})
+                              </SelectItem>
+                            ))}
+                          {clients.filter(c => c.client_status === 'confirmed').length === 0 && (
+                            <div className="py-2 px-3 text-sm text-muted-foreground">
+                              Нет клиентов со статусом "Закреплен"
+                            </div>
+                          )}
+                          {/* Add new client option */}
+                          <div className="border-t mt-1 pt-1">
+                            <button
+                              className="w-full text-left px-3 py-2 text-sm text-[#3CE8D1] hover:bg-accent rounded-sm flex items-center gap-2"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                // TODO: Open add client modal
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Добавить нового клиента
+                            </button>
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {!selectedCompanyId && !clientsLoading && (
+                      <p className="text-xs text-muted-foreground">
+                        Только клиенты со статусом «Закреплен» доступны для создания заявки
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Client Info Panel - 1 column */}
+                  <div className="space-y-2">
+                    <Label className="text-base font-semibold">Информация о клиенте</Label>
+                    {selectedCompany ? (
+                      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">ИНН:</span>
+                          <span className="font-mono font-medium">{selectedCompany.inn || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">КПП:</span>
+                          <span className="font-mono">{selectedCompany.kpp || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Регион:</span>
+                          <span>{selectedCompany.region || "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Контакт:</span>
+                          <span>{selectedCompany.contact_person || "—"}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-dashed border-border bg-muted/10 p-3 text-center text-sm text-muted-foreground">
+                        Выберите клиента
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <h2 className="text-lg font-semibold">Выберите тип продукта</h2>
               <div className="grid grid-cols-3 gap-4">
                 {productTypes.map((product) => (
@@ -670,44 +786,20 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Основные параметры</h2>
               <div className="grid grid-cols-2 gap-4">
-                {/* Client Selection - Only for Agents */}
+                {/* Client Display - Read-only for Agents (selected on Step 1) */}
                 {isAgent && (
                   <div className="space-y-2">
-                    <Label>Клиент *</Label>
-                    {clientsLoading ? (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Загрузка...
-                      </div>
-                    ) : initialClientId ? (
-                      // Pre-selected client from CRM - show as read-only
-                      <div className="space-y-1">
-                        <Input
-                          type="text"
-                          value={clients.find(c => c.id.toString() === selectedCompanyId)?.name ||
-                            clients.find(c => c.id.toString() === selectedCompanyId)?.short_name ||
-                            "Клиент выбран"}
-                          readOnly
-                          className="bg-muted"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Клиент выбран из CRM
-                        </p>
-                      </div>
-                    ) : (
-                      <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите клиента" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id.toString()}>
-                              {client.name || client.short_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <Label>Клиент</Label>
+                    <Input
+                      type="text"
+                      value={
+                        clients.find(c => c.id.toString() === selectedCompanyId)?.short_name ||
+                        clients.find(c => c.id.toString() === selectedCompanyId)?.name ||
+                        "Не выбран"
+                      }
+                      readOnly
+                      className="bg-muted"
+                    />
                   </div>
                 )}
 
@@ -1654,22 +1746,33 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Документы</h2>
 
-              {/* Document Type Selection (Phase 3) */}
+              {/* Document Type Selection (Appendix B numeric IDs) */}
               <div className="space-y-2">
                 <Label>Тип загружаемого документа</Label>
-                <Select value={uploadDocType} onValueChange={setUploadDocType}>
+                <Select
+                  value={String(uploadDocTypeId)}
+                  onValueChange={(val) => setUploadDocTypeId(parseInt(val, 10))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Выберите тип документа" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {documentTypeOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {/* Show product-specific document types */}
+                    {getAgentUploadableTypes(selectedProduct || 'general').map((docType) => (
+                      <SelectItem key={docType.id} value={String(docType.id)}>
+                        {docType.name}
                       </SelectItem>
                     ))}
+                    {/* Always show "Additional Document" option */}
+                    <SelectItem value="0">Дополнительный документ</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Показаны типы документов для: {selectedProduct === 'bank_guarantee' ? 'Банковские гарантии' :
+                    selectedProduct === 'contract_loan' ? 'Кредиты на исполнение' : 'Общие документы'}
+                </p>
               </div>
+
 
               {/* Dropzone */}
               <div
@@ -1717,7 +1820,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   </div>
                 ) : verifiedDocs.length === 0 ? (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg">
-                    Нет проверенных документов в библиотеке
+                    Нет доступных документов в библиотеке. Загрузите документы в разделе «Мои документы».
                   </div>
                 ) : (
                   verifiedDocs.map((doc) => (
@@ -1739,6 +1842,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       />
                       <FileText className="h-4 w-4 text-muted-foreground" />
                       <span className="flex-1 text-sm">{doc.name}</span>
+                      {/* Status Badge */}
+                      {doc.status === "verified" ? (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/10 text-emerald-500">
+                          Подтвержден
+                        </span>
+                      ) : doc.status === "pending" ? (
+                        <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/10 text-amber-500">
+                          На проверке
+                        </span>
+                      ) : null}
                       <span className="text-xs text-muted-foreground">{doc.type_display}</span>
                     </div>
                   ))

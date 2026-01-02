@@ -88,7 +88,7 @@ class BankIntegrationService:
             ValueError: If application has no associated company.
         """
         try:
-            application = Application.objects.select_related('company').get(id=application_id)
+            application = Application.objects.select_related('company').prefetch_related('documents').get(id=application_id)
         except Application.DoesNotExist:
             logger.error(f"Application {application_id} not found")
             raise
@@ -125,8 +125,113 @@ class BankIntegrationService:
         # 8. Beneficiary (if available from tender data)
         payload.update(self._build_beneficiary_data(application))
         
+        # 9. Documents (NEW: with numeric IDs per Appendix B)
+        payload.update(self._build_documents_data(application))
+        
         logger.info(f"Generated payload for application {application_id} with {len(payload)} fields")
         return payload
+    
+    def _build_documents_data(self, application: Application) -> Dict[str, str]:
+        """
+        Build documents section for bank API with numeric document_type_id.
+        
+        Per Appendix B, document type IDs are product-specific:
+        - ID 21 for BG = "Паспорт генерального директора"
+        - ID 74 for KIK = "Паспорт генерального директора"
+        
+        Bank API expects documents in format:
+        documents[0][type_id] = 21
+        documents[0][file] = base64_or_url
+        
+        NOTE: For files, we send URLs that the bank can fetch.
+        """
+        payload = {}
+        documents = application.documents.all()
+        
+        if not documents.exists():
+            logger.debug(f"No documents attached to application {application.id}")
+            return payload
+        
+        for idx, doc in enumerate(documents):
+            prefix = f'documents[{idx}]'
+            
+            # Use numeric document_type_id (Appendix B compliant)
+            # If document_type_id is 0 or not set, it means "Дополнительный документ"
+            type_id = doc.document_type_id if hasattr(doc, 'document_type_id') else 0
+            
+            payload[f'{prefix}[type_id]'] = str(type_id)
+            payload[f'{prefix}[name]'] = doc.name or ''
+            
+            # Send file URL (bank will fetch it)
+            # In production, this should be a publicly accessible URL
+            if doc.file:
+                payload[f'{prefix}[file_url]'] = doc.file.url
+            
+            logger.debug(f"Added document {doc.id} with type_id={type_id} to payload")
+        
+        logger.info(f"Built documents section with {documents.count()} documents for app {application.id}")
+        return payload
+    
+    def serialize_documents_for_bank(self, application_id: int) -> List[Dict[str, Any]]:
+        """
+        Serialize application documents for bank submission.
+        
+        This is a utility method that returns a list of documents
+        in the format expected by the bank API, using numeric IDs.
+        
+        Returns:
+            List of dicts with document data:
+            [
+                {
+                    'type_id': 21,          # Numeric ID from Appendix B
+                    'type_name': 'Паспорт генерального директора',
+                    'name': 'passport_ceo.pdf',
+                    'file_url': '/media/documents/...',
+                    'status': 'verified'
+                },
+                ...
+            ]
+        """
+        from apps.documents.models import DocumentTypeDefinition
+        
+        try:
+            application = Application.objects.prefetch_related('documents').get(id=application_id)
+        except Application.DoesNotExist:
+            logger.error(f"Application {application_id} not found")
+            return []
+        
+        result = []
+        product_type = application.product_type
+        
+        for doc in application.documents.all():
+            # Get document type_id (default to 0 if not set)
+            type_id = getattr(doc, 'document_type_id', 0) or 0
+            doc_product_type = getattr(doc, 'product_type', '') or product_type
+            
+            # Look up type name from reference table
+            type_name = ''
+            try:
+                type_def = DocumentTypeDefinition.objects.get(
+                    document_type_id=type_id,
+                    product_type=doc_product_type
+                )
+                type_name = type_def.name
+            except DocumentTypeDefinition.DoesNotExist:
+                if type_id == 0:
+                    type_name = 'Дополнительный документ'
+                else:
+                    type_name = f'Документ (ID: {type_id})'
+            
+            result.append({
+                'type_id': type_id,
+                'type_name': type_name,
+                'name': doc.name,
+                'file_url': doc.file.url if doc.file else '',
+                'status': doc.status,
+            })
+        
+        return result
+
     
     def _build_authentication(self) -> Dict[str, str]:
         """Build login/password fields."""
@@ -473,8 +578,11 @@ class BankIntegrationService:
         1. Generates payload using generate_payload()
         2. Validates the payload
         3. Converts to form-data format
-        4. POSTs to bank API /add_ticket endpoint
+        4. POSTs to bank API /add_ticket endpoint (Phase 2 only)
         5. Parses response and saves external_id to application
+        
+        Phase 1 Mode: When BANK_API_PHASE1_MODE=True (default), simulates
+        the bank response without making external HTTP calls.
         
         Args:
             application_id: ID of the Application to send.
@@ -484,9 +592,9 @@ class BankIntegrationService:
             
         Raises:
             ValueError: If validation fails or API returns error
-            requests.RequestException: On network errors
+            requests.RequestException: On network errors (Phase 2 only)
         """
-        import requests
+        import time
         from apps.applications.models import ApplicationStatus
         
         logger.info(f"Sending application {application_id} to Realist Bank")
@@ -509,7 +617,42 @@ class BankIntegrationService:
         form_data = self.to_form_data(payload)
         logger.debug(f"Form data has {len(form_data)} fields")
         
-        # Step 4: Send to bank API
+        # =====================================================================
+        # PHASE 1 MODE: Simulate bank response without HTTP calls
+        # =====================================================================
+        phase1_mode = getattr(settings, 'BANK_API_PHASE1_MODE', True)
+        
+        if phase1_mode:
+            logger.info(f"[PHASE 1] Simulating bank response for application {application_id}")
+            
+            # Generate simulated ticket_id (like bank would return)
+            timestamp = int(time.time())
+            ticket_id_str = f"SIM-{application_id}-{timestamp}"
+            
+            # Update application with simulated external_id
+            try:
+                application = Application.objects.get(id=application_id)
+                application.external_id = ticket_id_str
+                application.bank_status = 'Отправлено (Phase 1)'
+                # Update status to pending if still draft
+                if application.status == ApplicationStatus.DRAFT:
+                    application.status = ApplicationStatus.PENDING
+                application.save()
+                logger.info(f"[PHASE 1] Application {application_id} saved with external_id={ticket_id_str}")
+            except Exception as e:
+                logger.error(f"Failed to save external_id for app {application_id}: {e}")
+            
+            return {
+                'ticket_id': ticket_id_str,
+                'bank_status': 'Отправлено (Phase 1)',
+                'message': 'Заявка успешно отправлена (режим симуляции Phase 1)'
+            }
+        
+        # =====================================================================
+        # PHASE 2 MODE: Real HTTP request to bank API
+        # =====================================================================
+        import requests
+        
         url = f"{self.api_url}/add_ticket"
         logger.info(f"POSTing to {url}")
         
@@ -567,6 +710,9 @@ class BankIntegrationService:
         Phase 7.2: Polls the bank API to get current ticket status
         and updates the local database.
         
+        Phase 1 Mode: When BANK_API_PHASE1_MODE=True (default), returns
+        a simulated status without making external HTTP calls.
+        
         Args:
             application_id: ID of the Application to sync.
             
@@ -576,8 +722,6 @@ class BankIntegrationService:
         Raises:
             ValueError: If application not found or has no external_id
         """
-        import requests
-        
         logger.info(f"Syncing status for application {application_id}")
         
         # Get application and verify it has external_id
@@ -588,6 +732,32 @@ class BankIntegrationService:
         
         if not application.external_id:
             raise ValueError("Заявка ещё не отправлена в банк")
+        
+        # =====================================================================
+        # PHASE 1 MODE: Simulate bank response
+        # =====================================================================
+        phase1_mode = getattr(settings, 'BANK_API_PHASE1_MODE', True)
+        
+        if phase1_mode:
+            logger.info(f"[PHASE 1] Simulating status sync for application {application_id}")
+            
+            # Return the current simulated status
+            current_status = application.bank_status or 'Отправлено (Phase 1)'
+            
+            return {
+                'bank_status': current_status,
+                'bank_status_id': 101,  # Simulated ID
+                'status_comment': 'Режим симуляции Phase 1 - реальный статус будет доступен в Phase 2',
+                'manager_name': '',
+                'payment_status': '',
+                'changed': False,
+                'message': f'Статус: {current_status} (Phase 1 режим)'
+            }
+        
+        # =====================================================================
+        # PHASE 2 MODE: Real HTTP request to bank API
+        # =====================================================================
+        import requests
         
         # Prepare request data
         form_data = {
@@ -636,6 +806,9 @@ class BankIntegrationService:
         old_status = application.bank_status
         if new_status_name and new_status_name != old_status:
             application.bank_status = new_status_name
+            # Also update status_id if provided
+            if new_status_id:
+                application.status_id = new_status_id
             application.save()
             logger.info(f"Application {application_id} bank_status updated: {old_status} -> {new_status_name}")
         
@@ -647,4 +820,116 @@ class BankIntegrationService:
             'payment_status': payment_status,
             'changed': new_status_name != old_status,
             'message': f"Статус: {new_status_name}" if new_status_name else "Статус получен"
+        }
+
+    def process_bank_status_webhook(
+        self, 
+        external_id: str, 
+        status_id: int, 
+        status_name: str = ''
+    ) -> Dict[str, Any]:
+        """
+        Process incoming status update from bank webhook.
+        
+        This method handles bank callbacks when status changes.
+        It maps the bank's numeric status_id to our internal status
+        using ApplicationStatusDefinition (Appendix A).
+        
+        Args:
+            external_id: Bank ticket ID (stored in Application.external_id)
+            status_id: Numeric status ID from bank (e.g., 710, 2712)
+            status_name: Optional status name from bank
+            
+        Returns:
+            Dict with update result
+            
+        Example:
+            service.process_bank_status_webhook(
+                external_id='12345',
+                status_id=710,  # "Одобрено, ожидается согласование БГ"
+            )
+        """
+        from apps.applications.models import ApplicationStatus, ApplicationStatusDefinition
+        
+        logger.info(f"Processing bank webhook: ticket={external_id}, status_id={status_id}")
+        
+        # Find application by external_id
+        try:
+            application = Application.objects.get(external_id=external_id)
+        except Application.DoesNotExist:
+            logger.error(f"No application found with external_id={external_id}")
+            return {
+                'success': False,
+                'error': f'Application with external_id {external_id} not found'
+            }
+        
+        # Look up status definition in our reference table
+        status_def = None
+        try:
+            status_def = ApplicationStatusDefinition.objects.get(
+                status_id=status_id,
+                product_type=application.product_type
+            )
+        except ApplicationStatusDefinition.DoesNotExist:
+            # Try without product filter (for general statuses)
+            try:
+                status_def = ApplicationStatusDefinition.objects.filter(
+                    status_id=status_id
+                ).first()
+            except:
+                pass
+        
+        # Update application
+        old_status = application.status
+        old_status_id = application.status_id
+        old_bank_status = application.bank_status
+        
+        # Always save bank's status_id
+        application.status_id = status_id
+        
+        # Update bank_status name
+        if status_name:
+            application.bank_status = status_name
+        elif status_def:
+            application.bank_status = status_def.name
+        
+        # Map to internal status if found in reference table
+        if status_def and status_def.internal_status:
+            # Map internal_status string to ApplicationStatus enum
+            internal_status_map = {
+                'draft': ApplicationStatus.DRAFT,
+                'pending': ApplicationStatus.PENDING,
+                'in_review': ApplicationStatus.IN_REVIEW,
+                'info_requested': ApplicationStatus.INFO_REQUESTED,
+                'approved': ApplicationStatus.APPROVED,
+                'rejected': ApplicationStatus.REJECTED,
+                'won': ApplicationStatus.WON,
+                'lost': ApplicationStatus.LOST,
+            }
+            new_internal = internal_status_map.get(status_def.internal_status)
+            if new_internal:
+                application.status = new_internal
+        
+        application.save()
+        
+        logger.info(
+            f"Application {application.id} updated: "
+            f"status_id {old_status_id}->{status_id}, "
+            f"status {old_status}->{application.status}, "
+            f"bank_status {old_bank_status}->{application.bank_status}"
+        )
+        
+        return {
+            'success': True,
+            'application_id': application.id,
+            'old_status_id': old_status_id,
+            'new_status_id': status_id,
+            'old_status': old_status,
+            'new_status': application.status,
+            'bank_status': application.bank_status,
+            'status_definition': {
+                'name': status_def.name if status_def else status_name,
+                'internal_status': status_def.internal_status if status_def else '',
+                'is_terminal': status_def.is_terminal if status_def else False,
+            } if status_def else None
         }

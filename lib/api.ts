@@ -36,6 +36,7 @@ export interface User {
   first_name: string;
   last_name: string;
   is_active: boolean;
+  accreditation_status?: 'none' | 'pending' | 'approved' | 'rejected';
 }
 
 export interface LoginResponse {

@@ -54,7 +54,10 @@ INSTALLED_APPS = [
     'apps.applications',
     'apps.chat',
     'apps.integrations',
+    'apps.dictionaries',
+    'apps.news',
 ]
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first
@@ -265,3 +268,7 @@ LOGGING = {
 BANK_API_URL = os.getenv('BANK_API_URL', 'https://stagebg.realistbank.ru/agent_api1_1')
 BANK_API_LOGIN = os.getenv('BANK_API_LOGIN', '')
 BANK_API_PASSWORD = os.getenv('BANK_API_PASSWORD', '')
+
+# Phase 1 Mode: When True (default), skip external API calls and simulate response
+# Set to 'False' in production to enable real bank API integration
+BANK_API_PHASE1_MODE = os.getenv('BANK_API_PHASE1_MODE', 'True').lower() == 'true'

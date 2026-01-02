@@ -28,21 +28,17 @@ import {
   RefreshCw,
   ExternalLink,
 } from "lucide-react"
-import { useDocuments, useDocumentMutations, type DocumentListItem } from "@/hooks/use-documents"
+import { useDocuments, useDocumentMutations, type DocumentListItem, formatDocumentType } from "@/hooks/use-documents"
 import { toast } from "sonner"
 import {
-  DOCUMENT_TYPES,
-  DOCUMENT_TYPE_MAP,
-  DOCUMENT_GROUPS,
-  getGroupedDocumentTypes,
-  COMMON_DOCUMENT_TYPES
+  getAgentUploadableTypes,
+  getDocumentTypeName,
+  GENERAL_DOCUMENT_TYPES,
+  type DocumentTypeOption
 } from "@/lib/document-types"
 
-// Use shared document type map for display
-const documentTypeMap = DOCUMENT_TYPE_MAP
-
-// Use common types for filter dropdown (first 20 most used)
-const documentTypeOptions = COMMON_DOCUMENT_TYPES
+// Get document type options for filter (using general types for library)
+const documentTypeOptions = GENERAL_DOCUMENT_TYPES.slice(0, 20)
 
 type DocumentStatus = "pending" | "verified" | "rejected"
 
@@ -54,7 +50,7 @@ export function MyDocumentsView() {
 
   // Upload form state
   const [uploadName, setUploadName] = useState("")
-  const [uploadType, setUploadType] = useState("")
+  const [uploadTypeId, setUploadTypeId] = useState<number>(0)  // Numeric ID, 0 = "Additional"
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -69,7 +65,8 @@ export function MyDocumentsView() {
   // Filter documents
   const filteredDocuments = documents.filter((doc) => {
     const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesType = filterType === "all" || doc.document_type === filterType
+    // NEW: Compare numeric IDs as strings for filter value
+    const matchesType = filterType === "all" || String(doc.document_type_id) === filterType
     const matchesStatus = filterStatus === "all" || doc.status === filterStatus
     return matchesSearch && matchesType && matchesStatus
   })
@@ -129,7 +126,7 @@ export function MyDocumentsView() {
 
   // Handle upload
   const handleUpload = async () => {
-    if (!uploadFile || !uploadName || !uploadType) {
+    if (!uploadFile || !uploadName) {
       toast.error("Заполните все поля")
       return
     }
@@ -137,14 +134,16 @@ export function MyDocumentsView() {
     const doc = await uploadDocument({
       name: uploadName,
       file: uploadFile,
-      document_type: uploadType,
+      document_type_id: uploadTypeId,  // NEW: Numeric ID
+      product_type: 'general',         // Library documents are general
     })
 
     if (doc) {
-      toast.success("Документ загружен")
+      const typeName = getDocumentTypeName(uploadTypeId, 'general')
+      toast.success(`Документ "${uploadName}" загружен (${typeName})`)
       setIsUploadOpen(false)
       setUploadName("")
-      setUploadType("")
+      setUploadTypeId(0)
       setUploadFile(null)
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
@@ -154,6 +153,7 @@ export function MyDocumentsView() {
       toast.error("Ошибка загрузки документа")
     }
   }
+
 
   // Open delete confirmation modal
   const openDeleteConfirm = (id: number, name: string) => {
@@ -269,20 +269,25 @@ export function MyDocumentsView() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Тип документа *</Label>
-              <Select value={uploadType} onValueChange={setUploadType}>
+              <Label>Тип документа</Label>
+              <Select
+                value={String(uploadTypeId)}
+                onValueChange={(val) => setUploadTypeId(parseInt(val, 10))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Выберите тип" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
+                  <SelectItem value="0">Дополнительный документ</SelectItem>
                   {documentTypeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                    <SelectItem key={opt.id} value={String(opt.id)}>
+                      {opt.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Файл *</Label>
               <div
@@ -322,7 +327,7 @@ export function MyDocumentsView() {
               <Button
                 className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                 onClick={handleUpload}
-                disabled={uploading || !uploadFile || !uploadName || !uploadType}
+                disabled={uploading || !uploadFile || !uploadName}
               >
                 {uploading ? (
                   <>
@@ -471,15 +476,16 @@ export function MyDocumentsView() {
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   <SelectItem value="all">Все типы</SelectItem>
                   {documentTypeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
+                    <SelectItem key={opt.id} value={String(opt.id)}>
+                      {opt.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
               <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as DocumentStatus | "all")}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Статус" />
@@ -535,8 +541,9 @@ export function MyDocumentsView() {
                       </a>
                     </TableCell>
                     <TableCell>
-                      {doc.type_display || documentTypeMap[doc.document_type] || doc.document_type}
+                      {formatDocumentType(doc)}
                     </TableCell>
+
                     <TableCell>
                       {getStatusBadge(doc.status as DocumentStatus)}
                     </TableCell>

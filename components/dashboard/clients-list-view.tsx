@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Loader2, AlertCircle, RefreshCw } from "lucide-react"
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Loader2, AlertCircle, RefreshCw, Filter, ChevronLeft, ChevronRight } from "lucide-react"
 import { AddClientModal } from "./add-client-modal"
 import { EditClientSheet } from "./edit-client-sheet"
 import { useCRMClients, useCRMClientMutations, type CreateCompanyPayload } from "@/hooks/use-companies"
@@ -29,6 +30,9 @@ interface ClientsListViewProps {
 
 export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [pageSize, setPageSize] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 
   // Delete dialog state
@@ -44,13 +48,25 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
   const { clients, isLoading, error, refetch } = useCRMClients()
   const { createClient, deleteClient, isLoading: mutating, error: mutationError } = useCRMClientMutations()
 
-  // Filter clients by search (by name/inn/short_name)
-  const filteredClients = clients.filter(
-    (client) =>
+  // Filter clients by search and status
+  const filteredClients = clients.filter((client) => {
+    const matchesSearch =
       client.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.inn?.includes(searchQuery) ||
-      client.short_name?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      client.short_name?.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      client.client_status === statusFilter ||
+      (statusFilter === "pending" && !client.client_status)
+
+    return matchesSearch && matchesStatus
+  })
+
+  // Pagination
+  const totalPages = Math.ceil(filteredClients.length / pageSize)
+  const startIndex = (currentPage - 1) * pageSize
+  const paginatedClients = filteredClients.slice(startIndex, startIndex + pageSize)
 
   // Handle add client
   const handleAddClient = async (newClient: CreateCompanyPayload) => {
@@ -124,10 +140,11 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
   // Get client status label and style per PDF spec
   type ClientStatus = 'pending' | 'confirmed'
   const getClientStatus = (client: typeof clients[0]): ClientStatus => {
-    // If client has owner (user_id), they have registered
-    if (client.owner) return 'confirmed'
-    // If explicitly set in backend
+    // Priority 1: Use explicit client_status from backend API
     if (client.client_status === 'confirmed') return 'confirmed'
+    if (client.client_status === 'pending') return 'pending'
+    // Priority 2: Fallback - if client has owner (user_id), they have registered
+    if (client.owner) return 'confirmed'
     // Default: pending (just added by agent)
     return 'pending'
   }
@@ -157,15 +174,17 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
     }
   }
 
-  // Loading skeleton (5 columns)
+  // Loading skeleton (6 columns per ТЗ)
   const TableSkeleton = () => (
     <>
       {[1, 2, 3].map((i) => (
         <TableRow key={i}>
-          <TableCell><Skeleton className="h-10 w-48" /></TableCell>
+          <TableCell><Skeleton className="h-10 w-40" /></TableCell>
           <TableCell><Skeleton className="h-8 w-24" /></TableCell>
+          <TableCell><Skeleton className="h-8 w-32" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
           <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
-          <TableCell><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8" /></TableCell>
         </TableRow>
       ))}
@@ -215,15 +234,35 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
       <Card className="shadow-sm">
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <CardTitle>Список клиентов</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Поиск по названию, ИНН..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-[300px]"
-              />
+            <div className="flex items-center gap-4">
+              <CardTitle>Список клиентов</CardTitle>
+              <span className="text-sm text-muted-foreground">
+                Всего: {filteredClients.length}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+                <SelectTrigger className="w-[180px]">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Все статусы" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все статусы</SelectItem>
+                  <SelectItem value="pending">На рассмотрении</SelectItem>
+                  <SelectItem value="confirmed">Закреплен</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Поиск по названию, ИНН..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  className="pl-9 w-[300px]"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -231,19 +270,21 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Компания</TableHead>
-                <TableHead>Реквизиты</TableHead>
-                <TableHead>Заявок</TableHead>
-                <TableHead>Статус</TableHead>
+                <TableHead>Краткое наименование</TableHead>
+                <TableHead>ИНН</TableHead>
+                <TableHead>Контакты</TableHead>
+                <TableHead>Регион</TableHead>
+                <TableHead>Акт. заявки</TableHead>
+                <TableHead>Статус клиента</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableSkeleton />
-              ) : filteredClients.length === 0 ? (
+              ) : paginatedClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Users className="h-8 w-8" />
                       <p>Клиенты не найдены</p>
@@ -251,9 +292,9 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredClients.map((client) => (
+                paginatedClients.map((client) => (
                   <TableRow key={client.id}>
-                    {/* Column 1: Company Name + Contact Person */}
+                    {/* Column 1: Краткое наименование организации */}
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0a1628] text-white text-xs font-semibold">
@@ -264,26 +305,31 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                         </div>
                         <div>
                           <p className="font-medium">{client.short_name || client.name}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {client.contact_person || "—"}
-                          </p>
                         </div>
                       </div>
                     </TableCell>
-                    {/* Column 2: INN + Region */}
+                    {/* Column 2: ИНН */}
                     <TableCell>
-                      <div>
-                        <p className="font-mono text-sm font-medium">{client.inn}</p>
-                        <p className="text-xs text-muted-foreground">{client.region || "—"}</p>
+                      <p className="font-mono text-sm font-medium">{client.inn || "—"}</p>
+                    </TableCell>
+                    {/* Column 3: Контакты (email/phone) */}
+                    <TableCell>
+                      <div className="text-sm">
+                        <p className="text-foreground">{client.contact_person || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{client.email || client.phone || "—"}</p>
                       </div>
                     </TableCell>
-                    {/* Column 3: Active Applications Count */}
+                    {/* Column 4: Регион */}
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">{client.region || "—"}</span>
+                    </TableCell>
+                    {/* Column 5: Акт. заявки */}
                     <TableCell>
                       <span className="inline-flex h-6 min-w-6 px-2 items-center justify-center rounded-full bg-[#3CE8D1]/10 text-xs font-semibold text-[#3CE8D1]">
-                        —
+                        {client.applications_count ?? "—"}
                       </span>
                     </TableCell>
-                    {/* Column 4: Status Badge */}
+                    {/* Column 6: Статус клиента */}
                     <TableCell>
                       {getStatusBadge(client)}
                     </TableCell>
@@ -309,14 +355,6 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                             Редактировать
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleCreateApplication(client.id)}
-                            disabled={getClientStatus(client) !== 'confirmed'}
-                            className={getClientStatus(client) !== 'confirmed' ? 'opacity-50 cursor-not-allowed' : ''}
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Создать заявку
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
                             className="text-destructive"
                             onClick={() => openDeleteDialog(client.id, client.name)}
                           >
@@ -331,6 +369,46 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {filteredClients.length > 0 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Выводить на страницу:</span>
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Страница {currentPage} из {totalPages || 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

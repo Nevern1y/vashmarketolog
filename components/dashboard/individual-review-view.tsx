@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Fragment } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -235,9 +235,8 @@ export function IndividualReviewView() {
                             </TableHeader>
                             <TableBody>
                                 {filteredConditions.map((bank) => (
-                                    <>
+                                    <Fragment key={bank.id}>
                                         <TableRow
-                                            key={bank.id}
                                             className="cursor-pointer hover:bg-muted/50 transition-colors"
                                             onClick={() => toggleRow(bank.id)}
                                         >
@@ -285,7 +284,7 @@ export function IndividualReviewView() {
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                    </>
+                                    </Fragment>
                                 ))}
                             </TableBody>
                         </Table>

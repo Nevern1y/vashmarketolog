@@ -5,7 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
@@ -89,7 +89,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         request=DocumentVerifySerializer,
         responses={200: DocumentSerializer}
     )
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin], parser_classes=[JSONParser])
     def verify(self, request, pk=None):
         """
         Verify or reject document (Admin only).

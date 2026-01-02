@@ -61,26 +61,35 @@ export function AccreditationView() {
       : (hasBankDetails && documents.length > 0) ? "in-progress" : "pending"
 
     // Build document list for in-progress bank/documents step
+    // UPDATED: Using numeric IDs per Приложение Б
+    // These are GENERAL document type IDs for client accreditation
+    const ACCREDITATION_DOC_IDS = {
+      PASSPORT: 1,       // Паспорт генерального директора (General ID)
+      STATUTE: 4,        // Устав/учредительные документы
+      BALANCE_SHEET: 2,  // Бухгалтерская отчетность
+    }
+
     const documentsList = [
       {
         name: "Паспорт (все страницы)",
-        status: documents.some(d => d.document_type === "passport_all_pages" && d.status === "verified")
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.PASSPORT && d.status === "verified")
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Устав компании",
-        status: documents.some(d => d.document_type === "statute" && d.status === "verified")
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.STATUTE && d.status === "verified")
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Бухгалтерский баланс Ф1",
-        status: documents.some(d => d.document_type === "balance_sheet_f1" && d.status === "verified")
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.BALANCE_SHEET && d.status === "verified")
           ? "uploaded" as const
           : "pending" as const
       },
     ]
+
 
     // Step 5: Verification (requires all previous + admin approval)
     const allPreviousComplete = hasCompanyBasic && hasDirector && hasBankDetails && hasVerifiedDocs

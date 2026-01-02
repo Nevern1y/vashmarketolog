@@ -135,8 +135,68 @@ class CRMClientViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        """Set owner and is_crm_client on create."""
-        serializer.save(
+        """Set owner, is_crm_client, generate invitation token, and save email."""
+        import secrets
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        # Generate unique invitation token
+        invitation_token = secrets.token_urlsafe(32)
+        
+        # Get email from contact_email field
+        invitation_email = serializer.validated_data.get('contact_email', '')
+        
+        instance = serializer.save(
             owner=self.request.user,
-            is_crm_client=True
+            is_crm_client=True,
+            client_status='pending',  # Статус "На рассмотрении" при создании
+            invitation_token=invitation_token,
+            invitation_email=invitation_email,
         )
+        
+        # Send invitation email to client
+        if instance.invitation_email:
+            try:
+                from django.core.mail import send_mail
+                from django.conf import settings
+                
+                # Get frontend URL from settings or use default
+                frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+                registration_url = f"{frontend_url}/register/invited?token={invitation_token}"
+                
+                # Get agent name for personalized message
+                agent_name = self.request.user.first_name or self.request.user.email
+                company_name = instance.name or instance.short_name or 'Новая компания'
+                
+                subject = 'Приглашение в систему Лидер Гарант'
+                message = f'''Здравствуйте!
+
+Агент {agent_name} приглашает вас в систему Лидер Гарант.
+
+Компания: {company_name}
+ИНН: {instance.inn}
+
+Для завершения регистрации перейдите по ссылке:
+{registration_url}
+
+После регистрации и прохождения аккредитации вы сможете подавать заявки на финансовые продукты.
+
+С уважением,
+Команда Лидер Гарант
+'''
+                
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lidergarant.ru'),
+                    recipient_list=[instance.invitation_email],
+                    fail_silently=False,
+                )
+                
+                logger.info(f"Invitation email sent to {instance.invitation_email} for company {instance.inn}")
+                
+            except Exception as e:
+                # Log error but don't fail the request
+                logger.error(f"Failed to send invitation email to {instance.invitation_email}: {e}")
+

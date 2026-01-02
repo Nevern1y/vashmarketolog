@@ -7,7 +7,7 @@ export type AgentViewType =
   | "calculator"
   | "check_counterparty"
   | "acts"
-  | "settings"
+  | "profile-settings"
   | "bank_conditions"
   | "individual_terms"
   | "news"

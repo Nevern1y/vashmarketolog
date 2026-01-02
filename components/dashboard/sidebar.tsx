@@ -61,6 +61,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
   }
 
   // Handle create application with accreditation check
+  // Agent: redirect to Calculator (per ТЗ - agents create via calculator)
+  // Client: open wizard directly
   const handleCreateApplication = () => {
     if (needsAccreditation) {
       toast.error("Доступ ограничен", {
@@ -72,6 +74,14 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
       })
       return
     }
+
+    // Agent: redirect to calculator view
+    if (isAgent) {
+      onViewChange("calculator")
+      return
+    }
+
+    // Client: open wizard directly
     onCreateApplication()
   }
 
@@ -79,12 +89,12 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
   const mainNavItems = [
     { id: "company" as ViewType, label: "Моя компания", icon: Building2 },
     { id: "accreditation" as ViewType, label: "Аккредитация", icon: Shield },
-    { id: "applications" as ViewType, label: "Заявки", icon: FileText, requiresAccreditation: true },
+    { id: "applications" as ViewType, label: "Мои заявки", icon: FileText, requiresAccreditation: true },
     { id: "calculator" as ViewType, label: "Калькулятор", icon: Calculator },
     { id: "clients" as ViewType, label: "Мои клиенты", icon: Users, requiresAccreditation: true },
     { id: "check_counterparty" as ViewType, label: "Проверка контрагента", icon: Search },
     { id: "acts" as ViewType, label: "Акты", icon: FileCheck },
-    { id: "settings" as ViewType, label: "Настройки", icon: Settings },
+    { id: "profile-settings" as ViewType, label: "Настройки", icon: Settings },
   ]
 
   const toolsNavItems = [
@@ -97,14 +107,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]">
-          <span className="text-lg font-bold text-[#0a1628]">ФМ</span>
-        </div>
-        <div>
-          <p className="text-sm font-semibold leading-tight">ФИНАНСОВЫЙ</p>
-          <p className="text-xs text-[#94a3b8]">МАРКЕТПЛЕЙС</p>
-        </div>
+      <div className="flex items-center px-5 py-6">
+        <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />
       </div>
 
       {/* Main CTA - with accreditation guard */}

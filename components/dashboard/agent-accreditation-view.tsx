@@ -18,19 +18,22 @@ import {
     FileSignature,
     Send,
     Shield,
+    PartyPopper,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useMyCompany } from "@/hooks/use-companies"
 import { useDocuments, useDocumentMutations } from "@/hooks/use-documents"
+import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
 
 // Document types required for agent accreditation (per PDF spec)
+// UPDATED: Using numeric IDs for agent documents
 const accreditationDocuments = [
-    { id: "statute", label: "Устав", description: "Устав компании (актуальная редакция)" },
-    { id: "inn_certificate", label: "Копия свидетельства ИНН", description: "Свидетельство о постановке на налоговый учет" },
-    { id: "ogrn_certificate", label: "Копия свидетельства ОГРН", description: "Свидетельство о регистрации" },
-    { id: "appointment_protocol", label: "Протокол/Решение о назначении", description: "Документ о назначении директора" },
+    { id: 4, label: "Устав", description: "Устав компании (актуальная редакция)" },
+    { id: 5, label: "Копия свидетельства ИНН", description: "Свидетельство о постановке на налоговый учет" },
+    { id: 6, label: "Копия свидетельства ОГРН", description: "Свидетельство о регистрации" },
+    { id: 7, label: "Протокол/Решение о назначении", description: "Документ о назначении директора" },
 ]
 
 // Documents for signing (UI stubs per ТЗ)
@@ -41,12 +44,13 @@ const signingDocuments = [
 ]
 
 export function AgentAccreditationView() {
+    const { user } = useAuth()
     const { company, isLoading: companyLoading } = useMyCompany()
     const { documents, isLoading: docsLoading, refetch: refetchDocs } = useDocuments()
     const { uploadDocument, isLoading: uploading } = useDocumentMutations()
 
-    // Track uploaded document types for this accreditation
-    const [uploadedDocTypes, setUploadedDocTypes] = useState<Set<string>>(new Set())
+    // Track uploaded document type IDs for this accreditation
+    const [uploadedDocTypeIds, setUploadedDocTypeIds] = useState<Set<number>>(new Set())
 
     // Track signed documents (UI state only - stub for MVP)
     const [signedDocs, setSignedDocs] = useState<Set<string>>(new Set())
@@ -58,31 +62,33 @@ export function AgentAccreditationView() {
     // File input refs by document type
     const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
+    // Check if user is already approved - cast user to access accreditation_status
+    const isApproved = (user as any)?.accreditation_status === 'approved'
+
     // Check organization data completeness
     const hasOrgData = company && company.inn && company.name && company.director_name
 
-    // Check if specific doc type is uploaded
-    const isDocUploaded = useCallback((docType: string) => {
+    // Check if specific doc type ID is uploaded
+    const isDocUploaded = useCallback((docTypeId: number) => {
         // Check in local state or in existing documents
-        if (uploadedDocTypes.has(docType)) return true
-        // Also check if document matching this type exists in backend
-        return documents.some(d =>
-            d.document_type === docType ||
-            d.name.toLowerCase().includes(docType.replace("_", " "))
-        )
-    }, [uploadedDocTypes, documents])
+        if (uploadedDocTypeIds.has(docTypeId)) return true
+        // Also check if document matching this type ID exists in backend
+        return documents.some(d => d.document_type_id === docTypeId)
+    }, [uploadedDocTypeIds, documents])
 
-    // Handle file upload
-    const handleFileUpload = async (docType: string, file: File) => {
+    // Handle file upload - now uses numeric document_type_id
+    const handleFileUpload = async (docTypeId: number, file: File) => {
+        const docInfo = accreditationDocuments.find(d => d.id === docTypeId)
         const doc = await uploadDocument({
             name: file.name,
             file: file,
-            document_type: "other", // Using 'other' since backend may not have these exact types
+            document_type_id: docTypeId,  // NEW: Numeric ID
+            product_type: 'agent',         // Agent accreditation context
         })
 
         if (doc && doc.id) {
-            setUploadedDocTypes(prev => new Set(prev).add(docType))
-            toast.success(`Документ "${accreditationDocuments.find(d => d.id === docType)?.label}" загружен`)
+            setUploadedDocTypeIds(prev => new Set(prev).add(docTypeId))
+            toast.success(`Документ "${docInfo?.label}" загружен`)
             refetchDocs()
         } else {
             toast.error("Ошибка загрузки документа")
@@ -137,6 +143,74 @@ export function AgentAccreditationView() {
                     <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
                     <p className="text-muted-foreground">Загрузка данных аккредитации...</p>
                 </div>
+            </div>
+        )
+    }
+
+    // If agent is already approved, show success view instead of steps
+    if (isApproved) {
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div>
+                    <h1 className="text-2xl font-bold text-foreground">Аккредитация агента</h1>
+                    <p className="text-muted-foreground">Статус вашей аккредитации</p>
+                </div>
+
+                {/* Success Card */}
+                <Card className="shadow-sm border-[#3CE8D1] bg-[#3CE8D1]/5">
+                    <CardContent className="pt-6">
+                        <div className="flex flex-col items-center gap-4 py-8">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#3CE8D1]/20">
+                                <PartyPopper className="h-10 w-10 text-[#3CE8D1]" />
+                            </div>
+                            <div className="text-center">
+                                <h2 className="text-2xl font-bold text-[#3CE8D1]">Аккредитация одобрена!</h2>
+                                <p className="mt-2 text-muted-foreground max-w-md">
+                                    Поздравляем! Ваша аккредитация успешно пройдена.
+                                    Теперь вы можете создавать заявки на финансовые продукты.
+                                </p>
+                            </div>
+                            <Badge className="bg-[#3CE8D1] text-[#0a1628] text-sm px-4 py-1">
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
+                                Активный агент
+                            </Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Available Actions */}
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="text-base">Доступные действия</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="flex items-start gap-3 rounded-lg border p-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                                    <FileText className="h-5 w-5 text-[#3CE8D1]" />
+                                </div>
+                                <div>
+                                    <p className="font-medium">Создать заявку</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Оформите заявку на банковскую гарантию, кредит или другие продукты
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3 rounded-lg border p-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                                    <Building2 className="h-5 w-5 text-[#3CE8D1]" />
+                                </div>
+                                <div>
+                                    <p className="font-medium">Мои клиенты</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Управляйте клиентской базой и их заявками
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         )
     }

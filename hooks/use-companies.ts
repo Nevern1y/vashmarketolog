@@ -99,10 +99,14 @@ export interface Company {
 export interface CompanyListItem {
     id: number;
     inn: string;
+    kpp?: string;                 // КПП for info panel
     name: string;
     short_name: string;
     region: string;
     contact_person: string;
+    email?: string;              // Contact email for table display
+    phone?: string;              // Contact phone for table display  
+    applications_count?: number; // Active applications count
     is_crm_client: boolean;
     created_at: string;
     // Client status for CRM (per PDF agent_add_client spec)

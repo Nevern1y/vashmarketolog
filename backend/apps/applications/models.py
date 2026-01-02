@@ -106,7 +106,7 @@ class CreditSubType(models.TextChoices):
 
 
 class ApplicationStatus(models.TextChoices):
-    """Application workflow statuses."""
+    """Application workflow statuses (internal string-based)."""
     DRAFT = 'draft', 'Черновик'
     PENDING = 'pending', 'На рассмотрении'
     IN_REVIEW = 'in_review', 'В работе'
@@ -115,6 +115,88 @@ class ApplicationStatus(models.TextChoices):
     REJECTED = 'rejected', 'Отклонено'
     WON = 'won', 'Выигран'
     LOST = 'lost', 'Проигран'
+
+
+class ApplicationStatusDefinition(models.Model):
+    """
+    Reference table for Application Statuses per Appendix A (Приложение А).
+    
+    CRITICAL: Status ID depends on Product Type!
+    The same status (e.g., "Анкета") has different IDs:
+    - ID 101 for Bank Guarantee (БГ)
+    - ID 2101 for Contract Loan (КИК)
+    
+    Status Model for БГ (from Appendix A.1):
+    - ID101: Анкета, ID102: Предзаявка, ID110: Прескоринг
+    - ID120: Дозаполнение заявки, ID210: Проверка документов
+    - ID520: Не актуальна, ID530: Отклонена
+    - ID640: Одобрено с замечаниями, ID710: Ожидается согласование БГ
+    - ID715: Ожидается формирование ЭЦП, ID720: Ожидаются документы ЭЦП
+    - ID750: Проверка ЭЦП, ID810: Ожидается оплата
+    - ID850: Ожидается выпуск, ID910: Гарантия выпущена
+    - ID1010: Гарантия в реестре, ID1090: Гарантия закрыта
+    
+    Status Model for КИК (from Appendix A.2):
+    - ID2101: Анкета, ID2102: Предзаявка, ID2110: Прескоринг
+    - ID2120: Дозаполнение заявки, ID2210: Проверка документов
+    - ID2520: Не актуальна, ID2530: Отклонена
+    - ID2540: Одобрено с замечаниями, ID2712: Согласование условий
+    - ID2715: Ожидается формирование ЭЦП, ID2720: Ожидаются документы ЭЦП
+    - ID2750: Проверка ЭЦП, ID2810: Ожидается оплата
+    - ID2860: Выдача кредита, ID2910: Кредит выдан, ID2990: Кредит погашен
+    """
+    status_id = models.IntegerField(
+        'ID статуса',
+        help_text='Числовой ID из Приложения А (101, 102, 2101, ...)'
+    )
+    product_type = models.CharField(
+        'Тип продукта',
+        max_length=30,
+        db_index=True,
+        help_text='bank_guarantee, contract_loan, etc.'
+    )
+    name = models.CharField(
+        'Наименование',
+        max_length=200,
+        help_text='Название статуса из Приложения А'
+    )
+    internal_status = models.CharField(
+        'Внутренний статус',
+        max_length=20,
+        choices=ApplicationStatus.choices,
+        blank=True,
+        default='',
+        help_text='Маппинг на внутренний статус (draft, pending, approved, etc.)'
+    )
+    order = models.IntegerField(
+        'Порядок',
+        default=0,
+        help_text='Порядок отображения в воронке статусов'
+    )
+    is_terminal = models.BooleanField(
+        'Конечный статус',
+        default=False,
+        help_text='Является ли статус финальным (закрыта, выдан, погашен)'
+    )
+    is_active = models.BooleanField(
+        'Активен',
+        default=True,
+        help_text='Используется ли этот статус'
+    )
+    
+    class Meta:
+        verbose_name = 'Статус заявки (справочник)'
+        verbose_name_plural = 'Статусы заявок (справочник)'
+        ordering = ['product_type', 'order', 'status_id']
+        unique_together = ['status_id', 'product_type']
+        indexes = [
+            models.Index(fields=['product_type', 'status_id']),
+        ]
+    
+    def __str__(self):
+        return f"[{self.product_type}] ID:{self.status_id} - {self.name}"
+
+
 
 
 class Application(models.Model):
@@ -411,10 +493,21 @@ class Application(models.Model):
         help_text='URL для подписи документов в банке (из get_ticket_token)'
     )
     
+    # NEW: Numeric status ID per Appendix A (Приложение А)
+    # This stores the bank-compatible status ID (101, 110, 520, etc.)
+    status_id = models.IntegerField(
+        'ID статуса (банк)',
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Числовой ID статуса из Приложения А для интеграции с банком'
+    )
+    
     # Timestamps
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     updated_at = models.DateTimeField('Дата обновления', auto_now=True)
     submitted_at = models.DateTimeField('Дата подачи', null=True, blank=True)
+
 
     class Meta:
         verbose_name = 'Заявка'

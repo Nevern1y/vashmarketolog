@@ -5,6 +5,10 @@ from .base import *
 
 DEBUG = True
 
+# Frontend URL for invitation links
+FRONTEND_URL = 'http://localhost:3000'
+DEFAULT_FROM_EMAIL = 'noreply@lidergarant.ru'
+
 # Use console email backend for development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

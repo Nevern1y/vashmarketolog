@@ -1,8 +1,18 @@
 """
 Admin configuration for Applications app.
+Updated for numeric status_id per Appendix A.
 """
 from django.contrib import admin
-from .models import Application, PartnerDecision, TicketMessage
+from .models import Application, PartnerDecision, TicketMessage, ApplicationStatusDefinition
+
+
+@admin.register(ApplicationStatusDefinition)
+class ApplicationStatusDefinitionAdmin(admin.ModelAdmin):
+    """Admin for application status reference table."""
+    list_display = ['status_id', 'product_type', 'name', 'internal_status', 'order', 'is_terminal', 'is_active']
+    list_filter = ['product_type', 'internal_status', 'is_terminal', 'is_active']
+    search_fields = ['name', 'status_id']
+    ordering = ['product_type', 'order', 'status_id']
 
 
 class PartnerDecisionInline(admin.TabularInline):
@@ -26,6 +36,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         'product_type',
         'amount',
         'status',
+        'status_id',
         'company',
         'created_by',
         'assigned_partner',
@@ -39,7 +50,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Заявка', {
-            'fields': ('product_type', 'amount', 'term_months', 'status')
+            'fields': ('product_type', 'amount', 'term_months', 'status', 'status_id')
         }),
         ('Компания', {
             'fields': ('company', 'created_by')
@@ -65,6 +76,7 @@ class ApplicationAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at', 'submitted_at')
         }),
     )
+
 
 
 @admin.register(PartnerDecision)

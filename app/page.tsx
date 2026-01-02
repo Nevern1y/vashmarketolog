@@ -8,7 +8,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { ClientSidebar } from "@/components/dashboard/client-sidebar"
 import { PartnerLayout } from "@/components/dashboard/partner-layout"
 import { MyCompanyView } from "@/components/dashboard/my-company-view"
-import { MyApplicationsView } from "@/components/dashboard/my-applications-view"
+import { PartnerApplicationsView as MyApplicationsView } from "@/components/dashboard/partner/partner-applications-view"
 import { ClientsListView } from "@/components/dashboard/clients-list-view"
 import { AccreditationView } from "@/components/dashboard/accreditation-view"
 import { AgentAccreditationView } from "@/components/dashboard/agent-accreditation-view"
@@ -20,6 +20,9 @@ import { AdminDashboard } from "@/components/dashboard/admin-dashboard"
 import { ApplicationDetailView } from "@/components/dashboard/application-detail-view"
 import { CreateApplicationWizard } from "@/components/dashboard/create-application-wizard"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
+import { HelpView } from "@/components/dashboard/help-view"
+import { ClientCalculatorView } from "@/components/dashboard/client-calculator-view"
+import { NewsView } from "@/components/dashboard/news-view"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 
@@ -141,20 +144,17 @@ export default function DashboardPage() {
               {clientView === "documents" && <MyDocumentsView />}
               {clientView === "applications" && (
                 <MyApplicationsView
-                  onOpenDetail={(id) => {
+                  onOpenDetail={(id: string) => {
                     setSelectedApplicationId(id)
                     setShowingAppDetail(true)
                   }}
-                  onCreateApplication={() => openWizard()}
                 />
               )}
               {clientView === "victories" && <MyVictoriesView />}
               {clientView === "profile-settings" && <ProfileSettingsView />}
-              {(clientView === "calculator" || clientView === "news") && (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-muted-foreground">Раздел в разработке</p>
-                </div>
-              )}
+              {clientView === "calculator" && <ClientCalculatorView />}
+              {clientView === "news" && <NewsView />}
+              {clientView === "help" && <HelpView />}
             </main>
           </div>
 
@@ -297,18 +297,22 @@ export default function DashboardPage() {
               {agentView === "accreditation" && <AgentAccreditationView />}
               {agentView === "applications" && (
                 <MyApplicationsView
-                  onOpenDetail={(id) => {
+                  onOpenDetail={(id: string) => {
                     setSelectedApplicationId(id)
                     setShowingAppDetail(true)
                   }}
-                  onCreateApplication={() => openWizard()}
                 />
               )}
               {agentView === "individual_terms" && <IndividualReviewView />}
               {agentView === "profile-settings" && <ProfileSettingsView />}
               {agentView === "documents" && <MyDocumentsView />}
               {agentView === "victories" && <MyVictoriesView />}
-              {agentView !== "company" && agentView !== "accreditation" && agentView !== "applications" && agentView !== "clients" && agentView !== "individual_terms" && agentView !== "profile-settings" && agentView !== "documents" && agentView !== "victories" && (
+              {agentView === "calculator" && (
+                <CreateApplicationWizard isOpen={true} onClose={() => setAgentView("applications")} initialClientId={null} />
+              )}
+              {agentView === "news" && <NewsView />}
+              {agentView === "help" && <HelpView />}
+              {agentView !== "company" && agentView !== "accreditation" && agentView !== "applications" && agentView !== "clients" && agentView !== "individual_terms" && agentView !== "profile-settings" && agentView !== "documents" && agentView !== "victories" && agentView !== "calculator" && agentView !== "news" && agentView !== "help" && (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-muted-foreground">Раздел в разработке</p>
                 </div>

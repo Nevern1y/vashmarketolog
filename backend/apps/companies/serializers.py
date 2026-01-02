@@ -156,6 +156,8 @@ class CompanyProfileListSerializer(serializers.ModelSerializer):
             'region',
             'contact_person',
             'is_crm_client',
+            'client_status',
+            'invitation_email',
             'created_at',
         ]
         read_only_fields = fields
@@ -180,6 +182,9 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'region',
             'director_name',
             'director_position',
+            # Client status (ТЗ: Скриншот 3, 6)
+            'client_status',
+            'invitation_email',
             # Passport fields (API-Ready)
             'passport_series',
             'passport_number',
@@ -205,7 +210,7 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'client_status', 'created_at', 'updated_at']
 
     def create(self, validated_data):
         """Set owner and is_crm_client for CRM clients."""

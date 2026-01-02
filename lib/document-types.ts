@@ -1,189 +1,413 @@
 /**
- * Document Types - aligned with ТЗ Клиенты specification (135 types)
- * Organized into logical groups for filtering in the UI
+ * Document Types per Appendix B (Приложение Б)
+ * 
+ * BREAKING CHANGE: Now uses numeric IDs instead of string keys.
+ * Document Type IDs are PRODUCT-SPECIFIC:
+ * - ID 21 for Bank Guarantee = "Паспорт генерального директора"
+ * - ID 74 for Contract Loan = "Паспорт генерального директора" (same meaning, different ID)
  */
 
+// ============================================================================
+// TYPES & INTERFACES
+// ============================================================================
+
+export type DocumentSource = 'auto' | 'agent' | 'bank' | 'agent_bank';
+
 export interface DocumentTypeOption {
-    value: string
-    label: string
-    group: string
+    id: number;              // Numeric ID from Appendix B
+    productType: string;     // bank_guarantee | contract_loan | general
+    name: string;            // Document name in Russian
+    source: DocumentSource;  // Who uploads/generates
 }
 
-// Document type groups for filtering
+// Document type groups for UI filtering
 export const DOCUMENT_GROUPS = {
-    LEGAL: "Юридические / Учредительные",
     FINANCIAL: "Финансовые / Бухгалтерские",
-    CARDS_OSV: "Карточки счетов / ОСВ",
-    PASSPORTS: "Паспорта / Удостоверения",
-    CERTIFICATES: "Справки / Сертификаты",
+    LEGAL: "Юридические / Учредительные",
+    PERSONAL: "Паспорта / Удостоверения",
+    GUARANTEE: "Гарантии / Договоры",
+    SURETY: "Поручители",
     OTHER: "Прочие",
-} as const
+} as const;
 
-// Full list of 135 document types per ТЗ Клиенты
-export const DOCUMENT_TYPES: DocumentTypeOption[] = [
-    // ============ GROUP 1: LEGAL & FOUNDERS ============
-    { value: "company_card", label: "1. Карточка компании с реквизитами", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "passport_director_all", label: "2. Паспорт руководителя (все страницы)", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "decision_appointment", label: "3. Решение/Протокол о назначении ЕИО", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "order_director", label: "4. Приказ о назначении руководителя", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "decision_creation", label: "5. Решение о создании организации", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "lease_contract", label: "6. Договор аренды / свидетельство о собственности", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "fns_no_debt", label: "7. Справка ИФНС об отсутствии задолженности", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "statute", label: "8. Устав в действующей редакции", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "egrul_extract", label: "9. Выписка ЕГРЮЛ", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "passport_founders_all", label: "10. Паспорта всех учредителей (все страницы)", group: DOCUMENT_GROUPS.PASSPORTS },
+// ============================================================================
+// Б.1 БАНКОВСКИЕ ГАРАНТИИ (63 types)
+// ============================================================================
 
-    // ============ GROUP 2: FINANCIAL / ACCOUNTING ============
-    { value: "revenue_certificate", label: "11. Справка о выручке за предыдущий год", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "staff_count_certificate", label: "12. Справка о среднесписочной численности", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "credit_portfolio", label: "13. Кредитный портфель", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "account_card_51_12m", label: "14. Карточка 51 за последние 12 мес (Excel)", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "balance_f1_f2_q2_2025", label: "15. Бухбаланс Ф1 и ФР Ф2 на 30.06.2025", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "balance_f1_f2_q1_2025", label: "16. Бухбаланс Ф1 и ФР Ф2 на 31.03.2025", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "balance_f1_f2_2024_annual", label: "17. Бухбаланс Ф1 и ФР Ф2 на 31.12.2024 с ИФНС", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "balance_f1_f2_q3_2024", label: "18. Бухбаланс Ф1 и ФР Ф2 на 30.09.2024", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "balance_f1_f2_q2_2024", label: "19. Бухбаланс Ф1 и ФР Ф2 на 30.06.2024", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "contract_register", label: "20. Реестр контрактов", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "group_scheme", label: "21. Юридическая схема Группы и схема потоков", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "account_card_51_52_monthly", label: "22. Анализ и карточка 51, 52 счета (Excel)", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "account_90_12m", label: "23. Анализ счета 90 за 12 месяцев (Excel)", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "audit_conclusion", label: "24. Аудиторское заключение за последний год", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "bg_client_version", label: "25. Банковская гарантия в редакции клиента", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "fin_report_nalog_last", label: "26. Бухотчётность за последний год с NALOG.RU", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "fin_report_nalog_prev", label: "27. Бухотчётность за предыдущий год с NALOG.RU", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "fin_report_5_periods", label: "28. Бухотчётность за 5 последних периодов", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "fin_report_last_year", label: "29. Бухотчётность за последний завершённый год", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "fin_report_last_quarter", label: "30. Бухотчётность за последний завершённый квартал", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "questionnaire", label: "31. Вопросный лист", group: DOCUMENT_GROUPS.OTHER },
-    { value: "shareholder_register", label: "32. Выписка из реестра акционеров", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "bank_statements_excel", label: "33. Выписки в Excel за последние 12 мес", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "bank_statements_txt", label: "34. Выписки из банков (TXT)", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "credit_agreements", label: "35. Действующие кредитные договоры, гарантии, лизинг", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "patent_active", label: "36. Действующий Патент", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "power_of_attorney", label: "37. Доверенность на подписанта БГ", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "contract_for_bg", label: "38. Договор/контракт для обеспечения гарантией", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "buyer_supplier_contracts", label: "39. Договоры с покупателями и поставщиками", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "premises_right", label: "40. Документ о праве на занимаемые площади", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "company_presentation", label: "41. Презентация компании", group: DOCUMENT_GROUPS.OTHER },
-    { value: "ceo_appointment_docs", label: "42. Документы о назначении ЕИО", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "no_claims_customer", label: "43. Документы об отсутствии претензий заказчика", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "bg_obligation_docs", label: "44. Документы по обеспечиваемому Гарантией обязательству", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "pledge_docs", label: "45. Документы по предоставляемому залогу", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "target_use_docs", label: "46. Документы по целевому использованию", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "location_confirmation", label: "47. Документы о фактическом нахождении клиента", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "addendum_executed", label: "48. Доп. соглашения к исполненному контракту", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "signed_contract", label: "49. Заключенный договор", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "bg_frame_application", label: "50. Заявка на гарантию по рамочному договору", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "bg_application", label: "51. Заявление на банковскую гарантию", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "other_collateral", label: "52. Иное обеспечение", group: DOCUMENT_GROUPS.OTHER },
-    { value: "other", label: "53. Иной документ", group: DOCUMENT_GROUPS.OTHER },
-    { value: "executed_contract", label: "54. Исполненный контракт", group: DOCUMENT_GROUPS.LEGAL },
+export const BG_DOCUMENT_TYPES: DocumentTypeOption[] = [
+    // General
+    { id: 0, productType: 'bank_guarantee', name: 'Дополнительный документ', source: 'agent_bank' },
 
-    // ============ GROUP 3: ACCOUNT CARDS / OSV ============
-    { value: "card_51_12m", label: "55. Карточка 51 счета за последние 12 месяцев", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "card_51_2y", label: "56. Карточка 51 счета за последние 2 года (Excel)", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "card_51_last_year", label: "57. Карточка 51 счета за последний завершённый год", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "card_51_last_quarter", label: "58. Карточка 51 счета за последний завершённый квартал", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "card_62_debtor", label: "59. Карточка 62 сч. по взаиморасчетам с дебитором", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "card_company_requisites", label: "60. Карточка компании с реквизитами", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "signature_card", label: "61. Карточка образцов подписей", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "kudir_last_year", label: "62. Книга учёта доходов и расходов за год", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "kudir_last_quarter", label: "63. Книга учёта доходов и расходов за квартал", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "warranty_contract", label: "64. Контракт по гарантийным обязательствам", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "bg_copy_44_223", label: "65. Копия действующей БГ (44/223-ФЗ)", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "credit_history", label: "66. Кредитная история ЮЛ и ФЛ", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "credit_doc_portfolio", label: "67. Кредитно-документарный портфель по Группе", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "license_sro", label: "68. Лицензии/СРО на осуществление деятельности", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "tax_declaration_quarter", label: "69. Налоговая декларация за квартал", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "tax_declaration_year_fns", label: "70. Налоговая декларация за год с отметкой ФНС", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "tax_declaration_year", label: "71. Налоговая декларация за последний год", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "deposit_pledge", label: "72. Обеспечение залогом по депозиту", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "realty_pledge", label: "73. Обеспечение залогом по недвижимости", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "vehicle_pledge", label: "74. Обеспечение залогом по транспортному средству", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "capital_profit_explanation", label: "75. Обоснование расхождения капитала с прибылью", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "osv_all_last_quarter", label: "76. Общая ОСВ по всем счетам (Excel)", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "general_fin_report", label: "77. Общая финансовая отчетность организации", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "sales_volume_natural", label: "78. Объемы продаж в натуральных показателях", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "osv_01_02_08_10_41_43", label: "79. ОСВ 01, 02, 08, 10, 41, 43 счетов", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_58_66_67", label: "80. ОСВ 58, 66 и 67 счетов по субконто", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_60_62_76", label: "81. ОСВ 60, 62 и 76 счетов по субконто", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_62_detailed", label: "82. ОСВ 62 в разбивке по субсчетам", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_62_last_quarter", label: "83. ОСВ 62 счета за последний отчетный квартал", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_70_last_quarter", label: "84. ОСВ 70 счета за последний отчетный квартал", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_76_detailed", label: "85. ОСВ 76 в разбивке по субсчетам", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_general_detailed", label: "86. ОСВ общая в разбивке по субсчетам", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_balance_10_percent", label: "87. ОСВ по статьям баланса > 10%", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_60_62_66_67_76_year", label: "88. ОСВ по счетам 60, 62, 66, 67, 76 за год", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "osv_60_62_66_67_76_quarter", label: "89. ОСВ по счетам 60, 62, 66, 67, 76 за квартал", group: DOCUMENT_GROUPS.CARDS_OSV },
-    { value: "bki_report", label: "90. Отчет БКИ", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "factor_report", label: "91. Отчет действующего фактора", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "financial_results_report", label: "92. Отчет о финансовых результатах", group: DOCUMENT_GROUPS.FINANCIAL },
+    // Applications (Auto-generated)
+    { id: 17, productType: 'bank_guarantee', name: 'Заявление', source: 'auto' },
+    { id: 18, productType: 'bank_guarantee', name: 'Черновик заявления', source: 'auto' },
 
-    // ============ GROUP 4: PASSPORTS / IDs ============
-    { value: "passport_bo", label: "93. Паспорт БВ (бенефициарного владельца)", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "passport_bo_pages", label: "94. Паспорт БВ (1-я страница и прописка)", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "passport_bo_founder", label: "95. Паспорт БВ и учредителя", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "passport_eio", label: "96. Паспорт ЕИО", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "passport_pledger", label: "97. Паспорт залогодателя - физ. лица", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "passport_guarantor", label: "98. Паспорт поручителя - физ. лица", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "passport_owners_25", label: "99. Паспорта физлиц с долей > 25%", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "primary_docs_contract", label: "100. Первичные документы к исполненному контракту", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "passport_first_page", label: "101. Первый разворот паспорта", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "fin_report_resubmit", label: "102. Пересдача годового БО", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "bo_letter", label: "103. Письмо о бенефициарном владельце", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "compliance_letter", label: "104. Письмо-гарантия о соблюдении законодательства", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "experience_contracts", label: "105. Опыт аналогичных исполненных договоров (18 мес.)", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "bg_approval_other_bank", label: "106. Подтверждение одобрения БГ сторонним банком", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "order_accountant", label: "107. Приказ о назначении главного бухгалтера", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "shareholder_protocol", label: "108. Протокол собрания о согласии на получение гарантии", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "off_balance_obligations", label: "109. Расшифровка забалансовых обязательств", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "receivables_breakdown", label: "110. Расшифровка дебиторской задолженности", group: DOCUMENT_GROUPS.FINANCIAL },
-    { value: "active_contracts_register", label: "111. Реестр действующих и исполненных контрактов", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "counterparty_register", label: "112. Реестр основных контрагентов", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "major_deal_decision", label: "113. Решение о крупности сделки", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "deal_approval_decision", label: "114. Решение о согласии на сделку", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "management_composition", label: "115. Сведения о персональном составе органов управления", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "rosstat_forms", label: "116. Сведения в составе форм Росстат (П3, П5, ПМ и т.д.)", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "signed_contract_docs", label: "117. Скан контракта и первичных документов", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "financed_debtor_contract", label: "118. Скан-копия финансируемого договора с дебитором", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "snils_eio", label: "119. СНИЛС ЕИО", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "snils_founders", label: "120. СНИЛС учредителей", group: DOCUMENT_GROUPS.PASSPORTS },
-    { value: "consent_personal_data", label: "121. Согласие на обработку персональных данных", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "consent_credit_report", label: "122. Согласие на получение кредитных отчетов", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "consent_edo", label: "123. Согласие с Регламентом ЭДО", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "participants_list", label: "124. Список участников общества", group: DOCUMENT_GROUPS.LEGAL },
-    { value: "fns_tax_status", label: "125. Справка из ФНС о расчетах по налогам", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "fns_accounts", label: "126. Справка из ФНС об открытых счетах (45 дней)", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "fns_bank_accounts", label: "127. Справка ИФНС об открытых банковских счетах", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "off_balance_cert", label: "128. Справка о забалансовых обязательствах", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "accountant_status", label: "129. Справка о наличии/отсутствии главного бухгалтера", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "salary_debt_cert", label: "130. Справка о просроченной задолженности по зарплате", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "staff_count_cert", label: "131. Справка о численности и выплатах работникам", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "real_activity_cert", label: "132. Справка о наличии/отсутствии реальной деятельности", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "no_major_deal_cert", label: "133. Справка об отсутствии крупной сделки", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "location_cert", label: "134. Справка о месте нахождения Заемщика", group: DOCUMENT_GROUPS.CERTIFICATES },
-    { value: "fns_registration_notice", label: "135. Уведомление о постановке на учет в ФНС", group: DOCUMENT_GROUPS.CERTIFICATES },
-]
+    // Financial Documents (Agent uploads)
+    { id: 20, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за последний отчетный период', source: 'agent' },
+    { id: 21, productType: 'bank_guarantee', name: 'Паспорт генерального директора', source: 'agent' },
+    { id: 24, productType: 'bank_guarantee', name: 'Налоговая декларация за последний отчетный период', source: 'agent' },
 
-// Create a map for lookup by value
-export const DOCUMENT_TYPE_MAP: Record<string, string> = DOCUMENT_TYPES.reduce(
-    (acc, item) => ({ ...acc, [item.value]: item.label }),
-    {}
-)
+    // Auto-generated documents
+    { id: 26, productType: 'bank_guarantee', name: 'Акт приема-передачи', source: 'auto' },
+    { id: 29, productType: 'bank_guarantee', name: 'Договор поручительства ФЛ', source: 'auto' },
 
-// Get documents grouped by category
-export const getGroupedDocumentTypes = () => {
-    const groups: Record<string, DocumentTypeOption[]> = {}
+    // Agent uploads
+    { id: 31, productType: 'bank_guarantee', name: 'Пролонгация по договору Аренды', source: 'agent' },
+    { id: 32, productType: 'bank_guarantee', name: 'Пояснение по завышению ЧА за отчетный период', source: 'agent' },
 
-    DOCUMENT_TYPES.forEach(type => {
-        if (!groups[type.group]) {
-            groups[type.group] = []
-        }
-        groups[type.group].push(type)
-    })
+    // Auto-generated
+    { id: 33, productType: 'bank_guarantee', name: 'Договор поручительства ЮЛ', source: 'auto' },
 
-    return groups
+    // Agent uploads
+    { id: 34, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за предыдущий отчетный период', source: 'agent' },
+
+    // Bank Guarantee types (Auto-generated)
+    { id: 35, productType: 'bank_guarantee', name: 'БГ 44-ФЗ', source: 'auto' },
+    { id: 36, productType: 'bank_guarantee', name: 'БГ 185-ФЗ', source: 'auto' },
+    { id: 37, productType: 'bank_guarantee', name: 'БГ 223-ФЗ', source: 'auto' },
+    { id: 38, productType: 'bank_guarantee', name: 'Счет на оплату', source: 'auto' },
+
+    // Bank uploads
+    { id: 42, productType: 'bank_guarantee', name: 'БГ по форме заказчика', source: 'bank' },
+    { id: 43, productType: 'bank_guarantee', name: 'Скан БГ', source: 'bank' },
+
+    // Agent uploads - Tender documents
+    { id: 44, productType: 'bank_guarantee', name: 'Письмо по налогам', source: 'agent' },
+    { id: 45, productType: 'bank_guarantee', name: 'Дополнительные документы', source: 'agent' },
+    { id: 46, productType: 'bank_guarantee', name: 'Аукционная документация', source: 'agent' },
+    { id: 47, productType: 'bank_guarantee', name: 'Проект контракта', source: 'agent' },
+    { id: 48, productType: 'bank_guarantee', name: 'Протокол итогов', source: 'agent' },
+    { id: 49, productType: 'bank_guarantee', name: 'Решение (протокол) о крупной сделке', source: 'agent' },
+    { id: 50, productType: 'bank_guarantee', name: 'Документы на сделку', source: 'agent' },
+    { id: 51, productType: 'bank_guarantee', name: 'Пояснение по ошибочным данным в ББ по предыдущим периодам', source: 'agent' },
+    { id: 52, productType: 'bank_guarantee', name: 'Пояснение по несоответствию данных ББ с Росстат', source: 'agent' },
+    { id: 53, productType: 'bank_guarantee', name: 'Перевыпуск', source: 'agent' },
+    { id: 54, productType: 'bank_guarantee', name: 'Опыт', source: 'agent' },
+    { id: 55, productType: 'bank_guarantee', name: 'Договор в обеспечении которого запрашивается БГ', source: 'agent' },
+
+    // Auto-generated
+    { id: 56, productType: 'bank_guarantee', name: 'Коммерческая БГ', source: 'auto' },
+
+    // Bank uploads
+    { id: 60, productType: 'bank_guarantee', name: 'Выписка из реестра', source: 'bank' },
+
+    // Agent uploads - Financial
+    { id: 61, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за последний завершенный год', source: 'agent' },
+    { id: 62, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за последний завершенный квартал', source: 'agent' },
+    { id: 63, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за последний завершенный год', source: 'agent' },
+    { id: 64, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за последний завершенный квартал', source: 'agent' },
+    { id: 65, productType: 'bank_guarantee', name: 'Бухгалтерская отчетность Ф1 и Ф2 за последний завершенный квартал', source: 'agent' },
+    { id: 66, productType: 'bank_guarantee', name: 'Налоговая декларация УСН за последний год', source: 'agent' },
+
+    // Auto-generated
+    { id: 124, productType: 'bank_guarantee', name: 'Индивидуальные условия', source: 'auto' },
+
+    // Agent uploads
+    { id: 135, productType: 'bank_guarantee', name: 'Правки для согласования', source: 'agent' },
+    { id: 136, productType: 'bank_guarantee', name: 'Заявление об отказе клиента от сделки', source: 'agent' },
+
+    // Surety documents (Auto-generated for ФЛ/ЮЛ)
+    { id: 149, productType: 'bank_guarantee', name: 'Паспорт поручителя ФЛ', source: 'auto' },
+    { id: 151, productType: 'bank_guarantee', name: 'Отчетность за последний отчетный год поручителя ЮЛ', source: 'auto' },
+    { id: 153, productType: 'bank_guarantee', name: 'Отчетность за последний отчетный период поручителя ЮЛ', source: 'auto' },
+    { id: 155, productType: 'bank_guarantee', name: 'Паспорт генерального директора поручителя ЮЛ', source: 'auto' },
+    { id: 156, productType: 'bank_guarantee', name: 'Налоговая декларация за последний отчетный период поручителя ЮЛ', source: 'auto' },
+    { id: 158, productType: 'bank_guarantee', name: 'Действующий договор аренды или свидетельство о собственности поручителя ЮЛ', source: 'auto' },
+    { id: 160, productType: 'bank_guarantee', name: 'Устав поручителя ЮЛ', source: 'auto' },
+    { id: 162, productType: 'bank_guarantee', name: 'Протокол или решение на генерального директора поручителя ЮЛ', source: 'auto' },
+    { id: 164, productType: 'bank_guarantee', name: 'Заявление поручителя ЮЛ', source: 'auto' },
+
+    // Agent uploads - Signatory
+    { id: 169, productType: 'bank_guarantee', name: 'Доверенность на подписанта', source: 'agent' },
+    { id: 171, productType: 'bank_guarantee', name: 'Паспорт подписанта', source: 'agent' },
+];
+
+// ============================================================================
+// Б.2 КРЕДИТЫ НА ИСПОЛНЕНИЕ КОНТРАКТОВ (68 types)
+// ============================================================================
+
+export const KIK_DOCUMENT_TYPES: DocumentTypeOption[] = [
+    // General
+    { id: 0, productType: 'contract_loan', name: 'Дополнительный документ', source: 'agent_bank' },
+
+    // Tax documents
+    { id: 30, productType: 'contract_loan', name: 'Налоговая декларация УСН за последний год', source: 'agent' },
+
+    // Applications (Auto-generated)
+    { id: 68, productType: 'contract_loan', name: 'Заявление кредит', source: 'auto' },
+
+    // Financial Documents (Agent uploads)
+    { id: 69, productType: 'contract_loan', name: 'Налоговая декларация за завершённый год', source: 'agent' },
+    { id: 70, productType: 'contract_loan', name: 'Бухгалтерская отчётность за последний год', source: 'agent' },
+    { id: 71, productType: 'contract_loan', name: 'Бухгалтерская отчётность за последний квартал', source: 'agent' },
+
+    // Personal & Legal Documents (Agent uploads)
+    { id: 74, productType: 'contract_loan', name: 'Паспорт генерального директора', source: 'agent' },
+    { id: 75, productType: 'contract_loan', name: 'Устав + дополнения к уставу (в действующей редакции)', source: 'agent' },
+    { id: 76, productType: 'contract_loan', name: 'Протокол (решение) об избрании Единоличного исполнительного органа', source: 'agent' },
+
+    // Tender documents (Agent uploads)
+    { id: 77, productType: 'contract_loan', name: 'Аукционная документация', source: 'agent' },
+    { id: 78, productType: 'contract_loan', name: 'Проект контракта', source: 'agent' },
+    { id: 79, productType: 'contract_loan', name: 'Протокол итогов', source: 'agent' },
+    { id: 80, productType: 'contract_loan', name: 'Карточка 51 счета или Выписка по расчетному счету (за последние 6 завершенных месяцев)', source: 'agent' },
+    { id: 81, productType: 'contract_loan', name: 'Договор аренды, подтверждающий фактическое местонахождение', source: 'agent' },
+
+    // Auto-generated loan documents
+    { id: 83, productType: 'contract_loan', name: 'Индивидуальные условия кредит', source: 'auto' },
+    { id: 84, productType: 'contract_loan', name: 'Заявление на предоставление транша', source: 'auto' },
+
+    // Bank uploads
+    { id: 85, productType: 'contract_loan', name: 'Открытие расчётного счёта', source: 'bank' },
+
+    // Agent uploads
+    { id: 86, productType: 'contract_loan', name: 'Документы на сделку', source: 'agent' },
+    { id: 87, productType: 'contract_loan', name: 'Копия лицензии (при наличии)', source: 'agent' },
+
+    // Auto-generated
+    { id: 90, productType: 'contract_loan', name: 'Счёт на оплату', source: 'auto' },
+    { id: 92, productType: 'contract_loan', name: 'Договор залога прав по договору банковского счета НКЛ', source: 'auto' },
+    { id: 93, productType: 'contract_loan', name: 'Договор поручительства НКЛ ФЛ', source: 'auto' },
+    { id: 94, productType: 'contract_loan', name: 'Договор поручительства кредит ФЛ', source: 'auto' },
+    { id: 95, productType: 'contract_loan', name: 'Индивидуальные условия НКЛ', source: 'auto' },
+    { id: 96, productType: 'contract_loan', name: 'Заявление НКЛ', source: 'auto' },
+    { id: 97, productType: 'contract_loan', name: 'Договор залога прав по договору банковского счета кредит', source: 'auto' },
+
+    // Agent uploads
+    { id: 102, productType: 'contract_loan', name: 'Целевое использование кредитных средств', source: 'agent' },
+    { id: 103, productType: 'contract_loan', name: 'Источники погашения', source: 'agent' },
+    { id: 105, productType: 'contract_loan', name: 'ПРОТОКОЛ - ОБЩЕЕ (одобрение на год)', source: 'agent' },
+    { id: 106, productType: 'contract_loan', name: 'Решение - ОБЩЕЕ (одобрение на год)', source: 'agent' },
+    { id: 108, productType: 'contract_loan', name: 'Бухгалтерская отчётность за последний завершенный квартал', source: 'agent' },
+    { id: 109, productType: 'contract_loan', name: 'Налоговая декларация за последний отчетный период', source: 'agent' },
+
+    // Auto-generated
+    { id: 115, productType: 'contract_loan', name: 'Черновик заявления', source: 'auto' },
+
+    // Agent uploads
+    { id: 137, productType: 'contract_loan', name: 'Заявление об отказе клиента от сделки', source: 'agent' },
+
+    // Auto-generated - Loan contracts
+    { id: 138, productType: 'contract_loan', name: 'Договор поручительства НКЛ ЮЛ', source: 'auto' },
+    { id: 139, productType: 'contract_loan', name: 'Договор поручительства кредит ЮЛ', source: 'auto' },
+    { id: 140, productType: 'contract_loan', name: 'Уведомление о повышении % ставки', source: 'auto' },
+    { id: 147, productType: 'contract_loan', name: 'Договор залога прав (требования) выручки', source: 'auto' },
+    { id: 148, productType: 'contract_loan', name: 'Договор залога прав по счету', source: 'auto' },
+
+    // Surety documents for КИК
+    { id: 150, productType: 'contract_loan', name: 'Паспорт поручителя ФЛ', source: 'auto' },
+    { id: 152, productType: 'contract_loan', name: 'Отчетность за последний отчетный год поручителя ЮЛ', source: 'auto' },
+    { id: 154, productType: 'contract_loan', name: 'Паспорт генерального директора поручителя ЮЛ', source: 'auto' },
+    { id: 157, productType: 'contract_loan', name: 'Налоговая декларация за последний отчетный период поручителя ЮЛ', source: 'auto' },
+    { id: 159, productType: 'contract_loan', name: 'Действующий договор аренды или свидетельство о собственности поручителя ЮЛ', source: 'auto' },
+    { id: 161, productType: 'contract_loan', name: 'Устав поручителя ЮЛ', source: 'auto' },
+    { id: 163, productType: 'contract_loan', name: 'Протокол или решение на генерального директора поручителя ЮЛ', source: 'auto' },
+    { id: 165, productType: 'contract_loan', name: 'Заявление поручителя ЮЛ', source: 'auto' },
+    { id: 166, productType: 'contract_loan', name: 'Отчетность за последний отчетный период поручителя ЮЛ', source: 'auto' },
+
+    // Agent uploads - Signatory
+    { id: 170, productType: 'contract_loan', name: 'Доверенность на подписанта', source: 'agent' },
+    { id: 172, productType: 'contract_loan', name: 'Паспорт подписанта', source: 'agent' },
+];
+
+// ============================================================================
+// GENERAL DOCUMENT TYPES (for other products without specific IDs)
+// ============================================================================
+
+export const GENERAL_DOCUMENT_TYPES: DocumentTypeOption[] = [
+    { id: 0, productType: 'general', name: 'Дополнительный документ', source: 'agent_bank' },
+    { id: 1, productType: 'general', name: 'Паспорт генерального директора', source: 'agent' },
+    { id: 2, productType: 'general', name: 'Бухгалтерская отчётность', source: 'agent' },
+    { id: 3, productType: 'general', name: 'Налоговая декларация', source: 'agent' },
+    { id: 4, productType: 'general', name: 'Устав', source: 'agent' },
+    { id: 5, productType: 'general', name: 'Выписка ЕГРЮЛ', source: 'agent' },
+    { id: 6, productType: 'general', name: 'Договор аренды', source: 'agent' },
+    { id: 7, productType: 'general', name: 'Протокол о назначении ЕИО', source: 'agent' },
+    { id: 8, productType: 'general', name: 'Карточка 51 счета', source: 'agent' },
+    { id: 9, productType: 'general', name: 'Другие документы', source: 'agent' },
+];
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get document types for a specific product.
+ * Falls back to GENERAL_DOCUMENT_TYPES if product not found.
+ */
+export function getDocumentTypesForProduct(productType: string): DocumentTypeOption[] {
+    switch (productType) {
+        case 'bank_guarantee':
+            return BG_DOCUMENT_TYPES;
+        case 'contract_loan':
+        case 'tender_loan':  // Same as contract_loan per ТЗ
+            return KIK_DOCUMENT_TYPES;
+        default:
+            return GENERAL_DOCUMENT_TYPES;
+    }
 }
 
-// Get most common document types for quick selection (first 20)
-export const COMMON_DOCUMENT_TYPES = DOCUMENT_TYPES.slice(0, 20)
+/**
+ * Get document type by ID for a specific product.
+ * Returns undefined if not found.
+ */
+export function getDocumentTypeById(
+    documentTypeId: number,
+    productType: string
+): DocumentTypeOption | undefined {
+    const types = getDocumentTypesForProduct(productType);
+    return types.find(t => t.id === documentTypeId);
+}
+
+/**
+ * Get document type name by ID.
+ * Returns a fallback string if not found.
+ */
+export function getDocumentTypeName(
+    documentTypeId: number,
+    productType: string
+): string {
+    const type = getDocumentTypeById(documentTypeId, productType);
+    if (type) {
+        return type.name;
+    }
+    if (documentTypeId === 0) {
+        return 'Дополнительный документ';
+    }
+    return `Документ (ID: ${documentTypeId})`;
+}
+
+/**
+ * Get document source display text.
+ */
+export function getSourceDisplayText(source: DocumentSource): string {
+    switch (source) {
+        case 'auto':
+            return 'Формируется автоматически';
+        case 'agent':
+            return 'Загружается Агентом';
+        case 'bank':
+            return 'Загружается Банком';
+        case 'agent_bank':
+            return 'Загружается Агентом/Банком';
+        default:
+            return 'Неизвестно';
+    }
+}
+
+/**
+ * Filter document types by source (who uploads them).
+ */
+export function getDocumentTypesBySource(
+    productType: string,
+    source: DocumentSource
+): DocumentTypeOption[] {
+    const types = getDocumentTypesForProduct(productType);
+    return types.filter(t => t.source === source);
+}
+
+/**
+ * Get only agent-uploadable document types for a product.
+ * Excludes auto-generated and bank-only documents.
+ */
+export function getAgentUploadableTypes(productType: string): DocumentTypeOption[] {
+    const types = getDocumentTypesForProduct(productType);
+    return types.filter(t => t.source === 'agent' || t.source === 'agent_bank');
+}
+
+/**
+ * Create a lookup map for quick ID -> name resolution.
+ */
+export function createDocumentTypeMap(productType: string): Record<number, string> {
+    const types = getDocumentTypesForProduct(productType);
+    return types.reduce<Record<number, string>>((acc, t) => {
+        acc[t.id] = t.name;
+        return acc;
+    }, {});
+}
+
+// ============================================================================
+// LEGACY COMPATIBILITY (for gradual migration)
+// ============================================================================
+
+/**
+ * @deprecated Use getDocumentTypesForProduct() instead.
+ * This maintains backward compatibility during migration.
+ */
+export const DOCUMENT_TYPES = GENERAL_DOCUMENT_TYPES.map(t => ({
+    value: String(t.id),
+    label: t.name,
+    group: DOCUMENT_GROUPS.OTHER,
+}));
+
+/**
+ * @deprecated Use createDocumentTypeMap() instead.
+ */
+export const DOCUMENT_TYPE_MAP: Record<string, string> = GENERAL_DOCUMENT_TYPES.reduce<Record<string, string>>(
+    (acc, t) => {
+        acc[String(t.id)] = t.name;
+        return acc;
+    },
+    {}
+);
+
+/**
+ * @deprecated Use getAgentUploadableTypes() instead.
+ */
+export const COMMON_DOCUMENT_TYPES = GENERAL_DOCUMENT_TYPES.slice(0, 10).map(t => ({
+    value: String(t.id),
+    label: t.name,
+    group: DOCUMENT_GROUPS.OTHER,
+}));
+
+/**
+ * @deprecated Use getDocumentTypesForProduct() with grouping logic.
+ */
+export const getGroupedDocumentTypes = () => {
+    const groups: Record<string, { value: string; label: string; group: string }[]> = {};
+    GENERAL_DOCUMENT_TYPES.forEach(t => {
+        const group = DOCUMENT_GROUPS.OTHER;
+        if (!groups[group]) {
+            groups[group] = [];
+        }
+        groups[group].push({
+            value: String(t.id),
+            label: t.name,
+            group,
+        });
+    });
+    return groups;
+};
+
+// Legacy required documents mapping (will be replaced by backend reference table)
+export const REQUIRED_DOCUMENTS_BY_PRODUCT: Record<string, number[]> = {
+    common: [1, 2, 4, 5],  // Passport, Financial report, Statute, EGRUL
+    bank_guarantee: [21, 20, 24, 46, 47, 48],
+    contract_loan: [74, 70, 71, 77, 78, 79],
+    tender_loan: [74, 70, 71, 77, 78, 79],
+    factoring: [1, 2, 3],
+    leasing: [1, 2, 3],
+    ved: [1, 2, 3],
+    insurance: [1, 2],
+    rko: [1, 4, 5],
+    special_account: [1, 4, 5],
+    corporate_credit: [1, 2, 3],
+    tender_support: [1],
+};
+
+export const getRequiredDocumentsForProduct = (productType: string): { id: number; name: string }[] => {
+    const commonIds = REQUIRED_DOCUMENTS_BY_PRODUCT.common || [];
+    const productIds = REQUIRED_DOCUMENTS_BY_PRODUCT[productType] || [];
+    const allIds = [...new Set([...commonIds, ...productIds])];
+
+    return allIds.map(id => ({
+        id,
+        name: getDocumentTypeName(id, productType),
+    }));
+};
+
+export const isDocumentRequired = (documentTypeId: number, productType: string): boolean => {
+    const commonIds = REQUIRED_DOCUMENTS_BY_PRODUCT.common || [];
+    const productIds = REQUIRED_DOCUMENTS_BY_PRODUCT[productType] || [];
+    return commonIds.includes(documentTypeId) || productIds.includes(documentTypeId);
+};

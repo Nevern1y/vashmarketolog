@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -26,9 +26,11 @@ import {
     Lock,
     Mail,
     MessageCircle,
-    ExternalLink
+    ExternalLink,
+    Loader2
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { authApi } from "@/lib/api"
 
 // Tax system options per ТЗ
 const TAX_SYSTEMS = [
@@ -61,6 +63,9 @@ export function ProfileSettingsView() {
     const { user } = useAuth()
     const [isLinkCopied, setIsLinkCopied] = useState(false)
 
+    // Role check - agents see Referrals tab, clients don't
+    const isAgent = user?.role === "agent" || user?.role === "partner"
+
     // Form state for requisites
     const [bankBik, setBankBik] = useState("")
     const [bankName, setBankName] = useState("")
@@ -68,6 +73,12 @@ export function ProfileSettingsView() {
     const [corrAccount, setCorrAccount] = useState("")
     const [taxSystem, setTaxSystem] = useState("")
     const [vatRate, setVatRate] = useState("")
+
+    // Password change state
+    const [currentPassword, setCurrentPassword] = useState("")
+    const [newPassword, setNewPassword] = useState("")
+    const [confirmPassword, setConfirmPassword] = useState("")
+    const [isSavingPassword, setIsSavingPassword] = useState(false)
 
     // Generate referral link
     const referralLink = `https://vashmarketolog.ru/register?ref=${user?.id || 'AGENT123'}`
@@ -88,6 +99,35 @@ export function ProfileSettingsView() {
         toast.info(`Скачивание: ${docName}`)
     }
 
+    // Handle password change
+    const handleChangePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            toast.error("Заполните все поля")
+            return
+        }
+        if (newPassword !== confirmPassword) {
+            toast.error("Пароли не совпадают")
+            return
+        }
+        if (newPassword.length < 8) {
+            toast.error("Пароль должен быть минимум 8 символов")
+            return
+        }
+
+        setIsSavingPassword(true)
+        try {
+            await authApi.changePassword(currentPassword, newPassword, confirmPassword)
+            toast.success("Пароль успешно изменён")
+            setCurrentPassword("")
+            setNewPassword("")
+            setConfirmPassword("")
+        } catch (error: any) {
+            toast.error(error.message || "Ошибка при смене пароля")
+        } finally {
+            setIsSavingPassword(false)
+        }
+    }
+
     return (
         <div className="p-6 space-y-6">
             <div>
@@ -98,7 +138,7 @@ export function ProfileSettingsView() {
             </div>
 
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 md:grid-cols-8 bg-muted/50">
+                <TabsList className={`grid w-full bg-muted/50 ${isAgent ? 'grid-cols-4 md:grid-cols-8' : 'grid-cols-4 md:grid-cols-7'}`}>
                     <TabsTrigger value="profile" className="flex items-center gap-1 px-2">
                         <User className="h-4 w-4" />
                         <span className="hidden lg:inline text-xs">Профиль</span>
@@ -127,10 +167,12 @@ export function ProfileSettingsView() {
                         <Phone className="h-4 w-4" />
                         <span className="hidden lg:inline text-xs">Контакты</span>
                     </TabsTrigger>
-                    <TabsTrigger value="referrals" className="flex items-center gap-1 px-2">
-                        <Share2 className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Рефералы</span>
-                    </TabsTrigger>
+                    {isAgent && (
+                        <TabsTrigger value="referrals" className="flex items-center gap-1 px-2">
+                            <Share2 className="h-4 w-4" />
+                            <span className="hidden lg:inline text-xs">Рефералы</span>
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 {/* TAB 1: PROFILE */}
@@ -567,20 +609,43 @@ export function ProfileSettingsView() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label>Текущий пароль</Label>
-                                        <Input type="password" placeholder="••••••••" />
+                                        <Input
+                                            type="password"
+                                            placeholder="••••••••"
+                                            value={currentPassword}
+                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                        />
                                     </div>
                                     <div></div>
                                     <div className="space-y-2">
                                         <Label>Новый пароль</Label>
-                                        <Input type="password" placeholder="Минимум 8 символов" />
+                                        <Input
+                                            type="password"
+                                            placeholder="Минимум 8 символов"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Подтвердите пароль</Label>
-                                        <Input type="password" placeholder="Повторите новый пароль" />
+                                        <Input
+                                            type="password"
+                                            placeholder="Повторите новый пароль"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                        />
                                     </div>
                                 </div>
-                                <Button variant="outline">
-                                    <Lock className="h-4 w-4 mr-2" />
+                                <Button
+                                    variant="outline"
+                                    onClick={handleChangePassword}
+                                    disabled={isSavingPassword}
+                                >
+                                    {isSavingPassword ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Lock className="h-4 w-4 mr-2" />
+                                    )}
                                     Изменить пароль
                                 </Button>
                             </div>

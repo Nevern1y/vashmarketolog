@@ -8,16 +8,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import api, { type ApiError } from '@/lib/api';
 
-// Types matching backend
+// Types matching backend (updated for numeric IDs per Appendix B)
 export interface ApplicationDocument {
     id: number;
     name: string;
     file_url: string;
-    document_type: string;
+    document_type_id: number;    // NEW: Numeric ID from Appendix B
+    product_type?: string;        // NEW: Product context
     type_display: string;
     status: string;
     status_display: string;
+    created_at?: string;
 }
+
 
 // Nested company data for Partner/Bank view
 export interface CompanyDataForPartner {
@@ -60,11 +63,34 @@ export interface Application {
     company_name: string;
     company_inn: string;
     company_data?: CompanyDataForPartner; // Full company info for Partner/Bank
-    product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing' | 'ved' | 'contract_loan' | 'corporate_credit';
+    product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing' | 'ved' | 'contract_loan' | 'corporate_credit' | 'insurance' | 'rko' | 'special_account' | 'tender_support';
     product_type_display: string;
     amount: string;
     term_months: number;
     target_bank_name: string; // For Admin routing
+    // Bank Guarantee specific fields
+    guarantee_type?: string;
+    tender_law?: string;
+    // Credit specific fields
+    credit_sub_type?: string;
+    financing_term_days?: number;
+    pledge_description?: string;
+    // Insurance specific fields
+    insurance_category?: string;
+    insurance_product_type?: string;
+    // Factoring specific fields
+    factoring_type?: string;
+    contractor_inn?: string;
+    // VED specific fields
+    ved_currency?: string;
+    ved_country?: string;
+    // Tender support specific fields
+    tender_support_type?: string;
+    purchase_category?: string;
+    industry?: string;
+    // RKO/SpecAccount specific
+    account_type?: string;
+    // Tender info
     tender_number: string;
     tender_platform: string;
     tender_deadline: string | null;
@@ -73,11 +99,23 @@ export interface Application {
         // BG / Contract Loan fields
         purchase_number?: string;
         subject?: string;
+        law?: string; // 44-ФЗ, 223-ФЗ, etc.
         contract_number?: string;
         is_close_auction?: boolean;
         beneficiary_inn?: string;
+        beneficiary_name?: string;  // Наименование заказчика
         initial_price?: string;
         offered_price?: string;
+        // BG Checkboxes per ТЗ
+        has_advance?: boolean;        // Наличие аванса
+        is_resecuring?: boolean;      // Является переобеспечением
+        is_single_supplier?: boolean; // Единственный поставщик
+        no_eis_placement?: boolean;   // Без размещения в ЕИС
+        tender_not_held?: boolean;    // Торги ещё не проведены
+        needs_credit?: boolean;       // Клиенту нужен кредит (кросс-продажа)
+        // BG Date fields
+        guarantee_start_date?: string; // Срок БГ с
+        guarantee_end_date?: string;   // Срок БГ по
         // Factoring fields
         contractor_inn?: string;
         // VED fields
@@ -88,6 +126,8 @@ export interface Application {
     };
     status: 'draft' | 'pending' | 'in_review' | 'info_requested' | 'approved' | 'rejected' | 'won' | 'lost';
     status_display: string;
+    status_id: number | null;     // NEW: Numeric status ID from Appendix A
+    status_id_display?: string;   // NEW: Status name from bank reference table
     assigned_partner: number | null;
     partner_email: string | null;
     document_ids: number[];
@@ -111,6 +151,7 @@ export interface Application {
 }
 
 
+
 export interface ApplicationListItem {
     id: number;
     company_name: string;
@@ -122,6 +163,16 @@ export interface ApplicationListItem {
     target_bank_name: string;
     status: string;
     status_display: string;
+    // Tender info
+    tender_number?: string;
+    tender_law?: string;
+    tender_platform?: string;
+    // Goscontract data for law info
+    goscontract_data?: {
+        law?: string;
+        purchase_number?: string;
+        beneficiary_name?: string;
+    };
     // Creator info for partner agent stats
     created_by_email?: string;
     created_by_name?: string;
