@@ -29,14 +29,33 @@ import {
   Loader2,
   Save,
   ExternalLink,
+  Briefcase,
+  Globe,
+  UserPlus,
+  FileText,
+  ScrollText,
+  Contact,
 } from "lucide-react"
 import { useMyCompany, type FounderData, type BankAccountData } from "@/hooks/use-companies"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 
 // =============================================================================
-// ZOD SCHEMA - Matches Postman API 1.1 Structure
+// ZOD SCHEMA - Extended for 8 Sections per ТЗ
 // =============================================================================
 
+// ----------- Section 3: Activities & Licenses -----------
+const activitySchema = z.object({
+  primary_okved: z.string().optional(),
+  additional_okved: z.string().optional(),
+  revenue_share: z.coerce.number().min(0).max(100).optional(),
+  activity_years: z.coerce.number().min(0).optional(),
+  license_number: z.string().optional(),
+  license_date: z.string().optional(),
+  license_issuer: z.string().optional(),
+  license_valid_until: z.string().optional(),
+})
+
+// ----------- Section 4: Management (Director) -----------
 const founderDocumentSchema = z.object({
   series: z.string().max(5, "Максимум 5 символов"),
   number: z.string().max(6, "Максимум 6 символов"),
@@ -45,6 +64,7 @@ const founderDocumentSchema = z.object({
   authority_code: z.string().max(7, "Формат: XXX-XXX").optional(),
 })
 
+// ----------- Section 5: Individual Founders -----------
 const founderSchema = z.object({
   full_name: z.string().min(1, "Обязательное поле"),
   inn: z.string().max(12, "Максимум 12 цифр"),
@@ -54,53 +74,126 @@ const founderSchema = z.object({
   birth_date: z.string().optional(),
   gender: z.coerce.number().min(1).max(2).optional(),
   citizen: z.string().default("РФ"),
+  registration_address: z.string().optional(),
 })
 
+// ----------- Section 5: Legal Entity Founders -----------
+const legalFounderSchema = z.object({
+  share_relative: z.coerce.number().min(0).max(100).optional(),
+  inn: z.string().optional(),
+  ogrn: z.string().optional(),
+  name: z.string().optional(),
+  registration_date: z.string().optional(),
+  first_registration_date: z.string().optional(),
+  is_resident: z.boolean().default(true),
+  bank_name: z.string().optional(),
+  website: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  director_position: z.string().optional(),
+  director_name: z.string().optional(),
+})
+
+// ----------- Section 6: Bank Accounts -----------
 const bankAccountSchema = z.object({
   bank_name: z.string().min(1, "Обязательное поле"),
   bank_bik: z.string().length(9, "БИК должен быть 9 цифр"),
   account: z.string().length(20, "Счёт должен быть 20 цифр"),
+  corr_account: z.string().optional(),
 })
 
+// ----------- Section 7: ETP Accounts -----------
+const etpAccountSchema = z.object({
+  platform: z.string().optional(),
+  account: z.string().optional(),
+  bik: z.string().optional(),
+  bank_name: z.string().optional(),
+  corr_account: z.string().optional(),
+})
+
+// ----------- Section 8: Contact Persons -----------
+const contactPersonSchema = z.object({
+  position: z.string().optional(),
+  last_name: z.string().optional(),
+  first_name: z.string().optional(),
+  middle_name: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+})
+
+// ----------- Main Form Schema -----------
 const companyFormSchema = z.object({
-  // Section 1: Core Identity
+  // Section 1: General Information
   inn: z.string().min(10, "ИНН: 10 или 12 цифр").max(12, "ИНН: 10 или 12 цифр"),
-  kpp: z.string().max(9, "КПП: 9 цифр").optional().or(z.literal("")),
-  ogrn: z.string().max(15, "ОГРН: 13 или 15 цифр").optional().or(z.literal("")),
   name: z.string().min(1, "Обязательное поле"),
   short_name: z.string().optional().or(z.literal("")),
-
-  // Section 2: Addresses
+  foreign_name: z.string().optional().or(z.literal("")),
+  legal_form: z.string().optional().or(z.literal("")),
+  is_resident: z.boolean().default(true),
+  tax_system: z.string().optional().or(z.literal("")),
+  employee_count: z.coerce.number().optional(),
+  contracts_count: z.coerce.number().optional(),
+  contracts_44fz: z.coerce.number().optional(),
+  contracts_223fz: z.coerce.number().optional(),
+  region: z.string().optional().or(z.literal("")),
   legal_address: z.string().optional().or(z.literal("")),
   actual_address: z.string().optional().or(z.literal("")),
   is_actual_same_as_legal: z.boolean().default(false),
+  website: z.string().optional().or(z.literal("")),
+  contact_email: z.string().optional().or(z.literal("")),
+  contact_phone: z.string().optional().or(z.literal("")),
 
-  // Section 3: Director + Passport
+  // Section 2: State Registration
+  kpp: z.string().max(9, "КПП: 9 цифр").optional().or(z.literal("")),
+  ogrn: z.string().max(15, "ОГРН: 13 или 15 цифр").optional().or(z.literal("")),
+  okato: z.string().optional().or(z.literal("")),
+  oktmo: z.string().optional().or(z.literal("")),
+  oktmo_date: z.string().optional().or(z.literal("")),
+  okpo: z.string().optional().or(z.literal("")),
+  okfs: z.string().optional().or(z.literal("")),
+  registration_date: z.string().optional().or(z.literal("")),
+  stated_capital: z.string().optional().or(z.literal("")),
+  paid_capital: z.string().optional().or(z.literal("")),
+  paid_capital_date: z.string().optional().or(z.literal("")),
+  registrar_name: z.string().optional().or(z.literal("")),
+  okved: z.string().optional().or(z.literal("")),
+
+  // Section 3: Activities & Licenses
+  activities: z.array(activitySchema).default([]),
+
+  // Section 4: Management
   director_name: z.string().optional().or(z.literal("")),
   director_position: z.string().optional().or(z.literal("")),
+  director_share: z.coerce.number().optional(),
+  director_citizen: z.string().default("РФ"),
+  director_birth_date: z.string().optional().or(z.literal("")),
+  director_birth_place: z.string().optional().or(z.literal("")),
+  director_email: z.string().optional().or(z.literal("")),
+  director_phone: z.string().optional().or(z.literal("")),
   passport_series: z.string().max(4, "Максимум 4 цифры").optional().or(z.literal("")),
   passport_number: z.string().max(6, "Максимум 6 цифр").optional().or(z.literal("")),
   passport_date: z.string().optional().or(z.literal("")),
   passport_code: z.string().max(7, "Формат: XXX-XXX").optional().or(z.literal("")),
   passport_issued_by: z.string().optional().or(z.literal("")),
+  director_registration_address: z.string().optional().or(z.literal("")),
 
-  // Section 4: Founders (Dynamic Array)
+  // Section 5: Founders
   founders: z.array(founderSchema).default([]),
+  legal_founders: z.array(legalFounderSchema).default([]),
 
-  // Section 5: Bank Accounts (Dynamic Array)
+  // Section 6: Bank Accounts
   bank_accounts: z.array(bankAccountSchema).default([]),
-
-  // Legacy bank fields (for single primary account)
   bank_name: z.string().optional().or(z.literal("")),
   bank_bic: z.string().optional().or(z.literal("")),
   bank_account: z.string().optional().or(z.literal("")),
   bank_corr_account: z.string().optional().or(z.literal("")),
 
-  // Contact
+  // Section 7: ETP Accounts
+  etp_accounts: z.array(etpAccountSchema).default([]),
+
+  // Section 8: Contact Persons
+  contact_persons: z.array(contactPersonSchema).default([]),
   contact_person: z.string().optional().or(z.literal("")),
-  contact_phone: z.string().optional().or(z.literal("")),
-  contact_email: z.string().email("Некорректный email").optional().or(z.literal("")),
-  website: z.string().url("Некорректный URL").optional().or(z.literal("")),
 })
 
 type CompanyFormData = z.infer<typeof companyFormSchema>
@@ -111,22 +204,34 @@ type CompanyFormData = z.infer<typeof companyFormSchema>
 
 const safeString = (value: string | null | undefined): string => value ?? ""
 
-// Create empty founder object
+// Create empty founder (physical person)
 const createEmptyFounder = (): z.infer<typeof founderSchema> => ({
   full_name: "",
   inn: "",
   share_relative: 0,
-  document: {
-    series: "",
-    number: "",
-    issued_at: "",
-    authority_name: "",
-    authority_code: "",
-  },
+  document: { series: "", number: "", issued_at: "", authority_name: "", authority_code: "" },
   birth_place: "",
   birth_date: "",
   gender: 1,
   citizen: "РФ",
+  registration_address: "",
+})
+
+// Create empty legal entity founder
+const createEmptyLegalFounder = (): z.infer<typeof legalFounderSchema> => ({
+  share_relative: 0,
+  inn: "",
+  ogrn: "",
+  name: "",
+  registration_date: "",
+  first_registration_date: "",
+  is_resident: true,
+  bank_name: "",
+  website: "",
+  email: "",
+  phone: "",
+  director_position: "",
+  director_name: "",
 })
 
 // Create empty bank account
@@ -134,7 +239,61 @@ const createEmptyBankAccount = (): z.infer<typeof bankAccountSchema> => ({
   bank_name: "",
   bank_bik: "",
   account: "",
+  corr_account: "",
 })
+
+// Create empty activity
+const createEmptyActivity = (): z.infer<typeof activitySchema> => ({
+  primary_okved: "",
+  additional_okved: "",
+  revenue_share: 0,
+  activity_years: 0,
+  license_number: "",
+  license_date: "",
+  license_issuer: "",
+  license_valid_until: "",
+})
+
+// Create empty ETP account
+const createEmptyEtpAccount = (): z.infer<typeof etpAccountSchema> => ({
+  platform: "",
+  account: "",
+  bik: "",
+  bank_name: "",
+  corr_account: "",
+})
+
+// Create empty contact person
+const createEmptyContactPerson = (): z.infer<typeof contactPersonSchema> => ({
+  position: "",
+  last_name: "",
+  first_name: "",
+  middle_name: "",
+  email: "",
+  phone: "",
+})
+
+// ETP Platforms list
+const ETP_PLATFORMS = [
+  "ЕЭТП (roseltorg.ru)",
+  "РТС (rts-tender.ru)",
+  "ЭТП НЭП (etp-ets.ru)",
+  "СБЕРБАНК-АСТ (sberbank-ast.ru)",
+  "ГАЗПРОМ (etpgpb.ru)",
+  "В2ВЦЕНТР (b2b-center.ru)",
+  "ОТСТЕНДЕР (otc.ru)",
+  "FABRIKANT.RU (fabrikant.ru)",
+  "ЭТП (etprf.ru)",
+  "Оборонторг (oborontorg.ru)",
+  "Спецстройторг (sstorg.ru)",
+  "Автодор (etp-avtodor.ru)",
+  "ESTP (estp.ru)",
+  "АГЗ РТ (etp.zakazrf.ru)",
+  "АО РАД",
+  "ТЭК-Торг",
+  "АСТ ГОЗ",
+  "Другая",
+]
 
 // =============================================================================
 // MAIN COMPONENT
@@ -142,51 +301,59 @@ const createEmptyBankAccount = (): z.infer<typeof bankAccountSchema> => ({
 
 export function MyCompanyView() {
   const { company, isLoading, isSaving, error, updateCompany, createCompany } = useMyCompany()
-  const { toast } = useToast()
+
+  // Helper to clean decimal values - convert empty strings to undefined and validate format
+  const cleanDecimalValue = (value: string | undefined): string | undefined => {
+    if (!value || value.trim() === "") return undefined
+    // Remove any non-numeric characters except decimal point
+    const cleaned = value.replace(/[^\d.]/g, "")
+    // Validate it's a valid number with max 13 digits before decimal
+    const num = parseFloat(cleaned)
+    if (isNaN(num)) return undefined
+    // If number is too large (more than 13 digits before decimal), return undefined
+    if (num >= 10000000000000) return undefined
+    return cleaned
+  }
 
   // Initialize form with react-hook-form + zod
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companyFormSchema),
     defaultValues: {
-      inn: "",
-      kpp: "",
-      ogrn: "",
-      name: "",
-      short_name: "",
-      legal_address: "",
-      actual_address: "",
-      is_actual_same_as_legal: false,
-      director_name: "",
-      director_position: "",
-      passport_series: "",
-      passport_number: "",
-      passport_date: "",
-      passport_code: "",
-      passport_issued_by: "",
-      founders: [],
-      bank_accounts: [],
-      bank_name: "",
-      bank_bic: "",
-      bank_account: "",
-      bank_corr_account: "",
-      contact_person: "",
-      contact_phone: "",
-      contact_email: "",
-      website: "",
+      // Section 1: General Info
+      inn: "", name: "", short_name: "", foreign_name: "", legal_form: "",
+      is_resident: true, tax_system: "", employee_count: 0,
+      contracts_count: 0, contracts_44fz: 0, contracts_223fz: 0,
+      region: "", legal_address: "", actual_address: "", is_actual_same_as_legal: false,
+      website: "", contact_email: "", contact_phone: "",
+      // Section 2: State Registration
+      kpp: "", ogrn: "", okato: "", oktmo: "", oktmo_date: "", okpo: "", okfs: "",
+      registration_date: "", stated_capital: "", paid_capital: "", paid_capital_date: "",
+      registrar_name: "", okved: "",
+      // Section 3: Activities
+      activities: [],
+      // Section 4: Management
+      director_name: "", director_position: "", director_share: 0, director_citizen: "РФ",
+      director_birth_date: "", director_birth_place: "", director_email: "", director_phone: "",
+      passport_series: "", passport_number: "", passport_date: "", passport_code: "",
+      passport_issued_by: "", director_registration_address: "",
+      // Section 5: Founders
+      founders: [], legal_founders: [],
+      // Section 6: Bank Accounts
+      bank_accounts: [], bank_name: "", bank_bic: "", bank_account: "", bank_corr_account: "",
+      // Section 7: ETP Accounts
+      etp_accounts: [],
+      // Section 8: Contact Persons
+      contact_persons: [], contact_person: "",
     },
   })
 
   // useFieldArray for dynamic founders list
-  const foundersArray = useFieldArray({
-    control: form.control,
-    name: "founders",
-  })
-
-  // useFieldArray for dynamic bank accounts
-  const bankAccountsArray = useFieldArray({
-    control: form.control,
-    name: "bank_accounts",
-  })
+  const foundersArray = useFieldArray({ control: form.control, name: "founders" })
+  const legalFoundersArray = useFieldArray({ control: form.control, name: "legal_founders" })
+  const bankAccountsArray = useFieldArray({ control: form.control, name: "bank_accounts" })
+  const activitiesArray = useFieldArray({ control: form.control, name: "activities" })
+  const etpAccountsArray = useFieldArray({ control: form.control, name: "etp_accounts" })
+  const contactPersonsArray = useFieldArray({ control: form.control, name: "contact_persons" })
 
   // Watch address checkbox
   const isActualSameAsLegal = form.watch("is_actual_same_as_legal")
@@ -230,31 +397,70 @@ export function MyCompanyView() {
         }))
 
       form.reset({
+        // Section 1: General Info
         inn: safeString(company.inn),
-        kpp: safeString(company.kpp),
-        ogrn: safeString(company.ogrn),
         name: safeString(company.name),
         short_name: safeString(company.short_name),
+        foreign_name: "", // Not in Company type, default to empty
+        legal_form: "", // Not in Company type
+        is_resident: true,
+        tax_system: "", // Not in Company type
+        employee_count: 0,
+        contracts_count: 0,
+        contracts_44fz: 0,
+        contracts_223fz: 0,
+        region: safeString(company.region),
         legal_address: safeString(company.legal_address),
         actual_address: safeString(company.actual_address),
         is_actual_same_as_legal: company.legal_address === company.actual_address && !!company.legal_address,
+        website: safeString(company.website),
+        contact_email: safeString(company.contact_email),
+        contact_phone: safeString(company.contact_phone),
+        // Section 2: State Registration
+        kpp: safeString(company.kpp),
+        ogrn: safeString(company.ogrn),
+        okato: safeString(company.okato),
+        oktmo: safeString(company.oktmo),
+        oktmo_date: safeString(company.oktmo_date),
+        okpo: safeString(company.okpo),
+        okfs: safeString(company.okfs),
+        registration_date: safeString(company.registration_date),
+        stated_capital: safeString(company.authorized_capital_declared),
+        paid_capital: safeString(company.authorized_capital_paid),
+        paid_capital_date: safeString(company.authorized_capital_paid_date),
+        registrar_name: safeString(company.registration_authority),
+        okved: safeString(company.okved),
+        // Section 3: Activities
+        activities: [],
+        // Section 4: Management
         director_name: safeString(company.director_name),
         director_position: safeString(company.director_position),
+        director_share: 0,
+        director_citizen: "РФ",
+        director_birth_date: safeString(company.director_birth_date),
+        director_birth_place: safeString(company.director_birth_place),
+        director_email: safeString(company.director_email),
+        director_phone: safeString(company.director_phone),
         passport_series: safeString(company.passport_series),
         passport_number: safeString(company.passport_number),
         passport_date: safeString(company.passport_date),
         passport_code: safeString(company.passport_code),
         passport_issued_by: safeString(company.passport_issued_by),
+        director_registration_address: safeString(company.director_registration_address),
+        // Section 5: Founders
         founders: mappedFounders,
+        legal_founders: [],
+        // Section 6: Bank Accounts
         bank_accounts: mappedBankAccounts,
         bank_name: safeString(company.bank_name),
         bank_bic: safeString(company.bank_bic),
         bank_account: safeString(company.bank_account),
         bank_corr_account: safeString(company.bank_corr_account),
+        // Section 7: ETP Accounts
+        etp_accounts: [],
+        // Section 8: Contact Persons
+        contact_persons: [],
         contact_person: safeString(company.contact_person),
-        contact_phone: safeString(company.contact_phone),
-        contact_email: safeString(company.contact_email),
-        website: safeString(company.website),
       })
     }
   }, [company, form])
@@ -300,30 +506,55 @@ export function MyCompanyView() {
     }))
 
     const payload = {
+      // Section 1: General Info
       inn: data.inn,
-      kpp: data.kpp || undefined,
-      ogrn: data.ogrn || undefined,
       name: data.name,
       short_name: data.short_name || undefined,
       legal_address: data.legal_address || undefined,
       actual_address: actualAddress || undefined,
+      region: data.region || undefined,
+      website: data.website || undefined,
+      contact_email: data.contact_email || undefined,
+      contact_phone: data.contact_phone || undefined,
+      // Section 2: State Registration
+      kpp: data.kpp || undefined,
+      ogrn: data.ogrn || undefined,
+      okato: data.okato || undefined,
+      oktmo: data.oktmo || undefined,
+      oktmo_date: data.oktmo_date || undefined,
+      okpo: data.okpo || undefined,
+      okfs: data.okfs || undefined,
+      registration_date: data.registration_date || undefined,
+      authorized_capital_declared: cleanDecimalValue(data.stated_capital),
+      authorized_capital_paid: cleanDecimalValue(data.paid_capital),
+      authorized_capital_paid_date: data.paid_capital_date || undefined,
+      registration_authority: data.registrar_name || undefined,
+      okved: data.okved || undefined,
+      // Section 4: Management / Director
       director_name: data.director_name || undefined,
       director_position: data.director_position || undefined,
+      director_birth_date: data.director_birth_date || undefined,
+      director_birth_place: data.director_birth_place || undefined,
+      director_email: data.director_email || undefined,
+      director_phone: data.director_phone || undefined,
+      director_registration_address: data.director_registration_address || undefined,
       passport_series: data.passport_series || undefined,
       passport_number: data.passport_number || undefined,
       passport_date: data.passport_date || undefined,
       passport_code: data.passport_code || undefined,
       passport_issued_by: data.passport_issued_by || undefined,
+      // Section 3: Activities
+      activities_data: data.activities.length > 0 ? data.activities : undefined,
+      // Section 5: Founders
       founders_data: foundersData.length > 0 ? foundersData : undefined,
+      // Section 6: Bank Accounts
       bank_accounts_data: bankAccountsData.length > 0 ? bankAccountsData : undefined,
       bank_name: data.bank_name || undefined,
       bank_bic: data.bank_bic || undefined,
       bank_account: data.bank_account || undefined,
       bank_corr_account: data.bank_corr_account || undefined,
+      // Section 8: Contact Person
       contact_person: data.contact_person || undefined,
-      contact_phone: data.contact_phone || undefined,
-      contact_email: data.contact_email || undefined,
-      website: data.website || undefined,
     }
 
     let result
@@ -334,15 +565,12 @@ export function MyCompanyView() {
     }
 
     if (result) {
-      toast({
-        title: "Успешно",
-        description: "Профиль компании сохранён",
+      toast.success("Данные успешно сохранены", {
+        description: "Профиль компании обновлён",
       })
     } else {
-      toast({
-        title: "Ошибка",
-        description: error || "Не удалось сохранить данные",
-        variant: "destructive",
+      toast.error("Ошибка сохранения", {
+        description: error || "Не удалось сохранить данные. Проверьте правильность заполнения полей.",
       })
     }
   }
@@ -387,32 +615,44 @@ export function MyCompanyView() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Tabs defaultValue="identity" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 bg-muted/50">
-              <TabsTrigger value="identity" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                <span className="hidden md:inline">Организация</span>
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
+              <TabsTrigger value="general" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Building2 className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Общая информация</span>
               </TabsTrigger>
-              <TabsTrigger value="addresses" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span className="hidden md:inline">Адреса</span>
+              <TabsTrigger value="registration" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <ScrollText className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Госрегистрация</span>
               </TabsTrigger>
-              <TabsTrigger value="management" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden md:inline">Руководство</span>
+              <TabsTrigger value="activities" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Briefcase className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Деятельность</span>
               </TabsTrigger>
-              <TabsTrigger value="founders" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden md:inline">Учредители</span>
+              <TabsTrigger value="management" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Users className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Руководство</span>
               </TabsTrigger>
-              <TabsTrigger value="banks" className="flex items-center gap-2">
-                <Landmark className="h-4 w-4" />
-                <span className="hidden md:inline">Банки</span>
+              <TabsTrigger value="founders" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Users className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Учредители</span>
+              </TabsTrigger>
+              <TabsTrigger value="banks" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Landmark className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Банк. реквизиты</span>
+              </TabsTrigger>
+              <TabsTrigger value="etp" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Счета ЭТП</span>
+              </TabsTrigger>
+              <TabsTrigger value="contacts" className="flex items-center gap-1 text-xs px-2 py-1.5">
+                <Contact className="h-3.5 w-3.5" />
+                <span className="hidden lg:inline">Контакты</span>
               </TabsTrigger>
             </TabsList>
 
-            {/* TAB 1: CORE IDENTITY */}
-            <TabsContent value="identity">
+            {/* TAB 1: GENERAL INFORMATION */}
+            <TabsContent value="general">
               <Card>
                 <CardHeader>
                   <CardTitle>Общая информация</CardTitle>
@@ -577,70 +817,155 @@ export function MyCompanyView() {
               </Card>
             </TabsContent>
 
-            {/* TAB 2: ADDRESSES */}
-            <TabsContent value="addresses">
+            {/* TAB 2: STATE REGISTRATION */}
+            <TabsContent value="registration">
               <Card>
                 <CardHeader>
-                  <CardTitle>Адреса</CardTitle>
+                  <CardTitle>Госрегистрация</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Legal Address */}
-                  <FormField
-                    control={form.control}
-                    name="legal_address"
-                    render={({ field }) => (
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <FormField control={form.control} name="kpp" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Юридический адрес</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="123456, г. Москва, ул. Примерная, д. 1, офис 1"
-                            className="min-h-[80px]"
-                            {...field}
-                          />
-                        </FormControl>
+                        <FormLabel>КПП</FormLabel>
+                        <FormControl><Input placeholder="9 цифр" maxLength={9} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl>
                         <FormMessage />
                       </FormItem>
-                    )}
-                  />
-
-                  {/* Checkbox */}
-                  <FormField
-                    control={form.control}
-                    name="is_actual_same_as_legal"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center gap-3 rounded-lg border p-4">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <FormLabel className="!mt-0 cursor-pointer">
-                          Фактический адрес совпадает с юридическим
-                        </FormLabel>
+                    )} />
+                    <FormField control={form.control} name="ogrn" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ОГРН</FormLabel>
+                        <FormControl><Input placeholder="13 или 15 цифр" maxLength={15} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl>
+                        <FormMessage />
                       </FormItem>
-                    )}
-                  />
+                    )} />
+                    <FormField control={form.control} name="okato" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ОКАТО</FormLabel>
+                        <FormControl><Input placeholder="Код ОКАТО" maxLength={11} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="oktmo" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ОКТМО</FormLabel>
+                        <FormControl><Input placeholder="Код ОКТМО" maxLength={11} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="oktmo_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Дата постановки ОКТМО</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="okpo" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ОКПО</FormLabel>
+                        <FormControl><Input placeholder="Код ОКПО" maxLength={10} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="okfs" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ОКФС</FormLabel>
+                        <FormControl><Input placeholder="Код ОКФС" maxLength={2} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="registration_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Дата гос. регистрации</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="okved" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ОКВЭД (основной)</FormLabel>
+                        <FormControl><Input placeholder="XX.XX.XX" maxLength={8} {...field} /></FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <FormField control={form.control} name="stated_capital" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Объявленный УК</FormLabel>
+                        <FormControl><Input placeholder="Сумма" {...field} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="paid_capital" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Оплаченный УК</FormLabel>
+                        <FormControl><Input placeholder="Сумма" {...field} /></FormControl>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="paid_capital_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Дата изменения УК</FormLabel>
+                        <FormControl><Input type="date" {...field} /></FormControl>
+                      </FormItem>
+                    )} />
+                  </div>
+                  <FormField control={form.control} name="registrar_name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Наименование регистрирующего органа</FormLabel>
+                      <FormControl><Input placeholder="Название органа" {...field} /></FormControl>
+                    </FormItem>
+                  )} />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                  {/* Actual Address (hidden when checkbox checked) */}
-                  {!isActualSameAsLegal && (
-                    <FormField
-                      control={form.control}
-                      name="actual_address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Фактический адрес</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="123456, г. Москва, ул. Примерная, д. 2, офис 2"
-                              className="min-h-[80px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            {/* TAB 3: ACTIVITIES & LICENSES */}
+            <TabsContent value="activities">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Деятельность и лицензии</CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={() => activitiesArray.append(createEmptyActivity())} className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1] hover:text-[#0a1628]">
+                    <Plus className="h-4 w-4 mr-2" />Добавить деятельность
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {activitiesArray.fields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Деятельность не добавлена</p>
+                    </div>
+                  ) : (
+                    activitiesArray.fields.map((field, index) => (
+                      <div key={field.id} className="rounded-lg border p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-medium">Деятельность #{index + 1}</h5>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => activitiesArray.remove(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-4">
+                          <FormField control={form.control} name={`activities.${index}.primary_okved`} render={({ field }) => (
+                            <FormItem><FormLabel>Основной ОКВЭД</FormLabel><FormControl><Input placeholder="XX.XX" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`activities.${index}.additional_okved`} render={({ field }) => (
+                            <FormItem><FormLabel>Доп. ОКВЭД</FormLabel><FormControl><Input placeholder="через запятую" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`activities.${index}.revenue_share`} render={({ field }) => (
+                            <FormItem><FormLabel>Доля в выручке, %</FormLabel><FormControl><Input type="number" min="0" max="100" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`activities.${index}.activity_years`} render={({ field }) => (
+                            <FormItem><FormLabel>Срок деятельности, лет</FormLabel><FormControl><Input type="number" min="0" {...field} /></FormControl></FormItem>
+                          )} />
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-4">
+                          <FormField control={form.control} name={`activities.${index}.license_number`} render={({ field }) => (
+                            <FormItem><FormLabel>Номер лицензии</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`activities.${index}.license_date`} render={({ field }) => (
+                            <FormItem><FormLabel>Дата выдачи</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`activities.${index}.license_issuer`} render={({ field }) => (
+                            <FormItem><FormLabel>Кто выдал</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`activities.${index}.license_valid_until`} render={({ field }) => (
+                            <FormItem><FormLabel>Действует до</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                          )} />
+                        </div>
+                      </div>
+                    ))
                   )}
                 </CardContent>
               </Card>
@@ -1183,6 +1508,113 @@ export function MyCompanyView() {
                         </div>
                       ))}
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 7: ETP ACCOUNTS */}
+            <TabsContent value="etp">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Реквизиты счетов ЭТП</CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={() => etpAccountsArray.append(createEmptyEtpAccount())} className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1] hover:text-[#0a1628]">
+                    <Plus className="h-4 w-4 mr-2" />Добавить счёт ЭТП
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {etpAccountsArray.fields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Счета ЭТП не добавлены</p>
+                    </div>
+                  ) : (
+                    etpAccountsArray.fields.map((field, index) => (
+                      <div key={field.id} className="rounded-lg border p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-medium">Счёт ЭТП #{index + 1}</h5>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => etpAccountsArray.remove(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-5">
+                          <FormField control={form.control} name={`etp_accounts.${index}.platform`} render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Площадка</FormLabel>
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Выберите" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                  {ETP_PLATFORMS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name={`etp_accounts.${index}.account`} render={({ field }) => (
+                            <FormItem><FormLabel>Расчётный счёт</FormLabel><FormControl><Input placeholder="40702810..." {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`etp_accounts.${index}.bik`} render={({ field }) => (
+                            <FormItem><FormLabel>БИК</FormLabel><FormControl><Input placeholder="044525000" maxLength={9} {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`etp_accounts.${index}.bank_name`} render={({ field }) => (
+                            <FormItem><FormLabel>Банк</FormLabel><FormControl><Input placeholder="Название банка" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`etp_accounts.${index}.corr_account`} render={({ field }) => (
+                            <FormItem><FormLabel>Корр. счёт</FormLabel><FormControl><Input placeholder="30101810..." {...field} /></FormControl></FormItem>
+                          )} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* TAB 8: CONTACT PERSONS */}
+            <TabsContent value="contacts">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Контактные лица</CardTitle>
+                  <Button type="button" variant="outline" size="sm" onClick={() => contactPersonsArray.append(createEmptyContactPerson())} className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1] hover:text-[#0a1628]">
+                    <Plus className="h-4 w-4 mr-2" />Добавить контакт
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {contactPersonsArray.fields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Contact className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Контактные лица не добавлены</p>
+                    </div>
+                  ) : (
+                    contactPersonsArray.fields.map((field, index) => (
+                      <div key={field.id} className="rounded-lg border p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-medium">Контакт #{String(index + 1).padStart(6, '0')}</h5>
+                          <Button type="button" variant="ghost" size="icon" onClick={() => contactPersonsArray.remove(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-6">
+                          <FormField control={form.control} name={`contact_persons.${index}.position`} render={({ field }) => (
+                            <FormItem><FormLabel>Должность</FormLabel><FormControl><Input placeholder="Менеджер" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`contact_persons.${index}.last_name`} render={({ field }) => (
+                            <FormItem><FormLabel>Фамилия</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`contact_persons.${index}.first_name`} render={({ field }) => (
+                            <FormItem><FormLabel>Имя</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`contact_persons.${index}.middle_name`} render={({ field }) => (
+                            <FormItem><FormLabel>Отчество</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`contact_persons.${index}.email`} render={({ field }) => (
+                            <FormItem><FormLabel>E-mail</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form.control} name={`contact_persons.${index}.phone`} render={({ field }) => (
+                            <FormItem><FormLabel>Телефон</FormLabel><FormControl><Input placeholder="+7..." {...field} /></FormControl></FormItem>
+                          )} />
+                        </div>
+                      </div>
+                    ))
                   )}
                 </CardContent>
               </Card>

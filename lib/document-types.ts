@@ -228,6 +228,17 @@ export const GENERAL_DOCUMENT_TYPES: DocumentTypeOption[] = [
 ];
 
 // ============================================================================
+// AGENT ACCREDITATION DOCUMENT TYPES (4 types)
+// ============================================================================
+
+export const AGENT_DOCUMENT_TYPES: DocumentTypeOption[] = [
+    { id: 8, productType: 'agent', name: 'Заявление о присоединении к регламенту', source: 'agent' },
+    { id: 9, productType: 'agent', name: 'Согласие на обработку персональных данных', source: 'agent' },
+    { id: 10, productType: 'agent', name: 'Лист записи/Скан свидетельства ОГРНИП', source: 'agent' },
+    { id: 11, productType: 'agent', name: 'Агентский договор', source: 'agent' },
+];
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -242,6 +253,8 @@ export function getDocumentTypesForProduct(productType: string): DocumentTypeOpt
         case 'contract_loan':
         case 'tender_loan':  // Same as contract_loan per ТЗ
             return KIK_DOCUMENT_TYPES;
+        case 'agent':
+            return AGENT_DOCUMENT_TYPES;
         default:
             return GENERAL_DOCUMENT_TYPES;
     }

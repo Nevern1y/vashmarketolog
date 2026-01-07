@@ -165,6 +165,22 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
     )
   }
 
+  // Get accreditation badge for client
+  const getAccreditationBadge = (client: typeof clients[0]) => {
+    if ((client as any).is_accredited) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#3CE8D1]/10 text-[#3CE8D1]">
+          ✓ Аккредитован
+        </span>
+      )
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f97316]/10 text-[#f97316]">
+        ⚠ Не аккредитован
+      </span>
+    )
+  }
+
   // Format date
   const formatDate = (dateStr: string) => {
     try {
@@ -185,6 +201,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
           <TableCell><Skeleton className="h-6 w-24" /></TableCell>
           <TableCell><Skeleton className="h-6 w-6 rounded-full" /></TableCell>
           <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+          <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8" /></TableCell>
         </TableRow>
       ))}
@@ -271,11 +288,12 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Краткое наименование</TableHead>
-                <TableHead>ИНН</TableHead>
+                <TableHead>ИНН / ОГРН</TableHead>
                 <TableHead>Контакты</TableHead>
                 <TableHead>Регион</TableHead>
                 <TableHead>Акт. заявки</TableHead>
                 <TableHead>Статус клиента</TableHead>
+                <TableHead>Аккредитация</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -284,7 +302,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                 <TableSkeleton />
               ) : paginatedClients.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={8} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Users className="h-8 w-8" />
                       <p>Клиенты не найдены</p>
@@ -293,7 +311,11 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                 </TableRow>
               ) : (
                 paginatedClients.map((client) => (
-                  <TableRow key={client.id}>
+                  <TableRow
+                    key={client.id}
+                    className="cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => openViewSheet(client.id)}
+                  >
                     {/* Column 1: Краткое наименование организации */}
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -308,9 +330,14 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                         </div>
                       </div>
                     </TableCell>
-                    {/* Column 2: ИНН */}
+                    {/* Column 2: ИНН / ОГРН per ТЗ */}
                     <TableCell>
-                      <p className="font-mono text-sm font-medium">{client.inn || "—"}</p>
+                      <div>
+                        <p className="font-mono text-sm font-medium">{client.inn || "—"}</p>
+                        {client.ogrn && (
+                          <p className="font-mono text-xs text-muted-foreground">{client.ogrn}</p>
+                        )}
+                      </div>
                     </TableCell>
                     {/* Column 3: Контакты (email/phone) */}
                     <TableCell>
@@ -333,8 +360,12 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                     <TableCell>
                       {getStatusBadge(client)}
                     </TableCell>
-                    {/* Column 5: Actions */}
+                    {/* Column 7: Аккредитация */}
                     <TableCell>
+                      {getAccreditationBadge(client)}
+                    </TableCell>
+                    {/* Column 7: Actions */}
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" disabled={mutating}>

@@ -382,17 +382,39 @@ class ApplicationAssignSerializer(serializers.Serializer):
 class PartnerDecisionSerializer(serializers.ModelSerializer):
     """
     Serializer for partner decisions.
+    Includes nested application data for notifications.
     """
     partner_email = serializers.EmailField(source='partner.email', read_only=True)
+    partner_name = serializers.SerializerMethodField()
     decision_display = serializers.CharField(source='get_decision_display', read_only=True)
+    # Nested application data for notifications
+    application_id = serializers.IntegerField(source='application.id', read_only=True)
+    application_company_name = serializers.SerializerMethodField()
+    application_company_inn = serializers.SerializerMethodField()
+    application_product_type = serializers.CharField(source='application.product_type', read_only=True)
+    application_product_type_display = serializers.CharField(source='application.get_product_type_display', read_only=True)
+    application_amount = serializers.DecimalField(source='application.amount', max_digits=15, decimal_places=2, read_only=True)
+    application_term_months = serializers.IntegerField(source='application.term_months', read_only=True)
+    application_status = serializers.CharField(source='application.status', read_only=True)
+    application_status_display = serializers.CharField(source='application.get_status_display', read_only=True)
 
     class Meta:
         model = PartnerDecision
         fields = [
             'id',
             'application',
+            'application_id',
+            'application_company_name',
+            'application_company_inn',
+            'application_product_type',
+            'application_product_type_display',
+            'application_amount',
+            'application_term_months',
+            'application_status',
+            'application_status_display',
             'partner',
             'partner_email',
+            'partner_name',
             'decision',
             'decision_display',
             'comment',
@@ -401,6 +423,27 @@ class PartnerDecisionSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = ['id', 'application', 'partner', 'partner_email', 'created_at']
+
+    def get_partner_name(self, obj):
+        """Get partner's display name."""
+        if obj.partner:
+            first = obj.partner.first_name or ''
+            last = obj.partner.last_name or ''
+            full_name = f"{first} {last}".strip()
+            return full_name if full_name else obj.partner.email
+        return None
+
+    def get_application_company_name(self, obj):
+        """Get company name from application."""
+        if obj.application and obj.application.company:
+            return obj.application.company.short_name or obj.application.company.name or '—'
+        return '—'
+
+    def get_application_company_inn(self, obj):
+        """Get company INN from application."""
+        if obj.application and obj.application.company:
+            return obj.application.company.inn or '—'
+        return '—'
 
 
 class PartnerDecisionCreateSerializer(serializers.ModelSerializer):

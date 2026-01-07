@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
     Newspaper,
@@ -16,6 +16,10 @@ import {
     X,
     Calendar,
     FolderPlus,
+    Image,
+    Upload,
+    FileText,
+    TableIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +27,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Select,
     SelectContent,
@@ -70,6 +75,7 @@ import {
     type NewsItem,
     type NewsCategory,
 } from "@/hooks/use-news"
+import { NewsTableEditor, tableToHtml, type TableData } from "./news-table-editor"
 
 // =================================================================================
 // ADMIN NEWS VIEW
@@ -301,6 +307,7 @@ function NewsEditDialog({
     onSave: (data: any) => Promise<boolean>
     isLoading: boolean
 }) {
+    const imageInputRef = useRef<HTMLInputElement>(null)
     const [formData, setFormData] = useState({
         title: "",
         summary: "",
@@ -309,17 +316,33 @@ function NewsEditDialog({
         is_featured: false,
         is_published: true,
     })
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string>("")
+    const [tables, setTables] = useState<TableData[]>([])
+    const [activeTab, setActiveTab] = useState("content")
+
+    // Extract tables from existing content (for editing)
+    const extractTablesFromContent = (content: string): { textContent: string, tables: TableData[] } => {
+        // For now, just return content as-is since we're adding new tables
+        // In a full implementation, we'd parse existing HTML tables
+        return { textContent: content, tables: [] }
+    }
 
     useEffect(() => {
         if (newsItem) {
+            const { textContent } = extractTablesFromContent(newsItem.content || "")
             setFormData({
                 title: newsItem.title,
                 summary: newsItem.summary || "",
-                content: newsItem.content || "",
+                content: textContent,
                 category_id: newsItem.category?.id || null,
                 is_featured: newsItem.is_featured,
                 is_published: newsItem.is_published,
             })
+            // Set preview URL from existing news image
+            setImagePreview(newsItem.image || "")
+            setImageFile(null)
+            setTables([])
         } else {
             setFormData({
                 title: "",
@@ -329,13 +352,56 @@ function NewsEditDialog({
                 is_featured: false,
                 is_published: true,
             })
+            setImageFile(null)
+            setImagePreview("")
+            setTables([])
         }
+        setActiveTab("content")
     }, [newsItem, open])
 
+    // Handle image file selection
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Store the file for upload
+        setImageFile(file)
+
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file)
+        setImagePreview(previewUrl)
+
+        if (imageInputRef.current) {
+            imageInputRef.current.value = ""
+        }
+    }
+
+    // Clear image
+    const clearImage = () => {
+        setImageFile(null)
+        setImagePreview("")
+    }
+
     const handleSubmit = async () => {
-        if (!formData.title.trim() || !formData.content.trim()) return
+        if (!formData.title.trim()) return
+
+        // Combine text content with HTML tables
+        let finalContent = formData.content
+
+        // Add tables as HTML at the end of content
+        if (tables.length > 0) {
+            const tablesHtml = tables.map(t => tableToHtml(t)).join("\n\n")
+            finalContent = finalContent + (finalContent ? "\n\n" : "") + tablesHtml
+        }
+
         const success = await onSave({
-            ...formData,
+            title: formData.title,
+            summary: formData.summary,
+            content: finalContent || formData.title, // Ensure content is not empty
+            image: imageFile, // Pass File object for upload
+            category_id: formData.category_id,
+            is_featured: formData.is_featured,
+            is_published: formData.is_published,
             published_at: formData.is_published ? new Date().toISOString() : null,
         })
         if (success) {
@@ -343,92 +409,197 @@ function NewsEditDialog({
         }
     }
 
+    const hasContent = formData.title.trim() && (formData.content.trim() || tables.length > 0)
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>
                         {newsItem ? "Редактировать новость" : "Создать новость"}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label>Заголовок *</Label>
-                        <Input
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="Введите заголовок"
-                        />
-                    </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="content" className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Контент
+                        </TabsTrigger>
+                        <TabsTrigger value="image" className="flex items-center gap-2">
+                            <Image className="h-4 w-4" />
+                            Изображение
+                        </TabsTrigger>
+                        <TabsTrigger value="tables" className="flex items-center gap-2">
+                            <TableIcon className="h-4 w-4" />
+                            Таблицы {tables.length > 0 && `(${tables.length})`}
+                        </TabsTrigger>
+                    </TabsList>
 
-                    <div className="space-y-2">
-                        <Label>Категория</Label>
-                        <Select
-                            value={formData.category_id?.toString() || "none"}
-                            onValueChange={(value) =>
-                                setFormData({
-                                    ...formData,
-                                    category_id: value === "none" ? null : parseInt(value),
-                                })
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Выберите категорию" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Без категории</SelectItem>
-                                {categories.map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id.toString()}>
-                                        {cat.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Краткое описание</Label>
-                        <Textarea
-                            value={formData.summary}
-                            onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                            placeholder="Краткое описание для превью"
-                            rows={2}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Содержание *</Label>
-                        <Textarea
-                            value={formData.content}
-                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                            placeholder="Полное содержание новости"
-                            rows={8}
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                checked={formData.is_featured}
-                                onCheckedChange={(checked) =>
-                                    setFormData({ ...formData, is_featured: checked })
-                                }
+                    {/* Content Tab */}
+                    <TabsContent value="content" className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Заголовок *</Label>
+                            <Input
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                placeholder="Введите заголовок"
                             />
-                            <Label className="text-sm">Главная новость</Label>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <Switch
-                                checked={formData.is_published}
-                                onCheckedChange={(checked) =>
-                                    setFormData({ ...formData, is_published: checked })
+                        <div className="space-y-2">
+                            <Label>Категория</Label>
+                            <Select
+                                value={formData.category_id?.toString() || "none"}
+                                onValueChange={(value) =>
+                                    setFormData({
+                                        ...formData,
+                                        category_id: value === "none" ? null : parseInt(value),
+                                    })
                                 }
-                            />
-                            <Label className="text-sm">Опубликовать</Label>
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Выберите категорию" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Без категории</SelectItem>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    </div>
-                </div>
+
+                        <div className="space-y-2">
+                            <Label>Краткое описание</Label>
+                            <Textarea
+                                value={formData.summary}
+                                onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                                placeholder="Краткое описание для превью"
+                                rows={2}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Содержание</Label>
+                            <Textarea
+                                value={formData.content}
+                                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                                placeholder="Полное содержание новости (поддерживается HTML)"
+                                rows={10}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Поддерживается HTML-разметка. Таблицы будут добавлены автоматически из вкладки "Таблицы".
+                            </p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2">
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    checked={formData.is_featured}
+                                    onCheckedChange={(checked) =>
+                                        setFormData({ ...formData, is_featured: checked })
+                                    }
+                                />
+                                <Label className="text-sm">Главная новость</Label>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    checked={formData.is_published}
+                                    onCheckedChange={(checked) =>
+                                        setFormData({ ...formData, is_published: checked })
+                                    }
+                                />
+                                <Label className="text-sm">Опубликовать</Label>
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    {/* Image Tab */}
+                    <TabsContent value="image" className="space-y-4 py-4">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label>Загрузить изображение обложки</Label>
+                                <input
+                                    ref={imageInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    className="w-full"
+                                >
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    {imageFile ? "Изменить файл" : "Выбрать файл"}
+                                </Button>
+                                {imageFile && (
+                                    <p className="text-xs text-green-500">
+                                        ✓ Выбран файл: {imageFile.name}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Image Preview */}
+                            {imagePreview && (
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label>Превью</Label>
+                                        {imageFile && (
+                                            <Badge variant="outline" className="text-green-500 border-green-500/50">
+                                                Будет загружено
+                                            </Badge>
+                                        )}
+                                        {!imageFile && imagePreview && (
+                                            <Badge variant="outline" className="text-blue-500 border-blue-500/50">
+                                                Существующее
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="relative rounded-lg overflow-hidden border border-border bg-muted aspect-video">
+                                        <img
+                                            src={imagePreview}
+                                            alt="Превью"
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).style.display = "none"
+                                            }}
+                                        />
+                                        <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            className="absolute top-2 right-2 h-8 w-8"
+                                            onClick={clearImage}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!imagePreview && (
+                                <div className="flex items-center justify-center py-12 border border-dashed border-border rounded-lg">
+                                    <div className="text-center text-muted-foreground">
+                                        <Image className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        <p>Нет изображения</p>
+                                        <p className="text-xs">Нажмите кнопку выше чтобы загрузить</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+
+                    {/* Tables Tab */}
+                    <TabsContent value="tables" className="py-4">
+                        <NewsTableEditor tables={tables} onChange={setTables} />
+                    </TabsContent>
+                </Tabs>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>
@@ -436,7 +607,7 @@ function NewsEditDialog({
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={!formData.title.trim() || !formData.content.trim() || isLoading}
+                        disabled={!hasContent || isLoading}
                         className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
                     >
                         {isLoading ? (

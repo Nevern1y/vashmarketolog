@@ -15,8 +15,10 @@ import {
     Menu,
     FileCheck,
     Newspaper,
+    UserCheck,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { PartnersTab } from "./partners-tab"
 import { AdminApplicationsView } from "./admin-applications-view"
 import { AdminAccreditationView } from "./admin-accreditation-view"
@@ -24,21 +26,25 @@ import { AdminStatisticsView } from "./admin-statistics-view"
 import { AdminApplicationDetail } from "./admin-application-detail"
 import { AdminDocumentsView } from "./admin-documents-view"
 import { AdminNewsView } from "./admin-news-view"
+import { AdminCRMClientsView } from "./admin-crm-clients-view"
 
 // ============================================
 // Sidebar Navigation Items
 // ============================================
 
-type AdminView = "applications" | "accreditation" | "documents" | "partners" | "statistics" | "news"
+type AdminView = "applications" | "accreditation" | "clients" | "documents" | "partners" | "statistics" | "news"
 
 const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "applications", label: "Заявки", icon: FileText },
     { id: "accreditation", label: "Аккредитация", icon: Users },
+    { id: "clients", label: "Клиенты", icon: UserCheck },
     { id: "documents", label: "Документы", icon: FileCheck },
     { id: "news", label: "Новости", icon: Newspaper },
     { id: "partners", label: "Партнёры", icon: Building2 },
     { id: "statistics", label: "Статистика", icon: BarChart3 },
 ]
+
+const ADMIN_VIEWS: AdminView[] = ["applications", "accreditation", "clients", "documents", "partners", "statistics", "news"]
 
 // ============================================
 // Main Admin Dashboard Component
@@ -46,17 +52,14 @@ const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
 
 export function AdminDashboard() {
     const { user, logout } = useAuth()
-    const [activeView, setActiveView] = useState<AdminView>("applications")
+    // URL-based view state (persists across page reloads)
+    const [activeView, setActiveView] = usePersistedView<AdminView>("view", "applications", ADMIN_VIEWS)
+    const { appId: selectedAppId, openDetail: setSelectedAppId, closeDetail: handleBackFromDetail } = usePersistedAppDetail()
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-    const [selectedAppId, setSelectedAppId] = useState<string | null>(null)
 
     // Handlers
     const handleSelectApplication = (appId: string) => {
         setSelectedAppId(appId)
-    }
-
-    const handleBackFromDetail = () => {
-        setSelectedAppId(null)
     }
 
     // Render Content
@@ -77,6 +80,8 @@ export function AdminDashboard() {
                 return <AdminApplicationsView onSelectApplication={handleSelectApplication} />
             case "accreditation":
                 return <AdminAccreditationView />
+            case "clients":
+                return <AdminCRMClientsView />
             case "documents":
                 return <AdminDocumentsView />
             case "news":
@@ -128,7 +133,7 @@ export function AdminDashboard() {
                                 key={item.id}
                                 onClick={() => {
                                     setActiveView(item.id)
-                                    setSelectedAppId(null)
+                                    handleBackFromDetail()
                                 }}
                                 className={cn(
                                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",

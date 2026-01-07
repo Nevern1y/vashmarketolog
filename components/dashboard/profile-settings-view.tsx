@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -27,10 +27,16 @@ import {
     Mail,
     MessageCircle,
     ExternalLink,
-    Loader2
+    Loader2,
+    FileCheck,
+    ChevronDown,
+    ChevronUp,
+    Upload,
+    CheckCircle2
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { authApi } from "@/lib/api"
+import { useDocumentMutations, useDocuments } from "@/hooks/use-documents"
 
 // Tax system options per ТЗ
 const TAX_SYSTEMS = [
@@ -51,20 +57,264 @@ const VAT_RATES = [
     { value: "20%", label: "20%" },
 ]
 
-// Agent documents for download
+// Agent documents for upload - documents that agent must provide
+// Using numeric document_type_id for backend API
 const AGENT_DOCUMENTS = [
-    { id: "contract", name: "Агентский договор", extension: "pdf" },
-    { id: "privacy_policy", name: "Политика обработки персональных данных", extension: "pdf" },
-    { id: "offer", name: "Публичная оферта", extension: "pdf" },
-    { id: "tariffs", name: "Тарифы на услуги", extension: "pdf" },
+    { id: "zayavlenie", document_type_id: 8, name: "Заявление о присоединении к регламенту", acceptFormat: ".sig", description: "Подписанное заявление в формате SIG" },
+    { id: "soglasie", document_type_id: 9, name: "Согласие на обработку персональных данных", acceptFormat: ".sig", description: "Подписанное согласие в формате SIG" },
+    { id: "list_zapisi", document_type_id: 10, name: "Лист записи/Скан свидетельства ОГРНИП", acceptFormat: ".pdf,.jpg,.jpeg,.png", description: "Скан документа в формате PDF или изображение" },
+    { id: "contract", document_type_id: 11, name: "Агентский договор", acceptFormat: ".sig", description: "Подписанный договор в формате SIG" },
 ]
 
+// Contract conditions - commission rates for banking partners
+const CONTRACT_CONDITIONS = {
+    bankGuarantee: {
+        title: "Получение Банковской гарантии",
+        partners: [
+            {
+                partner: "АК Барс", conditions: [
+                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта до 50 000 000,00 ₽, +40% от превышения тарифа", startDate: null, endDate: null },
+                    { rate: "10% от комиссии, уплаченной на банк при сумме продукта от 50 000 000,01 ₽, +40% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Абсолют", conditions: [
+                    { rate: "15% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "27.07.2025", endDate: null },
+                ]
+            },
+            {
+                partner: "Альфа-Банк", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Банк Казани", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Банк Левобережный", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "17.06.2024", endDate: null },
+                ]
+            },
+            {
+                partner: "Газпромбанк", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Держава", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк при сумме продукта до 40 000 000,00 ₽, +50% от превышения тарифа", startDate: "15.02.2022", endDate: null },
+                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 40 000 000,01 ₽, +50% от превышения тарифа", startDate: "15.02.2021", endDate: null },
+                ]
+            },
+            {
+                partner: "Зенит", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Ингосстрах Банк (ранее Союз)", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "КБ Соколовский", conditions: [
+                    { rate: "30% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "15.10.2025", endDate: null },
+                ]
+            },
+            {
+                partner: "Камкомбанк", conditions: [
+                    { rate: "30% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "15.10.2025", endDate: null },
+                ]
+            },
+            {
+                partner: "Локо", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.09.2020", endDate: null },
+                ]
+            },
+            {
+                partner: "МКБ", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "МСП", conditions: [
+                    { rate: "15% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "МСП (Экспресс)", conditions: [
+                    { rate: "15% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "МТС", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "МетКомБанк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта до 50 000 000,00 ₽", startDate: null, endDate: null },
+                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 50 000 000,01 ₽", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "МеталлинвестБанк", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк при сумме продукта до 10 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
+                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта от 10 000 000,01 ₽ до 30 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
+                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 30 000 000,01 ₽ до 50 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
+                    { rate: "10% от комиссии, уплаченной на банк при сумме продукта от 50 000 000,01 ₽ до 100 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Примсоцбанк", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк", startDate: "02.08.2022", endDate: null },
+                ]
+            },
+            {
+                partner: "Промсвязьбанк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "06.12.2021", endDate: null },
+                    { rate: "25% от комиссии, уплаченной на банк при количестве закрытых сделок от 6 шт., +50% от превышения тарифа", startDate: "25.02.2021", endDate: null, note: "до 25.02.2021 - 30% по всем сделкам" },
+                ]
+            },
+            {
+                partner: "Реалист Банк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "РусНарБанк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта до 14 600 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
+                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 14 600 000,01 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "СГБ", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.03.2024", endDate: null },
+                ]
+            },
+            {
+                partner: "СДМ Банк", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.07.2024", endDate: null },
+                ]
+            },
+            {
+                partner: "Санкт-Петербург", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.12.2022", endDate: null },
+                ]
+            },
+            {
+                partner: "Сбербанк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк", startDate: "01.11.2022", endDate: null, note: "20% от комиссии (44/223/615 ФЗ, открытые закупки). Остальные закупки, в т.ч. КБГ - 15%, превышение запрещено" },
+                ]
+            },
+            {
+                partner: "Совкомбанк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.12.2022", endDate: null, note: "Перевыпуск, изменение и продление БГ 15%" },
+                    { rate: "10% от комиссии, уплаченной на банк при сумме продукта от 10 000 000,01 ₽, +50% от превышения тарифа", startDate: "08.04.2020", endDate: null, note: "Перевыпуск, изменение и продление БГ 15%" },
+                ]
+            },
+            {
+                partner: "Солид", conditions: [
+                    { rate: "15% от комиссии, уплаченной на банк, +35% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "ТКБ", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк", startDate: "01.02.2022", endDate: null },
+                ]
+            },
+            {
+                partner: "Трансстройбанк", conditions: [
+                    { rate: "30% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "15.10.2025", endDate: null },
+                ]
+            },
+            {
+                partner: "Урал ФД", conditions: [
+                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "10.04.2024", endDate: null },
+                ]
+            },
+            {
+                partner: "Уралсиб", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта до 30 000 000,00 ₽", startDate: "01.12.2020", endDate: null },
+                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 30 000 000,00 ₽", startDate: "01.12.2020", endDate: null },
+                ]
+            },
+        ]
+    },
+    tenderLoan: {
+        title: "Получение Тендерного займа или Тендерного кредита",
+        partners: [
+            {
+                partner: "Прочие партнёры", conditions: [
+                    { rate: "10% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Финтендер", conditions: [
+                    { rate: "10% от комиссии, уплаченной на банк", startDate: null, endDate: null, note: "Комиссия за гарантийное обеспечение уплаты процентов - вознаграждение агента не предусмотрено" },
+                ]
+            },
+        ]
+    },
+    stateContractCredit: {
+        title: "Получение кредита на исполнение госконтракта",
+        partners: [
+            {
+                partner: "Альфа-Банк", conditions: [
+                    { rate: "0.70% от суммы выданного кредита, +50% от превышения тарифа", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Держава", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "МеталлИнвестБанк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Промсвязьбанк", conditions: [
+                    { rate: "0.70% от суммы выданного кредита", startDate: null, endDate: null },
+                ]
+            },
+            {
+                partner: "Реалист Банк", conditions: [
+                    { rate: "20% от комиссии, уплаченной на банк", startDate: "07.06.2023", endDate: null },
+                ]
+            },
+        ]
+    },
+    settlementAccount: {
+        title: "Открытие расчетного счета",
+        partners: [
+            {
+                partner: "Прочие партнёры", conditions: [
+                    { rate: "1 500,00 ₽ (фиксированное)", startDate: null, endDate: null },
+                ]
+            },
+        ]
+    }
+}
+
 export function ProfileSettingsView() {
-    const { user } = useAuth()
+    const { user, refreshUser } = useAuth()
     const [isLinkCopied, setIsLinkCopied] = useState(false)
 
     // Role check - agents see Referrals tab, clients don't
     const isAgent = user?.role === "agent" || user?.role === "partner"
+    const isClient = user?.role === "client"
+
+    // Profile editing state
+    const [isEditingProfile, setIsEditingProfile] = useState(false)
+    const [profileFullName, setProfileFullName] = useState((user as any)?.full_name || user?.first_name || "")
+    const [profileEmail, setProfileEmail] = useState(user?.email || "")
+    const [profilePhone, setProfilePhone] = useState(user?.phone || "")
+    const [isSavingProfile, setIsSavingProfile] = useState(false)
 
     // Form state for requisites
     const [bankBik, setBankBik] = useState("")
@@ -80,6 +330,54 @@ export function ProfileSettingsView() {
     const [confirmPassword, setConfirmPassword] = useState("")
     const [isSavingPassword, setIsSavingPassword] = useState(false)
 
+    // Contract sections expanded state
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        bankGuarantee: true,
+        tenderLoan: false,
+        stateContractCredit: false,
+        settlementAccount: false
+    })
+
+    // Agent documents - fetch from backend and track uploads
+    const { documents: agentDocuments, refetch: refetchAgentDocs } = useDocuments({
+        product_type: 'agent'
+    })
+    const { uploadDocument, isLoading: isUploading } = useDocumentMutations()
+    const agentDocInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+    // Check if a document type is already uploaded
+    const isAgentDocUploaded = (documentTypeId: number) => {
+        return agentDocuments.some(d => d.document_type_id === documentTypeId)
+    }
+
+    // Get uploaded document info by type
+    const getUploadedAgentDoc = (documentTypeId: number) => {
+        return agentDocuments.find(d => d.document_type_id === documentTypeId)
+    }
+
+    const toggleSection = (section: string) => {
+        setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
+    }
+
+    // Handle agent document upload - now uses real API
+    const handleAgentDocUpload = async (docId: string, documentTypeId: number, file: File, docName: string) => {
+        try {
+            const result = await uploadDocument({
+                name: file.name,
+                file: file,
+                document_type_id: documentTypeId,
+                product_type: 'agent'
+            })
+
+            if (result) {
+                toast.success(`Документ "${docName}" успешно загружен`)
+                refetchAgentDocs() // Refresh documents list
+            }
+        } catch (error) {
+            toast.error(`Ошибка загрузки документа "${docName}"`)
+        }
+    }
+
     // Generate referral link
     const referralLink = `https://vashmarketolog.ru/register?ref=${user?.id || 'AGENT123'}`
 
@@ -94,10 +392,6 @@ export function ProfileSettingsView() {
         }
     }
 
-    const handleDownloadDocument = (docId: string, docName: string) => {
-        // In production, this would trigger actual file download
-        toast.info(`Скачивание: ${docName}`)
-    }
 
     // Handle password change
     const handleChangePassword = async () => {
@@ -128,6 +422,35 @@ export function ProfileSettingsView() {
         }
     }
 
+    // Handle profile save
+    const handleSaveProfile = async () => {
+        setIsSavingProfile(true)
+        try {
+            await authApi.updateProfile({
+                full_name: profileFullName,
+                email: profileEmail,
+                phone: profilePhone
+            })
+            toast.success("Профиль успешно обновлён")
+            setIsEditingProfile(false)
+            if (refreshUser) {
+                await refreshUser()
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Ошибка при сохранении профиля")
+        } finally {
+            setIsSavingProfile(false)
+        }
+    }
+
+    // Cancel profile editing
+    const handleCancelEdit = () => {
+        setProfileFullName((user as any)?.full_name || user?.first_name || "")
+        setProfileEmail(user?.email || "")
+        setProfilePhone(user?.phone || "")
+        setIsEditingProfile(false)
+    }
+
     return (
         <div className="p-6 space-y-6">
             <div>
@@ -138,23 +461,22 @@ export function ProfileSettingsView() {
             </div>
 
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className={`grid w-full bg-muted/50 ${isAgent ? 'grid-cols-4 md:grid-cols-8' : 'grid-cols-4 md:grid-cols-7'}`}>
+                <TabsList className={`grid w-full bg-muted/50 ${isClient
+                    ? 'grid-cols-4'
+                    : isAgent
+                        ? 'grid-cols-4 md:grid-cols-7'
+                        : 'grid-cols-4 md:grid-cols-5'
+                    }`}>
                     <TabsTrigger value="profile" className="flex items-center gap-1 px-2">
                         <User className="h-4 w-4" />
                         <span className="hidden lg:inline text-xs">Профиль</span>
                     </TabsTrigger>
-                    <TabsTrigger value="organization" className="flex items-center gap-1 px-2">
-                        <Building2 className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Организация</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="requisites" className="flex items-center gap-1 px-2">
-                        <CreditCard className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Реквизиты</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="documents" className="flex items-center gap-1 px-2">
-                        <FileText className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Документы</span>
-                    </TabsTrigger>
+                    {!isClient && (
+                        <TabsTrigger value="documents" className="flex items-center gap-1 px-2">
+                            <FileText className="h-4 w-4" />
+                            <span className="hidden lg:inline text-xs">Документы</span>
+                        </TabsTrigger>
+                    )}
                     <TabsTrigger value="notifications" className="flex items-center gap-1 px-2">
                         <Bell className="h-4 w-4" />
                         <span className="hidden lg:inline text-xs">Уведомления</span>
@@ -173,151 +495,93 @@ export function ProfileSettingsView() {
                             <span className="hidden lg:inline text-xs">Рефералы</span>
                         </TabsTrigger>
                     )}
+                    {isAgent && (
+                        <TabsTrigger value="contract" className="flex items-center gap-1 px-2">
+                            <FileCheck className="h-4 w-4" />
+                            <span className="hidden lg:inline text-xs">Мой договор</span>
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 {/* TAB 1: PROFILE */}
                 <TabsContent value="profile" className="mt-6">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Профиль пользователя</CardTitle>
-                            <CardDescription>Основная информация о вашем аккаунте</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Профиль пользователя</CardTitle>
+                                <CardDescription>Основная информация о вашем аккаунте</CardDescription>
+                            </div>
+                            {!isEditingProfile && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIsEditingProfile(true)}
+                                    className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                >
+                                    Редактировать
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label>ФИО</Label>
                                     <Input
-                                        value={(user as any)?.full_name || user?.first_name || ""}
-                                        disabled
-                                        className="bg-muted"
+                                        value={isEditingProfile ? profileFullName : ((user as any)?.full_name || user?.first_name || "")}
+                                        onChange={(e) => setProfileFullName(e.target.value)}
+                                        disabled={!isEditingProfile}
+                                        className={!isEditingProfile ? "bg-muted" : ""}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Email</Label>
                                     <Input
-                                        value={user?.email || ""}
-                                        disabled
-                                        className="bg-muted"
+                                        type="email"
+                                        value={isEditingProfile ? profileEmail : (user?.email || "")}
+                                        onChange={(e) => setProfileEmail(e.target.value)}
+                                        disabled={!isEditingProfile}
+                                        className={!isEditingProfile ? "bg-muted" : ""}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Телефон</Label>
                                     <Input
-                                        value={user?.phone || "+7 (XXX) XXX-XX-XX"}
-                                        disabled
-                                        className="bg-muted"
+                                        value={isEditingProfile ? profilePhone : (user?.phone || "+7 (XXX) XXX-XX-XX")}
+                                        onChange={(e) => setProfilePhone(e.target.value)}
+                                        disabled={!isEditingProfile}
+                                        className={!isEditingProfile ? "bg-muted" : ""}
+                                        placeholder="+7 (XXX) XXX-XX-XX"
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Роль</Label>
                                     <Input
-                                        value={user?.role === "agent" ? "Агент" : user?.role === "partner" ? "Партнер" : user?.role || ""}
+                                        value={user?.role === "agent" ? "Агент" : user?.role === "partner" ? "Партнер" : user?.role === "client" ? "Клиент" : user?.role || ""}
                                         disabled
                                         className="bg-muted"
                                     />
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* TAB 2: REQUISITES (WAVE 3) */}
-                <TabsContent value="requisites" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Building2 className="h-5 w-5" />
-                                Банковские реквизиты
-                            </CardTitle>
-                            <CardDescription>
-                                Реквизиты для получения комиссионных выплат
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="bankBik">БИК банка *</Label>
-                                    <Input
-                                        id="bankBik"
-                                        placeholder="9 цифр"
-                                        maxLength={9}
-                                        value={bankBik}
-                                        onChange={(e) => setBankBik(e.target.value.replace(/\D/g, ""))}
-                                    />
+                            {isEditingProfile && (
+                                <div className="flex gap-3 pt-4">
+                                    <Button
+                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                        onClick={handleSaveProfile}
+                                        disabled={isSavingProfile}
+                                    >
+                                        {isSavingProfile ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : null}
+                                        Сохранить
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleCancelEdit}
+                                        disabled={isSavingProfile}
+                                    >
+                                        Отмена
+                                    </Button>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="bankName">Название банка</Label>
-                                    <Input
-                                        id="bankName"
-                                        placeholder="ПАО Сбербанк"
-                                        value={bankName}
-                                        onChange={(e) => setBankName(e.target.value)}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="bankAccount">Расчётный счёт *</Label>
-                                    <Input
-                                        id="bankAccount"
-                                        placeholder="20 цифр"
-                                        maxLength={20}
-                                        value={bankAccount}
-                                        onChange={(e) => setBankAccount(e.target.value.replace(/\D/g, ""))}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="corrAccount">Корр. счёт</Label>
-                                    <Input
-                                        id="corrAccount"
-                                        placeholder="20 цифр"
-                                        maxLength={20}
-                                        value={corrAccount}
-                                        onChange={(e) => setCorrAccount(e.target.value.replace(/\D/g, ""))}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="border-t pt-4">
-                                <h4 className="text-sm font-medium mb-4 flex items-center gap-2">
-                                    <Percent className="h-4 w-4" />
-                                    Налоговые сведения
-                                </h4>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label>Система налогообложения *</Label>
-                                        <Select value={taxSystem} onValueChange={setTaxSystem}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Выберите систему" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {TAX_SYSTEMS.map((tax) => (
-                                                    <SelectItem key={tax.value} value={tax.value}>
-                                                        {tax.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Ставка НДС *</Label>
-                                        <Select value={vatRate} onValueChange={setVatRate}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Выберите ставку" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {VAT_RATES.map((rate) => (
-                                                    <SelectItem key={rate.value} value={rate.value}>
-                                                        {rate.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
-                                Сохранить реквизиты
-                            </Button>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -417,103 +681,69 @@ export function ProfileSettingsView() {
                                 Документы
                             </CardTitle>
                             <CardDescription>
-                                Скачайте необходимые документы для работы
+                                Загрузите необходимые документы для работы на платформе
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-3">
-                                {AGENT_DOCUMENTS.map((doc) => (
-                                    <div
-                                        key={doc.id}
-                                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                                                <FileText className="h-5 w-5" />
+                            <div className="space-y-4">
+                                {AGENT_DOCUMENTS.map((doc) => {
+                                    const isUploaded = isAgentDocUploaded(doc.document_type_id)
+                                    const uploadedDoc = getUploadedAgentDoc(doc.document_type_id)
+                                    return (
+                                        <div
+                                            key={doc.id}
+                                            className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {isUploaded ? (
+                                                    <CheckCircle2 className="h-5 w-5 text-[#3CE8D1]" />
+                                                ) : (
+                                                    <FileText className="h-5 w-5 text-muted-foreground" />
+                                                )}
+                                                <div>
+                                                    <p className="font-medium text-sm">{doc.name}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {isUploaded && uploadedDoc
+                                                            ? `${uploadedDoc.name} • ${new Date(uploadedDoc.uploaded_at).toLocaleDateString('ru-RU')}`
+                                                            : doc.description
+                                                        }
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-medium">{doc.name}</p>
-                                                <p className="text-xs text-muted-foreground uppercase">{doc.extension}</p>
+                                            <div className="flex items-center gap-2">
+                                                {isUploaded ? (
+                                                    <span className="text-xs bg-[#3CE8D1]/10 text-[#3CE8D1] px-2 py-1 rounded">
+                                                        Загружен
+                                                    </span>
+                                                ) : (
+                                                    <>
+                                                        <input
+                                                            type="file"
+                                                            ref={(el) => { agentDocInputRefs.current[doc.id] = el }}
+                                                            className="hidden"
+                                                            accept={doc.acceptFormat}
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0]
+                                                                if (file) handleAgentDocUpload(doc.id, doc.document_type_id, file, doc.name)
+                                                            }}
+                                                        />
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="gap-2"
+                                                            disabled={isUploading}
+                                                            onClick={() => agentDocInputRefs.current[doc.id]?.click()}
+                                                        >
+                                                            <Upload className="h-4 w-4" />
+                                                            {isUploading ? 'Загрузка...' : 'Загрузить'}
+                                                        </Button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDownloadDocument(doc.id, doc.name)}
-                                        >
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Скачать
-                                        </Button>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* TAB: ORGANIZATION (ТЗ Настройки) */}
-                <TabsContent value="organization" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Building2 className="h-5 w-5" />
-                                Данные организации
-                            </CardTitle>
-                            <CardDescription>
-                                Информация о вашей компании
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label>ИНН</Label>
-                                    <Input placeholder="10 или 12 цифр" />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>КПП</Label>
-                                    <Input placeholder="9 цифр" />
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Наименование организации</Label>
-                                    <Input placeholder="ООО «Название»" />
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Полное наименование</Label>
-                                    <Input placeholder="Общество с ограниченной ответственностью" />
-                                </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Юридический адрес</Label>
-                                    <Input placeholder="123456, г. Москва, ул. Примерная, д. 1" />
-                                </div>
-                            </div>
-                            <div className="border-t pt-4">
-                                <h4 className="text-sm font-medium mb-4">Руководитель</h4>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label>ФИО руководителя</Label>
-                                        <Input placeholder="Иванов Иван Иванович" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Должность</Label>
-                                        <Input placeholder="Генеральный директор" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Действует на основании</Label>
-                                        <Select defaultValue="charter">
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="charter">Устава</SelectItem>
-                                                <SelectItem value="power_of_attorney">Доверенности</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
-                            <Button className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
-                                Сохранить организацию
-                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -758,6 +988,238 @@ export function ProfileSettingsView() {
                                         Telegram-канал
                                     </a>
                                 </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* TAB: CONTRACT (Мой договор) */}
+                <TabsContent value="contract" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileCheck className="h-5 w-5" />
+                                Мой договор
+                            </CardTitle>
+                            <CardDescription>
+                                Текущие условия вознаграждения агента по партнёрам сервиса
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Bank Guarantee Section */}
+                            <div className="rounded-lg border">
+                                <button
+                                    onClick={() => toggleSection('bankGuarantee')}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3CE8D1]/20 text-[#3CE8D1]">
+                                            <FileCheck className="h-4 w-4" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-medium">{CONTRACT_CONDITIONS.bankGuarantee.title}</p>
+                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.bankGuarantee.partners.length} партнёров</p>
+                                        </div>
+                                    </div>
+                                    {expandedSections.bankGuarantee ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                </button>
+                                {expandedSections.bankGuarantee && (
+                                    <div className="border-t max-h-[400px] overflow-y-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50 sticky top-0">
+                                                <tr>
+                                                    <th className="text-left p-3 font-medium">Партнёр</th>
+                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
+                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {CONTRACT_CONDITIONS.bankGuarantee.partners.map((item, idx) => (
+                                                    item.conditions.map((cond, condIdx) => (
+                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
+                                                            {condIdx === 0 && (
+                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
+                                                                    {item.partner}
+                                                                </td>
+                                                            )}
+                                                            <td className="p-3">
+                                                                <span className="text-[#3CE8D1]">{cond.rate}</span>
+                                                                {(cond as any).note && (
+                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
+                                                                {cond.startDate || '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Tender Loan Section */}
+                            <div className="rounded-lg border">
+                                <button
+                                    onClick={() => toggleSection('tenderLoan')}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4F7DF3]/20 text-[#4F7DF3]">
+                                            <CreditCard className="h-4 w-4" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-medium">{CONTRACT_CONDITIONS.tenderLoan.title}</p>
+                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.tenderLoan.partners.length} партнёров</p>
+                                        </div>
+                                    </div>
+                                    {expandedSections.tenderLoan ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                </button>
+                                {expandedSections.tenderLoan && (
+                                    <div className="border-t">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50">
+                                                <tr>
+                                                    <th className="text-left p-3 font-medium">Партнёр</th>
+                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
+                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {CONTRACT_CONDITIONS.tenderLoan.partners.map((item, idx) => (
+                                                    item.conditions.map((cond, condIdx) => (
+                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
+                                                            {condIdx === 0 && (
+                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
+                                                                    {item.partner}
+                                                                </td>
+                                                            )}
+                                                            <td className="p-3">
+                                                                <span className="text-[#4F7DF3]">{cond.rate}</span>
+                                                                {(cond as any).note && (
+                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
+                                                                {cond.startDate || '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* State Contract Credit Section */}
+                            <div className="rounded-lg border">
+                                <button
+                                    onClick={() => toggleSection('stateContractCredit')}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFA726]/20 text-[#FFA726]">
+                                            <Building2 className="h-4 w-4" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-medium">{CONTRACT_CONDITIONS.stateContractCredit.title}</p>
+                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.stateContractCredit.partners.length} партнёров</p>
+                                        </div>
+                                    </div>
+                                    {expandedSections.stateContractCredit ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                </button>
+                                {expandedSections.stateContractCredit && (
+                                    <div className="border-t">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50">
+                                                <tr>
+                                                    <th className="text-left p-3 font-medium">Партнёр</th>
+                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
+                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {CONTRACT_CONDITIONS.stateContractCredit.partners.map((item, idx) => (
+                                                    item.conditions.map((cond, condIdx) => (
+                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
+                                                            {condIdx === 0 && (
+                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
+                                                                    {item.partner}
+                                                                </td>
+                                                            )}
+                                                            <td className="p-3">
+                                                                <span className="text-[#FFA726]">{cond.rate}</span>
+                                                                {(cond as any).note && (
+                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
+                                                                {cond.startDate || '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Settlement Account Section */}
+                            <div className="rounded-lg border">
+                                <button
+                                    onClick={() => toggleSection('settlementAccount')}
+                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9C27B0]/20 text-[#9C27B0]">
+                                            <CreditCard className="h-4 w-4" />
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="font-medium">{CONTRACT_CONDITIONS.settlementAccount.title}</p>
+                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.settlementAccount.partners.length} партнёров</p>
+                                        </div>
+                                    </div>
+                                    {expandedSections.settlementAccount ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                                </button>
+                                {expandedSections.settlementAccount && (
+                                    <div className="border-t">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50">
+                                                <tr>
+                                                    <th className="text-left p-3 font-medium">Партнёр</th>
+                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
+                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {CONTRACT_CONDITIONS.settlementAccount.partners.map((item, idx) => (
+                                                    item.conditions.map((cond, condIdx) => (
+                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
+                                                            {condIdx === 0 && (
+                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
+                                                                    {item.partner}
+                                                                </td>
+                                                            )}
+                                                            <td className="p-3">
+                                                                <span className="text-[#9C27B0]">{cond.rate}</span>
+                                                                {(cond as any).note && (
+                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
+                                                                {cond.startDate || '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

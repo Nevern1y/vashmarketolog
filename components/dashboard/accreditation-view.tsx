@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useMemo } from "react"
+import { useState, useMemo, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, Clock, AlertCircle, Upload, FileText, Building2, Users, CreditCard, Shield, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useMyCompany } from "@/hooks/use-companies"
-import { useDocuments } from "@/hooks/use-documents"
+import { useDocuments, useDocumentMutations } from "@/hooks/use-documents"
+import { toast } from "sonner"
 
 interface AccreditationStep {
   id: string
@@ -17,12 +18,67 @@ interface AccreditationStep {
   description: string
   icon: React.ElementType
   status: "completed" | "in-progress" | "pending"
-  documents?: { name: string; status: "uploaded" | "pending" | "rejected" }[]
+  documents?: { name: string; status: "uploaded" | "pending" | "rejected"; docTypeId: number }[]
 }
 
 export function AccreditationView() {
   const { company, isLoading: companyLoading, error: companyError } = useMyCompany()
-  const { documents, isLoading: docsLoading, error: docsError } = useDocuments()
+  const { documents, isLoading: docsLoading, error: docsError, refetch: refetchDocuments } = useDocuments()
+  const { uploadDocument, isLoading: isUploading } = useDocumentMutations()
+
+  // File input refs for each document type
+  const fileInputRefs = useRef<{ [key: number]: HTMLInputElement | null }>({})
+  const [uploadingDocId, setUploadingDocId] = useState<number | null>(null)
+
+  // Document type IDs for accreditation (per Приложение Б)
+  const ACCREDITATION_DOC_IDS = {
+    PASSPORT: 1,       // Паспорт генерального директора
+    STATUTE: 4,        // Устав/учредительные документы
+    BALANCE_SHEET: 2,  // Бухгалтерская отчетность
+  }
+
+  // Handle file upload
+  const handleFileUpload = async (file: File, docTypeId: number, docName: string) => {
+    setUploadingDocId(docTypeId)
+    try {
+      const result = await uploadDocument({
+        name: file.name,
+        file: file,
+        document_type_id: docTypeId,
+        product_type: "general",
+      })
+
+      if (result) {
+        toast.success(`Документ "${docName}" успешно загружен`, {
+          description: "Документ отправлен на проверку",
+        })
+        refetchDocuments()
+      } else {
+        toast.error("Ошибка загрузки документа", {
+          description: "Попробуйте ещё раз",
+        })
+      }
+    } catch (error) {
+      toast.error("Ошибка загрузки документа")
+    } finally {
+      setUploadingDocId(null)
+    }
+  }
+
+  // Handle file input change
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, docTypeId: number, docName: string) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFileUpload(file, docTypeId, docName)
+    }
+    // Reset input value to allow re-uploading same file
+    e.target.value = ""
+  }
+
+  // Trigger file input click
+  const triggerFileInput = (docTypeId: number) => {
+    fileInputRefs.current[docTypeId]?.click()
+  }
 
   // Compute accreditation steps dynamically based on company profile and documents
   const steps = useMemo<AccreditationStep[]>(() => {
@@ -72,19 +128,22 @@ export function AccreditationView() {
     const documentsList = [
       {
         name: "Паспорт (все страницы)",
-        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.PASSPORT && d.status === "verified")
+        docTypeId: ACCREDITATION_DOC_IDS.PASSPORT,
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.PASSPORT && (d.status === "verified" || d.status === "pending"))
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Устав компании",
-        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.STATUTE && d.status === "verified")
+        docTypeId: ACCREDITATION_DOC_IDS.STATUTE,
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.STATUTE && (d.status === "verified" || d.status === "pending"))
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Бухгалтерский баланс Ф1",
-        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.BALANCE_SHEET && d.status === "verified")
+        docTypeId: ACCREDITATION_DOC_IDS.BALANCE_SHEET,
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.BALANCE_SHEET && (d.status === "verified" || d.status === "pending"))
           ? "uploaded" as const
           : "pending" as const
       },
@@ -297,10 +356,29 @@ export function AccreditationView() {
                         {doc.status === "uploaded" ? (
                           <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1]">Загружен</Badge>
                         ) : (
-                          <Button size="sm" variant="outline" className="gap-2 bg-transparent">
-                            <Upload className="h-3 w-3" />
-                            Загрузить
-                          </Button>
+                          <>
+                            <input
+                              type="file"
+                              ref={(el) => { fileInputRefs.current[doc.docTypeId] = el }}
+                              onChange={(e) => handleFileInputChange(e, doc.docTypeId, doc.name)}
+                              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                              className="hidden"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-2 bg-transparent"
+                              onClick={() => triggerFileInput(doc.docTypeId)}
+                              disabled={uploadingDocId === doc.docTypeId || isUploading}
+                            >
+                              {uploadingDocId === doc.docTypeId ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Upload className="h-3 w-3" />
+                              )}
+                              {uploadingDocId === doc.docTypeId ? "Загрузка..." : "Загрузить"}
+                            </Button>
+                          </>
                         )}
                       </div>
                     ))}

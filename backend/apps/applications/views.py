@@ -49,6 +49,25 @@ class ClientStatsView(APIView):
     def get(self, request):
         user = request.user
         
+        # Build base query for applications
+        app_query = Q(created_by=user)
+        
+        # If client, include applications for CRM companies with matching INN
+        if user.role == 'client':
+            client_company = CompanyProfile.objects.filter(
+                owner=user,
+                is_crm_client=False
+            ).first()
+            
+            if client_company and client_company.inn:
+                crm_companies_with_same_inn = CompanyProfile.objects.filter(
+                    is_crm_client=True,
+                    inn=client_company.inn
+                ).values_list('id', flat=True)
+                
+                if crm_companies_with_same_inn:
+                    app_query = app_query | Q(company_id__in=crm_companies_with_same_inn)
+        
         # Count active applications (non-terminal statuses)
         active_statuses = [
             ApplicationStatus.DRAFT,
@@ -57,16 +76,16 @@ class ClientStatsView(APIView):
             ApplicationStatus.INFO_REQUESTED,
         ]
         active_applications_count = Application.objects.filter(
-            created_by=user,
+            app_query,
             status__in=active_statuses
-        ).count()
+        ).distinct().count()
         
         # Count won applications (approved or won)
         won_statuses = [ApplicationStatus.APPROVED, ApplicationStatus.WON]
         won_applications_count = Application.objects.filter(
-            created_by=user,
+            app_query,
             status__in=won_statuses
-        ).count()
+        ).distinct().count()
         
         # Count user's documents
         documents_count = Document.objects.filter(owner=user).count()
@@ -136,10 +155,42 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         if user.role == 'partner':
             return Application.objects.filter(assigned_partner=user)
         
-        # Client/Agent see their own applications
-        return Application.objects.filter(
-            Q(created_by=user) | Q(company__owner=user)
-        ).distinct()
+        # Client/Agent base query: their own applications
+        base_query = Q(created_by=user) | Q(company__owner=user)
+        
+        # Special case: Client should see applications from their inviting agent
+        if user.role == 'client':
+            # Option 1: If client was invited by an agent, show agent's applications for them
+            if user.invited_by and user.invited_by.role == 'agent':
+                # Show applications created by the agent for companies with matching INN
+                client_company = CompanyProfile.objects.filter(
+                    owner=user, 
+                    is_crm_client=False
+                ).first()
+                
+                if client_company and client_company.inn:
+                    # Applications created by inviting agent for companies with this INN
+                    base_query = base_query | Q(
+                        created_by=user.invited_by,
+                        company__inn=client_company.inn
+                    )
+            
+            # Option 2: Also check for any CRM companies with matching INN
+            client_company = CompanyProfile.objects.filter(
+                owner=user, 
+                is_crm_client=False
+            ).first()
+            
+            if client_company and client_company.inn:
+                crm_companies_with_same_inn = CompanyProfile.objects.filter(
+                    is_crm_client=True,
+                    inn=client_company.inn
+                ).values_list('id', flat=True)
+                
+                if crm_companies_with_same_inn:
+                    base_query = base_query | Q(company_id__in=crm_companies_with_same_inn)
+        
+        return Application.objects.filter(base_query).distinct()
 
     def get_serializer_class(self):
         if self.action == 'create':

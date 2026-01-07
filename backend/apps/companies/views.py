@@ -135,10 +135,16 @@ class CRMClientViewSet(viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        """Set owner, is_crm_client, generate invitation token, and save email."""
+        """Set owner, is_crm_client, generate invitation token, and save email.
+        
+        TEST MODE: If 'password' is provided in request data, create a User directly
+        instead of sending invitation email. This is for testing during deployment.
+        """
         import secrets
         import logging
+        from django.contrib.auth import get_user_model
         
+        User = get_user_model()
         logger = logging.getLogger(__name__)
         
         # Generate unique invitation token
@@ -146,6 +152,9 @@ class CRMClientViewSet(viewsets.ModelViewSet):
         
         # Get email from contact_email field
         invitation_email = serializer.validated_data.get('contact_email', '')
+        
+        # Check if password is provided (TEST MODE)
+        password = self.request.data.get('password', None)
         
         instance = serializer.save(
             owner=self.request.user,
@@ -155,7 +164,36 @@ class CRMClientViewSet(viewsets.ModelViewSet):
             invitation_email=invitation_email,
         )
         
-        # Send invitation email to client
+        # TEST MODE: Create user directly with password
+        if password and invitation_email:
+            try:
+                # Check if user already exists
+                if not User.objects.filter(email=invitation_email).exists():
+                    # Create new user with provided password
+                    new_user = User.objects.create_user(
+                        email=invitation_email,
+                        password=password,
+                        role='client',
+                        first_name=serializer.validated_data.get('contact_person', '').split()[0] if serializer.validated_data.get('contact_person') else '',
+                        last_name=' '.join(serializer.validated_data.get('contact_person', '').split()[1:]) if serializer.validated_data.get('contact_person') else '',
+                        is_active=True,
+                    )
+                    
+                    # DO NOT change owner! Agent must remain as owner for CRM visibility
+                    # Status remains "pending" - admin will set to "confirmed" after verification
+                    # instance.client_status = 'confirmed'  # REMOVED: Admin sets this
+                    
+                    logger.info(f"[TEST MODE] Created user {invitation_email} with password for company {instance.inn}")
+                else:
+                    logger.warning(f"[TEST MODE] User {invitation_email} already exists, skipping user creation")
+                    
+            except Exception as e:
+                logger.error(f"[TEST MODE] Failed to create user {invitation_email}: {e}")
+                # Don't fail the request, company is still created
+                
+            return  # Skip email sending in test mode
+        
+        # Normal mode: Send invitation email to client
         if instance.invitation_email:
             try:
                 from django.core.mail import send_mail
@@ -200,3 +238,120 @@ class CRMClientViewSet(viewsets.ModelViewSet):
                 # Log error but don't fail the request
                 logger.error(f"Failed to send invitation email to {instance.invitation_email}: {e}")
 
+
+@extend_schema(tags=['Admin - CRM Clients'])
+@extend_schema_view(
+    list=extend_schema(description='List all CRM clients from all agents (Admin only)'),
+    retrieve=extend_schema(description='Get CRM client details'),
+)
+class AdminCRMClientViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for Admin to manage all CRM clients from all agents.
+    
+    Admin can:
+    - View all CRM clients with their status and agent info
+    - Confirm or reject clients
+    - Check for INN duplicates
+    """
+    serializer_class = CRMClientSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        """Return all CRM clients from all agents."""
+        return CompanyProfile.objects.filter(is_crm_client=True).select_related('owner')
+
+    def get_serializer_class(self):
+        from .serializers import AdminCRMClientSerializer
+        return AdminCRMClientSerializer
+
+    @extend_schema(
+        request=None,
+        responses={200: CRMClientSerializer}
+    )
+    @action(detail=True, methods=['post'])
+    def confirm(self, request, pk=None):
+        """
+        Confirm CRM client (set status to 'confirmed').
+        POST /api/admin/crm-clients/{id}/confirm/
+        
+        Admin verifies that:\n        1. Company is not already assigned to another agent
+        2. Client data is valid
+        """
+        company = self.get_object()
+        
+        if company.client_status == 'confirmed':
+            return Response(
+                {'error': 'Клиент уже закреплён'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check for INN duplicates with other agents
+        if company.inn:
+            duplicates = CompanyProfile.objects.filter(
+                inn=company.inn,
+                is_crm_client=True,
+                client_status='confirmed'
+            ).exclude(id=company.id)
+            
+            if duplicates.exists():
+                other_agents = ', '.join([d.owner.email for d in duplicates])
+                return Response(
+                    {'error': f'Компания с таким ИНН уже закреплена за агентом: {other_agents}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        company.client_status = 'confirmed'
+        company.save()
+        
+        from .serializers import AdminCRMClientSerializer
+        return Response(AdminCRMClientSerializer(company).data)
+
+    @extend_schema(
+        request=None,
+        responses={200: CRMClientSerializer}
+    )
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """
+        Reject CRM client (set status back to 'pending' or delete).
+        POST /api/admin/crm-clients/{id}/reject/
+        """
+        company = self.get_object()
+        
+        company.client_status = 'pending'
+        company.save()
+        
+        from .serializers import AdminCRMClientSerializer
+        return Response(AdminCRMClientSerializer(company).data)
+
+    @extend_schema(
+        responses={200: {'type': 'object', 'properties': {
+            'has_duplicates': {'type': 'boolean'},
+            'duplicates': {'type': 'array', 'items': {'type': 'object'}}
+        }}}
+    )
+    @action(detail=True, methods=['get'])
+    def check_duplicates(self, request, pk=None):
+        """
+        Check if company INN is already assigned to another agent.
+        GET /api/admin/crm-clients/{id}/check_duplicates/
+        """
+        company = self.get_object()
+        
+        if not company.inn:
+            return Response({
+                'has_duplicates': False,
+                'duplicates': [],
+                'message': 'ИНН не указан'
+            })
+        
+        duplicates = CompanyProfile.objects.filter(
+            inn=company.inn,
+            is_crm_client=True
+        ).exclude(id=company.id).select_related('owner')
+        
+        from .serializers import AdminCRMClientSerializer
+        return Response({
+            'has_duplicates': duplicates.exists(),
+            'duplicates': AdminCRMClientSerializer(duplicates, many=True).data
+        })

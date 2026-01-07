@@ -45,6 +45,7 @@ interface AdminDocumentItem extends DocumentListItem {
 export function AdminDocumentsView() {
     const [searchQuery, setSearchQuery] = useState("")
     const [filterStatus, setFilterStatus] = useState<DocumentStatus | "all">("all")
+    const [filterUser, setFilterUser] = useState<string>("all")
 
     // Rejection modal state
     const [rejectingDoc, setRejectingDoc] = useState<{ id: number; name: string } | null>(null)
@@ -55,15 +56,31 @@ export function AdminDocumentsView() {
     const { documents, isLoading, error, refetch } = useDocuments()
     const { verifyDocument } = useDocumentMutations()
 
-    // Filter documents
-    const filteredDocuments = documents.filter((doc) => {
-        const matchesSearch =
-            doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (doc.type_display && doc.type_display.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (doc.owner_email && doc.owner_email.toLowerCase().includes(searchQuery.toLowerCase()))
-        const matchesStatus = filterStatus === "all" || doc.status === filterStatus
-        return matchesSearch && matchesStatus
-    })
+    // Get unique users for filter dropdown
+    const uniqueUsers = [...new Set(documents.map(d => d.owner_email).filter(Boolean))] as string[]
+
+    // Filter and sort documents - group by user
+    const filteredDocuments = documents
+        .filter((doc) => {
+            const matchesSearch =
+                doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (doc.type_display && doc.type_display.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (doc.owner_email && doc.owner_email.toLowerCase().includes(searchQuery.toLowerCase()))
+            const matchesStatus = filterStatus === "all" || doc.status === filterStatus
+            const matchesUser = filterUser === "all" || doc.owner_email === filterUser
+            return matchesSearch && matchesStatus && matchesUser
+        })
+        // Sort by owner_email first, then by upload date (newest first)
+        .sort((a, b) => {
+            // First sort by owner
+            const ownerA = a.owner_email || ''
+            const ownerB = b.owner_email || ''
+            if (ownerA !== ownerB) {
+                return ownerA.localeCompare(ownerB)
+            }
+            // Then by date (newest first)
+            return new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+        })
 
     // Status badge
     const getStatusBadge = (status: DocumentStatus) => {
@@ -360,6 +377,17 @@ export function AdminDocumentsView() {
                                     <SelectItem value="pending">На проверке</SelectItem>
                                     <SelectItem value="verified">Подтвержден</SelectItem>
                                     <SelectItem value="rejected">Отклонен</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={filterUser} onValueChange={setFilterUser}>
+                                <SelectTrigger className="w-[220px]">
+                                    <SelectValue placeholder="Пользователь" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Все пользователи</SelectItem>
+                                    {uniqueUsers.map(email => (
+                                        <SelectItem key={email} value={email}>{email}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>

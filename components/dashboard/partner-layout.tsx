@@ -11,20 +11,20 @@ import { PartnerClientsView } from "@/components/dashboard/partner/partner-clien
 import { PartnerApplicationsView } from "@/components/dashboard/partner/partner-applications-view"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { useApplications } from "@/hooks/use-applications"
+import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { cn } from "@/lib/utils"
+
+// Valid partner view values for URL validation
+const PARTNER_VIEWS: PartnerViewType[] = ["my_bank", "clients", "agents", "applications", "application-detail", "incoming", "archive"]
 
 /**
  * PartnerLayout - Container component for Partner Dashboard
- * 
- * Handles:
- * - Data fetching via useApplications() (respects Rules of Hooks)
- * - View state management for all partner menu items
- * - Sidebar badge count calculation
+ * Uses URL-based state management for persistence
  */
 export function PartnerLayout() {
-    // View state - default to "my_bank" which is the first menu item
-    const [activeView, setActiveView] = useState<PartnerViewType>("my_bank")
-    const [selectedApplicationId, setSelectedApplicationId] = useState<string>("1")
+    // URL-based view state (persists across page reloads)
+    const [activeView, setActiveView] = usePersistedView<PartnerViewType>("view", "my_bank", PARTNER_VIEWS)
+    const { appId: selectedApplicationId, openDetail, closeDetail } = usePersistedAppDetail()
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
     // Fetch applications - backend filters by assigned_partner automatically
@@ -37,7 +37,7 @@ export function PartnerLayout() {
 
     // Handle opening application detail
     const handleOpenDetail = (id: string) => {
-        setSelectedApplicationId(id)
+        openDetail(id)
         setActiveView("application-detail")
     }
 
@@ -45,6 +45,10 @@ export function PartnerLayout() {
     const handleViewChange = (view: PartnerViewType) => {
         setActiveView(view)
         setIsMobileSidebarOpen(false)
+        // Close detail when navigating away from application-detail
+        if (view !== "application-detail") {
+            closeDetail()
+        }
     }
 
     // Render the appropriate view based on activeView state
@@ -63,10 +67,18 @@ export function PartnerLayout() {
                 return <PartnerApplicationsView onOpenDetail={handleOpenDetail} />
 
             case "application-detail":
+                if (!selectedApplicationId) {
+                    // If no app ID in URL, go back to applications
+                    setActiveView("applications")
+                    return null
+                }
                 return (
                     <PartnerApplicationDetail
                         applicationId={selectedApplicationId}
-                        onBack={() => setActiveView("applications")}
+                        onBack={() => {
+                            closeDetail()
+                            setActiveView("applications")
+                        }}
                     />
                 )
 
@@ -97,7 +109,7 @@ export function PartnerLayout() {
             <div className="hidden lg:block">
                 <PartnerSidebar
                     activeView={activeView}
-                    onViewChange={setActiveView}
+                    onViewChange={handleViewChange}
                     newApplicationsCount={newApplicationsCount}
                 />
             </div>

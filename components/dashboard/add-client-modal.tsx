@@ -12,13 +12,18 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { Loader2, Building2 } from "lucide-react"
+import { Loader2, Building2, Eye, EyeOff } from "lucide-react"
 import { type CreateCompanyPayload } from "@/hooks/use-companies"
+
+// Extended payload with password for TEST MODE
+interface AddClientPayload extends CreateCompanyPayload {
+    password?: string
+}
 
 interface AddClientModalProps {
     isOpen: boolean
     onClose: () => void
-    onSubmit: (client: CreateCompanyPayload) => Promise<void>
+    onSubmit: (client: AddClientPayload) => Promise<void>
 }
 
 export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProps) {
@@ -26,6 +31,8 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
     const [contactPerson, setContactPerson] = useState("")
     const [companyName, setCompanyName] = useState("")
     const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -57,6 +64,11 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
             newErrors.email = "Введите корректный email"
         }
 
+        // Validate password (optional but if provided must be strong)
+        if (password && password.length < 6) {
+            newErrors.password = "Пароль должен быть минимум 6 символов"
+        }
+
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
     }
@@ -71,7 +83,8 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                 name: companyName.trim(),
                 short_name: companyName.trim(),
                 contact_person: contactPerson.trim(),
-                email: email.trim(),
+                contact_email: email.trim(),  // Backend expects contact_email
+                ...(password && { password: password }),
             })
             resetForm()
         } catch (error) {
@@ -86,6 +99,8 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
         setContactPerson("")
         setCompanyName("")
         setEmail("")
+        setPassword("")
+        setShowPassword(false)
         setErrors({})
     }
 
@@ -114,8 +129,11 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                 {/* Invitation Info Block */}
                 <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-3 text-sm">
                     <p className="text-foreground">
-                        После добавления клиент получит <strong>письмо с приглашением</strong> на портал Лидер Гарант.
-                        После регистрации и прохождения аккредитации статус изменится на <strong>«Закреплен»</strong>.
+                        {password ? (
+                            <><strong>Тестовый режим:</strong> Пользователь будет создан сразу с указанным паролем. Статус клиента — <strong>«Закреплен»</strong>.</>
+                        ) : (
+                            <>После добавления клиент получит <strong>письмо с приглашением</strong> на портал Лидер Гарант. После регистрации и прохождения аккредитации статус изменится на <strong>«Закреплен»</strong>.</>
+                        )}
                     </p>
                 </div>
 
@@ -179,6 +197,34 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
                         />
                         {errors.email && (
                             <p className="text-xs text-red-500">{errors.email}</p>
+                        )}
+                    </div>
+
+                    {/* Password - Optional for TEST MODE */}
+                    <div className="space-y-2">
+                        <Label htmlFor="password">Пароль (тестовый режим)</Label>
+                        <div className="relative">
+                            <Input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Оставьте пустым для отправки приглашения"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className={errors.password ? "border-red-500 pr-10" : "pr-10"}
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                                onClick={() => setShowPassword(!showPassword)}
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Если указать пароль, пользователь будет создан сразу без приглашения</p>
+                        {errors.password && (
+                            <p className="text-xs text-red-500">{errors.password}</p>
                         )}
                     </div>
                 </div>

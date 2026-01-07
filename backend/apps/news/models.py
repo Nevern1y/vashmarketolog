@@ -72,11 +72,12 @@ class News(models.Model):
         related_name='news',
         verbose_name='Категория',
     )
-    image = models.URLField(
-        'URL изображения',
+    image = models.ImageField(
+        'Изображение',
+        upload_to='news/images/',
         blank=True,
         null=True,
-        help_text='Ссылка на изображение для новости',
+        help_text='Изображение для новости',
     )
     is_featured = models.BooleanField(
         'Главная новость',

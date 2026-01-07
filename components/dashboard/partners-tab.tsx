@@ -44,6 +44,7 @@ export function PartnersTab() {
     const [inviteLink, setInviteLink] = useState<string | null>(null)
     const [copied, setCopied] = useState(false)
     const [isInviting, setIsInviting] = useState(false)
+    const [inviteError, setInviteError] = useState<string | null>(null)
 
     const handleInputChange = (field: keyof InvitePartnerPayload, value: string) => {
         setInviteForm(prev => ({ ...prev, [field]: value }))
@@ -53,6 +54,7 @@ export function PartnersTab() {
         if (!inviteForm.email || !inviteForm.company_name) return
 
         setIsInviting(true)
+        setInviteError(null)
         const result = await invitePartner(inviteForm)
         setIsInviting(false)
 
@@ -61,6 +63,10 @@ export function PartnersTab() {
             const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
             const fullLink = `${baseUrl}${result.invite_url}`
             setInviteLink(fullLink)
+            setInviteError(null)
+        } else if (error) {
+            // Show the error from the hook
+            setInviteError(error)
         }
     }
 
@@ -81,6 +87,7 @@ export function PartnersTab() {
         setInviteForm({ email: "", first_name: "", last_name: "", company_name: "" })
         setInviteLink(null)
         setCopied(false)
+        setInviteError(null)
     }
 
     const formatDate = (dateStr: string) => {
@@ -134,6 +141,12 @@ export function PartnersTab() {
 
                             {!inviteLink ? (
                                 <>
+                                    {/* Error Display */}
+                                    {inviteError && (
+                                        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-600">
+                                            {inviteError}
+                                        </div>
+                                    )}
                                     <div className="space-y-4 py-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="company_name" className="text-sm font-medium">

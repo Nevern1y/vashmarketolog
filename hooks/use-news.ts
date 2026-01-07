@@ -202,6 +202,7 @@ export function useNewsMutations() {
         summary?: string
         content: string
         category_id?: number | null
+        image?: File | null
         is_featured?: boolean
         is_published?: boolean
         published_at?: string | null
@@ -210,7 +211,25 @@ export function useNewsMutations() {
             setIsLoading(true)
             setError(null)
 
-            const response = await api.post<NewsItem>('/news/', data)
+            // Use FormData if there's an image file
+            let response: NewsItem
+            if (data.image instanceof File) {
+                const formData = new FormData()
+                formData.append('title', data.title)
+                if (data.summary) formData.append('summary', data.summary)
+                formData.append('content', data.content)
+                if (data.category_id) formData.append('category_id', data.category_id.toString())
+                formData.append('image', data.image)
+                formData.append('is_featured', String(data.is_featured ?? false))
+                formData.append('is_published', String(data.is_published ?? true))
+                if (data.published_at) formData.append('published_at', data.published_at)
+
+                response = await api.post<NewsItem>('/news/', formData)
+            } else {
+                const { image, ...rest } = data
+                response = await api.post<NewsItem>('/news/', rest)
+            }
+
             toast.success('Новость создана')
             return response
         } catch (err: any) {
@@ -228,6 +247,7 @@ export function useNewsMutations() {
         summary: string
         content: string
         category_id: number | null
+        image: File | null
         is_featured: boolean
         is_published: boolean
         published_at: string | null
@@ -236,7 +256,27 @@ export function useNewsMutations() {
             setIsLoading(true)
             setError(null)
 
-            const response = await api.patch<NewsItem>(`/news/${slug}/`, data)
+            // Use FormData if there's an image file
+            let response: NewsItem
+            if (data.image instanceof File) {
+                const formData = new FormData()
+                if (data.title) formData.append('title', data.title)
+                if (data.summary !== undefined) formData.append('summary', data.summary)
+                if (data.content) formData.append('content', data.content)
+                if (data.category_id !== undefined) {
+                    formData.append('category_id', data.category_id?.toString() ?? '')
+                }
+                formData.append('image', data.image)
+                if (data.is_featured !== undefined) formData.append('is_featured', String(data.is_featured))
+                if (data.is_published !== undefined) formData.append('is_published', String(data.is_published))
+                if (data.published_at) formData.append('published_at', data.published_at)
+
+                response = await api.patch<NewsItem>(`/news/${slug}/`, formData)
+            } else {
+                const { image, ...rest } = data
+                response = await api.patch<NewsItem>(`/news/${slug}/`, rest)
+            }
+
             toast.success('Новость обновлена')
             return response
         } catch (err: any) {

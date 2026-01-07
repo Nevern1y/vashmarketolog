@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
+import { NotificationDropdown } from "@/components/ui/notification-dropdown"
+import type { Notification } from "@/hooks/use-notifications"
 
 interface ClientSidebarProps {
   activeView: ClientViewType
@@ -88,9 +90,18 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
   return (
     <>
       <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
-        {/* Logo */}
-        <div className="flex items-center px-5 py-6">
+        {/* Logo + Notifications */}
+        <div className="flex items-center justify-between px-5 py-6">
           <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />
+          <NotificationDropdown
+            onNotificationClick={(notification: Notification) => {
+              // Navigate to application detail when clicking notification
+              if (notification.details.applicationId) {
+                onViewChange("applications")
+                // TODO: Auto-open the specific application
+              }
+            }}
+          />
         </div>
 
         {/* Main CTA */}

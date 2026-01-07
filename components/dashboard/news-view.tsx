@@ -20,12 +20,26 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { useNews, useNewsCategories, useFeaturedNews, type NewsItem } from "@/hooks/use-news"
+import { useNews, useNewsCategories, useFeaturedNews, useNewsDetail, type NewsItem } from "@/hooks/use-news"
 
 // =================================================================================
 // NEWS VIEW FOR CLIENTS/AGENTS
 // Displays news list with category filtering
 // =================================================================================
+
+// API Base URL for media files (Django serves media from port 8000)
+const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
+
+// Helper to get full media URL
+const getMediaUrl = (path: string | null): string | null => {
+    if (!path) return null
+    // If already a full URL, return as-is
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+        return path
+    }
+    // Prepend media base URL to relative paths
+    return `${MEDIA_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`
+}
 
 // Format date for display
 const formatDate = (dateString: string | null): string => {
@@ -40,16 +54,18 @@ const formatDate = (dateString: string | null): string => {
 
 // News Card Component
 function NewsCard({ news, onClick }: { news: NewsItem; onClick: () => void }) {
+    const imageUrl = getMediaUrl(news.image)
+
     return (
         <div
             onClick={onClick}
             className="group bg-card border border-border rounded-xl overflow-hidden cursor-pointer hover:border-[#3CE8D1]/50 transition-all hover:shadow-lg"
         >
             {/* Image placeholder */}
-            {news.image ? (
+            {imageUrl ? (
                 <div className="h-48 bg-slate-800 overflow-hidden">
                     <img
-                        src={news.image}
+                        src={imageUrl}
                         alt={news.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
@@ -101,15 +117,17 @@ function NewsCard({ news, onClick }: { news: NewsItem; onClick: () => void }) {
 
 // Featured News Card (larger)
 function FeaturedNewsCard({ news, onClick }: { news: NewsItem; onClick: () => void }) {
+    const imageUrl = getMediaUrl(news.image)
+
     return (
         <div
             onClick={onClick}
             className="group relative h-80 rounded-xl overflow-hidden cursor-pointer"
         >
             {/* Background */}
-            {news.image ? (
+            {imageUrl ? (
                 <img
-                    src={news.image}
+                    src={imageUrl}
                     alt={news.title}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
                 />
@@ -160,21 +178,37 @@ function NewsDetailModal({
     open: boolean
     onClose: () => void
 }) {
-    if (!news) return null
+    // Fetch full news detail (list endpoint doesn't include content)
+    const { newsItem: fullNews, isLoading } = useNewsDetail(open && news ? news.slug : null)
+
+    // Use full news data if available, fallback to passed news
+    const displayNews = fullNews || news
+    const imageUrl = getMediaUrl(displayNews?.image || null)
+
+    if (!displayNews) return null
+
+    // Process content to handle line breaks properly (but not inside HTML tags)
+    const processContent = (content: string) => {
+        // Don't replace \n inside HTML table tags
+        if (content.includes('<table')) {
+            return content
+        }
+        return content.replace(/\n/g, '<br/>')
+    }
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle className="text-xl">{news.title}</DialogTitle>
+                    <DialogTitle className="text-xl">{displayNews.title}</DialogTitle>
                 </DialogHeader>
 
                 {/* Image */}
-                {news.image && (
+                {imageUrl && (
                     <div className="rounded-lg overflow-hidden mb-4">
                         <img
-                            src={news.image}
-                            alt={news.title}
+                            src={imageUrl}
+                            alt={displayNews.title}
                             className="w-full h-64 object-cover"
                         />
                     </div>
@@ -182,27 +216,89 @@ function NewsDetailModal({
 
                 {/* Meta */}
                 <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    {news.category && (
+                    {displayNews.category && (
                         <Badge variant="outline" className="border-[#3CE8D1]/50 text-[#3CE8D1]">
-                            {news.category.name}
+                            {displayNews.category.name}
                         </Badge>
                     )}
                     <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {formatDate(news.published_at || news.created_at)}
+                        {formatDate(displayNews.published_at || displayNews.created_at)}
                     </span>
                     <span className="flex items-center gap-1">
                         <Eye className="h-4 w-4" />
-                        {news.views_count} просмотров
+                        {displayNews.views_count} просмотров
                     </span>
                 </div>
 
-                {/* Content */}
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {news.content ? (
-                        <div dangerouslySetInnerHTML={{ __html: news.content.replace(/\n/g, '<br/>') }} />
+                {/* Content with styled tables */}
+                <div className="news-content prose prose-sm dark:prose-invert max-w-none">
+                    <style jsx global>{`
+                        .news-content .news-table-wrapper {
+                            overflow-x: auto;
+                            margin: 1rem 0;
+                        }
+                        .news-content .news-table-title {
+                            font-size: 0.95rem;
+                            font-weight: 600;
+                            margin-bottom: 0.5rem;
+                            color: #3CE8D1;
+                        }
+                        .news-content .news-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 0.875rem;
+                        }
+                        .news-content .news-table th,
+                        .news-content .news-table td {
+                            border: 1px solid #374151;
+                            padding: 0.5rem 0.75rem;
+                            text-align: left;
+                        }
+                        .news-content .news-table th {
+                            background: rgba(60, 232, 209, 0.1);
+                            color: #3CE8D1;
+                            font-weight: 600;
+                        }
+                        .news-content .news-table tr:nth-child(even) {
+                            background: rgba(255, 255, 255, 0.02);
+                        }
+                        .news-content .news-table tr:hover {
+                            background: rgba(60, 232, 209, 0.05);
+                        }
+                        /* Also style regular HTML tables */
+                        .news-content table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 0.875rem;
+                            margin: 1rem 0;
+                        }
+                        .news-content table th,
+                        .news-content table td {
+                            border: 1px solid #374151;
+                            padding: 0.5rem 0.75rem;
+                            text-align: left;
+                        }
+                        .news-content table th {
+                            background: rgba(60, 232, 209, 0.1);
+                            color: #3CE8D1;
+                            font-weight: 600;
+                        }
+                        .news-content table tr:nth-child(even) {
+                            background: rgba(255, 255, 255, 0.02);
+                        }
+                        .news-content table tr:hover {
+                            background: rgba(60, 232, 209, 0.05);
+                        }
+                    `}</style>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-[#3CE8D1]" />
+                        </div>
+                    ) : displayNews.content ? (
+                        <div dangerouslySetInnerHTML={{ __html: processContent(displayNews.content) }} />
                     ) : (
-                        <p>{news.summary}</p>
+                        <p>{displayNews.summary}</p>
                     )}
                 </div>
             </DialogContent>

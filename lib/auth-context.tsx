@@ -25,6 +25,7 @@ interface AuthContextType {
     logout: () => Promise<void>;
     clearError: () => void;
     getAppModeForRole: () => AppMode;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -200,6 +201,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [user]);
 
+    // Refresh user data
+    const refreshUser = useCallback(async () => {
+        try {
+            console.log('[AUTH] Refreshing user data...');
+            const userData = await authApi.getMe();
+            console.log('[AUTH] User data refreshed:', { id: userData.id, email: userData.email, role: userData.role });
+            setUser(userData);
+        } catch (err) {
+            console.log('[AUTH] Failed to refresh user:', err);
+        }
+    }, []);
+
     const value: AuthContextType = {
         user,
         isLoading,
@@ -210,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         clearError,
         getAppModeForRole,
+        refreshUser,
     };
 
     return (

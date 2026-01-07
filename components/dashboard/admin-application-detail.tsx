@@ -68,6 +68,7 @@ const PRODUCT_LABELS: Record<string, string> = {
     insurance: "Страхование",
     special_account: "Спецсчёт",
     rko: "РКО",
+    tender_support: "Тендерное сопровождение",
 }
 
 // Bank Guarantee types (ТЗ: Банковская гарантия)
@@ -137,7 +138,26 @@ const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
 // Account types (ТЗ: РКО и Спецсчета)
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     rko: "РКО",
+    rko_basic: "РКО Базовый",
+    rko_premium: "РКО Премиум",
+    rko_business: "РКО Бизнес",
     special: "Спецсчёт",
+    "44fz": "Спецсчет 44-ФЗ",
+    "223fz": "Спецсчет 223-ФЗ",
+    "615pp": "Спецсчет 615-ПП",
+}
+
+// Tender Support types (ТЗ: Тендерное сопровождение)
+const TENDER_SUPPORT_TYPE_LABELS: Record<string, string> = {
+    one_time: "Разовое сопровождение",
+    full_service: "Тендерное сопровождение под ключ",
+}
+
+const PURCHASE_CATEGORY_LABELS: Record<string, string> = {
+    "44fz": "Госзакупки по 44-ФЗ",
+    "223fz": "Закупки по 223-ФЗ",
+    property_auctions: "Имущественные торги",
+    commercial: "Коммерческие закупки",
 }
 
 
@@ -428,6 +448,12 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 {application.goscontract_data?.needs_credit && (
                                     <InfoRow label="Клиенту нужен кредит" value="Да" />
                                 )}
+                                {application.goscontract_data?.has_customer_template && (
+                                    <InfoRow label="Шаблон заказчика" value="Да" />
+                                )}
+                                {application.goscontract_data?.executed_contracts_count !== undefined && application.goscontract_data.executed_contracts_count > 0 && (
+                                    <InfoRow label="Количество исполненных контрактов" value={String(application.goscontract_data.executed_contracts_count)} />
+                                )}
                             </>
                         )}
 
@@ -508,6 +534,27 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 )}
                                 {application.financing_term_days && (
                                     <InfoRow label="Срок (дни)" value={`${application.financing_term_days} дн.`} />
+                                )}
+                            </>
+                        )}
+
+                        {/* Tender Support specific */}
+                        {application.product_type === 'tender_support' && (
+                            <>
+                                {application.tender_support_type && (
+                                    <InfoRow
+                                        label="Вариант сопровождения"
+                                        value={TENDER_SUPPORT_TYPE_LABELS[application.tender_support_type] || application.tender_support_type}
+                                    />
+                                )}
+                                {application.purchase_category && (
+                                    <InfoRow
+                                        label="Тип закупки"
+                                        value={PURCHASE_CATEGORY_LABELS[application.purchase_category] || application.purchase_category}
+                                    />
+                                )}
+                                {application.industry && (
+                                    <InfoRow label="Закупки в отрасли" value={application.industry} />
                                 )}
                             </>
                         )}

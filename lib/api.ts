@@ -35,6 +35,7 @@ export interface User {
   role: 'client' | 'agent' | 'partner' | 'admin';
   first_name: string;
   last_name: string;
+  full_name?: string;
   is_active: boolean;
   accreditation_status?: 'none' | 'pending' | 'approved' | 'rejected';
 }
@@ -228,8 +229,30 @@ class ApiClient {
       console.error("[API ERROR] URL:", response.url);
       console.error("[API ERROR] Response:", JSON.stringify(errorData, null, 2));
 
+      // Extract user-friendly error message
+      let message = 'An error occurred';
+
+      if (errorData.detail) {
+        message = errorData.detail;
+      } else if (errorData.error) {
+        message = errorData.error;
+      } else if (errorData.non_field_errors?.[0]) {
+        message = errorData.non_field_errors[0];
+      } else {
+        // Handle field-specific errors like {"email": ["User with this email already exists."]}
+        const fieldErrors: string[] = [];
+        for (const [field, errors] of Object.entries(errorData)) {
+          if (Array.isArray(errors) && errors.length > 0) {
+            fieldErrors.push(`${errors[0]}`);
+          }
+        }
+        if (fieldErrors.length > 0) {
+          message = fieldErrors.join('. ');
+        }
+      }
+
       const error: ApiError = {
-        message: errorData.detail || errorData.error || errorData.non_field_errors?.[0] || 'An error occurred',
+        message,
         status: response.status,
         errors: errorData,
       };

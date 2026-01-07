@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
+import { NotificationDropdown } from "@/components/ui/notification-dropdown"
+import type { Notification } from "@/hooks/use-notifications"
 
 interface SidebarProps {
   activeView: ViewType
@@ -106,9 +108,16 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
 
   return (
     <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
-      {/* Logo */}
-      <div className="flex items-center px-5 py-6">
+      {/* Logo + Notifications */}
+      <div className="flex items-center justify-between px-5 py-6">
         <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />
+        <NotificationDropdown
+          onNotificationClick={(notification: Notification) => {
+            if (notification.details.applicationId) {
+              onViewChange("applications")
+            }
+          }}
+        />
       </div>
 
       {/* Main CTA - with accreditation guard */}

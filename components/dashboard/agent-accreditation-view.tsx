@@ -27,21 +27,17 @@ import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
 
-// Document types required for agent accreditation (per PDF spec)
-// UPDATED: Using numeric IDs for agent documents
+// Document types required for agent accreditation
+// Updated to match requirements: agents upload these 4 documents
 const accreditationDocuments = [
-    { id: 4, label: "Устав", description: "Устав компании (актуальная редакция)" },
-    { id: 5, label: "Копия свидетельства ИНН", description: "Свидетельство о постановке на налоговый учет" },
-    { id: 6, label: "Копия свидетельства ОГРН", description: "Свидетельство о регистрации" },
-    { id: 7, label: "Протокол/Решение о назначении", description: "Документ о назначении директора" },
+    { id: 8, label: "Заявление о присоединении к регламенту", description: "Подписанное заявление в формате SIG", acceptFormat: ".sig" },
+    { id: 9, label: "Согласие на обработку персональных данных", description: "Подписанное согласие в формате SIG", acceptFormat: ".sig" },
+    { id: 10, label: "Лист записи/Скан свидетельства ОГРНИП", description: "Скан документа в формате PDF", acceptFormat: ".pdf,.jpg,.jpeg,.png" },
+    { id: 11, label: "Агентский договор", description: "Подписанный договор в формате SIG", acceptFormat: ".sig" },
 ]
 
-// Documents for signing (UI stubs per ТЗ)
-const signingDocuments = [
-    { id: "agent_contract", label: "Агентский договор", description: "Договор с платформой" },
-    { id: "joining_application", label: "Заявление о присоединении", description: "К правилам платформы" },
-    { id: "personal_data_consent", label: "Согласие на обработку персональных данных", description: "Согласие на обработку ПД" },
-]
+// Legacy signing documents - kept for backward compatibility but no longer shown
+const signingDocuments: { id: string; label: string; description: string }[] = []
 
 export function AgentAccreditationView() {
     const { user } = useAuth()
@@ -101,19 +97,17 @@ export function AgentAccreditationView() {
         toast.success(`Документ "${signingDocuments.find(d => d.id === docId)?.label}" подписан`)
     }
 
-    // Calculate progress
-    const totalSteps = 4 // Org data + Docs + Signing + Submit
+    // Calculate progress - now only 3 steps (removed signing step)
+    const totalSteps = 3 // Org data + Docs + Submit
     const orgDataComplete = hasOrgData ? 1 : 0
     const docsComplete = accreditationDocuments.filter(d => isDocUploaded(d.id)).length === accreditationDocuments.length ? 1 : 0
-    const signingComplete = signedDocs.size === signingDocuments.length ? 1 : 0
     const submitComplete = isSubmitted ? 1 : 0
-    const completedSteps = orgDataComplete + docsComplete + signingComplete + submitComplete
+    const completedSteps = orgDataComplete + docsComplete + submitComplete
     const progress = (completedSteps / totalSteps) * 100
 
-    // Check if can submit
+    // Check if can submit - no longer requires signing
     const canSubmit = hasOrgData &&
         accreditationDocuments.every(d => isDocUploaded(d.id)) &&
-        signedDocs.size === signingDocuments.length &&
         !isSubmitted
 
     // Handle accreditation submission - calls real API
@@ -424,7 +418,7 @@ export function AgentAccreditationView() {
                                                     const file = e.target.files?.[0]
                                                     if (file) handleFileUpload(doc.id, file)
                                                 }}
-                                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                accept={(doc as any).acceptFormat || ".pdf,.jpg,.jpeg,.png,.doc,.docx,.sig"}
                                             />
                                             <Button
                                                 size="sm"
@@ -449,81 +443,7 @@ export function AgentAccreditationView() {
                 </CardContent>
             </Card>
 
-            {/* Step 3: Document Signing (UI Stub) */}
-            <Card className={cn(
-                "shadow-sm transition-all",
-                accreditationDocuments.every(d => isDocUploaded(d.id)) && signedDocs.size < signingDocuments.length && "ring-2 ring-[#f97316]"
-            )}>
-                <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-4">
-                            <div className={cn(
-                                "flex h-10 w-10 items-center justify-center rounded-lg",
-                                signedDocs.size === signingDocuments.length ? "bg-[#3CE8D1]/10" : "bg-[#f97316]/10"
-                            )}>
-                                <FileSignature className={cn(
-                                    "h-5 w-5",
-                                    signedDocs.size === signingDocuments.length ? "text-[#3CE8D1]" : "text-[#f97316]"
-                                )} />
-                            </div>
-                            <div>
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <span className="text-muted-foreground">Шаг 3.</span>
-                                    Подписание документов
-                                </CardTitle>
-                                <CardDescription>Подпишите необходимые договоры и согласия</CardDescription>
-                            </div>
-                        </div>
-                        <Badge className={
-                            signedDocs.size === signingDocuments.length
-                                ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
-                                : "bg-[#f97316]/10 text-[#f97316]"
-                        }>
-                            {signedDocs.size}/{signingDocuments.length} подписано
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                    <div className="border-t pt-4 space-y-3">
-                        {signingDocuments.map((doc) => {
-                            const isSigned = signedDocs.has(doc.id)
-                            return (
-                                <div
-                                    key={doc.id}
-                                    className="flex items-center justify-between rounded-lg border p-3"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        {isSigned ? (
-                                            <CheckCircle2 className="h-5 w-5 text-[#3CE8D1]" />
-                                        ) : (
-                                            <FileSignature className="h-5 w-5 text-muted-foreground" />
-                                        )}
-                                        <div>
-                                            <p className="text-sm font-medium">{doc.label}</p>
-                                            <p className="text-xs text-muted-foreground">{doc.description}</p>
-                                        </div>
-                                    </div>
-                                    {isSigned ? (
-                                        <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1]">Подписано</Badge>
-                                    ) : (
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="gap-2 bg-transparent border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1] hover:text-[#0a1628]"
-                                            onClick={() => handleSign(doc.id)}
-                                        >
-                                            <FileSignature className="h-3 w-3" />
-                                            Подписать
-                                        </Button>
-                                    )}
-                                </div>
-                            )
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Step 4: Submit Accreditation */}
+            {/* Step 3: Submit Accreditation */}
             <Card className="shadow-sm">
                 <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -539,7 +459,7 @@ export function AgentAccreditationView() {
                             </div>
                             <div>
                                 <CardTitle className="text-base flex items-center gap-2">
-                                    <span className="text-muted-foreground">Шаг 4.</span>
+                                    <span className="text-muted-foreground">Шаг 3.</span>
                                     Подача заявки
                                 </CardTitle>
                                 <CardDescription>Отправьте заявку на проверку модератору</CardDescription>
@@ -587,6 +507,6 @@ export function AgentAccreditationView() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+        </div >
     )
 }

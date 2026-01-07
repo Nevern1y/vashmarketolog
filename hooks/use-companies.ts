@@ -66,8 +66,26 @@ export interface Company {
     legal_address: string;
     actual_address: string;
     region: string;
+    // State Registration (Section 2)
+    okato?: string;
+    oktmo?: string;
+    oktmo_date?: string;
+    okpo?: string;
+    okfs?: string;
+    registration_date?: string;
+    registration_authority?: string;  // registrar_name -> registration_authority
+    authorized_capital_declared?: string;  // stated_capital -> authorized_capital_declared
+    authorized_capital_paid?: string;  // paid_capital -> authorized_capital_paid
+    authorized_capital_paid_date?: string;  // paid_capital_date -> authorized_capital_paid_date
+    okved?: string;
+    // Director / Management
     director_name: string;
     director_position: string;
+    director_birth_date?: string;
+    director_birth_place?: string;
+    director_email?: string;
+    director_phone?: string;
+    director_registration_address?: string;
     // Passport fields (API-Ready for Realist Bank)
     passport_series: string | null;
     passport_number: string | null;
@@ -100,6 +118,7 @@ export interface CompanyListItem {
     id: number;
     inn: string;
     kpp?: string;                 // КПП for info panel
+    ogrn?: string;                // ОГРН per ТЗ
     name: string;
     short_name: string;
     region: string;
@@ -123,8 +142,26 @@ export interface CreateCompanyPayload {
     legal_address?: string;
     actual_address?: string;
     region?: string;
+    // State Registration (Section 2)
+    okato?: string;
+    oktmo?: string;
+    oktmo_date?: string;
+    okpo?: string;
+    okfs?: string;
+    registration_date?: string;
+    registration_authority?: string;
+    authorized_capital_declared?: string;
+    authorized_capital_paid?: string;
+    authorized_capital_paid_date?: string;
+    okved?: string;
+    // Director / Management
     director_name?: string;
     director_position?: string;
+    director_birth_date?: string;
+    director_birth_place?: string;
+    director_email?: string;
+    director_phone?: string;
+    director_registration_address?: string;
     // Passport fields
     passport_series?: string;
     passport_number?: string;

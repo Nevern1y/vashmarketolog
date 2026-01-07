@@ -135,6 +135,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for user profile (read/update).
     """
+    full_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = [
@@ -144,6 +146,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'role',
             'first_name',
             'last_name',
+            'full_name',
             'is_active',
             'date_joined',
             'updated_at',
@@ -154,19 +157,45 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'email', 'role', 'is_active', 'date_joined', 'updated_at',
                            'accreditation_status', 'accreditation_submitted_at', 'accreditation_comment']
+    
+    def get_full_name(self, obj):
+        """Combine first_name and last_name into full_name."""
+        parts = [obj.first_name, obj.last_name]
+        return ' '.join(part for part in parts if part).strip() or None
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for updating user profile.
+    Accepts full_name field and parses it into first_name/last_name.
     """
+    full_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    
     class Meta:
         model = User
         fields = [
+            'email',
             'phone',
             'first_name',
             'last_name',
+            'full_name',
         ]
+        extra_kwargs = {
+            'email': {'required': False},
+            'phone': {'required': False},
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+        }
+    
+    def update(self, instance, validated_data):
+        # Handle full_name by splitting into first_name and last_name
+        full_name = validated_data.pop('full_name', None)
+        if full_name:
+            parts = full_name.strip().split(' ', 1)
+            validated_data['first_name'] = parts[0]
+            validated_data['last_name'] = parts[1] if len(parts) > 1 else ''
+        
+        return super().update(instance, validated_data)
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -281,25 +310,74 @@ class UserListSerializer(serializers.ModelSerializer):
 class AgentAccreditationSerializer(serializers.ModelSerializer):
     """
     Serializer for agent accreditation list (Admin only).
-    Shows agents pending review with their company info.
-    Includes full company data for accreditation review (ТЗ Аккредитация).
+    Shows agents pending review with their FULL company info.
+    Includes comprehensive company data for thorough accreditation review (ТЗ Аккредитация).
+    
+    IMPORTANT: Agent accreditation requires thorough verification to prevent fraud.
+    All company registration data, director passport, and documents must be verified.
     """
+    # Basic company info
     company_name = serializers.SerializerMethodField()
-    # Full company data for accreditation review
+    company_short_name = serializers.SerializerMethodField()
     company_inn = serializers.SerializerMethodField()
-    company_address = serializers.SerializerMethodField()
+    company_ogrn = serializers.SerializerMethodField()
+    company_kpp = serializers.SerializerMethodField()
+    company_legal_form = serializers.SerializerMethodField()
+    is_resident = serializers.SerializerMethodField()
+    
+    # Addresses
+    legal_address = serializers.SerializerMethodField()
+    legal_address_postal_code = serializers.SerializerMethodField()
+    actual_address = serializers.SerializerMethodField()
+    actual_address_postal_code = serializers.SerializerMethodField()
+    
+    # State registration data (Государственная регистрация)
+    okato = serializers.SerializerMethodField()
+    oktmo = serializers.SerializerMethodField()
+    okpo = serializers.SerializerMethodField()
+    okfs = serializers.SerializerMethodField()
+    okved = serializers.SerializerMethodField()
+    registration_date = serializers.SerializerMethodField()
+    registration_authority = serializers.SerializerMethodField()
+    authorized_capital_declared = serializers.SerializerMethodField()
+    authorized_capital_paid = serializers.SerializerMethodField()
+    
+    # Contacts
     company_website = serializers.SerializerMethodField()
     company_email = serializers.SerializerMethodField()
     company_phone = serializers.SerializerMethodField()
+    
+    # Director info
     director_name = serializers.SerializerMethodField()
     director_position = serializers.SerializerMethodField()
+    director_birth_date = serializers.SerializerMethodField()
+    director_birth_place = serializers.SerializerMethodField()
+    director_email = serializers.SerializerMethodField()
+    director_phone = serializers.SerializerMethodField()
+    
+    # Director passport data (CRITICAL for fraud detection)
+    passport_series = serializers.SerializerMethodField()
+    passport_number = serializers.SerializerMethodField()
+    passport_issued_by = serializers.SerializerMethodField()
+    passport_date = serializers.SerializerMethodField()
+    passport_code = serializers.SerializerMethodField()
+    
+    # Tax and signatory
     signatory_basis = serializers.SerializerMethodField()
     tax_system = serializers.SerializerMethodField()
     vat_rate = serializers.SerializerMethodField()
+    
+    # Bank details
     bank_bik = serializers.SerializerMethodField()
     bank_name = serializers.SerializerMethodField()
     bank_account = serializers.SerializerMethodField()
     bank_corr_account = serializers.SerializerMethodField()
+    
+    # Founders data (JSON)
+    founders_data = serializers.SerializerMethodField()
+    
+    # Documents uploaded by agent
+    documents = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -312,23 +390,60 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
             'accreditation_status',
             'accreditation_submitted_at',
             'accreditation_comment',
-            'company_name',
             'date_joined',
-            # Full company data for accreditation
+            # Company basic info
+            'company_name',
+            'company_short_name',
             'company_inn',
-            'company_address',
+            'company_ogrn',
+            'company_kpp',
+            'company_legal_form',
+            'is_resident',
+            # Addresses
+            'legal_address',
+            'legal_address_postal_code',
+            'actual_address',
+            'actual_address_postal_code',
+            # State registration
+            'okato',
+            'oktmo',
+            'okpo',
+            'okfs',
+            'okved',
+            'registration_date',
+            'registration_authority',
+            'authorized_capital_declared',
+            'authorized_capital_paid',
+            # Contacts
             'company_website',
             'company_email',
             'company_phone',
+            # Director
             'director_name',
             'director_position',
+            'director_birth_date',
+            'director_birth_place',
+            'director_email',
+            'director_phone',
+            # Passport
+            'passport_series',
+            'passport_number',
+            'passport_issued_by',
+            'passport_date',
+            'passport_code',
+            # Tax and signatory
             'signatory_basis',
             'tax_system',
             'vat_rate',
+            # Bank
             'bank_bik',
             'bank_name',
             'bank_account',
             'bank_corr_account',
+            # Founders
+            'founders_data',
+            # Documents
+            'documents',
         ]
         read_only_fields = fields
     
@@ -337,19 +452,90 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
         from apps.companies.models import CompanyProfile
         return CompanyProfile.objects.filter(owner=obj, is_crm_client=False).first()
     
+    # Basic company info
     def get_company_name(self, obj):
-        """Get company name from related CompanyProfile if exists."""
         company = self._get_company(obj)
-        return company.short_name or company.name if company else None
+        return company.name if company else None
+    
+    def get_company_short_name(self, obj):
+        company = self._get_company(obj)
+        return company.short_name if company else None
     
     def get_company_inn(self, obj):
         company = self._get_company(obj)
         return company.inn if company else None
     
-    def get_company_address(self, obj):
+    def get_company_ogrn(self, obj):
+        company = self._get_company(obj)
+        return company.ogrn if company else None
+    
+    def get_company_kpp(self, obj):
+        company = self._get_company(obj)
+        return company.kpp if company else None
+    
+    def get_company_legal_form(self, obj):
+        company = self._get_company(obj)
+        return company.legal_form if company else None
+    
+    def get_is_resident(self, obj):
+        company = self._get_company(obj)
+        return company.is_resident if company else True
+    
+    # Addresses
+    def get_legal_address(self, obj):
         company = self._get_company(obj)
         return company.legal_address if company else None
     
+    def get_legal_address_postal_code(self, obj):
+        company = self._get_company(obj)
+        return company.legal_address_postal_code if company else None
+    
+    def get_actual_address(self, obj):
+        company = self._get_company(obj)
+        return company.actual_address if company else None
+    
+    def get_actual_address_postal_code(self, obj):
+        company = self._get_company(obj)
+        return company.actual_address_postal_code if company else None
+    
+    # State registration
+    def get_okato(self, obj):
+        company = self._get_company(obj)
+        return company.okato if company else None
+    
+    def get_oktmo(self, obj):
+        company = self._get_company(obj)
+        return company.oktmo if company else None
+    
+    def get_okpo(self, obj):
+        company = self._get_company(obj)
+        return company.okpo if company else None
+    
+    def get_okfs(self, obj):
+        company = self._get_company(obj)
+        return company.okfs if company else None
+    
+    def get_okved(self, obj):
+        company = self._get_company(obj)
+        return company.okved if company else None
+    
+    def get_registration_date(self, obj):
+        company = self._get_company(obj)
+        return company.registration_date if company else None
+    
+    def get_registration_authority(self, obj):
+        company = self._get_company(obj)
+        return company.registration_authority if company else None
+    
+    def get_authorized_capital_declared(self, obj):
+        company = self._get_company(obj)
+        return str(company.authorized_capital_declared) if company and company.authorized_capital_declared else None
+    
+    def get_authorized_capital_paid(self, obj):
+        company = self._get_company(obj)
+        return str(company.authorized_capital_paid) if company and company.authorized_capital_paid else None
+    
+    # Contacts
     def get_company_website(self, obj):
         company = self._get_company(obj)
         return company.website if company else None
@@ -362,6 +548,7 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
         company = self._get_company(obj)
         return company.contact_phone if company else None
     
+    # Director info
     def get_director_name(self, obj):
         company = self._get_company(obj)
         return company.director_name if company else None
@@ -370,21 +557,57 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
         company = self._get_company(obj)
         return company.director_position if company else None
     
+    def get_director_birth_date(self, obj):
+        company = self._get_company(obj)
+        return company.director_birth_date if company else None
+    
+    def get_director_birth_place(self, obj):
+        company = self._get_company(obj)
+        return company.director_birth_place if company else None
+    
+    def get_director_email(self, obj):
+        company = self._get_company(obj)
+        return company.director_email if company else None
+    
+    def get_director_phone(self, obj):
+        company = self._get_company(obj)
+        return company.director_phone if company else None
+    
+    # Passport data
+    def get_passport_series(self, obj):
+        company = self._get_company(obj)
+        return company.passport_series if company else None
+    
+    def get_passport_number(self, obj):
+        company = self._get_company(obj)
+        return company.passport_number if company else None
+    
+    def get_passport_issued_by(self, obj):
+        company = self._get_company(obj)
+        return company.passport_issued_by if company else None
+    
+    def get_passport_date(self, obj):
+        company = self._get_company(obj)
+        return company.passport_date if company else None
+    
+    def get_passport_code(self, obj):
+        company = self._get_company(obj)
+        return company.passport_code if company else None
+    
+    # Tax and signatory
     def get_signatory_basis(self, obj):
-        """Return signatory basis from company profile."""
         company = self._get_company(obj)
         return company.signatory_basis if company else 'charter'
     
     def get_tax_system(self, obj):
-        """Return tax system from company profile."""
         company = self._get_company(obj)
         return company.tax_system if company else None
     
     def get_vat_rate(self, obj):
-        """Return VAT rate from company profile."""
         company = self._get_company(obj)
         return company.vat_rate if company else None
     
+    # Bank details
     def get_bank_bik(self, obj):
         company = self._get_company(obj)
         return company.bank_bic if company else None
@@ -400,4 +623,26 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
     def get_bank_corr_account(self, obj):
         company = self._get_company(obj)
         return company.bank_corr_account if company else None
+    
+    # Founders
+    def get_founders_data(self, obj):
+        company = self._get_company(obj)
+        return company.founders_data if company else []
+    
+    # Documents
+    def get_documents(self, obj):
+        """Get all documents uploaded by the agent for accreditation."""
+        from apps.documents.models import Document
+        docs = Document.objects.filter(owner=obj).order_by('-uploaded_at')
+        return [
+            {
+                'id': doc.id,
+                'name': doc.name,
+                'document_type_id': doc.document_type_id,
+                'status': doc.status,
+                'uploaded_at': doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+                'file_url': doc.file.url if doc.file else None,
+            }
+            for doc in docs
+        ]
 

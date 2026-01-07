@@ -5,7 +5,7 @@
  */
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api, { type ApiError } from '@/lib/api';
 
 // Types matching backend (updated for numeric IDs per Appendix B)
@@ -113,6 +113,8 @@ export interface Application {
         no_eis_placement?: boolean;   // Без размещения в ЕИС
         tender_not_held?: boolean;    // Торги ещё не проведены
         needs_credit?: boolean;       // Клиенту нужен кредит (кросс-продажа)
+        has_customer_template?: boolean; // Шаблон заказчика
+        executed_contracts_count?: number; // Количество исполненных контрактов
         // BG Date fields
         guarantee_start_date?: string; // Срок БГ с
         guarantee_end_date?: string;   // Срок БГ по
@@ -318,16 +320,20 @@ export function useWonApplications() {
     };
 }
 
-// Hook for single application
-export function useApplication(id: number | string | null) {
+// Hook for single application with polling for real-time updates
+export function useApplication(id: number | string | null, pollingInterval: number = 5000) {
     const [application, setApplication] = useState<Application | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchApplication = useCallback(async () => {
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+    const fetchApplication = useCallback(async (showLoading: boolean = false) => {
         if (!id) return;
 
-        setIsLoading(true);
+        if (showLoading) {
+            setIsLoading(true);
+        }
         setError(null);
 
         try {
@@ -341,15 +347,48 @@ export function useApplication(id: number | string | null) {
         }
     }, [id]);
 
+    // Start/stop polling
+    const startPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+        }
+
+        pollingRef.current = setInterval(() => {
+            fetchApplication(false); // Silent refetch without loading state
+        }, pollingInterval);
+    }, [fetchApplication, pollingInterval]);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
+    // Initialize on mount and when id changes
     useEffect(() => {
-        fetchApplication();
+        if (id) {
+            fetchApplication(true); // Initial load with loading state
+            startPolling();
+        }
+
+        return () => {
+            stopPolling();
+        };
+    }, [id, fetchApplication, startPolling, stopPolling]);
+
+    // Manual refetch
+    const refetch = useCallback(() => {
+        fetchApplication(true);
     }, [fetchApplication]);
 
     return {
         application,
         isLoading,
         error,
-        refetch: fetchApplication,
+        refetch,
+        startPolling,
+        stopPolling,
     };
 }
 

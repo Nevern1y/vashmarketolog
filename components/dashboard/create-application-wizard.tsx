@@ -326,6 +326,17 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       return
     }
 
+    // === VALIDATION: Amount field - max 15 digits ===
+    const cleanAmount = amount.replace(/\s/g, "").replace(/\D/g, "")
+    if (cleanAmount.length > 15) {
+      toast.error("Сумма слишком большая. Максимум 15 цифр.")
+      return
+    }
+    if (!cleanAmount || cleanAmount === "0") {
+      toast.error("Введите корректную сумму")
+      return
+    }
+
     const companyId = isAgent
       ? parseInt(selectedCompanyId)
       : myCompany?.id
@@ -751,6 +762,21 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       </div>
                     )}
                   </div>
+
+                  {/* Accreditation Warning - Full width */}
+                  {selectedCompany && !(selectedCompany as any).is_accredited && (
+                    <div className="col-span-3 mt-2">
+                      <div className="rounded-lg border border-[#f97316] bg-[#f97316]/10 p-3 flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-[#f97316] flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-[#f97316]">Клиент не аккредитован</p>
+                          <p className="text-sm text-muted-foreground">
+                            Данный клиент ещё не прошёл аккредитацию. Заявка будет создана, но может потребоваться дополнительная проверка.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1809,54 +1835,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   </div>
                 </div>
               )}
-
-              {/* Select from Library */}
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Или выберите из библиотеки:</p>
-                {docsLoading ? (
-                  <div className="flex items-center gap-2 text-muted-foreground p-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Загрузка документов...
-                  </div>
-                ) : verifiedDocs.length === 0 ? (
-                  <div className="text-sm text-muted-foreground p-4 border rounded-lg">
-                    Нет доступных документов в библиотеке. Загрузите документы в разделе «Мои документы».
-                  </div>
-                ) : (
-                  verifiedDocs.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors",
-                        selectedDocumentIds.includes(doc.id)
-                          ? "border-[#3CE8D1] bg-[#3CE8D1]/5"
-                          : "hover:bg-muted/50"
-                      )}
-                      onClick={() => toggleDocumentSelection(doc.id)}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedDocumentIds.includes(doc.id)}
-                        onChange={() => toggleDocumentSelection(doc.id)}
-                        className="h-4 w-4"
-                      />
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="flex-1 text-sm">{doc.name}</span>
-                      {/* Status Badge */}
-                      {doc.status === "verified" ? (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500/10 text-emerald-500">
-                          Подтвержден
-                        </span>
-                      ) : doc.status === "pending" ? (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/10 text-amber-500">
-                          На проверке
-                        </span>
-                      ) : null}
-                      <span className="text-xs text-muted-foreground">{doc.type_display}</span>
-                    </div>
-                  ))
-                )}
-              </div>
             </div>
           )}
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import type { ClientViewType, ViewType } from "@/lib/types"
 import { useAuth } from "@/lib/auth-context"
+import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { ClientSidebar } from "@/components/dashboard/client-sidebar"
 import { PartnerLayout } from "@/components/dashboard/partner-layout"
@@ -26,22 +27,28 @@ import { NewsView } from "@/components/dashboard/news-view"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 
+// Valid view values for type safety
+const AGENT_VIEWS: ViewType[] = ["company", "accreditation", "applications", "clients", "calculator", "check_counterparty", "acts", "profile-settings", "bank_conditions", "individual_terms", "news", "help"]
+const CLIENT_VIEWS: ClientViewType[] = ["accreditation", "company", "documents", "applications", "victories", "calculator", "news", "help", "profile-settings"]
+
 export default function DashboardPage() {
   const router = useRouter()
   // Authentication state from context
   const { user, isLoading, isAuthenticated } = useAuth()
 
-  // View states for each role
-  const [agentView, setAgentView] = useState<ViewType>("applications")
-  const [clientView, setClientView] = useState<ClientViewType>("applications")
+  // URL-based view states for each role (persists across page reloads)
+  const [agentView, setAgentView] = usePersistedView<ViewType>("view", "applications", AGENT_VIEWS)
+  const [clientView, setClientView] = usePersistedView<ClientViewType>("view", "applications", CLIENT_VIEWS)
 
-  // UI states
+  // URL-based application detail state
+  const { appId: selectedApplicationId, openDetail, closeDetail } = usePersistedAppDetail()
+  const showingAppDetail = !!selectedApplicationId
+  const showingAgentCRM = agentView === "clients"
+
+  // UI states (these don't need to persist)
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string>("BG-2024-001")
-  const [showingAgentCRM, setShowingAgentCRM] = useState(false)
-  const [showingAppDetail, setShowingAppDetail] = useState(false)
 
   // Open wizard with optional pre-selected client
   const openWizard = (clientId?: number) => {
@@ -107,6 +114,52 @@ export default function DashboardPage() {
     // CLIENT ROLE
     // =====================================
     case "client":
+      // Client Application Detail View
+      if (showingAppDetail) {
+        return (
+          <div className="flex h-screen overflow-hidden">
+            <div className="hidden lg:block">
+              <ClientSidebar
+                activeView={clientView}
+                onViewChange={(view) => {
+                  setClientView(view)
+                  closeDetail()
+                }}
+                onCreateApplication={() => openWizard()}
+              />
+            </div>
+
+            <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+              <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+              <div className="absolute left-0 top-0 h-full">
+                <ClientSidebar
+                  activeView={clientView}
+                  onViewChange={(view) => {
+                    setClientView(view)
+                    setIsMobileSidebarOpen(false)
+                    closeDetail()
+                  }}
+                  onCreateApplication={() => {
+                    openWizard()
+                    setIsMobileSidebarOpen(false)
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} />
+              </main>
+            </div>
+
+            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+          </div>
+        )
+      }
+
+      // Default Client Dashboard
       return (
         <div className="flex h-screen overflow-hidden">
           {/* Desktop Sidebar */}
@@ -144,10 +197,7 @@ export default function DashboardPage() {
               {clientView === "documents" && <MyDocumentsView />}
               {clientView === "applications" && (
                 <MyApplicationsView
-                  onOpenDetail={(id: string) => {
-                    setSelectedApplicationId(id)
-                    setShowingAppDetail(true)
-                  }}
+                  onOpenDetail={(id: string) => openDetail(id)}
                 />
               )}
               {clientView === "victories" && <MyVictoriesView />}
@@ -181,7 +231,6 @@ export default function DashboardPage() {
                 activeView="clients"
                 onViewChange={(view) => {
                   setAgentView(view)
-                  if (view !== "clients") setShowingAgentCRM(false)
                 }}
                 onCreateApplication={() => openWizard()}
               />
@@ -195,7 +244,6 @@ export default function DashboardPage() {
                   onViewChange={(view) => {
                     setAgentView(view)
                     setIsMobileSidebarOpen(false)
-                    if (view !== "clients") setShowingAgentCRM(false)
                   }}
                   onCreateApplication={() => {
                     openWizard()
@@ -249,7 +297,7 @@ export default function DashboardPage() {
             <div className="flex flex-1 flex-col overflow-hidden">
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-                <ApplicationDetailView applicationId={selectedApplicationId} onBack={() => setShowingAppDetail(false)} />
+                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} />
               </main>
             </div>
 
@@ -266,7 +314,6 @@ export default function DashboardPage() {
               activeView={agentView}
               onViewChange={(view) => {
                 setAgentView(view)
-                if (view === "clients") setShowingAgentCRM(true)
               }}
               onCreateApplication={() => openWizard()}
             />
@@ -280,7 +327,6 @@ export default function DashboardPage() {
                 onViewChange={(view) => {
                   setAgentView(view)
                   setIsMobileSidebarOpen(false)
-                  if (view === "clients") setShowingAgentCRM(true)
                 }}
                 onCreateApplication={() => {
                   openWizard()
@@ -297,10 +343,7 @@ export default function DashboardPage() {
               {agentView === "accreditation" && <AgentAccreditationView />}
               {agentView === "applications" && (
                 <MyApplicationsView
-                  onOpenDetail={(id: string) => {
-                    setSelectedApplicationId(id)
-                    setShowingAppDetail(true)
-                  }}
+                  onOpenDetail={(id: string) => openDetail(id)}
                 />
               )}
               {agentView === "individual_terms" && <IndividualReviewView />}
@@ -312,7 +355,7 @@ export default function DashboardPage() {
               )}
               {agentView === "news" && <NewsView />}
               {agentView === "help" && <HelpView />}
-              {agentView !== "company" && agentView !== "accreditation" && agentView !== "applications" && agentView !== "clients" && agentView !== "individual_terms" && agentView !== "profile-settings" && agentView !== "documents" && agentView !== "victories" && agentView !== "calculator" && agentView !== "news" && agentView !== "help" && (
+              {!["company", "accreditation", "applications", "clients", "individual_terms", "profile-settings", "documents", "victories", "calculator", "news", "help"].includes(agentView) && (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-muted-foreground">Раздел в разработке</p>
                 </div>

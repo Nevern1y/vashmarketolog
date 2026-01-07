@@ -55,6 +55,11 @@ class CompanyProfile(models.Model):
         default='',
         help_text='Уникальный токен для связывания регистрации клиента'
     )
+    is_accredited = models.BooleanField(
+        'Аккредитован',
+        default=False,
+        help_text='True если клиент прошёл аккредитацию (заполнил профиль и загрузил документы)'
+    )
 
     
     # Company identification (Manual Entry Only - no validation against external DBs)
@@ -119,6 +124,7 @@ class CompanyProfile(models.Model):
     # =============================================================================
     okato = models.CharField('ОКАТО', max_length=11, blank=True, default='')
     oktmo = models.CharField('ОКТМО', max_length=11, blank=True, default='')
+    oktmo_date = models.DateField('Дата постановки ОКТМО', null=True, blank=True)
     okpo = models.CharField('ОКПО', max_length=10, blank=True, default='')
     okfs = models.CharField('ОКФС', max_length=2, blank=True, default='')
     okogu = models.CharField('ОКОГУ', max_length=10, blank=True, default='')
@@ -184,6 +190,12 @@ class CompanyProfile(models.Model):
     # Director info
     director_name = models.CharField('ФИО руководителя', max_length=300, blank=True, default='')
     director_position = models.CharField('Должность руководителя', max_length=100, blank=True, default='')
+    # Director extended info (for MyCompany form)
+    director_birth_date = models.DateField('Дата рождения руководителя', null=True, blank=True)
+    director_birth_place = models.CharField('Место рождения руководителя', max_length=300, blank=True, default='')
+    director_email = models.EmailField('Email руководителя', blank=True, default='')
+    director_phone = models.CharField('Телефон руководителя', max_length=20, blank=True, default='')
+    director_registration_address = models.TextField('Адрес регистрации руководителя', blank=True, default='')
     
     # Director passport details (API-Ready for Realist Bank integration)
     passport_series = models.CharField(

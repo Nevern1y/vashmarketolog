@@ -508,6 +508,10 @@ class InvitedClientRegisterView(APIView):
             is_active=True,
         )
         
+        # Link client to the agent who invited them
+        user.invited_by = company.owner
+        user.save(update_fields=['invited_by'])
+        
         # Link company to new user (keep original owner as agent)
         # Create a new company for this client instead of changing ownership
         new_company = CompanyProfile.objects.create(
