@@ -15,10 +15,14 @@ import {
   HelpCircle,
   Settings,
   AlertTriangle,
+  Briefcase,
+  Phone,
+  Mail,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +33,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
+import { useAvatar } from "@/hooks/use-avatar"
 import { NotificationDropdown } from "@/components/ui/notification-dropdown"
 import type { Notification } from "@/hooks/use-notifications"
 
@@ -46,6 +57,7 @@ const mainNavItems = [
   { id: "documents" as ClientViewType, label: "Мои документы", icon: FolderOpen },
   { id: "applications" as ClientViewType, label: "Мои заявки", icon: FileText },
   { id: "victories" as ClientViewType, label: "Мои победы", icon: Trophy },
+  { id: "tender_support" as ClientViewType, label: "Сопровождение", icon: Briefcase },
 ]
 
 // Client menu items per CSV specification (ЛК Клиента Меню)
@@ -57,10 +69,13 @@ const toolsNavItems = [
 
 export function ClientSidebar({ activeView, onViewChange, onCreateApplication }: ClientSidebarProps) {
   const { logout, user } = useAuth()
+  const { avatar, getInitials } = useAvatar()
   const { company, isLoading: companyLoading } = useMyCompany()
 
   // 🛡️ Accreditation Guard State
   const [showGuardAlert, setShowGuardAlert] = useState(false)
+  // Manager popup state
+  const [showManagerPopup, setShowManagerPopup] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -77,8 +92,8 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
       return
     }
 
-    // Company exists - proceed to wizard
-    onCreateApplication()
+    // Redirect to Calculator for application creation
+    onViewChange("calculator")
   }
 
   // Navigate to company profile and close dialog
@@ -180,29 +195,42 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
 
         {/* Footer */}
         <div className="border-t border-white/10 p-4">
-          {/* User Info */}
+          {/* User Info - top right style */}
           <div className="mb-4 flex items-center gap-3">
             <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
+              <AvatarImage src={avatar || undefined} alt="Фото профиля" />
               <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
-                {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "К"}
+                {getInitials()}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <p className="text-xs text-[#94a3b8]">Клиент</p>
+            <div className="flex-1">
               <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
             </div>
+          </div>
+
+          {/* Manager Info */}
+          <div className="mb-4">
+            <p className="mb-1 text-xs text-[#94a3b8]">Ваш менеджер</p>
+            <button
+              onClick={() => setShowManagerPopup(true)}
+              className="text-sm font-medium text-[#3CE8D1] hover:underline flex items-center gap-1"
+            >
+              <User className="h-4 w-4" />
+              Георгий →
+            </button>
           </div>
 
           {/* Support */}
           <div className="mb-4">
             <p className="mb-1 text-xs text-[#94a3b8]">Служба поддержки</p>
-            <p className="mb-2 text-sm font-medium">8-800-800-00-00</p>
+            <p className="mb-2 text-sm font-medium">+7 (965) 284-14-15</p>
             <Button
               variant="outline"
               size="sm"
+              onClick={() => window.location.href = 'tel:+79652841415'}
               className="w-full border-[#FF521D] bg-transparent text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
             >
-              <HelpCircle className="mr-2 h-4 w-4" />
+              <Phone className="mr-2 h-4 w-4" />
               Заказать звонок
             </Button>
           </div>
@@ -217,6 +245,42 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
           </button>
         </div>
       </aside>
+
+      {/* Manager Popup */}
+      <Dialog open={showManagerPopup} onOpenChange={setShowManagerPopup}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ваш менеджер</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-16 w-16 border-2 border-[#3CE8D1]">
+                <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-lg">Г</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-lg font-semibold">Георгий</p>
+                <p className="text-sm text-muted-foreground">Персональный менеджер</p>
+              </div>
+            </div>
+            <div className="space-y-3 pt-2">
+              <a
+                href="mailto:geo3414@yandex.ru"
+                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <Mail className="h-5 w-5 text-[#3CE8D1]" />
+                <span>geo3414@yandex.ru</span>
+              </a>
+              <a
+                href="tel:+79652841415"
+                className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+              >
+                <Phone className="h-5 w-5 text-[#3CE8D1]" />
+                <span>+7 (965) 284-14-15</span>
+              </a>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* 🛡️ Accreditation Guard Alert Dialog */}
       <AlertDialog open={showGuardAlert} onOpenChange={setShowGuardAlert}>

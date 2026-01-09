@@ -135,14 +135,14 @@ export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsVie
             <div className="flex flex-wrap gap-2">
                 {[
                     { value: "all", label: "Все продукты", desc: "" },
-                    { value: "bank_guarantee", label: "Гарантии", desc: "Банковские гарантии для тендеров" },
-                    { value: "tender_loan", label: "Кредиты", desc: "Кредитование бизнеса" },
-                    { value: "ved", label: "ВЭД", desc: "Внешнеэкономическая деятельность" },
-                    { value: "leasing", label: "Лизинг", desc: "Лизинг оборудования и транспорта" },
-                    { value: "insurance", label: "Страхование", desc: "Страхование бизнеса" },
-                    { value: "special_account", label: "Спецсчета", desc: "Специальные счета для госзакупок" },
-                    { value: "rko", label: "РКО", desc: "Расчетно-кассовое обслуживание" },
-                    { value: "tender_support", label: "Сопровождение", desc: "Тендерное сопровождение" },
+                    { value: "bank_guarantee", label: "Банковские гарантии", desc: "Гарантии для тендеров и контрактов" },
+                    { value: "tender_loan", label: "Кредиты для бизнеса", desc: "Тендерные кредиты и кредитование бизнеса" },
+                    { value: "leasing", label: "Лизинг для юрлиц", desc: "Лизинг оборудования и транспорта" },
+                    { value: "factoring", label: "Факторинг для бизнеса", desc: "Факторинговое финансирование" },
+                    { value: "insurance", label: "Страхование СМР", desc: "Страхование строительно-монтажных работ" },
+                    { value: "ved", label: "Международные платежи", desc: "ВЭД и международные расчёты" },
+                    { value: "rko", label: "РКО и спецсчета", desc: "Расчётно-кассовое обслуживание и специальные счета" },
+                    { value: "deposit", label: "Депозиты", desc: "Депозитные продукты для бизнеса" },
                 ].map((tab) => (
                     <button
                         key={tab.value}

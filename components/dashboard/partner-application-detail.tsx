@@ -537,91 +537,159 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     <ProductInfoItem
                       label="Тип гарантии"
                       value={
-                        (application as any).guarantee_type === 'application_security' ? 'Обеспечение заявки' :
-                          (application as any).guarantee_type === 'contract_execution' ? 'Исполнение контракта' :
-                            (application as any).guarantee_type === 'advance_return' ? 'Возврат аванса' :
-                              (application as any).guarantee_type === 'warranty_obligations' ? 'Гарантийные обязательства' :
-                                (application as any).guarantee_type
+                        (application as any).guarantee_type === 'participation' ? 'На участие' :
+                          (application as any).guarantee_type === 'contract_execution' ? 'На обеспечение исполнения контракта' :
+                            (application as any).guarantee_type === 'advance_return' ? 'На возврат аванса' :
+                              (application as any).guarantee_type === 'warranty_period' ? 'На гарантийный период' :
+                                (application as any).guarantee_type === 'payment_guarantee' ? 'На гарантию оплаты товара' :
+                                  (application as any).guarantee_type === 'vat_refund' ? 'На возвращение НДС' :
+                                    (application as any).guarantee_type
                       }
                     />
                   )}
 
                   {/* Tender data */}
-                  {((application as any).goscontract_data?.purchase_number || (application as any).tender_number) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {((application as any).goscontract_data?.purchase_number || (application as any).tender_number) && (
-                        <div className="p-4 rounded-lg bg-muted/50 border flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Номер закупки</p>
-                            <p className="font-mono font-medium">{(application as any).goscontract_data?.purchase_number || (application as any).tender_number}</p>
-                          </div>
-                          {((application as any).goscontract_data?.purchase_number || (application as any).tender_number) && (
-                            <a
-                              href={`https://zakupki.gov.ru/epz/order/notice/ea44/view/common-info.html?regNumber=${(application as any).goscontract_data?.purchase_number || (application as any).tender_number}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#3CE8D1] hover:underline flex items-center gap-1 text-sm"
-                            >
-                              ЕИС <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(application as any).goscontract_data?.purchase_number && (
+                      <div className="p-4 rounded-lg bg-muted/50 border flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">№ извещения</p>
+                          <p className="font-mono font-medium">{(application as any).goscontract_data.purchase_number}</p>
                         </div>
-                      )}
-                      {(application as any).goscontract_data?.contract_number && (
-                        <ProductInfoItem label="Номер контракта" value={(application as any).goscontract_data.contract_number} mono />
-                      )}
-                    </div>
-                  )}
-
-                  {(application as any).goscontract_data?.subject && (
-                    <ProductInfoItem label="Предмет закупки" value={(application as any).goscontract_data.subject} fullWidth />
-                  )}
-
-                  {/* Beneficiary info */}
-                  {(application as any).goscontract_data?.beneficiary_inn && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <ProductInfoItem label="ИНН Заказчика" value={(application as any).goscontract_data.beneficiary_inn} mono />
-                      {(application as any).goscontract_data?.beneficiary_name && (
-                        <ProductInfoItem label="Наименование заказчика" value={(application as any).goscontract_data.beneficiary_name} />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Financials */}
-                  {((application as any).goscontract_data?.initial_price || (application as any).goscontract_data?.offered_price) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {(application as any).goscontract_data?.initial_price && (
-                        <ProductInfoItem label="Начальная цена контракта" value={formatCurrency((application as any).goscontract_data.initial_price)} />
-                      )}
-                      {(application as any).goscontract_data?.offered_price && (
-                        <ProductInfoItem label="Предложенная цена" value={formatCurrency((application as any).goscontract_data.offered_price)} />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Checkboxes as tags */}
-                  {((application as any).goscontract_data?.is_close_auction ||
-                    (application as any).goscontract_data?.is_single_supplier ||
-                    (application as any).goscontract_data?.no_eis_placement ||
-                    (application as any).goscontract_data?.has_advance ||
-                    (application as any).goscontract_data?.is_resecuring ||
-                    (application as any).goscontract_data?.tender_not_held ||
-                    (application as any).goscontract_data?.needs_credit) && (
-                      <div className="flex flex-wrap gap-2 pt-2">
-                        {(application as any).goscontract_data?.is_close_auction && <Badge variant="outline">✓ Закрытый аукцион</Badge>}
-                        {(application as any).goscontract_data?.is_single_supplier && <Badge variant="outline">✓ Единственный поставщик</Badge>}
-                        {(application as any).goscontract_data?.no_eis_placement && <Badge variant="outline">✓ Без размещения в ЕИС</Badge>}
-                        {(application as any).goscontract_data?.has_advance && <Badge variant="outline">✓ Наличие аванса</Badge>}
-                        {(application as any).goscontract_data?.is_resecuring && <Badge variant="outline">✓ Переобеспечение</Badge>}
-                        {(application as any).goscontract_data?.tender_not_held && <Badge className="bg-orange-500/10 text-orange-500">Торги не проведены</Badge>}
-                        {(application as any).goscontract_data?.needs_credit && <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1]">💡 Нужен кредит</Badge>}
+                        <a
+                          href={`https://zakupki.gov.ru/epz/order/notice/ea44/view/common-info.html?regNumber=${(application as any).goscontract_data.purchase_number}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#3CE8D1] hover:underline flex items-center gap-1 text-sm"
+                        >
+                          ЕИС <ExternalLink className="h-3 w-3" />
+                        </a>
                       </div>
                     )}
+                    {(application as any).goscontract_data?.lot_number && (
+                      <ProductInfoItem label="№ лота" value={(application as any).goscontract_data.lot_number} mono />
+                    )}
+                  </div>
+
+                  {/* Guarantee dates */}
+                  {((application as any).goscontract_data?.guarantee_start_date || (application as any).goscontract_data?.guarantee_end_date) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(application as any).goscontract_data?.guarantee_start_date && (
+                        <ProductInfoItem label="Срок БГ с" value={new Date((application as any).goscontract_data.guarantee_start_date).toLocaleDateString('ru-RU')} />
+                      )}
+                      {(application as any).goscontract_data?.guarantee_end_date && (
+                        <ProductInfoItem label="Срок БГ по" value={new Date((application as any).goscontract_data.guarantee_end_date).toLocaleDateString('ru-RU')} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Flags as tags */}
+                  {((application as any).goscontract_data?.is_close_auction ||
+                    (application as any).goscontract_data?.has_prepayment ||
+                    (application as any).goscontract_data?.has_customer_template) && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {(application as any).goscontract_data?.is_close_auction && <Badge variant="outline">✓ Закрытые торги</Badge>}
+                        {(application as any).goscontract_data?.has_prepayment && (
+                          <Badge variant="outline">
+                            ✓ Авансирование {(application as any).goscontract_data?.advance_percent ? `(${(application as any).goscontract_data.advance_percent}%)` : ''}
+                          </Badge>
+                        )}
+                        {(application as any).goscontract_data?.has_customer_template && <Badge variant="outline">✓ Шаблон заказчика</Badge>}
+                      </div>
+                    )}
+
+                  {/* Contract counts */}
+                  {((application as any).goscontract_data?.contracts_44fz_count > 0 || (application as any).goscontract_data?.contracts_223fz_count > 0) && (
+                    <ProductInfoItem
+                      label="Исполненных контрактов"
+                      value={`44-ФЗ: ${(application as any).goscontract_data.contracts_44fz_count || 0}, 223-ФЗ: ${(application as any).goscontract_data.contracts_223fz_count || 0}`}
+                    />
+                  )}
                 </>
               )}
 
-              {/* Contract Loan / Corporate Credit Fields */}
-              {(application.product_type === 'contract_loan' || application.product_type === 'corporate_credit') && (
+              {/* Contract Loan (КИК) Fields */}
+              {application.product_type === 'contract_loan' && (
+                <>
+                  {(application as any).goscontract_data?.contract_loan_type && (
+                    <ProductInfoItem
+                      label="Тип продукта"
+                      value={
+                        (application as any).goscontract_data.contract_loan_type === 'credit_execution' ? 'Кредит на исполнение контракта' :
+                          (application as any).goscontract_data.contract_loan_type === 'loan' ? 'Займ' :
+                            (application as any).goscontract_data.contract_loan_type
+                      }
+                    />
+                  )}
+
+                  {/* Contract info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(application as any).goscontract_data?.purchase_number && (
+                      <ProductInfoItem label="№ извещения/контракта" value={(application as any).goscontract_data.purchase_number} mono />
+                    )}
+                    {(application as any).goscontract_data?.lot_number && (
+                      <ProductInfoItem label="№ лота" value={(application as any).goscontract_data.lot_number} mono />
+                    )}
+                  </div>
+
+                  {(application as any).goscontract_data?.contract_price && (
+                    <ProductInfoItem label="Цена контракта" value={formatCurrency((application as any).goscontract_data.contract_price)} />
+                  )}
+
+                  {/* Contract dates */}
+                  {((application as any).goscontract_data?.contract_start_date || (application as any).goscontract_data?.contract_end_date) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(application as any).goscontract_data?.contract_start_date && (
+                        <ProductInfoItem label="Срок контракта с" value={new Date((application as any).goscontract_data.contract_start_date).toLocaleDateString('ru-RU')} />
+                      )}
+                      {(application as any).goscontract_data?.contract_end_date && (
+                        <ProductInfoItem label="Срок контракта по" value={new Date((application as any).goscontract_data.contract_end_date).toLocaleDateString('ru-RU')} />
+                      )}
+                    </div>
+                  )}
+
+                  {(application as any).goscontract_data?.credit_amount && (
+                    <ProductInfoItem label="Сумма кредита" value={formatCurrency((application as any).goscontract_data.credit_amount)} />
+                  )}
+
+                  {/* Credit dates */}
+                  {((application as any).goscontract_data?.credit_start_date || (application as any).goscontract_data?.credit_end_date) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(application as any).goscontract_data?.credit_start_date && (
+                        <ProductInfoItem label="Срок кредита с" value={new Date((application as any).goscontract_data.credit_start_date).toLocaleDateString('ru-RU')} />
+                      )}
+                      {(application as any).goscontract_data?.credit_end_date && (
+                        <ProductInfoItem label="Срок кредита по" value={new Date((application as any).goscontract_data.credit_end_date).toLocaleDateString('ru-RU')} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Flags as tags */}
+                  {(application as any).goscontract_data?.has_prepayment && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Badge variant="outline">
+                        ✓ Авансирование {(application as any).goscontract_data?.advance_percent ? `(${(application as any).goscontract_data.advance_percent}%)` : ''}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Contract counts */}
+                  {((application as any).goscontract_data?.contracts_44fz_count > 0 || (application as any).goscontract_data?.contracts_223fz_count > 0) && (
+                    <ProductInfoItem
+                      label="Исполненных контрактов"
+                      value={`44-ФЗ: ${(application as any).goscontract_data.contracts_44fz_count || 0}, 223-ФЗ: ${(application as any).goscontract_data.contracts_223fz_count || 0}`}
+                    />
+                  )}
+
+                  {/* Execution percent */}
+                  {(application as any).goscontract_data?.contract_execution_percent !== null && !(application as any).goscontract_data?.ignore_execution_percent && (
+                    <ProductInfoItem label="Выполнение контракта" value={`${(application as any).goscontract_data.contract_execution_percent}%`} />
+                  )}
+                </>
+              )}
+
+              {/* Corporate Credit Fields */}
+              {application.product_type === 'corporate_credit' && (
                 <>
                   {(application as any).credit_sub_type && (
                     <ProductInfoItem

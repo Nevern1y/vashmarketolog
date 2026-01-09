@@ -600,12 +600,12 @@ interface RowProps {
 function Row({ label, value, highlight, isLink, span2, small }: RowProps) {
     const content = value || '—'
     return (
-        <div className={cn("flex justify-between items-start gap-2", span2 && "col-span-2", small && "text-xs")}>
-            <span className={cn("text-muted-foreground shrink-0", small ? "text-xs" : "text-sm")}>{label}</span>
+        <div className={cn("flex flex-col gap-0.5", span2 && "col-span-2", small && "text-xs")}>
+            <span className={cn("text-muted-foreground", small ? "text-xs" : "text-xs")}>{label}</span>
             {isLink && value ? (
-                <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-[#4F7DF3] hover:underline text-sm text-right truncate max-w-[200px]">{content}</a>
+                <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-[#4F7DF3] hover:underline text-sm break-words">{content}</a>
             ) : (
-                <span className={cn("text-right truncate max-w-[200px]", highlight ? "font-semibold text-[#3CE8D1]" : "font-medium", small ? "text-xs" : "text-sm")}>{content}</span>
+                <span className={cn("break-words", highlight ? "font-semibold text-[#3CE8D1]" : "font-medium", small ? "text-xs" : "text-sm")}>{content}</span>
             )}
         </div>
     )

@@ -4,7 +4,7 @@ API Serializers for Document Library.
 BREAKING CHANGE: Updated to use numeric document_type_id per Appendix B.
 """
 from rest_framework import serializers
-from .models import Document, DocumentStatus, DocumentTypeDefinition, DocumentSource
+from .models import Document, DocumentStatus, DocumentTypeDefinition, DocumentSource, DocumentRequest, DocumentRequestStatus
 
 
 class DocumentTypeDefinitionSerializer(serializers.ModelSerializer):
@@ -31,6 +31,7 @@ class DocumentSerializer(serializers.ModelSerializer):
     Now uses numeric document_type_id per Appendix B.
     """
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
+    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True, allow_null=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     type_display = serializers.SerializerMethodField()
@@ -42,6 +43,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'owner',
+            'owner_id',
             'owner_email',
             'company',
             'company_name',
@@ -63,6 +65,7 @@ class DocumentSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 
             'owner', 
+            'owner_id',
             'owner_email', 
             'status', 
             'status_display',
@@ -174,6 +177,7 @@ class DocumentListSerializer(serializers.ModelSerializer):
     type_display = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
+    owner_id = serializers.IntegerField(source='owner.id', read_only=True)
 
     class Meta:
         model = Document
@@ -189,6 +193,7 @@ class DocumentListSerializer(serializers.ModelSerializer):
             'status_display',
             'uploaded_at',
             'owner_email',
+            'owner_id',
         ]
         read_only_fields = fields
 
@@ -257,5 +262,83 @@ class DocumentSelectSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f'Документы не найдены или недоступны: {list(missing_ids)}'
             )
+        
+        return value
+
+
+# =============================================================================
+# DOCUMENT REQUEST SERIALIZERS (Admin -> Agent/Client document requests)
+# =============================================================================
+
+class DocumentRequestSerializer(serializers.ModelSerializer):
+    """Full serializer for DocumentRequest."""
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_name = serializers.SerializerMethodField()
+    requested_by_email = serializers.EmailField(source='requested_by.email', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = DocumentRequest
+        fields = [
+            'id',
+            'user',
+            'user_email',
+            'user_name',
+            'requested_by',
+            'requested_by_email',
+            'document_type_name',
+            'document_type_id',
+            'comment',
+            'status',
+            'status_display',
+            'fulfilled_document',
+            'created_at',
+            'updated_at',
+            'fulfilled_at',
+            'is_read',
+        ]
+        read_only_fields = [
+            'id', 'user_email', 'user_name', 'requested_by', 'requested_by_email',
+            'status_display', 'created_at', 'updated_at', 'fulfilled_at',
+        ]
+    
+    def get_user_name(self, obj):
+        """Get user full name or email."""
+        if obj.user.first_name or obj.user.last_name:
+            return f"{obj.user.last_name} {obj.user.first_name}".strip()
+        return obj.user.email.split('@')[0]
+
+
+class DocumentRequestCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating document requests (Admin only)."""
+    
+    class Meta:
+        model = DocumentRequest
+        fields = [
+            'user',
+            'document_type_name',
+            'document_type_id',
+            'comment',
+        ]
+    
+    def create(self, validated_data):
+        """Set requested_by from current user."""
+        validated_data['requested_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class DocumentRequestFulfillSerializer(serializers.Serializer):
+    """Serializer for fulfilling a document request."""
+    document_id = serializers.IntegerField()
+    
+    def validate_document_id(self, value):
+        """Validate document exists and belongs to the request user."""
+        request = self.context.get('request')
+        doc_request = self.context.get('document_request')
+        
+        try:
+            document = Document.objects.get(id=value, owner=doc_request.user)
+        except Document.DoesNotExist:
+            raise serializers.ValidationError('Документ не найден или не принадлежит пользователю.')
         
         return value

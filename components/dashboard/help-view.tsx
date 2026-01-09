@@ -225,10 +225,10 @@ const faqSections: FAQSection[] = [
 // CONTACT INFO
 // =================================================================================
 const contactInfo = {
-    phone: "8-800-800-00-00",
-    phoneDescription: "Бесплатно по России, 24/7",
-    email: "support@finansovyi-marketplace.ru",
-    workHours: "Пн-Пт: 9:00 - 18:00 (МСК)",
+    whatsapp: "+7 (965) 284-14-15",
+    whatsappDescription: "Нажмите чтобы написать",
+    email: "info@lidergarant.ru",
+    workHours: "Служба поддержки и обратная связь",
 }
 
 export function HelpView() {
@@ -270,14 +270,23 @@ export function HelpView() {
 
             {/* Contact Block */}
             <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-[#0a1628] to-[#1a2942] border border-border">
+                <h3 className="text-lg font-semibold text-white mb-4">{contactInfo.workHours}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#3CE8D1]/10">
-                            <Phone className="h-6 w-6 text-[#3CE8D1]" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366]/10">
+                            <MessageCircle className="h-6 w-6 text-[#25D366]" />
                         </div>
                         <div>
-                            <p className="text-lg font-semibold text-white">{contactInfo.phone}</p>
-                            <p className="text-sm text-slate-400">{contactInfo.phoneDescription}</p>
+                            <p className="text-sm text-slate-400">WhatsApp</p>
+                            <a
+                                href={`https://wa.me/${contactInfo.whatsapp.replace(/[\s\(\)\-\+]/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-lg font-semibold text-white hover:text-[#25D366] transition-colors"
+                            >
+                                {contactInfo.whatsapp}
+                            </a>
+                            <p className="text-sm text-slate-400">{contactInfo.whatsappDescription}</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -285,21 +294,32 @@ export function HelpView() {
                             <Mail className="h-6 w-6 text-[#3CE8D1]" />
                         </div>
                         <div>
-                            <p className="text-lg font-semibold text-white">{contactInfo.email}</p>
-                            <p className="text-sm text-slate-400">{contactInfo.workHours}</p>
+                            <p className="text-sm text-slate-400">Email</p>
+                            <a
+                                href={`mailto:${contactInfo.email}`}
+                                className="text-lg font-semibold text-white hover:text-[#3CE8D1] transition-colors"
+                            >
+                                {contactInfo.email}
+                            </a>
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FF521D]/10">
-                            <MessageCircle className="h-6 w-6 text-[#FF521D]" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366]/10">
+                            <Phone className="h-6 w-6 text-[#25D366]" />
                         </div>
                         <div>
-                            <Button
-                                variant="outline"
-                                className="border-[#FF521D] text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
+                            <a
+                                href={`https://wa.me/${contactInfo.whatsapp.replace(/[\s\(\)\-\+]/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                             >
-                                Заказать звонок
-                            </Button>
+                                <Button
+                                    variant="outline"
+                                    className="border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white"
+                                >
+                                    Написать в WhatsApp
+                                </Button>
+                            </a>
                         </div>
                     </div>
                 </div>

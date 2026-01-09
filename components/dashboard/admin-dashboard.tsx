@@ -21,7 +21,7 @@ import { useAuth } from "@/lib/auth-context"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { PartnersTab } from "./partners-tab"
 import { AdminApplicationsView } from "./admin-applications-view"
-import { AdminAccreditationView } from "./admin-accreditation-view"
+import { AdminAgentsView } from "./admin-agents-view"
 import { AdminStatisticsView } from "./admin-statistics-view"
 import { AdminApplicationDetail } from "./admin-application-detail"
 import { AdminDocumentsView } from "./admin-documents-view"
@@ -32,11 +32,11 @@ import { AdminCRMClientsView } from "./admin-crm-clients-view"
 // Sidebar Navigation Items
 // ============================================
 
-type AdminView = "applications" | "accreditation" | "clients" | "documents" | "partners" | "statistics" | "news"
+type AdminView = "applications" | "agents" | "clients" | "documents" | "partners" | "statistics" | "news"
 
 const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "applications", label: "Заявки", icon: FileText },
-    { id: "accreditation", label: "Аккредитация", icon: Users },
+    { id: "agents", label: "Агенты", icon: Users },
     { id: "clients", label: "Клиенты", icon: UserCheck },
     { id: "documents", label: "Документы", icon: FileCheck },
     { id: "news", label: "Новости", icon: Newspaper },
@@ -44,7 +44,7 @@ const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "statistics", label: "Статистика", icon: BarChart3 },
 ]
 
-const ADMIN_VIEWS: AdminView[] = ["applications", "accreditation", "clients", "documents", "partners", "statistics", "news"]
+const ADMIN_VIEWS: AdminView[] = ["applications", "agents", "clients", "documents", "partners", "statistics", "news"]
 
 // ============================================
 // Main Admin Dashboard Component
@@ -78,8 +78,8 @@ export function AdminDashboard() {
         switch (activeView) {
             case "applications":
                 return <AdminApplicationsView onSelectApplication={handleSelectApplication} />
-            case "accreditation":
-                return <AdminAccreditationView />
+            case "agents":
+                return <AdminAgentsView />
             case "clients":
                 return <AdminCRMClientsView />
             case "documents":

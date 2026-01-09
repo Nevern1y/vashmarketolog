@@ -63,17 +63,14 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
 }
 
 const PRODUCT_CONFIG: Record<string, { label: string; prefix: string }> = {
-    bank_guarantee: { label: "Банковская гарантия", prefix: "БГ" },
-    tender_loan: { label: "Тендерный кредит", prefix: "ТК" },
-    contract_loan: { label: "КИК", prefix: "КИК" },
-    corporate_credit: { label: "Корпоративный кредит", prefix: "КК" },
-    factoring: { label: "Факторинг", prefix: "ФК" },
-    ved: { label: "ВЭД", prefix: "ВЭД" },
-    leasing: { label: "Лизинг", prefix: "ЛЗ" },
-    insurance: { label: "Страхование", prefix: "СТР" },
-    special_account: { label: "Спецсчёт", prefix: "СС" },
-    rko: { label: "РКО", prefix: "РКО" },
-    tender_support: { label: "Тендерное сопровождение", prefix: "ТС" },
+    bank_guarantee: { label: "Банковские гарантии", prefix: "БГ" },
+    tender_loan: { label: "Кредиты для бизнеса", prefix: "КР" },
+    leasing: { label: "Лизинг для юрлиц", prefix: "ЛЗ" },
+    factoring: { label: "Факторинг для бизнеса", prefix: "ФК" },
+    insurance: { label: "Страхование СМР", prefix: "СТР" },
+    ved: { label: "Международные платежи", prefix: "МП" },
+    rko: { label: "РКО и спецсчета", prefix: "РКО" },
+    deposit: { label: "Депозиты", prefix: "ДП" },
 }
 
 // ============================================
@@ -191,15 +188,15 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
             {/* Product Tabs per ТЗ */}
             <Tabs value={productFilter} onValueChange={setProductFilter} className="w-full">
                 <TabsList className="h-10 p-1 bg-muted/50 overflow-x-auto flex-wrap gap-1">
-                    <TabsTrigger value="all" className="text-xs px-3">Все</TabsTrigger>
-                    <TabsTrigger value="bank_guarantee" className="text-xs px-3">Гарантии</TabsTrigger>
-                    <TabsTrigger value="tender_loan" className="text-xs px-3">Кредиты</TabsTrigger>
-                    <TabsTrigger value="ved" className="text-xs px-3">ВЭД</TabsTrigger>
-                    <TabsTrigger value="leasing" className="text-xs px-3">Лизинг</TabsTrigger>
-                    <TabsTrigger value="insurance" className="text-xs px-3">Страхование</TabsTrigger>
-                    <TabsTrigger value="special_account" className="text-xs px-3">Спецсчета</TabsTrigger>
-                    <TabsTrigger value="rko" className="text-xs px-3">РКО</TabsTrigger>
-                    <TabsTrigger value="tender_support" className="text-xs px-3">Тендерное сопровождение</TabsTrigger>
+                    <TabsTrigger value="all" className="text-xs px-3">Все продукты</TabsTrigger>
+                    <TabsTrigger value="bank_guarantee" className="text-xs px-3">Банковские гарантии</TabsTrigger>
+                    <TabsTrigger value="tender_loan" className="text-xs px-3">Кредиты для бизнеса</TabsTrigger>
+                    <TabsTrigger value="leasing" className="text-xs px-3">Лизинг для юрлиц</TabsTrigger>
+                    <TabsTrigger value="factoring" className="text-xs px-3">Факторинг для бизнеса</TabsTrigger>
+                    <TabsTrigger value="insurance" className="text-xs px-3">Страхование СМР</TabsTrigger>
+                    <TabsTrigger value="ved" className="text-xs px-3">Международные платежи</TabsTrigger>
+                    <TabsTrigger value="rko" className="text-xs px-3">РКО и спецсчета</TabsTrigger>
+                    <TabsTrigger value="deposit" className="text-xs px-3">Депозиты</TabsTrigger>
                 </TabsList>
             </Tabs>
 

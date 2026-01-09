@@ -314,6 +314,9 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     company_inn = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     product_type_display = serializers.CharField(source='get_product_type_display', read_only=True)
+    # Agent/creator info
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -330,6 +333,14 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             'target_bank_name',
             'status',
             'status_display',
+            # Agent info
+            'created_by_email',
+            'created_by_name',
+            # Tender info
+            'tender_number',
+            'tender_law',
+            'goscontract_data',
+            # Bank integration fields (Phase 7)
             'external_id',      # Bank ticket ID (Phase 7)
             'bank_status',      # Bank status (Phase 7)
             'created_at',
@@ -347,6 +358,15 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         if obj.company:
             return obj.company.inn or '—'
         return '—'
+
+    def get_created_by_name(self, obj):
+        """Get creator's full name."""
+        if obj.created_by:
+            first = obj.created_by.first_name or ''
+            last = obj.created_by.last_name or ''
+            full_name = f"{first} {last}".strip()
+            return full_name if full_name else obj.created_by.email
+        return None
 
 
 class AdminNotesSerializer(serializers.ModelSerializer):

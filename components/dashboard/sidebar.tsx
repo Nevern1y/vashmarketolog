@@ -15,14 +15,16 @@ import {
   Settings,
   Landmark,
   FileSearch,
-  Shield,
-  Lock,
+  PhoneCall,
+  Phone,
+  ScrollText,
+  Folder,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
-import { toast } from "sonner"
+import { useAvatar } from "@/hooks/use-avatar"
 import { NotificationDropdown } from "@/components/ui/notification-dropdown"
 import type { Notification } from "@/hooks/use-notifications"
 
@@ -32,77 +34,36 @@ interface SidebarProps {
   onCreateApplication: () => void
 }
 
-// Menu items that require accreditation
-const ACCREDITATION_REQUIRED_VIEWS: ViewType[] = ["applications", "clients"]
-
 export function Sidebar({ activeView, onViewChange, onCreateApplication }: SidebarProps) {
   const { logout, user } = useAuth()
-
-  // Phase 4: Check accreditation status for agents
-  const isAgent = user?.role === "agent"
-  const isAccredited = (user as any)?.accreditation_status === "approved"
-  const needsAccreditation = isAgent && !isAccredited
+  const { avatar, getInitials } = useAvatar()
 
   const handleLogout = async () => {
     await logout()
   }
 
-  // Handle navigation with accreditation check
-  const handleNavClick = (viewId: ViewType) => {
-    if (needsAccreditation && ACCREDITATION_REQUIRED_VIEWS.includes(viewId)) {
-      toast.error("Доступ ограничен", {
-        description: "Для доступа к этому разделу необходимо пройти аккредитацию",
-        action: {
-          label: "Пройти",
-          onClick: () => onViewChange("accreditation"),
-        },
-      })
-      return
-    }
-    onViewChange(viewId)
-  }
-
-  // Handle create application with accreditation check
-  // Agent: redirect to Calculator (per ТЗ - agents create via calculator)
-  // Client: open wizard directly
+  // Handle create application - redirect to calculator
   const handleCreateApplication = () => {
-    if (needsAccreditation) {
-      toast.error("Доступ ограничен", {
-        description: "Для создания заявок необходимо пройти аккредитацию",
-        action: {
-          label: "Пройти аккредитацию",
-          onClick: () => onViewChange("accreditation"),
-        },
-      })
-      return
-    }
-
-    // Agent: redirect to calculator view
-    if (isAgent) {
-      onViewChange("calculator")
-      return
-    }
-
-    // Client: open wizard directly
-    onCreateApplication()
+    onViewChange("calculator")
   }
 
-  // Agent menu items per CSV specification (ЛК Агента Меню)
+  // Agent menu items - new structure without accreditation
   const mainNavItems = [
     { id: "company" as ViewType, label: "Моя компания", icon: Building2 },
-    { id: "accreditation" as ViewType, label: "Аккредитация", icon: Shield },
-    { id: "applications" as ViewType, label: "Мои заявки", icon: FileText, requiresAccreditation: true },
+    { id: "my_contract" as ViewType, label: "Мой договор", icon: ScrollText },
+    { id: "applications" as ViewType, label: "Мои заявки", icon: FileText },
+    { id: "clients" as ViewType, label: "Клиенты", icon: Users },
     { id: "calculator" as ViewType, label: "Калькулятор", icon: Calculator },
-    { id: "clients" as ViewType, label: "Мои клиенты", icon: Users, requiresAccreditation: true },
+    { id: "individual_terms" as ViewType, label: "Индивид. рассмотрение", icon: FileSearch },
     { id: "check_counterparty" as ViewType, label: "Проверка контрагента", icon: Search },
     { id: "acts" as ViewType, label: "Акты", icon: FileCheck },
     { id: "profile-settings" as ViewType, label: "Настройки", icon: Settings },
   ]
 
   const toolsNavItems = [
-    { id: "bank_conditions" as ViewType, label: "Условия банков", icon: Landmark },
-    { id: "individual_terms" as ViewType, label: "Индивид. рассмотрение", icon: FileSearch },
+    { id: "documents" as ViewType, label: "Мои документы", icon: Folder },
     { id: "news" as ViewType, label: "Новости", icon: Newspaper },
+    { id: "call_database" as ViewType, label: "База для прозвона", icon: PhoneCall },
     { id: "help" as ViewType, label: "Помощь", icon: HelpCircle },
   ]
 
@@ -120,84 +81,55 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
         />
       </div>
 
-      {/* Main CTA - with accreditation guard */}
+      {/* Main CTA */}
       <div className="px-4 pb-4">
         <Button
           onClick={handleCreateApplication}
-          className={cn(
-            "w-full font-semibold",
-            needsAccreditation
-              ? "bg-[#94a3b8]/30 text-[#94a3b8] cursor-not-allowed hover:bg-[#94a3b8]/30"
-              : "bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
-          )}
+          className="w-full font-semibold bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
         >
-          {needsAccreditation ? (
-            <>
-              <Lock className="mr-2 h-4 w-4" />
-              СОЗДАТЬ ЗАЯВКУ
-            </>
-          ) : (
-            <>
-              <Plus className="mr-2 h-4 w-4" />
-              СОЗДАТЬ ЗАЯВКУ
-            </>
-          )}
+          <Plus className="mr-2 h-4 w-4" />
+          СОЗДАТЬ ЗАЯВКУ
         </Button>
-        {needsAccreditation && (
-          <p className="mt-1 text-xs text-[#f97316] text-center">Требуется аккредитация</p>
-        )}
       </div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 px-3">
-        <ul className="space-y-1">
-          {mainNavItems.map((item) => {
-            const isLocked = needsAccreditation && item.requiresAccreditation
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => handleNavClick(item.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                    isLocked
-                      ? "text-[#94a3b8]/50 cursor-not-allowed"
-                      : activeView === item.id
-                        ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
-                        : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
-                  )}
-                >
-                  {isLocked ? (
-                    <Lock className="h-5 w-5 text-[#94a3b8]/50" />
-                  ) : (
-                    <item.icon className="h-5 w-5" />
-                  )}
-                  {item.label}
-                  {isLocked && (
-                    <span className="ml-auto text-[10px] text-[#f97316]">🔒</span>
-                  )}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-
-        {/* Separator */}
-        <div className="my-4 border-t border-white/10" />
-
-        {/* Tools Navigation */}
-        <ul className="space-y-1">
-          {toolsNavItems.map((item) => (
+      {/* Main Navigation - with scroll */}
+      <nav className="flex-1 px-3 overflow-y-auto">
+        <ul className="space-y-0.5">
+          {mainNavItems.map((item) => (
             <li key={item.id}>
               <button
                 onClick={() => onViewChange(item.id)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                   activeView === item.id
                     ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
                     : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-[18px] w-[18px]" />
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        {/* Separator */}
+        <div className="my-2 border-t border-white/10" />
+
+        {/* Tools Navigation */}
+        <ul className="space-y-0.5">
+          {toolsNavItems.map((item) => (
+            <li key={item.id}>
+              <button
+                onClick={() => onViewChange(item.id)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  activeView === item.id
+                    ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
+                    : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
+                )}
+              >
+                <item.icon className="h-[18px] w-[18px]" />
                 {item.label}
               </button>
             </li>
@@ -206,12 +138,13 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-3">
         {/* User Info */}
-        <div className="mb-4 flex items-center gap-3">
-          <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
+        <div className="mb-3 flex items-center gap-3">
+          <Avatar className="h-9 w-9 border-2 border-[#3CE8D1]">
+            <AvatarImage src={avatar || undefined} alt="Фото профиля" />
             <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
-              {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "А"}
+              {getInitials()}
             </AvatarFallback>
           </Avatar>
           <div>
@@ -221,15 +154,16 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
         </div>
 
         {/* Support */}
-        <div className="mb-4">
-          <p className="mb-1 text-xs text-[#94a3b8]">Служба поддержки</p>
-          <p className="mb-2 text-sm font-medium">8-800-800-00-00</p>
+        <div className="mb-3">
+          <p className="text-xs text-[#94a3b8]">Поддержка</p>
+          <p className="text-sm font-medium">+7 (965) 284-14-15</p>
           <Button
             variant="outline"
             size="sm"
-            className="w-full border-[#FF521D] bg-transparent text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
+            onClick={() => window.location.href = 'tel:+79652841415'}
+            className="w-full mt-1.5 border-[#FF521D] bg-transparent text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
           >
-            <HelpCircle className="mr-2 h-4 w-4" />
+            <Phone className="mr-2 h-4 w-4" />
             Заказать звонок
           </Button>
         </div>

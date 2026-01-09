@@ -52,7 +52,57 @@ export interface BankAccountData {
     account: string;     // Расчётный счёт
 }
 
-// Types matching backend
+// =============================================================================
+// ETP Account data structure
+// =============================================================================
+export interface EtpAccountData {
+    platform?: string;      // Площадка (ЕЭТП, РТС и т.д.)
+    account?: string;       // Расчётный счёт
+    bik?: string;           // БИК
+    bank_name?: string;     // Наименование банка
+    corr_account?: string;  // Корр. счёт
+}
+
+// =============================================================================
+// Contact Person data structure
+// =============================================================================
+export interface ContactPersonData {
+    position?: string;      // Должность
+    last_name?: string;     // Фамилия
+    first_name?: string;    // Имя
+    middle_name?: string;   // Отчество
+    email?: string;         // Email
+    phone?: string;         // Телефон
+}
+
+// =============================================================================
+// Activity data structure (Деятельность и лицензии)
+// =============================================================================
+export interface ActivityData {
+    // New format fields (edit-client-sheet)
+    okved_code?: string;           // Код ОКВЭД
+    okved_name?: string;           // Наименование ОКВЭД
+    is_primary?: boolean;          // Основной вид деятельности
+    // Old format fields (my-company-view - for backward compatibility)
+    primary_okved?: string;        // Основной ОКВЭД
+    additional_okved?: string;     // Дополнительный ОКВЭД
+    revenue_share?: number;        // Доля выручки %
+    activity_years?: number;       // Лет ведения деятельности
+    license_number?: string;       // Номер лицензии
+    license_date?: string;         // Дата выдачи лицензии
+    license_issuer?: string;       // Кем выдана лицензия
+    license_valid_until?: string;  // Срок действия лицензии
+}
+
+// License data structure
+export interface LicenseData {
+    license_type: string;         // Тип лицензии
+    license_number?: string;      // Номер лицензии
+    issue_date?: string;          // Дата выдачи
+    expiry_date?: string;         // Дата окончания
+    issuing_authority?: string;   // Орган выдачи
+}
+
 export interface Company {
     id: number;
     owner: number;
@@ -64,8 +114,14 @@ export interface Company {
     name: string;
     short_name: string;
     legal_address: string;
+    legal_address_postal_code?: string;  // Postal code for legal address
     actual_address: string;
+    actual_address_postal_code?: string;  // Postal code for actual address
+    post_address?: string;               // Mailing address
+    post_address_postal_code?: string;   // Postal code for mailing address
     region: string;
+    // Company details
+    employee_count?: number;             // Number of employees
     // State Registration (Section 2)
     okato?: string;
     oktmo?: string;
@@ -92,9 +148,20 @@ export interface Company {
     passport_issued_by: string | null;
     passport_date: string | null;
     passport_code: string | null;
+    // Signatory fields (MCHD)
+    signatory_basis?: 'charter' | 'power_of_attorney'; // Basis for signing
+    is_mchd?: boolean;                   // Whether using MCHD
+    mchd_full_name?: string;             // MCHD signatory full name
+    mchd_inn?: string;                   // MCHD signatory INN
+    mchd_number?: string;                // MCHD number
+    mchd_date?: string;                  // MCHD date
     // JSONField data (API-Ready for future integrations)
     founders_data: FounderData[];
     bank_accounts_data: BankAccountData[];
+    etp_accounts_data: EtpAccountData[];
+    contact_persons_data: ContactPersonData[];
+    activities_data: ActivityData[];
+    licenses_data?: LicenseData[];       // Licenses data
     // Primary bank details
     bank_name: string;
     bank_bic: string;
@@ -171,6 +238,9 @@ export interface CreateCompanyPayload {
     // JSONField data
     founders_data?: FounderData[];
     bank_accounts_data?: BankAccountData[];
+    etp_accounts_data?: EtpAccountData[];
+    contact_persons_data?: ContactPersonData[];
+    activities_data?: ActivityData[];
     // Bank details
     bank_name?: string;
     bank_bic?: string;

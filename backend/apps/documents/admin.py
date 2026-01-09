@@ -3,7 +3,7 @@ Admin configuration for Documents app.
 Updated for numeric document_type_id per Appendix B.
 """
 from django.contrib import admin
-from .models import Document, DocumentTypeDefinition
+from .models import Document, DocumentTypeDefinition, DocumentRequest
 
 
 @admin.register(DocumentTypeDefinition)
@@ -43,5 +43,36 @@ class DocumentAdmin(admin.ModelAdmin):
         }),
         ('Даты', {
             'fields': ('uploaded_at', 'updated_at')
+        }),
+    )
+
+
+@admin.register(DocumentRequest)
+class DocumentRequestAdmin(admin.ModelAdmin):
+    """Admin for document requests."""
+    list_display = [
+        'document_type_name',
+        'user',
+        'requested_by',
+        'status',
+        'is_read',
+        'created_at',
+    ]
+    list_filter = ['status', 'is_read', 'created_at']
+    search_fields = ['document_type_name', 'user__email', 'comment']
+    readonly_fields = ['created_at', 'updated_at', 'fulfilled_at']
+    
+    fieldsets = (
+        ('Запрос', {
+            'fields': ('document_type_name', 'document_type_id', 'comment')
+        }),
+        ('Участники', {
+            'fields': ('user', 'requested_by')
+        }),
+        ('Статус', {
+            'fields': ('status', 'is_read', 'fulfilled_document')
+        }),
+        ('Даты', {
+            'fields': ('created_at', 'updated_at', 'fulfilled_at')
         }),
     )

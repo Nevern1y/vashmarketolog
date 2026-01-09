@@ -17,12 +17,12 @@ import { Badge } from "@/components/ui/badge"
 import {
     Calculator, FileText, Landmark, CreditCard, TrendingUp, Building2,
     Wallet, HandCoins, Upload, Loader2, CheckCircle2, XCircle, AlertCircle, ArrowLeft,
-    Search, Calendar, Settings
+    Search, Calendar, Settings, Users
 } from "lucide-react"
 import { toast } from "sonner"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations } from "@/hooks/use-applications"
-import { useMyCompany } from "@/hooks/use-companies"
+import { useMyCompany, useCRMClients, type CompanyListItem } from "@/hooks/use-companies"
 
 // =============================================================================
 // BANK DATABASE (Real data used for calculations)
@@ -161,7 +161,7 @@ const INITIAL_APPLICATIONS: RkoApplication[] = []
 // MAIN COMPONENT
 // =============================================================================
 
-export function ClientCalculatorView() {
+export function AgentCalculatorView() {
     const [activeTab, setActiveTab] = useState<string | null>(null) // null = show product cards
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showResults, setShowResults] = useState<string | null>(null)
@@ -169,7 +169,20 @@ export function ClientCalculatorView() {
 
     // API hooks for real backend integration
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
-    const { company, isLoading: isLoadingCompany } = useMyCompany()
+    const { company: agentCompany, isLoading: isLoadingCompany } = useMyCompany()
+
+    // CRM Clients hook - for selecting which client to create application for
+    const { clients, isLoading: clientsLoading } = useCRMClients()
+    const [selectedClientId, setSelectedClientId] = useState<string>("")
+
+    // Get confirmed clients only (clients invited by this agent)
+    const confirmedClients = (clients || []).filter((client: CompanyListItem) => client.client_status === 'confirmed')
+
+    // Get selected client - in CRM, clients ARE companies, so client.id IS the company ID
+    const selectedClient = confirmedClients.find((c: CompanyListItem) => c.id.toString() === selectedClientId)
+    // For agent applications, we use the selected client's company info
+    // company object has minimum shape { id: number } needed for application creation
+    const company = selectedClient ? { id: selectedClient.id, name: selectedClient.name, inn: selectedClient.inn } : null
 
     // RKO/Specaccount applications state
     const [applications, setApplications] = useState<RkoApplication[]>(INITIAL_APPLICATIONS)
@@ -1030,12 +1043,46 @@ export function ClientCalculatorView() {
                         Калькулятор продуктов
                     </h1>
                     <p className="text-muted-foreground">
-                        Выберите продукт для создания заявки
+                        Выберите клиента и продукт для создания заявки
                     </p>
                 </div>
 
+                {/* Client Selector - Agent mode */}
+                <Card className="border border-[#3CE8D1]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425]">
+                    <CardContent className="p-5">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-lg bg-[#3CE8D1]/20 border border-[#3CE8D1]/30 flex items-center justify-center">
+                                <Users className="h-6 w-6 text-[#3CE8D1]" />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <Label className="text-sm font-medium text-white">Выберите клиента для заявки *</Label>
+                                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                                    <SelectTrigger className="h-11 bg-[#1a2942]/50 border-[#2a3a5c]/50 hover:border-[#3CE8D1]/50">
+                                        <SelectValue placeholder={clientsLoading ? "Загрузка..." : confirmedClients.length === 0 ? "Нет подтвержденных клиентов" : "Выберите клиента"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {confirmedClients.map((client: CompanyListItem) => (
+                                            <SelectItem key={client.id} value={client.id.toString()}>
+                                                {client.name} (ИНН: {client.inn})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {confirmedClients.length === 0 && !clientsLoading && (
+                                    <p className="text-xs text-amber-400">
+                                        У вас нет подтверждённых клиентов. Пригласите клиентов в CRM.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Product Cards Grid - Professional dark theme */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className={cn(
+                    "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
+                    !selectedClientId && "opacity-50 pointer-events-none"
+                )}>
                     {productCards.map((product) => (
                         <Card
                             key={product.id}
@@ -1062,6 +1109,12 @@ export function ClientCalculatorView() {
                     ))}
                 </div>
 
+                {!selectedClientId && (
+                    <p className="text-center text-sm text-amber-400">
+                        Выберите клиента выше, чтобы создать заявку
+                    </p>
+                )}
+
                 {/* Disclaimer */}
                 <p className="text-center text-xs text-muted-foreground">
                     Приведенные расчеты стоимости являются предварительными и не являются публичной офертой.
@@ -1069,6 +1122,7 @@ export function ClientCalculatorView() {
             </div>
         )
     }
+
 
     // =============================================================================
     // PRODUCT FORM VIEW (After selecting a product)

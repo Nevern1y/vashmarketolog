@@ -10,7 +10,7 @@ const _inter = Inter({ subsets: ["latin", "cyrillic"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Партнерский кабинет | Partner Dashboard",
+  title: "Личный кабинет - ЛИДЕР ГАРАНТ",
   description: "Partner/Agent Dashboard for financial services",
   generator: "v0.app",
   icons: {

@@ -431,7 +431,7 @@ export function MyCompanyView() {
         registrar_name: safeString(company.registration_authority),
         okved: safeString(company.okved),
         // Section 3: Activities
-        activities: [],
+        activities: (company as any).activities_data || [],
         // Section 4: Management
         director_name: safeString(company.director_name),
         director_position: safeString(company.director_position),
@@ -457,9 +457,9 @@ export function MyCompanyView() {
         bank_account: safeString(company.bank_account),
         bank_corr_account: safeString(company.bank_corr_account),
         // Section 7: ETP Accounts
-        etp_accounts: [],
+        etp_accounts: (company as any).etp_accounts_data || [],
         // Section 8: Contact Persons
-        contact_persons: [],
+        contact_persons: (company as any).contact_persons_data || [],
         contact_person: safeString(company.contact_person),
       })
     }
@@ -553,7 +553,10 @@ export function MyCompanyView() {
       bank_bic: data.bank_bic || undefined,
       bank_account: data.bank_account || undefined,
       bank_corr_account: data.bank_corr_account || undefined,
-      // Section 8: Contact Person
+      // Section 7: ETP Accounts
+      etp_accounts_data: data.etp_accounts.length > 0 ? data.etp_accounts : undefined,
+      // Section 8: Contact Persons
+      contact_persons_data: data.contact_persons.length > 0 ? data.contact_persons : undefined,
       contact_person: data.contact_person || undefined,
     }
 

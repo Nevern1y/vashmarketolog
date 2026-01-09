@@ -13,9 +13,10 @@ import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { useApplications } from "@/hooks/use-applications"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { cn } from "@/lib/utils"
+import { HelpView } from "@/components/dashboard/help-view"
 
 // Valid partner view values for URL validation
-const PARTNER_VIEWS: PartnerViewType[] = ["my_bank", "clients", "agents", "applications", "application-detail", "incoming", "archive"]
+const PARTNER_VIEWS: PartnerViewType[] = ["my_bank", "clients", "agents", "applications", "application-detail", "help", "incoming", "archive"]
 
 /**
  * PartnerLayout - Container component for Partner Dashboard
@@ -81,6 +82,9 @@ export function PartnerLayout() {
                         }}
                     />
                 )
+
+            case "help":
+                return <HelpView />
 
             // Legacy views for backward compatibility
             case "incoming":

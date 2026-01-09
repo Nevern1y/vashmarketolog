@@ -403,22 +403,10 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                     />
                                 )}
                                 {application.goscontract_data?.purchase_number && (
-                                    <InfoRow label="№ закупки" value={application.goscontract_data.purchase_number} mono />
+                                    <InfoRow label="№ извещения" value={application.goscontract_data.purchase_number} mono />
                                 )}
-                                {application.goscontract_data?.subject && (
-                                    <InfoRow label="Предмет закупки" value={application.goscontract_data.subject} />
-                                )}
-                                {application.goscontract_data?.beneficiary_inn && (
-                                    <InfoRow label="ИНН заказчика" value={application.goscontract_data.beneficiary_inn} mono />
-                                )}
-                                {application.goscontract_data?.beneficiary_name && (
-                                    <InfoRow label="Заказчик" value={application.goscontract_data.beneficiary_name} />
-                                )}
-                                {application.goscontract_data?.initial_price && (
-                                    <InfoRow label="Начальная цена" value={formatCurrency(application.goscontract_data.initial_price)} />
-                                )}
-                                {application.goscontract_data?.offered_price && (
-                                    <InfoRow label="Предложенная цена" value={formatCurrency(application.goscontract_data.offered_price)} />
+                                {application.goscontract_data?.lot_number && (
+                                    <InfoRow label="№ лота" value={application.goscontract_data.lot_number} mono />
                                 )}
                                 {application.goscontract_data?.guarantee_start_date && (
                                     <InfoRow label="Срок БГ с" value={formatDate(application.goscontract_data.guarantee_start_date)} />
@@ -426,33 +414,82 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 {application.goscontract_data?.guarantee_end_date && (
                                     <InfoRow label="Срок БГ по" value={formatDate(application.goscontract_data.guarantee_end_date)} />
                                 )}
-                                {/* BG Checkboxes per ТЗ */}
                                 {application.goscontract_data?.is_close_auction && (
-                                    <InfoRow label="Закрытый конкурс/аукцион" value="Да" />
+                                    <InfoRow label="Закрытые торги" value="Да" />
                                 )}
-                                {application.goscontract_data?.has_advance && (
-                                    <InfoRow label="Наличие аванса" value="Да" />
-                                )}
-                                {application.goscontract_data?.is_resecuring && (
-                                    <InfoRow label="Является переобеспечением" value="Да" />
-                                )}
-                                {application.goscontract_data?.is_single_supplier && (
-                                    <InfoRow label="Единственный поставщик" value="Да" />
-                                )}
-                                {application.goscontract_data?.no_eis_placement && (
-                                    <InfoRow label="Без размещения в ЕИС" value="Да" />
-                                )}
-                                {application.goscontract_data?.tender_not_held && (
-                                    <InfoRow label="Торги ещё не проведены" value="Да" />
-                                )}
-                                {application.goscontract_data?.needs_credit && (
-                                    <InfoRow label="Клиенту нужен кредит" value="Да" />
+                                {application.goscontract_data?.has_prepayment && (
+                                    <InfoRow
+                                        label="Наличие авансирования"
+                                        value={application.goscontract_data.advance_percent
+                                            ? `Да (${application.goscontract_data.advance_percent}%)`
+                                            : "Да"
+                                        }
+                                    />
                                 )}
                                 {application.goscontract_data?.has_customer_template && (
                                     <InfoRow label="Шаблон заказчика" value="Да" />
                                 )}
-                                {application.goscontract_data?.executed_contracts_count !== undefined && application.goscontract_data.executed_contracts_count > 0 && (
-                                    <InfoRow label="Количество исполненных контрактов" value={String(application.goscontract_data.executed_contracts_count)} />
+                                {((application.goscontract_data?.contracts_44fz_count ?? 0) > 0 || (application.goscontract_data?.contracts_223fz_count ?? 0) > 0) && (
+                                    <InfoRow
+                                        label="Исполненных контрактов"
+                                        value={`44-ФЗ: ${application.goscontract_data?.contracts_44fz_count ?? 0}, 223-ФЗ: ${application.goscontract_data?.contracts_223fz_count ?? 0}`}
+                                    />
+                                )}
+                            </>
+                        )}
+
+                        {/* Contract Loan (КИК) specific */}
+                        {application.product_type === 'contract_loan' && (
+                            <>
+                                {application.goscontract_data?.contract_loan_type && (
+                                    <InfoRow
+                                        label="Тип продукта"
+                                        value={application.goscontract_data.contract_loan_type === 'credit_execution' ? 'Кредит на исполнение контракта' :
+                                            application.goscontract_data.contract_loan_type === 'loan' ? 'Займ' :
+                                                application.goscontract_data.contract_loan_type}
+                                    />
+                                )}
+                                {application.goscontract_data?.purchase_number && (
+                                    <InfoRow label="№ извещения/контракта" value={application.goscontract_data.purchase_number} mono />
+                                )}
+                                {application.goscontract_data?.lot_number && (
+                                    <InfoRow label="№ лота" value={application.goscontract_data.lot_number} mono />
+                                )}
+                                {application.goscontract_data?.contract_price && (
+                                    <InfoRow label="Цена контракта" value={formatCurrency(application.goscontract_data.contract_price)} />
+                                )}
+                                {application.goscontract_data?.contract_start_date && (
+                                    <InfoRow label="Срок контракта с" value={formatDate(application.goscontract_data.contract_start_date)} />
+                                )}
+                                {application.goscontract_data?.contract_end_date && (
+                                    <InfoRow label="Срок контракта по" value={formatDate(application.goscontract_data.contract_end_date)} />
+                                )}
+                                {application.goscontract_data?.has_prepayment && (
+                                    <InfoRow
+                                        label="Наличие авансирования"
+                                        value={application.goscontract_data.advance_percent
+                                            ? `Да (${application.goscontract_data.advance_percent}%)`
+                                            : "Да"
+                                        }
+                                    />
+                                )}
+                                {application.goscontract_data?.credit_amount && (
+                                    <InfoRow label="Сумма кредита" value={formatCurrency(application.goscontract_data.credit_amount)} />
+                                )}
+                                {application.goscontract_data?.credit_start_date && (
+                                    <InfoRow label="Срок кредита с" value={formatDate(application.goscontract_data.credit_start_date)} />
+                                )}
+                                {application.goscontract_data?.credit_end_date && (
+                                    <InfoRow label="Срок кредита по" value={formatDate(application.goscontract_data.credit_end_date)} />
+                                )}
+                                {((application.goscontract_data?.contracts_44fz_count ?? 0) > 0 || (application.goscontract_data?.contracts_223fz_count ?? 0) > 0) && (
+                                    <InfoRow
+                                        label="Исполненных контрактов"
+                                        value={`44-ФЗ: ${application.goscontract_data?.contracts_44fz_count ?? 0}, 223-ФЗ: ${application.goscontract_data?.contracts_223fz_count ?? 0}`}
+                                    />
+                                )}
+                                {application.goscontract_data?.contract_execution_percent != null && !application.goscontract_data?.ignore_execution_percent && (
+                                    <InfoRow label="Выполнение контракта" value={`${application.goscontract_data?.contract_execution_percent ?? 0}%`} />
                                 )}
                             </>
                         )}

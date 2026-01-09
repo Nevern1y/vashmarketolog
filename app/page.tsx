@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { ClientSidebar } from "@/components/dashboard/client-sidebar"
 import { PartnerLayout } from "@/components/dashboard/partner-layout"
 import { MyCompanyView } from "@/components/dashboard/my-company-view"
+import { AgentMyCompanyView } from "@/components/dashboard/agent-my-company-view"
 import { PartnerApplicationsView as MyApplicationsView } from "@/components/dashboard/partner/partner-applications-view"
 import { ClientsListView } from "@/components/dashboard/clients-list-view"
 import { AccreditationView } from "@/components/dashboard/accreditation-view"
@@ -23,13 +24,16 @@ import { CreateApplicationWizard } from "@/components/dashboard/create-applicati
 import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { HelpView } from "@/components/dashboard/help-view"
 import { ClientCalculatorView } from "@/components/dashboard/client-calculator-view"
+import { AgentCalculatorView } from "@/components/dashboard/agent-calculator-view"
 import { NewsView } from "@/components/dashboard/news-view"
+import { AgentDocumentsView } from "@/components/dashboard/agent-documents-view"
+import { ClientTenderSupportView } from "@/components/dashboard/client-tender-support-view"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 
 // Valid view values for type safety
-const AGENT_VIEWS: ViewType[] = ["company", "accreditation", "applications", "clients", "calculator", "check_counterparty", "acts", "profile-settings", "bank_conditions", "individual_terms", "news", "help"]
-const CLIENT_VIEWS: ClientViewType[] = ["accreditation", "company", "documents", "applications", "victories", "calculator", "news", "help", "profile-settings"]
+const AGENT_VIEWS: ViewType[] = ["company", "my_contract", "applications", "clients", "documents", "calculator", "check_counterparty", "call_database", "acts", "profile-settings", "individual_terms", "news", "help"]
+const CLIENT_VIEWS: ClientViewType[] = ["accreditation", "company", "documents", "applications", "victories", "tender_support", "calculator", "news", "help", "profile-settings"]
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -201,6 +205,7 @@ export default function DashboardPage() {
                 />
               )}
               {clientView === "victories" && <MyVictoriesView />}
+              {clientView === "tender_support" && <ClientTenderSupportView />}
               {clientView === "profile-settings" && <ProfileSettingsView />}
               {clientView === "calculator" && <ClientCalculatorView />}
               {clientView === "news" && <NewsView />}
@@ -339,7 +344,7 @@ export default function DashboardPage() {
           <div className="flex flex-1 flex-col overflow-hidden">
             <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
             <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-              {agentView === "company" && <MyCompanyView />}
+              {agentView === "company" && <AgentMyCompanyView />}
               {agentView === "accreditation" && <AgentAccreditationView />}
               {agentView === "applications" && (
                 <MyApplicationsView
@@ -348,14 +353,12 @@ export default function DashboardPage() {
               )}
               {agentView === "individual_terms" && <IndividualReviewView />}
               {agentView === "profile-settings" && <ProfileSettingsView />}
-              {agentView === "documents" && <MyDocumentsView />}
+              {agentView === "documents" && <AgentDocumentsView />}
               {agentView === "victories" && <MyVictoriesView />}
-              {agentView === "calculator" && (
-                <CreateApplicationWizard isOpen={true} onClose={() => setAgentView("applications")} initialClientId={null} />
-              )}
+              {agentView === "calculator" && <AgentCalculatorView />}
               {agentView === "news" && <NewsView />}
               {agentView === "help" && <HelpView />}
-              {!["company", "accreditation", "applications", "clients", "individual_terms", "profile-settings", "documents", "victories", "calculator", "news", "help"].includes(agentView) && (
+              {!["company", "my_contract", "applications", "clients", "documents", "individual_terms", "profile-settings", "calculator", "news", "help", "check_counterparty", "acts", "call_database"].includes(agentView) && (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-muted-foreground">Раздел в разработке</p>
                 </div>

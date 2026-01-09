@@ -231,3 +231,90 @@ class Document(models.Model):
         if type_def:
             return type_def.get_source_display()
         return "Неизвестно"
+
+
+class DocumentRequestStatus(models.TextChoices):
+    """Status for document requests from admin to agent/client."""
+    PENDING = 'pending', 'Ожидает'
+    FULFILLED = 'fulfilled', 'Выполнено'
+    CANCELLED = 'cancelled', 'Отменено'
+
+
+class DocumentRequest(models.Model):
+    """
+    Model for admin to request specific documents from agents/clients.
+    Creates a notification for the user to upload the requested document.
+    """
+    # Who needs to provide the document
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='document_requests',
+        verbose_name='Пользователь'
+    )
+    
+    # Who requested
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='sent_document_requests',
+        verbose_name='Запросил'
+    )
+    
+    # What is requested
+    document_type_name = models.CharField(
+        'Название документа',
+        max_length=500,
+        help_text='Название запрашиваемого документа'
+    )
+    document_type_id = models.IntegerField(
+        'ID типа документа',
+        null=True,
+        blank=True,
+        help_text='Опциональный ID типа из Приложения Б'
+    )
+    comment = models.TextField(
+        'Комментарий',
+        blank=True,
+        default='',
+        help_text='Дополнительные указания для пользователя'
+    )
+    
+    # Status tracking
+    status = models.CharField(
+        'Статус',
+        max_length=20,
+        choices=DocumentRequestStatus.choices,
+        default=DocumentRequestStatus.PENDING
+    )
+    
+    # Fulfilled document reference
+    fulfilled_document = models.ForeignKey(
+        Document,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='fulfilled_requests',
+        verbose_name='Предоставленный документ'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField('Дата запроса', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    fulfilled_at = models.DateTimeField('Дата выполнения', null=True, blank=True)
+    
+    # Notification tracking
+    is_read = models.BooleanField('Прочитано', default=False)
+
+    class Meta:
+        verbose_name = 'Запрос документа'
+        verbose_name_plural = 'Запросы документов'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Запрос: {self.document_type_name} от {self.user.email}"
+    
+    @property
+    def is_pending(self):
+        return self.status == DocumentRequestStatus.PENDING

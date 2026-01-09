@@ -1,11 +1,13 @@
 // View types for different dashboards
 export type AgentViewType =
   | "company"
-  | "accreditation"
+  | "my_contract"
   | "applications"
   | "clients"
+  | "documents"
   | "calculator"
   | "check_counterparty"
+  | "call_database"
   | "acts"
   | "profile-settings"
   | "bank_conditions"
@@ -19,6 +21,7 @@ export type ClientViewType =
   | "documents"
   | "applications"
   | "victories"
+  | "tender_support"
   | "calculator"
   | "news"
   | "help"
@@ -30,6 +33,7 @@ export type PartnerViewType =
   | "agents"
   | "applications"
   | "application-detail"
+  | "help"
   | "incoming"  // Legacy: keep for backward compatibility
   | "archive"   // Legacy: keep for backward compatibility
 

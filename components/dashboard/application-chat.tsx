@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Send, Paperclip, Loader2, RefreshCw, AlertCircle, FileText, X, Download, Image as ImageIcon, File as FileIcon } from "lucide-react"
 import { useChatPolling, type ChatMessage } from "@/hooks/use-chat"
 import { useAuth } from "@/lib/auth-context"
+import { useAvatar } from "@/hooks/use-avatar"
 
 interface ApplicationChatProps {
     applicationId: number | string
@@ -19,6 +20,7 @@ interface ApplicationChatProps {
 
 export function ApplicationChat({ applicationId, className }: ApplicationChatProps) {
     const { user } = useAuth()
+    const { avatar: myAvatar, getInitials: getMyInitials } = useAvatar()
     const { messages, isLoading, isSending, error, sendMessage, refetch, clearError } = useChatPolling(applicationId)
 
     const [inputValue, setInputValue] = useState("")
@@ -206,13 +208,16 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                     >
                                         {/* Avatar */}
                                         <Avatar className="h-8 w-8 flex-shrink-0">
+                                            {isOwn && myAvatar && (
+                                                <AvatarImage src={myAvatar} alt="Вы" />
+                                            )}
                                             <AvatarFallback className={cn(
                                                 "text-xs font-medium",
                                                 isOwn
                                                     ? "bg-[#3CE8D1] text-[#0a1628]"
                                                     : "bg-accent text-foreground"
                                             )}>
-                                                {getInitials(message.sender_name)}
+                                                {isOwn ? getMyInitials() : getInitials(message.sender_name)}
                                             </AvatarFallback>
                                         </Avatar>
 

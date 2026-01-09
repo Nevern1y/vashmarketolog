@@ -413,15 +413,32 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 }))
 
             form.reset({
+                // Core Identity
                 inn: safeString(client.inn),
                 kpp: safeString(client.kpp),
                 ogrn: safeString(client.ogrn),
                 name: safeString(client.name),
                 short_name: safeString(client.short_name),
                 region: safeString(client.region),
+                // Addresses with postal codes
                 legal_address: safeString(client.legal_address),
+                legal_address_postal_code: safeString(client.legal_address_postal_code),
                 actual_address: safeString(client.actual_address),
+                actual_address_postal_code: safeString(client.actual_address_postal_code),
+                post_address: safeString(client.post_address),
+                post_address_postal_code: safeString(client.post_address_postal_code),
                 is_actual_same_as_legal: client.legal_address === client.actual_address && !!client.legal_address,
+                is_post_same_as_legal: client.legal_address === client.post_address && !!client.legal_address,
+                // Company details
+                employee_count: client.employee_count ?? 0,
+                // Signatory
+                signatory_basis: (client.signatory_basis as "charter" | "power_of_attorney") || "charter",
+                is_mchd: client.is_mchd ?? false,
+                mchd_full_name: safeString(client.mchd_full_name),
+                mchd_inn: safeString(client.mchd_inn),
+                mchd_number: safeString(client.mchd_number),
+                mchd_date: safeString(client.mchd_date),
+                // Director + Passport
                 director_name: safeString(client.director_name),
                 director_position: safeString(client.director_position),
                 passport_series: safeString(client.passport_series),
@@ -429,12 +446,19 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 passport_date: safeString(client.passport_date),
                 passport_code: safeString(client.passport_code),
                 passport_issued_by: safeString(client.passport_issued_by),
+                // Dynamic arrays
                 founders: mappedFounders,
                 bank_accounts: mappedBankAccounts,
+                activities: client.activities_data || [],
+                licenses: client.licenses_data || [],
+                etp_accounts: client.etp_accounts_data || [],
+                contact_persons: client.contact_persons_data || [],
+                // Legacy bank fields
                 bank_name: safeString(client.bank_name),
                 bank_bic: safeString(client.bank_bic),
                 bank_account: safeString(client.bank_account),
                 bank_corr_account: safeString(client.bank_corr_account),
+                // Contact
                 contact_person: safeString(client.contact_person),
                 contact_phone: safeString(client.contact_phone),
                 contact_email: safeString(client.contact_email),
@@ -517,7 +541,12 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
             contact_person: data.contact_person || undefined,
             contact_phone: data.contact_phone || undefined,
             contact_email: data.contact_email || undefined,
-            website: data.website || undefined,
+            // Only send website if it's a valid URL (contains protocol) or is empty
+            website: data.website && data.website.trim()
+                ? (data.website.startsWith('http://') || data.website.startsWith('https://')
+                    ? data.website
+                    : `https://${data.website}`)
+                : undefined,
         }
 
         const result = await updateClient(clientId, payload)

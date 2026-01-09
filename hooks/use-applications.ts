@@ -98,6 +98,7 @@ export interface Application {
     goscontract_data?: {
         // BG / Contract Loan fields
         purchase_number?: string;
+        lot_number?: string;  // № лота
         subject?: string;
         law?: string; // 44-ФЗ, 223-ФЗ, etc.
         contract_number?: string;
@@ -107,17 +108,31 @@ export interface Application {
         initial_price?: string;
         offered_price?: string;
         // BG Checkboxes per ТЗ
-        has_advance?: boolean;        // Наличие аванса
+        has_advance?: boolean;        // Наличие аванса (legacy)
+        has_prepayment?: boolean;     // Наличие авансирования
+        advance_percent?: number;     // Процент аванса
         is_resecuring?: boolean;      // Является переобеспечением
         is_single_supplier?: boolean; // Единственный поставщик
         no_eis_placement?: boolean;   // Без размещения в ЕИС
         tender_not_held?: boolean;    // Торги ещё не проведены
         needs_credit?: boolean;       // Клиенту нужен кредит (кросс-продажа)
         has_customer_template?: boolean; // Шаблон заказчика
-        executed_contracts_count?: number; // Количество исполненных контрактов
+        executed_contracts_count?: number; // Количество исполненных контрактов (legacy)
+        contracts_44fz_count?: number;  // Количество исполненных контрактов 44-ФЗ
+        contracts_223fz_count?: number; // Количество исполненных контрактов 223-ФЗ
         // BG Date fields
         guarantee_start_date?: string; // Срок БГ с
         guarantee_end_date?: string;   // Срок БГ по
+        // КИК specific fields
+        contract_loan_type?: string;   // Тип продукта (credit_execution / loan)
+        contract_price?: string;       // Цена контракта
+        contract_start_date?: string;  // Срок контракта с
+        contract_end_date?: string;    // Срок контракта по
+        credit_amount?: string;        // Сумма кредита
+        credit_start_date?: string;    // Срок кредита с
+        credit_end_date?: string;      // Срок кредита по
+        contract_execution_percent?: number; // Процент выполнения контракта
+        ignore_execution_percent?: boolean;  // Не учитывать процент выполнения
         // Factoring fields
         contractor_inn?: string;
         // VED fields

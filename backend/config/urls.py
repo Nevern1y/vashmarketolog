@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/chat/', include('apps.chat.urls')),
     path('api/dictionaries/', include('apps.dictionaries.urls')),
     path('api/news/', include('apps.news.urls')),
+    path('api/bank-conditions/', include('apps.bank_conditions.urls')),
 ]
 
 

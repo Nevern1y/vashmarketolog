@@ -69,14 +69,15 @@ const getSpeedLabel = (speed: 'high' | 'medium' | 'low') => {
 }
 
 const productTypes = [
-  { id: "bank_guarantee", label: "Гарантии", icon: Gavel, description: "Банковские гарантии для тендеров" },
-  { id: "contract_loan", label: "Кредиты", icon: Banknote, description: "Кредитование бизнеса" },
-  { id: "ved", label: "ВЭД", icon: Globe, description: "Внешнеэкономическая деятельность" },
-  { id: "leasing", label: "Лизинг", icon: Truck, description: "Лизинг оборудования и транспорта" },
+  { id: "bank_guarantee", label: "Банковская гарантия", icon: Gavel, description: "Гарантии для тендеров" },
+  { id: "kik", label: "КИК", icon: CreditCard, description: "Кредит исполнения контракта" },
+  { id: "credit", label: "Кредит", icon: Banknote, description: "Кредитование бизнеса" },
+  { id: "factoring", label: "Факторинг", icon: Truck, description: "Факторинговое финансирование" },
+  { id: "leasing", label: "Лизинг", icon: Building2, description: "Лизинг оборудования и транспорта" },
   { id: "insurance", label: "Страхование", icon: Shield, description: "Страхование бизнеса" },
-  { id: "special_account", label: "Спецсчета", icon: CreditCard, description: "Специальные счета для госзакупок" },
-  { id: "rko", label: "РКО", icon: Building2, description: "Расчетно-кассовое обслуживание" },
-  { id: "tender_support", label: "Тендерное сопровождение", icon: Briefcase, description: "Полный цикл сопровождения тендеров" },
+  { id: "international", label: "Междунар. платежи", icon: Globe, description: "Международные платежи" },
+  { id: "rko", label: "РКО и спецсчёт", icon: Briefcase, description: "Расчётно-кассовое обслуживание" },
+  { id: "deposits", label: "Депозиты", icon: Banknote, description: "Размещение депозитов" },
 ]
 
 // Target banks for routing
@@ -92,15 +93,14 @@ const targetBanks = [
   { id: "other", label: "Другой банк" },
 ]
 
-// Guarantee types (ТЗ requirements)
+// Guarantee types (ТЗ requirements - exact match)
 const guaranteeTypes = [
-  { id: "application_security", label: "Обеспечение заявки" },
-  { id: "contract_execution", label: "Исполнение контракта" },
-  { id: "advance_return", label: "Возврат аванса" },
-  { id: "warranty_obligations", label: "Гарантийные обязательства" },
-  { id: "payment_guarantee", label: "Гарантии оплаты товара" },
-  { id: "customs_guarantee", label: "Таможенные гарантии" },
-  { id: "vat_refund", label: "Возмещение НДС" },
+  { id: "participation", label: "На участие" },
+  { id: "contract_execution", label: "На обеспечение исполнения контракта" },
+  { id: "advance_return", label: "На возврат аванса" },
+  { id: "warranty_period", label: "На гарантийный период" },
+  { id: "payment_guarantee", label: "На гарантию оплаты товара" },
+  { id: "vat_refund", label: "На возвращение НДС" },
 ]
 
 // Tender law types (ТЗ requirements)
@@ -113,12 +113,11 @@ const tenderLaws = [
   { id: "commercial", label: "Коммерческий" },
 ]
 
-// Credit sub-types for corporate_credit
+// Credit sub-types for corporate_credit (ТЗ section 3)
 const creditSubTypes = [
-  { id: "one_time_credit", label: "Разовый кредит" },
-  { id: "non_revolving_line", label: "Невозобновляемая КЛ" },
-  { id: "revolving_line", label: "Возобновляемая КЛ" },
-  { id: "overdraft", label: "Овердрафт" },
+  { id: "express_credit", label: "Экспресс-кредит" },
+  { id: "working_capital", label: "Кредит на пополнение оборотных средств" },
+  { id: "corporate_credit", label: "Корпоративный кредит" },
 ]
 
 // Import document types from shared module (Appendix B numeric IDs)
@@ -165,18 +164,49 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
   // NEW: CSV-specified fields for BG
   const [hasCustomerTemplate, setHasCustomerTemplate] = useState(false)  // Шаблон заказчика
-  const [executedContractsCount, setExecutedContractsCount] = useState("")  // Количество исполненных контрактов
+  const [contracts44Count, setContracts44Count] = useState("")  // Количество контрактов 44-ФЗ
+  const [contracts223Count, setContracts223Count] = useState("")  // Количество контрактов 223-ФЗ
+  const [advancePercent, setAdvancePercent] = useState("")  // % аванса
+  const [guaranteeDateFrom, setGuaranteeDateFrom] = useState("")  // Срок БГ с
+  const [guaranteeDateTo, setGuaranteeDateTo] = useState("")  // Срок БГ по
+  const [lotNumber, setLotNumber] = useState("")  // Номер лота
 
   // NEW: Credit-specific fields (Phase 2)
   const [creditSubType, setCreditSubType] = useState("")
   const [termDays, setTermDays] = useState("")
   const [pledgeDescription, setPledgeDescription] = useState("")
 
+  // КИК-specific fields (ТЗ spec)
+  const [contractLoanType, setContractLoanType] = useState("")  // Кредит на исполнение / Займ
+  const [contractPrice, setContractPrice] = useState("")  // Цена контракта
+  const [contractDateFrom, setContractDateFrom] = useState("")  // Срок контракта с
+  const [contractDateTo, setContractDateTo] = useState("")  // Срок контракта по
+  const [creditAmount, setCreditAmount] = useState("")  // Сумма кредита
+  const [creditDateFrom, setCreditDateFrom] = useState("")  // Срок кредита с
+  const [creditDateTo, setCreditDateTo] = useState("")  // Срок кредита по
+  const [contractExecutionPercent, setContractExecutionPercent] = useState<number>(0)  // % выполнения контракта
+  const [ignoreExecutionPercent, setIgnoreExecutionPercent] = useState(false)  // Не учитывать % выполнения
+
   // Product-specific fields (Pre-deploy audit)
   const [contractorInn, setContractorInn] = useState("")    // Factoring
   const [vedCountry, setVedCountry] = useState("")          // VED
   const [vedCurrency, setVedCurrency] = useState("")        // VED: Currency (USD/EUR/CNY)
   const [equipmentType, setEquipmentType] = useState("")    // Leasing
+
+  // Factoring-specific fields (ТЗ section 4)
+  const [factoringType, setFactoringType] = useState("")  // С регрессом/Без регресса
+  const [factoringContractType, setFactoringContractType] = useState("")  // Госторги/Иные договоры
+  const [factoringNmc, setFactoringNmc] = useState("")  // НМЦ
+  const [factoringContractDateFrom, setFactoringContractDateFrom] = useState("")
+  const [factoringContractDateTo, setFactoringContractDateTo] = useState("")
+  const [factoringShipmentAmount, setFactoringShipmentAmount] = useState("")
+  const [factoringPaymentDelay, setFactoringPaymentDelay] = useState("")  // Отсрочка платежа, дней
+  const [factoringCustomerInn, setFactoringCustomerInn] = useState("")  // ИНН заказчика
+
+  // Leasing-specific fields (ТЗ section 5)
+  const [leasingPropertyDescription, setLeasingPropertyDescription] = useState("")
+  const [leasingHasAdvance, setLeasingHasAdvance] = useState(false)
+  const [leasingAdvancePercent, setLeasingAdvancePercent] = useState("")
 
   // NEW: Fields for remaining 4 products (ТЗ spec)
   const [insuranceCategory, setInsuranceCategory] = useState("")    // Insurance: Персонал/Транспорт/Имущество/Ответственность
@@ -447,40 +477,55 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       ; (payload as any).goscontract_data = {
         // Tender info
         purchase_number: purchaseNumber || "",
-        subject: tenderSubject || "",
-        contract_number: contractNumber || "",
+        lot_number: lotNumber || "",
 
         // Booleans
         is_close_auction: isCloseAuction,
-        is_sole_supplier: isSoleSupplier,
-        without_eis: withoutEis,
         has_prepayment: hasPrepayment,
-        is_recollateralization: isRecollateralization,
-        auction_not_held: auctionNotHeld,
-        has_customer_template: hasCustomerTemplate,  // CSV: Шаблон заказчика
+        advance_percent: hasPrepayment && advancePercent ? parseInt(advancePercent) : null,
+        has_customer_template: hasCustomerTemplate,
 
-        // Financials
-        initial_price: initialPrice ? initialPrice.replace(/\s/g, "") : null,
-        offered_price: !auctionNotHeld && offeredPrice ? offeredPrice.replace(/\s/g, "") : null,
+        // Guarantee dates
+        guarantee_start_date: guaranteeDateFrom || null,
+        guarantee_end_date: guaranteeDateTo || null,
 
-        // Beneficiary
-        beneficiary_inn: beneficiaryInn || "",
-
-        // CSV: Количество исполненных контрактов
-        executed_contracts_count: executedContractsCount ? parseInt(executedContractsCount) : 0,
-
-        // Upsell
-        need_credit: needWorkingCapitalCredit
+        // Contract counts (per ТЗ: separate 44-ФЗ and 223-ФЗ)
+        contracts_44fz_count: contracts44Count ? parseInt(contracts44Count) : 0,
+        contracts_223fz_count: contracts223Count ? parseInt(contracts223Count) : 0,
       }
     }
 
-    // Build goscontract_data for Contract Loan (reuses tender fields)
+    // Build goscontract_data for Contract Loan (КИК) - per ТЗ section 2
     if (selectedProduct === "contract_loan") {
       ; (payload as any).goscontract_data = {
+        // Product type
+        contract_loan_type: contractLoanType || "",
+
+        // Tender info
         purchase_number: purchaseNumber || "",
-        subject: tenderSubject || "",
-        contract_number: contractNumber || "",
-        beneficiary_inn: beneficiaryInn || "",
+        lot_number: lotNumber || "",
+
+        // Contract terms
+        contract_price: contractPrice ? contractPrice.replace(/\s/g, "") : null,
+        contract_start_date: contractDateFrom || null,
+        contract_end_date: contractDateTo || null,
+
+        // Advance
+        has_prepayment: hasPrepayment,
+        advance_percent: hasPrepayment && advancePercent ? parseInt(advancePercent) : null,
+
+        // Credit terms
+        credit_amount: creditAmount ? creditAmount.replace(/\s/g, "") : null,
+        credit_start_date: creditDateFrom || null,
+        credit_end_date: creditDateTo || null,
+
+        // Contract counts (per ТЗ: separate 44-ФЗ and 223-ФЗ)
+        contracts_44fz_count: contracts44Count ? parseInt(contracts44Count) : 0,
+        contracts_223fz_count: contracts223Count ? parseInt(contracts223Count) : 0,
+
+        // Execution percent
+        contract_execution_percent: ignoreExecutionPercent ? null : contractExecutionPercent,
+        ignore_execution_percent: ignoreExecutionPercent,
       }
     }
 
@@ -575,7 +620,12 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setEquipmentType("")
     // Reset CSV-specified fields
     setHasCustomerTemplate(false)
-    setExecutedContractsCount("")
+    setContracts44Count("")
+    setContracts223Count("")
+    setAdvancePercent("")
+    setGuaranteeDateFrom("")
+    setGuaranteeDateTo("")
+    setLotNumber("")
     // Reset new product fields (ТЗ spec)
     setInsuranceCategory("")
     setInsuranceProduct("")
@@ -583,6 +633,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setTenderSupportType("")
     setPurchaseType("")
     setIndustry("")
+    // Reset КИК-specific fields
+    setContractLoanType("")
+    setContractPrice("")
+    setContractDateFrom("")
+    setContractDateTo("")
+    setCreditAmount("")
+    setCreditDateFrom("")
+    setCreditDateTo("")
+    setContractExecutionPercent(0)
+    setIgnoreExecutionPercent(false)
   }
 
   // Format amount with spaces
@@ -787,7 +847,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     key={product.id}
                     onClick={() => setSelectedProduct(product.id)}
                     className={cn(
-                      "flex flex-col items-center rounded-xl border-2 p-4 text-center transition-all hover:border-[#3CE8D1]/50",
+                      "flex flex-col items-center rounded-xl border-2 p-4 text-center transition-all hover:border-[#3CE8D1]/50 min-h-[120px]",
                       selectedProduct === product.id ? "border-[#3CE8D1] bg-[#3CE8D1]/5" : "border-border",
                     )}
                   >
@@ -918,47 +978,56 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     <FileCheck className="h-4 w-4" />
                     Параметры гарантии
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Тип гарантии *</Label>
-                      <Select value={guaranteeType} onValueChange={setGuaranteeType}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите тип БГ" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {guaranteeTypes.map((gt) => (
-                            <SelectItem key={gt.id} value={gt.id}>
-                              {gt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Закон о закупках</Label>
-                      <Select value={tenderLaw} onValueChange={setTenderLaw}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите закон" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tenderLaws.map((law) => (
-                            <SelectItem key={law.id} value={law.id}>
-                              {law.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-2">
+                    <Label>Тип банковской гарантии *</Label>
+                    <Select value={guaranteeType} onValueChange={setGuaranteeType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите тип БГ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {guaranteeTypes.map((gt) => (
+                          <SelectItem key={gt.id} value={gt.id}>
+                            {gt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Федеральный закон *</Label>
+                    <div className="flex flex-wrap gap-4">
+                      {[
+                        { id: "44_fz", label: "44-ФЗ" },
+                        { id: "223_fz", label: "223-ФЗ" },
+                        { id: "615_pp", label: "615 ПП" },
+                        { id: "kbg", label: "КБГ" },
+                      ].map((law) => (
+                        <div key={law.id} className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            id={`law-${law.id}`}
+                            name="tenderLaw"
+                            checked={tenderLaw === law.id}
+                            onChange={() => setTenderLaw(law.id)}
+                            className="h-4 w-4 accent-[#3CE8D1]"
+                          />
+                          <Label htmlFor={`law-${law.id}`} className="cursor-pointer text-sm">
+                            {law.label}
+                          </Label>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Section 2: Tender Data */}
+                  {/* Section 2: Notice & Lot Numbers */}
                   <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
                     <Hash className="h-4 w-4" />
-                    Данные тендера
+                    Данные закупки
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Номер закупки</Label>
+                      <Label>№ извещения</Label>
                       <Input
                         type="text"
                         placeholder="0123456789012345"
@@ -967,86 +1036,101 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Номер контракта</Label>
+                      <Label>№ лота</Label>
                       <Input
                         type="text"
-                        placeholder="Номер контракта (если есть)"
-                        value={contractNumber}
-                        onChange={(e) => setContractNumber(e.target.value)}
+                        placeholder="1"
+                        value={lotNumber}
+                        onChange={(e) => setLotNumber(e.target.value)}
                       />
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsCloseAuction(!isCloseAuction)}
+                    className="text-xs text-[#3CE8D1] hover:underline"
+                  >
+                    {isCloseAuction ? "✓ Закрытые торги" : "Закрытые торги"}
+                  </button>
+
+                  {/* Section 3: Amount & Term */}
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
+                    <Banknote className="h-4 w-4" />
+                    Сумма и срок
+                  </h3>
                   <div className="space-y-2">
-                    <Label>Предмет закупки</Label>
+                    <Label>Сумма банковской гарантии, ₽ *</Label>
                     <Input
                       type="text"
-                      placeholder="Описание предмета контракта"
-                      value={tenderSubject}
-                      onChange={(e) => setTenderSubject(e.target.value)}
+                      placeholder="1 000 000"
+                      value={amount}
+                      onChange={(e) => setAmount(formatAmount(e.target.value))}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Срок гарантии</Label>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">с</span>
+                        <Input
+                          type="date"
+                          value={guaranteeDateFrom}
+                          onChange={(e) => setGuaranteeDateFrom(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">по</span>
+                        <Input
+                          type="date"
+                          value={guaranteeDateTo}
+                          onChange={(e) => setGuaranteeDateTo(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">дней</span>
+                        <Input
+                          type="text"
+                          readOnly
+                          className="bg-muted"
+                          value={
+                            guaranteeDateFrom && guaranteeDateTo
+                              ? Math.max(0, Math.ceil((new Date(guaranteeDateTo).getTime() - new Date(guaranteeDateFrom).getTime()) / (1000 * 60 * 60 * 24)))
+                              : ""
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                  {/* Checkboxes */}
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="isCloseAuction"
-                        checked={isCloseAuction}
-                        onChange={(e) => setIsCloseAuction(e.target.checked)}
-                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                      />
-                      <Label htmlFor="isCloseAuction" className="cursor-pointer text-sm">
-                        Закрытый аукцион
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="isSoleSupplier"
-                        checked={isSoleSupplier}
-                        onChange={(e) => setIsSoleSupplier(e.target.checked)}
-                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                      />
-                      <Label htmlFor="isSoleSupplier" className="cursor-pointer text-sm">
-                        Единственный поставщик
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="withoutEis"
-                        checked={withoutEis}
-                        onChange={(e) => setWithoutEis(e.target.checked)}
-                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                      />
-                      <Label htmlFor="withoutEis" className="cursor-pointer text-sm">
-                        Без размещения в ЕИС
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="hasPrepayment"
-                        checked={hasPrepayment}
-                        onChange={(e) => setHasPrepayment(e.target.checked)}
-                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                      />
-                      <Label htmlFor="hasPrepayment" className="cursor-pointer text-sm">
-                        Наличие аванса
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="isRecollateralization"
-                        checked={isRecollateralization}
-                        onChange={(e) => setIsRecollateralization(e.target.checked)}
-                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                      />
-                      <Label htmlFor="isRecollateralization" className="cursor-pointer text-sm">
-                        Является переобеспечением
-                      </Label>
+                  {/* Section 4: Advance & Template */}
+                  <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id="hasPrepayment"
+                          checked={hasPrepayment}
+                          onChange={(e) => setHasPrepayment(e.target.checked)}
+                          className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                        />
+                        <Label htmlFor="hasPrepayment" className="cursor-pointer text-sm">
+                          Наличие авансирования
+                        </Label>
+                      </div>
+                      {hasPrepayment && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            placeholder="30"
+                            value={advancePercent}
+                            onChange={(e) => setAdvancePercent(e.target.value)}
+                            className="w-20"
+                            min={0}
+                            max={100}
+                          />
+                          <span className="text-sm text-muted-foreground">% от цены контракта</span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <input
@@ -1061,837 +1145,965 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       </Label>
                     </div>
                   </div>
-                  <div className="space-y-2 mt-4">
-                    <Label>Количество исполненных контрактов</Label>
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={executedContractsCount}
-                      onChange={(e) => setExecutedContractsCount(e.target.value)}
-                      min={0}
-                    />
-                  </div>
 
-                  {/* Section 3: Financials */}
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
-                    <Banknote className="h-4 w-4" />
-                    Параметры сделки
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Начальная цена контракта</Label>
-                      <Input
-                        type="text"
-                        placeholder="1 000 000"
-                        value={initialPrice}
-                        onChange={(e) => setInitialPrice(formatAmount(e.target.value))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className={auctionNotHeld ? "text-muted-foreground" : ""}>
-                          Предложенная цена контракта
-                        </Label>
+                  {/* Section 5: Executed Contracts */}
+                  <div className="space-y-2">
+                    <Label>Количество исполненных контрактов в т.ч.:</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">44-ФЗ</span>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={contracts44Count}
+                          onChange={(e) => setContracts44Count(e.target.value)}
+                          min={0}
+                        />
                       </div>
-                      <Input
-                        type="text"
-                        placeholder="950 000"
-                        value={offeredPrice}
-                        onChange={(e) => setOfferedPrice(formatAmount(e.target.value))}
-                        disabled={auctionNotHeld}
-                        className={auctionNotHeld ? "bg-muted opacity-50" : ""}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="auctionNotHeld"
-                      checked={auctionNotHeld}
-                      onChange={(e) => setAuctionNotHeld(e.target.checked)}
-                      className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                    />
-                    <Label htmlFor="auctionNotHeld" className="cursor-pointer text-sm">
-                      Торги еще не проведены
-                    </Label>
-                  </div>
-
-                  {/* Section 4: Beneficiary */}
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
-                    <Building2 className="h-4 w-4" />
-                    Бенефициар (Заказчик)
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>ИНН Заказчика</Label>
-                    <Input
-                      type="text"
-                      placeholder="10 или 12 цифр"
-                      value={beneficiaryInn}
-                      onChange={(e) => setBeneficiaryInn(e.target.value)}
-                      maxLength={12}
-                    />
-                  </div>
-
-                  {/* Section 5: Upsell */}
-                  <div className="mt-4 p-4 rounded-lg bg-[#3CE8D1]/5 border border-[#3CE8D1]/20">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="needWorkingCapitalCredit"
-                        checked={needWorkingCapitalCredit}
-                        onChange={(e) => setNeedWorkingCapitalCredit(e.target.checked)}
-                        className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                      />
-                      <Label htmlFor="needWorkingCapitalCredit" className="cursor-pointer text-sm">
-                        💡 Клиенту нужен кредит на пополнение оборотных средств
-                      </Label>
+                      <div className="space-y-1">
+                        <span className="text-xs text-muted-foreground">223-ФЗ</span>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          value={contracts223Count}
+                          onChange={(e) => setContracts223Count(e.target.value)}
+                          min={0}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* CONTRACT LOAN: Similar to BG but with different fields */}
-              {selectedProduct === "contract_loan" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Hash className="h-4 w-4" />
-                    Данные контракта
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
+              {/* CONTRACT LOAN (КИК): Per ТЗ section 2 */}
+              {
+                selectedProduct === "contract_loan" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    {/* Product Type */}
                     <div className="space-y-2">
-                      <Label>Номер закупки</Label>
-                      <Input
-                        type="text"
-                        placeholder="0123456789012345"
-                        value={purchaseNumber}
-                        onChange={(e) => setPurchaseNumber(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Номер контракта</Label>
-                      <Input
-                        type="text"
-                        placeholder="Номер контракта"
-                        value={contractNumber}
-                        onChange={(e) => setContractNumber(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Предмет контракта</Label>
-                    <Input
-                      type="text"
-                      placeholder="Описание предмета контракта"
-                      value={tenderSubject}
-                      onChange={(e) => setTenderSubject(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>ИНН Заказчика</Label>
-                      <Input
-                        type="text"
-                        placeholder="10 или 12 цифр"
-                        value={beneficiaryInn}
-                        onChange={(e) => setBeneficiaryInn(e.target.value)}
-                        maxLength={12}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Срок финансирования (дней)</Label>
-                      <Input
-                        type="number"
-                        placeholder="180"
-                        value={termDays}
-                        onChange={(e) => setTermDays(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Описание залога / обеспечения</Label>
-                    <Input
-                      type="text"
-                      placeholder="Недвижимость, транспорт, депозит и т.д."
-                      value={pledgeDescription}
-                      onChange={(e) => setPledgeDescription(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* CORPORATE CREDIT: No tender, has sub-type */}
-              {selectedProduct === "corporate_credit" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Banknote className="h-4 w-4" />
-                    Параметры кредита
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Тип кредита *</Label>
-                      <Select value={creditSubType} onValueChange={setCreditSubType}>
+                      <Label>Тип продукта *</Label>
+                      <Select value={contractLoanType} onValueChange={setContractLoanType}>
                         <SelectTrigger>
                           <SelectValue placeholder="Выберите тип" />
                         </SelectTrigger>
                         <SelectContent>
-                          {creditSubTypes.map((ct) => (
-                            <SelectItem key={ct.id} value={ct.id}>
-                              {ct.label}
-                            </SelectItem>
-                          ))}
+                          <SelectItem value="credit_execution">Кредит на исполнение контракта</SelectItem>
+                          <SelectItem value="loan">Займ</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Notice & Lot Numbers */}
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
+                      <Hash className="h-4 w-4" />
+                      Данные контракта
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>№ извещения или контракта</Label>
+                        <Input
+                          type="text"
+                          placeholder="0123456789012345"
+                          value={purchaseNumber}
+                          onChange={(e) => setPurchaseNumber(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>№ лота</Label>
+                        <Input
+                          type="text"
+                          placeholder="1"
+                          value={lotNumber}
+                          onChange={(e) => setLotNumber(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Contract Price */}
                     <div className="space-y-2">
-                      <Label>Срок финансирования (дней)</Label>
+                      <Label>Цена контракта, ₽ *</Label>
                       <Input
-                        type="number"
-                        placeholder="365"
-                        value={termDays}
-                        onChange={(e) => setTermDays(e.target.value)}
+                        type="text"
+                        placeholder="10 000 000"
+                        value={contractPrice}
+                        onChange={(e) => setContractPrice(formatAmount(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Contract Term */}
+                    <div className="space-y-2">
+                      <Label>Срок контракта</Label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">с</span>
+                          <Input
+                            type="date"
+                            value={contractDateFrom}
+                            onChange={(e) => setContractDateFrom(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">по</span>
+                          <Input
+                            type="date"
+                            value={contractDateTo}
+                            onChange={(e) => setContractDateTo(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">дней</span>
+                          <Input
+                            type="text"
+                            readOnly
+                            className="bg-muted"
+                            value={
+                              contractDateFrom && contractDateTo
+                                ? Math.max(0, Math.ceil((new Date(contractDateTo).getTime() - new Date(contractDateFrom).getTime()) / (1000 * 60 * 60 * 24)))
+                                : ""
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Advance */}
+                    <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id="kikHasPrepayment"
+                            checked={hasPrepayment}
+                            onChange={(e) => setHasPrepayment(e.target.checked)}
+                            className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                          />
+                          <Label htmlFor="kikHasPrepayment" className="cursor-pointer text-sm">
+                            Наличие авансирования
+                          </Label>
+                        </div>
+                        {hasPrepayment && (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="30"
+                              value={advancePercent}
+                              onChange={(e) => setAdvancePercent(e.target.value)}
+                              className="w-20"
+                              min={0}
+                              max={100}
+                            />
+                            <span className="text-sm text-muted-foreground">% от цены контракта</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Credit Amount & Term */}
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mt-4">
+                      <Banknote className="h-4 w-4" />
+                      Параметры кредита
+                    </h3>
+                    <div className="space-y-2">
+                      <Label>Сумма кредита, ₽ *</Label>
+                      <Input
+                        type="text"
+                        placeholder="5 000 000"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(formatAmount(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Срок кредита</Label>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">с</span>
+                          <Input
+                            type="date"
+                            value={creditDateFrom}
+                            onChange={(e) => setCreditDateFrom(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">по</span>
+                          <Input
+                            type="date"
+                            value={creditDateTo}
+                            onChange={(e) => setCreditDateTo(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">дней</span>
+                          <Input
+                            type="text"
+                            readOnly
+                            className="bg-muted"
+                            value={
+                              creditDateFrom && creditDateTo
+                                ? Math.max(0, Math.ceil((new Date(creditDateTo).getTime() - new Date(creditDateFrom).getTime()) / (1000 * 60 * 60 * 24)))
+                                : ""
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Executed Contracts */}
+                    <div className="space-y-2">
+                      <Label>Количество исполненных контрактов в т.ч.:</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">44-ФЗ</span>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={contracts44Count}
+                            onChange={(e) => setContracts44Count(e.target.value)}
+                            min={0}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">223-ФЗ</span>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={contracts223Count}
+                            onChange={(e) => setContracts223Count(e.target.value)}
+                            min={0}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Execution Percent */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Процент выполнения по контракту</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="ignorePercent"
+                            checked={ignoreExecutionPercent}
+                            onChange={(e) => setIgnoreExecutionPercent(e.target.checked)}
+                            className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                          />
+                          <Label htmlFor="ignorePercent" className="cursor-pointer text-xs text-muted-foreground">
+                            Не учитывать
+                          </Label>
+                        </div>
+                      </div>
+                      {!ignoreExecutionPercent && (
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={contractExecutionPercent}
+                            onChange={(e) => setContractExecutionPercent(parseInt(e.target.value))}
+                            className="flex-1 accent-[#3CE8D1]"
+                          />
+                          <span className="text-sm font-medium w-12 text-right">{contractExecutionPercent}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              }
+
+              {/* CORPORATE CREDIT: No tender, has sub-type */}
+              {
+                selectedProduct === "corporate_credit" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Banknote className="h-4 w-4" />
+                      Параметры кредита
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Тип кредита *</Label>
+                        <Select value={creditSubType} onValueChange={setCreditSubType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите тип" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {creditSubTypes.map((ct) => (
+                              <SelectItem key={ct.id} value={ct.id}>
+                                {ct.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Срок финансирования (дней)</Label>
+                        <Input
+                          type="number"
+                          placeholder="365"
+                          value={termDays}
+                          onChange={(e) => setTermDays(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Описание залога / обеспечения</Label>
+                      <Input
+                        type="text"
+                        placeholder="Недвижимость, транспорт, депозит и т.д."
+                        value={pledgeDescription}
+                        onChange={(e) => setPledgeDescription(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Описание залога / обеспечения</Label>
-                    <Input
-                      type="text"
-                      placeholder="Недвижимость, транспорт, депозит и т.д."
-                      value={pledgeDescription}
-                      onChange={(e) => setPledgeDescription(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+                )
+              }
 
               {/* FACTORING: ИНН контрагента */}
-              {selectedProduct === "factoring" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Параметры факторинга
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>ИНН Контрагента (Дебитора) *</Label>
-                    <Input
-                      type="text"
-                      placeholder="10 или 12 цифр"
-                      value={contractorInn}
-                      onChange={(e) => setContractorInn(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                      maxLength={12}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      ИНН компании-должника, чью задолженность вы хотите продать
-                    </p>
+              {
+                selectedProduct === "factoring" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Параметры факторинга
+                    </h3>
+                    <div className="space-y-2">
+                      <Label>ИНН Контрагента (Дебитора) *</Label>
+                      <Input
+                        type="text"
+                        placeholder="10 или 12 цифр"
+                        value={contractorInn}
+                        onChange={(e) => setContractorInn(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                        maxLength={12}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        ИНН компании-должника, чью задолженность вы хотите продать
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              }
 
               {/* VED: Внешнеэкономическая деятельность (CSV: 3 поля) */}
-              {selectedProduct === "ved" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    Параметры ВЭД
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
+              {
+                selectedProduct === "ved" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Параметры ВЭД
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Сумма платежа *</Label>
+                        <Input
+                          type="text"
+                          placeholder="1 000 000"
+                          value={amount}
+                          onChange={(e) => setAmount(formatAmount(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Валюта *</Label>
+                        <Select value={vedCurrency} onValueChange={setVedCurrency}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите валюту" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="RUB">RUB — Российский рубль</SelectItem>
+                            <SelectItem value="USD">USD — Доллар США</SelectItem>
+                            <SelectItem value="EUR">EUR — Евро</SelectItem>
+                            <SelectItem value="CNY">CNY — Китайский юань</SelectItem>
+                            <SelectItem value="TRY">TRY — Турецкая лира</SelectItem>
+                            <SelectItem value="AED">AED — Дирхам ОАЭ</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     <div className="space-y-2">
-                      <Label>Сумма платежа *</Label>
+                      <Label>Страна платежа *</Label>
                       <Input
                         type="text"
-                        placeholder="1 000 000"
-                        value={amount}
-                        onChange={(e) => setAmount(formatAmount(e.target.value))}
+                        placeholder="Например: Китай, Турция, Казахстан"
+                        value={vedCountry}
+                        onChange={(e) => setVedCountry(e.target.value)}
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Валюта *</Label>
-                      <Select value={vedCurrency} onValueChange={setVedCurrency}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите валюту" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="RUB">RUB — Российский рубль</SelectItem>
-                          <SelectItem value="USD">USD — Доллар США</SelectItem>
-                          <SelectItem value="EUR">EUR — Евро</SelectItem>
-                          <SelectItem value="CNY">CNY — Китайский юань</SelectItem>
-                          <SelectItem value="TRY">TRY — Турецкая лира</SelectItem>
-                          <SelectItem value="AED">AED — Дирхам ОАЭ</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Страна иностранного партнёра по внешнеэкономической сделке
+                      </p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Страна платежа *</Label>
-                    <Input
-                      type="text"
-                      placeholder="Например: Китай, Турция, Казахстан"
-                      value={vedCountry}
-                      onChange={(e) => setVedCountry(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Страна иностранного партнёра по внешнеэкономической сделке
-                    </p>
-                  </div>
-                </div>
-              )}
+                )
+              }
 
               {/* LEASING: Лизинг (CSV: Предмет, Сумма, Срок) */}
-              {selectedProduct === "leasing" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Truck className="h-4 w-4" />
-                    Параметры лизинга
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>Предмет лизинга *</Label>
-                    <Input
-                      type="text"
-                      placeholder="Например: Грузовой автомобиль, Производственное оборудование"
-                      value={equipmentType}
-                      onChange={(e) => setEquipmentType(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Укажите тип имущества, которое планируете взять в лизинг
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+              {
+                selectedProduct === "leasing" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Параметры лизинга
+                    </h3>
                     <div className="space-y-2">
-                      <Label>Сумма лизинга *</Label>
+                      <Label>Предмет лизинга *</Label>
                       <Input
                         type="text"
-                        placeholder="1 000 000"
-                        value={amount}
-                        onChange={(e) => setAmount(formatAmount(e.target.value))}
+                        placeholder="Например: Грузовой автомобиль, Производственное оборудование"
+                        value={equipmentType}
+                        onChange={(e) => setEquipmentType(e.target.value)}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Укажите тип имущества, которое планируете взять в лизинг
+                      </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Срок (месяцев) *</Label>
-                      <Input
-                        type="number"
-                        placeholder="36"
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Сумма лизинга *</Label>
+                        <Input
+                          type="text"
+                          placeholder="1 000 000"
+                          value={amount}
+                          onChange={(e) => setAmount(formatAmount(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Срок (месяцев) *</Label>
+                        <Input
+                          type="number"
+                          placeholder="36"
+                          value={term}
+                          onChange={(e) => setTerm(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )
+              }
 
               {/* INSURANCE: Страхование (per ТЗ spec) */}
-              {selectedProduct === "insurance" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
-                    Параметры страхования
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>Вид страхования *</Label>
-                    <Select
-                      value={insuranceCategory}
-                      onValueChange={(val) => {
-                        setInsuranceCategory(val)
-                        setInsuranceProduct("") // Reset product when category changes
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите вид страхования" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="personnel">Персонал</SelectItem>
-                        <SelectItem value="transport">Транспорт</SelectItem>
-                        <SelectItem value="property">Имущество</SelectItem>
-                        <SelectItem value="liability">Ответственность</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {
+                selectedProduct === "insurance" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Параметры страхования
+                    </h3>
+                    <div className="space-y-2">
+                      <Label>Вид страхования *</Label>
+                      <Select
+                        value={insuranceCategory}
+                        onValueChange={(val) => {
+                          setInsuranceCategory(val)
+                          setInsuranceProduct("") // Reset product when category changes
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите вид страхования" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="personnel">Персонал</SelectItem>
+                          <SelectItem value="transport">Транспорт</SelectItem>
+                          <SelectItem value="property">Имущество</SelectItem>
+                          <SelectItem value="liability">Ответственность</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Conditional product subtypes per ТЗ */}
+                    {insuranceCategory === "personnel" && (
+                      <div className="space-y-2">
+                        <Label>Страховой продукт *</Label>
+                        <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите продукт" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dms">Добровольное медицинское страхование (ДМС)</SelectItem>
+                            <SelectItem value="critical_illness">Страхование критических заболеваний</SelectItem>
+                            <SelectItem value="accidents">Страхование несчастных случаев</SelectItem>
+                            <SelectItem value="travel">Комплексное страхование в поездках</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {insuranceCategory === "transport" && (
+                      <div className="space-y-2">
+                        <Label>Страховой продукт *</Label>
+                        <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите продукт" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="osago">ОСАГО юридических лиц</SelectItem>
+                            <SelectItem value="fleet">Комплексное страхование автопарков</SelectItem>
+                            <SelectItem value="special_equipment">Страхование специальной техники</SelectItem>
+                            <SelectItem value="carrier_liability">Страхование ответственности перевозчика</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {insuranceCategory === "property" && (
+                      <div className="space-y-2">
+                        <Label>Страховой продукт *</Label>
+                        <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите продукт" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="construction">Страхование объектов строительства</SelectItem>
+                            <SelectItem value="cargo">Страхование грузов и перевозок</SelectItem>
+                            <SelectItem value="company_property">Страхование имущества компаний</SelectItem>
+                            <SelectItem value="business_interruption">Страхование перерывов деятельности</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {insuranceCategory === "liability" && (
+                      <div className="space-y-2">
+                        <Label>Страховой продукт *</Label>
+                        <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите продукт" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="civil">Страхование гражданской ответственности</SelectItem>
+                            <SelectItem value="hazardous">Страхование опасных объектов</SelectItem>
+                            <SelectItem value="professional">Страхование профессиональных рисков</SelectItem>
+                            <SelectItem value="quality">Страхование ответственности за качество</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Сумма страхования, руб</Label>
+                        <Input
+                          type="text"
+                          placeholder="1 000 000"
+                          value={amount}
+                          onChange={(e) => setAmount(formatAmount(e.target.value))}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Срок договора, мес. (1-16)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="16"
+                          placeholder="12"
+                          value={term}
+                          onChange={(e) => setTerm(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Conditional product subtypes per ТЗ */}
-                  {insuranceCategory === "personnel" && (
-                    <div className="space-y-2">
-                      <Label>Страховой продукт *</Label>
-                      <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите продукт" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="dms">Добровольное медицинское страхование (ДМС)</SelectItem>
-                          <SelectItem value="critical_illness">Страхование критических заболеваний</SelectItem>
-                          <SelectItem value="accidents">Страхование несчастных случаев</SelectItem>
-                          <SelectItem value="travel">Комплексное страхование в поездках</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {insuranceCategory === "transport" && (
-                    <div className="space-y-2">
-                      <Label>Страховой продукт *</Label>
-                      <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите продукт" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="osago">ОСАГО юридических лиц</SelectItem>
-                          <SelectItem value="fleet">Комплексное страхование автопарков</SelectItem>
-                          <SelectItem value="special_equipment">Страхование специальной техники</SelectItem>
-                          <SelectItem value="carrier_liability">Страхование ответственности перевозчика</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {insuranceCategory === "property" && (
-                    <div className="space-y-2">
-                      <Label>Страховой продукт *</Label>
-                      <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите продукт" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="construction">Страхование объектов строительства</SelectItem>
-                          <SelectItem value="cargo">Страхование грузов и перевозок</SelectItem>
-                          <SelectItem value="company_property">Страхование имущества компаний</SelectItem>
-                          <SelectItem value="business_interruption">Страхование перерывов деятельности</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {insuranceCategory === "liability" && (
-                    <div className="space-y-2">
-                      <Label>Страховой продукт *</Label>
-                      <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите продукт" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="civil">Страхование гражданской ответственности</SelectItem>
-                          <SelectItem value="hazardous">Страхование опасных объектов</SelectItem>
-                          <SelectItem value="professional">Страхование профессиональных рисков</SelectItem>
-                          <SelectItem value="quality">Страхование ответственности за качество</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Сумма страхования, руб</Label>
-                      <Input
-                        type="text"
-                        placeholder="1 000 000"
-                        value={amount}
-                        onChange={(e) => setAmount(formatAmount(e.target.value))}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Срок договора, мес. (1-16)</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="16"
-                        placeholder="12"
-                        value={term}
-                        onChange={(e) => setTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+                )
+              }
 
               {/* SPECIAL ACCOUNT: Спецсчета (CSV spec) */}
-              {selectedProduct === "special_account" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" />
-                    Параметры спецсчета
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>Тип счета *</Label>
-                    <Select value={accountType} onValueChange={setAccountType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите тип счета" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="44fz">Спецсчет 44-ФЗ</SelectItem>
-                        <SelectItem value="223fz">Спецсчет 223-ФЗ</SelectItem>
-                        <SelectItem value="615pp">Спецсчет 615-ПП</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Специальный счет для обеспечения участия в госзакупках
-                    </p>
+              {
+                selectedProduct === "special_account" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Параметры спецсчета
+                    </h3>
+                    <div className="space-y-2">
+                      <Label>Тип счета *</Label>
+                      <Select value={accountType} onValueChange={setAccountType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип счета" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="44fz">Спецсчет 44-ФЗ</SelectItem>
+                          <SelectItem value="223fz">Спецсчет 223-ФЗ</SelectItem>
+                          <SelectItem value="615pp">Спецсчет 615-ПП</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        Специальный счет для обеспечения участия в госзакупках
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              }
 
               {/* RKO: Расчетно-кассовое обслуживание (CSV spec) */}
-              {selectedProduct === "rko" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Параметры РКО
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>Тип обслуживания *</Label>
-                    <Select value={accountType} onValueChange={setAccountType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите тип" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rko_basic">РКО Базовый</SelectItem>
-                        <SelectItem value="rko_premium">РКО Премиум</SelectItem>
-                        <SelectItem value="rko_business">РКО Бизнес</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {
+                selectedProduct === "rko" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Параметры РКО
+                    </h3>
+                    <div className="space-y-2">
+                      <Label>Тип обслуживания *</Label>
+                      <Select value={accountType} onValueChange={setAccountType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="rko_basic">РКО Базовый</SelectItem>
+                          <SelectItem value="rko_premium">РКО Премиум</SelectItem>
+                          <SelectItem value="rko_business">РКО Бизнес</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Открытие расчетного счета и банковское обслуживание
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Открытие расчетного счета и банковское обслуживание
-                  </p>
-                </div>
-              )}
+                )
+              }
 
               {/* TENDER SUPPORT: Тендерное сопровождение (per ТЗ spec) */}
-              {selectedProduct === "tender_support" && (
-                <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    Параметры тендерного сопровождения
-                  </h3>
-                  <div className="space-y-2">
-                    <Label>Вариант сопровождения *</Label>
-                    <Select value={tenderSupportType} onValueChange={setTenderSupportType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите вариант" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="one_time">Разовое сопровождение</SelectItem>
-                        <SelectItem value="full_service">Тендерное сопровождение под ключ</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {
+                selectedProduct === "tender_support" && (
+                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      Параметры тендерного сопровождения
+                    </h3>
+                    <div className="space-y-2">
+                      <Label>Вариант сопровождения *</Label>
+                      <Select value={tenderSupportType} onValueChange={setTenderSupportType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите вариант" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="one_time">Разовое сопровождение</SelectItem>
+                          <SelectItem value="full_service">Тендерное сопровождение под ключ</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Тип закупки *</Label>
+                      <Select value={purchaseType} onValueChange={setPurchaseType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип закупки" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="44fz">Госзакупки по 44-ФЗ</SelectItem>
+                          <SelectItem value="223fz">Закупки по 223-ФЗ</SelectItem>
+                          <SelectItem value="property_auctions">Имущественные торги</SelectItem>
+                          <SelectItem value="commercial">Коммерческие закупки</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Закупки в отрасли</Label>
+                      <Input
+                        type="text"
+                        placeholder="Введите интересующую отрасль закупок"
+                        value={industry}
+                        onChange={(e) => setIndustry(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Тип закупки *</Label>
-                    <Select value={purchaseType} onValueChange={setPurchaseType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выберите тип закупки" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="44fz">Госзакупки по 44-ФЗ</SelectItem>
-                        <SelectItem value="223fz">Закупки по 223-ФЗ</SelectItem>
-                        <SelectItem value="property_auctions">Имущественные торги</SelectItem>
-                        <SelectItem value="commercial">Коммерческие закупки</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Закупки в отрасли</Label>
-                    <Input
-                      type="text"
-                      placeholder="Введите интересующую отрасль закупок"
-                      value={industry}
-                      onChange={(e) => setIndustry(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+                )
+              }
+            </div >
           )}
 
           {/* Step 3: Bank Selection (WAVE 1 - NEW) */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Выберите банк</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Выберите один или несколько банков для отправки заявки
-                  </p>
+          {
+            currentStep === 3 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold">Выберите банк</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Выберите один или несколько банков для отправки заявки
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-[#3CE8D1]">
+                      Доступно: {approvedBanks.length} банков
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Отказов: {rejectedBanks.length}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-[#3CE8D1]">
-                    Доступно: {approvedBanks.length} банков
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Отказов: {rejectedBanks.length}
-                  </p>
-                </div>
-              </div>
 
-              {/* Approved Banks Table */}
-              <div className="rounded-lg border border-border overflow-hidden">
-                <div className="bg-muted/30 px-4 py-2 border-b border-border">
-                  <h3 className="text-sm font-medium flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    Доступные предложения
-                  </h3>
-                </div>
-                <div className="divide-y divide-border">
-                  {approvedBanks.map((bank) => {
-                    const speedInfo = getSpeedLabel(bank.speed)
-                    const isSelected = selectedBankIds.includes(bank.id)
-                    return (
+                {/* Approved Banks Table */}
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="bg-muted/30 px-4 py-2 border-b border-border">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Доступные предложения
+                    </h3>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {approvedBanks.map((bank) => {
+                      const speedInfo = getSpeedLabel(bank.speed)
+                      const isSelected = selectedBankIds.includes(bank.id)
+                      return (
+                        <div
+                          key={bank.id}
+                          className={cn(
+                            "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors",
+                            isSelected ? "bg-[#3CE8D1]/10" : "hover:bg-muted/50"
+                          )}
+                          onClick={() => toggleBankSelection(bank.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleBankSelection(bank.id)}
+                              className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                            />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 text-white text-xs font-bold">
+                              {bank.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium">{bank.name}</p>
+                              <p className="text-xs text-muted-foreground">ID: {bank.id}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6">
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-[#3CE8D1]">{bank.rate}%</p>
+                              <p className="text-xs text-muted-foreground">Ставка</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">{bank.commission.toLocaleString()} ₽</p>
+                              <p className="text-xs text-muted-foreground">Комиссия</p>
+                            </div>
+                            <div className="text-right w-24">
+                              <p className={cn("text-sm font-medium", speedInfo.color)}>{speedInfo.label}</p>
+                              <p className="text-xs text-muted-foreground">Скорость</p>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* Lider-Garant Special Row - Always at bottom */}
+                    {liderGarant && (
                       <div
-                        key={bank.id}
                         className={cn(
-                          "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors",
-                          isSelected ? "bg-[#3CE8D1]/10" : "hover:bg-muted/50"
+                          "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors border-t-2 border-[#3CE8D1]/30",
+                          selectedBankIds.includes(liderGarant.id) ? "bg-[#3CE8D1]/20" : "hover:bg-[#3CE8D1]/5"
                         )}
-                        onClick={() => toggleBankSelection(bank.id)}
+                        onClick={() => toggleBankSelection(liderGarant.id)}
                       >
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleBankSelection(bank.id)}
+                            checked={selectedBankIds.includes(liderGarant.id)}
+                            onChange={() => toggleBankSelection(liderGarant.id)}
                             className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
                           />
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 text-white text-xs font-bold">
-                            {bank.name.slice(0, 2).toUpperCase()}
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]">
+                            <Star className="h-5 w-5" />
                           </div>
                           <div>
-                            <p className="font-medium">{bank.name}</p>
-                            <p className="text-xs text-muted-foreground">ID: {bank.id}</p>
+                            <p className="font-semibold text-[#3CE8D1]">{liderGarant.name}</p>
+                            <p className="text-xs text-muted-foreground">Индивидуальные условия</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-6">
-                          <div className="text-right">
-                            <p className="text-sm font-semibold text-[#3CE8D1]">{bank.rate}%</p>
-                            <p className="text-xs text-muted-foreground">Ставка</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{bank.commission.toLocaleString()} ₽</p>
-                            <p className="text-xs text-muted-foreground">Комиссия</p>
-                          </div>
-                          <div className="text-right w-24">
-                            <p className={cn("text-sm font-medium", speedInfo.color)}>{speedInfo.label}</p>
-                            <p className="text-xs text-muted-foreground">Скорость</p>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-3 py-1 rounded-full bg-[#3CE8D1]/20 text-[#3CE8D1] text-xs font-medium">
+                            Персональное предложение
+                          </span>
                         </div>
                       </div>
-                    )
-                  })}
-
-                  {/* Lider-Garant Special Row - Always at bottom */}
-                  {liderGarant && (
-                    <div
-                      className={cn(
-                        "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors border-t-2 border-[#3CE8D1]/30",
-                        selectedBankIds.includes(liderGarant.id) ? "bg-[#3CE8D1]/20" : "hover:bg-[#3CE8D1]/5"
-                      )}
-                      onClick={() => toggleBankSelection(liderGarant.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedBankIds.includes(liderGarant.id)}
-                          onChange={() => toggleBankSelection(liderGarant.id)}
-                          className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                        />
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]">
-                          <Star className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-[#3CE8D1]">{liderGarant.name}</p>
-                          <p className="text-xs text-muted-foreground">Индивидуальные условия</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 rounded-full bg-[#3CE8D1]/20 text-[#3CE8D1] text-xs font-medium">
-                          Персональное предложение
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Rejected Banks Collapsible */}
-              {rejectedBanks.length > 0 && (
-                <Collapsible open={showRejectedBanks} onOpenChange={setShowRejectedBanks}>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-red-500" />
-                      <span className="text-sm font-medium">Показать {rejectedBanks.length} отказов</span>
-                    </div>
-                    {showRejectedBanks ? (
-                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
                     )}
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="mt-2 rounded-lg border border-red-200/30 overflow-hidden">
-                      <div className="divide-y divide-border">
-                        {rejectedBanks.map((bank) => (
-                          <div key={bank.id} className="px-4 py-3 bg-red-500/5">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 text-xs font-bold">
-                                  {bank.name.slice(0, 2).toUpperCase()}
-                                </div>
-                                <div>
-                                  <p className="font-medium text-muted-foreground">{bank.name}</p>
-                                  <p className="text-xs text-red-500">{bank.rejectReason}</p>
-                                </div>
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {bank.rate}% / {bank.commission.toLocaleString()} ₽
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-
-              {/* Selection Summary */}
-              {selectedBankIds.length > 0 && (
-                <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-4">
-                  <p className="text-sm font-medium text-[#3CE8D1]">
-                    Выбрано банков: {selectedBankIds.length}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')}
-                  </p>
-                </div>
-              )}
-
-              {/* Disclaimer */}
-              <p className="text-xs text-muted-foreground">
-                Приведённые расчеты стоимости являются предварительными и не являются публичной офертой.
-              </p>
-            </div>
-          )}
-
-          {/* Step 4: Documents */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Документы</h2>
-
-              {/* Document Type Selection (Appendix B numeric IDs) */}
-              <div className="space-y-2">
-                <Label>Тип загружаемого документа</Label>
-                <Select
-                  value={String(uploadDocTypeId)}
-                  onValueChange={(val) => setUploadDocTypeId(parseInt(val, 10))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите тип документа" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {/* Show product-specific document types */}
-                    {getAgentUploadableTypes(selectedProduct || 'general').map((docType) => (
-                      <SelectItem key={docType.id} value={String(docType.id)}>
-                        {docType.name}
-                      </SelectItem>
-                    ))}
-                    {/* Always show "Additional Document" option */}
-                    <SelectItem value="0">Дополнительный документ</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Показаны типы документов для: {selectedProduct === 'bank_guarantee' ? 'Банковские гарантии' :
-                    selectedProduct === 'contract_loan' ? 'Кредиты на исполнение' : 'Общие документы'}
-                </p>
-              </div>
-
-
-              {/* Dropzone */}
-              <div
-                className="rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploading ? (
-                  <Loader2 className="mx-auto h-10 w-10 text-[#3CE8D1] animate-spin" />
-                ) : (
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-                )}
-                <p className="mt-3 text-sm font-medium">
-                  {uploading ? "Загрузка..." : "Перетащите файлы сюда или выберите на компьютере"}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG, XLSX до 10 МБ</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  multiple
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                  onChange={handleFileUpload}
-                />
-              </div>
-
-              {/* Uploaded in this session */}
-              {uploadedDocIds.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-[#3CE8D1]">
-                    Загружено ({uploadedDocIds.length}):
-                  </p>
-                  <div className="text-sm text-muted-foreground">
-                    Документы будут прикреплены к заявке
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Rejected Banks Collapsible */}
+                {rejectedBanks.length > 0 && (
+                  <Collapsible open={showRejectedBanks} onOpenChange={setShowRejectedBanks}>
+                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <XCircle className="h-4 w-4 text-red-500" />
+                        <span className="text-sm font-medium">Показать {rejectedBanks.length} отказов</span>
+                      </div>
+                      {showRejectedBanks ? (
+                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="mt-2 rounded-lg border border-red-200/30 overflow-hidden">
+                        <div className="divide-y divide-border">
+                          {rejectedBanks.map((bank) => (
+                            <div key={bank.id} className="px-4 py-3 bg-red-500/5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 text-xs font-bold">
+                                    {bank.name.slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-muted-foreground">{bank.name}</p>
+                                    <p className="text-xs text-red-500">{bank.rejectReason}</p>
+                                  </div>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {bank.rate}% / {bank.commission.toLocaleString()} ₽
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
+                {/* Selection Summary */}
+                {selectedBankIds.length > 0 && (
+                  <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-4">
+                    <p className="text-sm font-medium text-[#3CE8D1]">
+                      Выбрано банков: {selectedBankIds.length}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                <p className="text-xs text-muted-foreground">
+                  Приведённые расчеты стоимости являются предварительными и не являются публичной офертой.
+                </p>
+              </div>
+            )
+          }
+
+          {/* Step 4: Documents */}
+          {
+            currentStep === 4 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Документы</h2>
+
+                {/* Document Type Selection (Appendix B numeric IDs) */}
+                <div className="space-y-2">
+                  <Label>Тип загружаемого документа</Label>
+                  <Select
+                    value={String(uploadDocTypeId)}
+                    onValueChange={(val) => setUploadDocTypeId(parseInt(val, 10))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите тип документа" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {/* Show product-specific document types */}
+                      {getAgentUploadableTypes(selectedProduct || 'general').map((docType) => (
+                        <SelectItem key={docType.id} value={String(docType.id)}>
+                          {docType.name}
+                        </SelectItem>
+                      ))}
+                      {/* Always show "Additional Document" option */}
+                      <SelectItem value="0">Дополнительный документ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Показаны типы документов для: {selectedProduct === 'bank_guarantee' ? 'Банковские гарантии' :
+                      selectedProduct === 'contract_loan' ? 'Кредиты на исполнение' : 'Общие документы'}
+                  </p>
+                </div>
+
+
+                {/* Dropzone */}
+                <div
+                  className="rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploading ? (
+                    <Loader2 className="mx-auto h-10 w-10 text-[#3CE8D1] animate-spin" />
+                  ) : (
+                    <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                  )}
+                  <p className="mt-3 text-sm font-medium">
+                    {uploading ? "Загрузка..." : "Перетащите файлы сюда или выберите на компьютере"}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG, XLSX до 10 МБ</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                    onChange={handleFileUpload}
+                  />
+                </div>
+
+                {/* Uploaded in this session */}
+                {uploadedDocIds.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-[#3CE8D1]">
+                      Загружено ({uploadedDocIds.length}):
+                    </p>
+                    <div className="text-sm text-muted-foreground">
+                      Документы будут прикреплены к заявке
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          }
 
           {/* Step 5: Summary */}
-          {currentStep === 5 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Проверьте данные заявки</h2>
-              <div className="rounded-lg bg-muted/50 p-4 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Продукт:</span>
-                  <span className="text-sm font-medium">
-                    {productTypes.find((p) => p.id === selectedProduct)?.label || "—"}
-                  </span>
+          {
+            currentStep === 5 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Проверьте данные заявки</h2>
+                <div className="rounded-lg bg-muted/50 p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Продукт:</span>
+                    <span className="text-sm font-medium">
+                      {productTypes.find((p) => p.id === selectedProduct)?.label || "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Компания:</span>
+                    <span className="text-sm font-medium">
+                      {selectedCompany?.name || selectedCompany?.short_name || "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">ИНН:</span>
+                    <span className="text-sm font-medium">{selectedCompany?.inn || "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Выбранные банки:</span>
+                    <span className="text-sm font-medium text-[#3CE8D1]">
+                      {selectedBankIds.length > 0
+                        ? selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')
+                        : "Не выбраны"
+                      }
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Сумма:</span>
+                    <span className="text-sm font-medium">{amount || "—"} ₽</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Срок:</span>
+                    <span className="text-sm font-medium">{term || "—"} мес.</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Документы:</span>
+                    <span className="text-sm font-medium">
+                      {selectedDocumentIds.length + uploadedDocIds.length} шт.
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Компания:</span>
-                  <span className="text-sm font-medium">
-                    {selectedCompany?.name || selectedCompany?.short_name || "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">ИНН:</span>
-                  <span className="text-sm font-medium">{selectedCompany?.inn || "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Выбранные банки:</span>
-                  <span className="text-sm font-medium text-[#3CE8D1]">
-                    {selectedBankIds.length > 0
-                      ? selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')
-                      : "Не выбраны"
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Сумма:</span>
-                  <span className="text-sm font-medium">{amount || "—"} ₽</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Срок:</span>
-                  <span className="text-sm font-medium">{term || "—"} мес.</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Документы:</span>
-                  <span className="text-sm font-medium">
-                    {selectedDocumentIds.length + uploadedDocIds.length} шт.
-                  </span>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  После отправки заявка будет направлена менеджеру для проверки.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                После отправки заявка будет направлена менеджеру для проверки.
-              </p>
-            </div>
-          )}
-        </div>
+            )
+          }
+        </div >
 
         {/* Footer Navigation */}
-        <div className="flex items-center justify-between border-t border-border px-6 py-4 sticky bottom-0 bg-card">
+        < div className="flex items-center justify-between border-t border-border px-6 py-4 sticky bottom-0 bg-card" >
           <Button
             variant="outline"
             onClick={handleBack}
@@ -1900,36 +2112,38 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
           >
             Назад
           </Button>
-          {currentStep < 5 ? (
-            <Button
-              onClick={handleNext}
-              disabled={
-                (currentStep === 1 && !selectedProduct) ||
-                (currentStep === 2 && (!amount || !term || (isAgent && !selectedCompanyId) || (!isAgent && !myCompany?.id))) ||
-                (currentStep === 3 && selectedBankIds.length === 0)
-              }
-              className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
-            >
-              Далее
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Отправка...
-                </>
-              ) : (
-                "ОТПРАВИТЬ ЗАЯВКУ"
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
+          {
+            currentStep < 5 ? (
+              <Button
+                onClick={handleNext}
+                disabled={
+                  (currentStep === 1 && !selectedProduct) ||
+                  (currentStep === 2 && (!amount || !term || (isAgent && !selectedCompanyId) || (!isAgent && !myCompany?.id))) ||
+                  (currentStep === 3 && selectedBankIds.length === 0)
+                }
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+              >
+                Далее
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Отправка...
+                  </>
+                ) : (
+                  "ОТПРАВИТЬ ЗАЯВКУ"
+                )}
+              </Button>
+            )
+          }
+        </div >
+      </div >
+    </div >
   )
 }

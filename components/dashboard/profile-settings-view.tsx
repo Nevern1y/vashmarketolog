@@ -32,11 +32,14 @@ import {
     ChevronDown,
     ChevronUp,
     Upload,
-    CheckCircle2
+    CheckCircle2,
+    Camera,
 } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
 import { authApi } from "@/lib/api"
 import { useDocumentMutations, useDocuments } from "@/hooks/use-documents"
+import { useAvatar } from "@/hooks/use-avatar"
 
 // Tax system options per ТЗ
 const TAX_SYSTEMS = [
@@ -344,6 +347,45 @@ export function ProfileSettingsView() {
     })
     const { uploadDocument, isLoading: isUploading } = useDocumentMutations()
     const agentDocInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+    const avatarInputRef = useRef<HTMLInputElement>(null)
+
+    // Use global avatar hook
+    const { avatar: avatarPreview, updateAvatar, getInitials } = useAvatar()
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+
+    // Handle avatar upload
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            toast.error("Пожалуйста, выберите изображение")
+            return
+        }
+
+        // Validate file size (max 2MB for localStorage)
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("Размер файла не должен превышать 2MB")
+            return
+        }
+
+        setIsUploadingAvatar(true)
+
+        // Create preview and save via hook
+        const reader = new FileReader()
+        reader.onload = () => {
+            const base64 = reader.result as string
+            updateAvatar(base64)
+            toast.success("Фото профиля обновлено")
+            setIsUploadingAvatar(false)
+        }
+        reader.onerror = () => {
+            toast.error("Ошибка при загрузке фото")
+            setIsUploadingAvatar(false)
+        }
+        reader.readAsDataURL(file)
+    }
 
     // Check if a document type is already uploaded
     const isAgentDocUploaded = (documentTypeId: number) => {
@@ -521,7 +563,42 @@ export function ProfileSettingsView() {
                                 </Button>
                             )}
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-6">
+                            {/* Avatar Section */}
+                            <div className="flex items-center gap-6">
+                                <div className="relative">
+                                    <Avatar className="h-24 w-24">
+                                        <AvatarImage src={avatarPreview || undefined} alt="Фото профиля" />
+                                        <AvatarFallback className="bg-[#3CE8D1]/10 text-[#3CE8D1] text-2xl">
+                                            {(profileFullName || user?.first_name || "U").charAt(0).toUpperCase()}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <button
+                                        className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] transition-colors"
+                                        onClick={() => avatarInputRef.current?.click()}
+                                        disabled={isUploadingAvatar}
+                                    >
+                                        {isUploadingAvatar ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Camera className="h-4 w-4" />
+                                        )}
+                                    </button>
+                                    <input
+                                        ref={avatarInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handleAvatarUpload}
+                                    />
+                                </div>
+                                <div>
+                                    <p className="font-medium">Фото профиля</p>
+                                    <p className="text-sm text-muted-foreground">JPG, PNG или GIF. Макс. 5MB</p>
+                                </div>
+                            </div>
+
+                            {/* Profile Fields */}
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label>ФИО</Label>
@@ -926,22 +1003,30 @@ export function ProfileSettingsView() {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid gap-4 md:grid-cols-2">
-                                <div className="p-4 rounded-lg border space-y-2">
+                                <a
+                                    href="https://api.whatsapp.com/send/?phone=79652841415&text&type=phone_number&app_absent=0"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-4 rounded-lg border space-y-2 hover:bg-muted/50 transition-colors"
+                                >
                                     <div className="flex items-center gap-2">
-                                        <Phone className="h-5 w-5 text-[#3CE8D1]" />
-                                        <span className="font-medium">Телефон поддержки</span>
+                                        <Phone className="h-5 w-5 text-[#25D366]" />
+                                        <span className="font-medium">WhatsApp</span>
                                     </div>
-                                    <p className="text-lg font-bold">8 (800) 555-35-35</p>
-                                    <p className="text-sm text-muted-foreground">Бесплатно по России</p>
-                                </div>
-                                <div className="p-4 rounded-lg border space-y-2">
+                                    <p className="text-lg font-bold">+7 (965) 284-14-15</p>
+                                    <p className="text-sm text-muted-foreground">Нажмите чтобы написать</p>
+                                </a>
+                                <a
+                                    href="mailto:info@lidergarant.ru"
+                                    className="p-4 rounded-lg border space-y-2 hover:bg-muted/50 transition-colors"
+                                >
                                     <div className="flex items-center gap-2">
                                         <Mail className="h-5 w-5 text-[#3CE8D1]" />
                                         <span className="font-medium">Email</span>
                                     </div>
-                                    <p className="text-lg font-bold">support@vashmarketolog.ru</p>
+                                    <p className="text-lg font-bold">info@lidergarant.ru</p>
                                     <p className="text-sm text-muted-foreground">Ответ в течение 24 часов</p>
-                                </div>
+                                </a>
                             </div>
                             <div className="border-t pt-4">
                                 <h4 className="text-sm font-medium mb-4">Обратная связь</h4>
@@ -983,7 +1068,7 @@ export function ProfileSettingsView() {
                                         <ExternalLink className="h-4 w-4" />
                                         Видеоинструкции
                                     </a>
-                                    <a href="#" className="flex items-center gap-2 text-sm text-[#3CE8D1] hover:underline">
+                                    <a href="https://t.me/lidergarant" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#3CE8D1] hover:underline">
                                         <ExternalLink className="h-4 w-4" />
                                         Telegram-канал
                                     </a>

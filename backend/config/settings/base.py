@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'apps.integrations',
     'apps.dictionaries',
     'apps.news',
+    'apps.bank_conditions',
 ]
 
 

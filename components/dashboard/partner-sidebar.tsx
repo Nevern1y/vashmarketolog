@@ -19,6 +19,7 @@ const navItems = [
   { id: "clients" as PartnerViewType, label: "Мои клиенты", icon: Users },
   { id: "agents" as PartnerViewType, label: "Мои агенты", icon: UserCheck },
   { id: "applications" as PartnerViewType, label: "Мои заявки", icon: FileText },
+  { id: "help" as PartnerViewType, label: "Помощь", icon: HelpCircle },
 ]
 
 export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount }: PartnerSidebarProps) {
