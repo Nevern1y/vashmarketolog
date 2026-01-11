@@ -63,6 +63,13 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         default=''
     )
+
+    avatar = models.ImageField(
+        'Аватар',
+        upload_to='avatars/',
+        null=True,
+        blank=True
+    )
     
     # Role-based access
     role = models.CharField(

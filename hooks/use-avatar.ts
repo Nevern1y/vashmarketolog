@@ -18,11 +18,15 @@ export function useAvatar() {
     // Load avatar on mount
     useEffect(() => {
         if (storageKey) {
-            const saved = localStorage.getItem(storageKey)
-            if (saved) {
-                setAvatar(saved)
-            } else if ((user as any)?.avatar_url) {
-                setAvatar((user as any).avatar_url)
+            if (user?.avatar) {
+                setAvatar(user.avatar)
+            } else {
+                const saved = localStorage.getItem(storageKey)
+                if (saved) {
+                    setAvatar(saved)
+                } else if ((user as any)?.avatar_url) {
+                    setAvatar((user as any).avatar_url)
+                }
             }
         }
         setIsLoading(false)

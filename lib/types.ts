@@ -1,11 +1,12 @@
 // View types for different dashboards
 export type AgentViewType =
   | "company"
-  | "my_contract"
+  | "contract"
   | "applications"
   | "clients"
   | "documents"
   | "calculator"
+  | "banks"
   | "check_counterparty"
   | "call_database"
   | "acts"

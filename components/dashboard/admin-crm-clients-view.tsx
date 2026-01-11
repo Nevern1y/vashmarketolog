@@ -96,20 +96,20 @@ export function AdminCRMClientsView() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold">Управление клиентами агентов</h1>
-                    <p className="text-muted-foreground">
-                        Проверка и закрепление CRM клиентов за агентами
+                    <h1 className="text-xl md:text-2xl font-bold">Клиенты агентов</h1>
+                    <p className="text-sm text-muted-foreground hidden sm:block">
+                        Проверка и закрепление CRM клиентов
                     </p>
                 </div>
                 <Button
                     variant="outline"
                     size="sm"
                     onClick={refetch}
-                    className="gap-2"
+                    className="gap-2 w-full sm:w-auto"
                 >
                     <RefreshCw className="h-4 w-4" />
                     Обновить
@@ -119,42 +119,42 @@ export function AdminCRMClientsView() {
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-yellow-500/20 rounded-lg">
-                                <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                    <CardContent className="p-3 md:pt-6 md:p-6">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="p-2 md:p-3 bg-yellow-500/20 rounded-lg">
+                                <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-yellow-500" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{pendingCount}</p>
-                                <p className="text-sm text-muted-foreground">На рассмотрении</p>
+                                <p className="text-xl md:text-2xl font-bold">{pendingCount}</p>
+                                <p className="text-xs md:text-sm text-muted-foreground">Ожидают</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-green-500/20 rounded-lg">
-                                <CheckCircle2 className="h-6 w-6 text-green-500" />
+                    <CardContent className="p-3 md:pt-6 md:p-6">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="p-2 md:p-3 bg-green-500/20 rounded-lg">
+                                <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 text-green-500" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{confirmedCount}</p>
-                                <p className="text-sm text-muted-foreground">Закреплено</p>
+                                <p className="text-xl md:text-2xl font-bold">{confirmedCount}</p>
+                                <p className="text-xs md:text-sm text-muted-foreground">Закреплено</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
                 <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-500/20 rounded-lg">
-                                <Building2 className="h-6 w-6 text-blue-500" />
+                    <CardContent className="p-3 md:pt-6 md:p-6">
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <div className="p-2 md:p-3 bg-blue-500/20 rounded-lg">
+                                <Building2 className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
                             </div>
                             <div>
-                                <p className="text-2xl font-bold">{clients.length}</p>
-                                <p className="text-sm text-muted-foreground">Всего клиентов</p>
+                                <p className="text-xl md:text-2xl font-bold">{clients.length}</p>
+                                <p className="text-xs md:text-sm text-muted-foreground">Всего</p>
                             </div>
                         </div>
                     </CardContent>
@@ -172,32 +172,34 @@ export function AdminCRMClientsView() {
                         className="pl-9"
                     />
                 </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant={statusFilter === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('all')}
-                    >
-                        Все
-                    </Button>
-                    <Button
-                        variant={statusFilter === 'pending' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('pending')}
-                        className="gap-2"
-                    >
-                        <AlertTriangle className="h-4 w-4" />
-                        На рассмотрении
-                    </Button>
-                    <Button
-                        variant={statusFilter === 'confirmed' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('confirmed')}
-                        className="gap-2"
-                    >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Закреплённые
-                    </Button>
+                <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                    <div className="flex gap-2 min-w-max pb-2">
+                        <Button
+                            variant={statusFilter === 'all' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setStatusFilter('all')}
+                        >
+                            Все
+                        </Button>
+                        <Button
+                            variant={statusFilter === 'pending' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setStatusFilter('pending')}
+                            className="gap-2"
+                        >
+                            <AlertTriangle className="h-4 w-4" />
+                            Ожидают
+                        </Button>
+                        <Button
+                            variant={statusFilter === 'confirmed' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setStatusFilter('confirmed')}
+                            className="gap-2"
+                        >
+                            <CheckCircle2 className="h-4 w-4" />
+                            Закреплённые
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -208,123 +210,209 @@ export function AdminCRMClientsView() {
                 </div>
             )}
 
-            {/* Table */}
             <Card>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Компания</TableHead>
-                                <TableHead>ИНН</TableHead>
-                                <TableHead>Агент</TableHead>
-                                <TableHead>Статус</TableHead>
-                                <TableHead>Дубликаты</TableHead>
-                                <TableHead className="text-right">Действия</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredClients.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                        Клиенты не найдены
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredClients.map((client) => (
-                                    <TableRow key={client.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-muted rounded-lg">
-                                                    <Building2 className="h-4 w-4" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {client.short_name || client.name || "Без названия"}
-                                                    </p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {client.contact_email}
-                                                    </p>
-                                                </div>
+                    {/* Mobile: Card View */}
+                    <div className="md:hidden p-3 space-y-3">
+                        {filteredClients.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                Клиенты не найдены
+                            </div>
+                        ) : (
+                            filteredClients.map((client) => (
+                                <div key={client.id} className="p-3 rounded-lg border bg-card">
+                                    {/* Company + Status */}
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-2 bg-muted rounded-lg shrink-0">
+                                                <Building2 className="h-4 w-4" />
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <code className="text-sm bg-muted px-2 py-1 rounded">
-                                                {client.inn || "—"}
-                                            </code>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4 text-muted-foreground" />
-                                                <div>
-                                                    <p className="text-sm">{client.agent_name}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {client.agent_email}
-                                                    </p>
-                                                </div>
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-sm truncate">
+                                                    {client.short_name || client.name || "Без названия"}
+                                                </p>
+                                                <code className="text-xs bg-muted px-1 rounded">{client.inn || "—"}</code>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {client.client_status === 'confirmed' ? (
-                                                <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                                                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                    Закреплён
-                                                </Badge>
-                                            ) : (
-                                                <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
-                                                    <AlertTriangle className="h-3 w-3 mr-1" />
-                                                    На рассмотрении
-                                                </Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {client.has_duplicates ? (
-                                                <Badge variant="destructive" className="gap-1">
-                                                    <AlertTriangle className="h-3 w-3" />
-                                                    Есть дубликат
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-muted-foreground text-sm">Нет</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                {client.client_status === 'pending' ? (
-                                                    <Button
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700 gap-1"
-                                                        onClick={() => handleConfirm(client)}
-                                                        disabled={processingId === client.id}
-                                                    >
-                                                        {processingId === client.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <CheckCircle2 className="h-4 w-4" />
-                                                        )}
-                                                        Закрепить
-                                                    </Button>
+                                        </div>
+                                        {client.client_status === 'confirmed' ? (
+                                            <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs shrink-0">
+                                                Закреплён
+                                            </Badge>
+                                        ) : (
+                                            <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs shrink-0">
+                                                Ожидает
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    {/* Agent */}
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                                        <User className="h-3 w-3" />
+                                        <span className="truncate">{client.agent_name} ({client.agent_email})</span>
+                                    </div>
+                                    {/* Duplicate warning */}
+                                    {client.has_duplicates && (
+                                        <div className="mb-3">
+                                            <Badge variant="destructive" className="gap-1 text-xs">
+                                                <AlertTriangle className="h-3 w-3" />
+                                                Дубликат
+                                            </Badge>
+                                        </div>
+                                    )}
+                                    {/* Actions */}
+                                    <div className="flex gap-2">
+                                        {client.client_status === 'pending' ? (
+                                            <Button
+                                                size="sm"
+                                                className="flex-1 bg-green-600 hover:bg-green-700 gap-1"
+                                                onClick={() => handleConfirm(client)}
+                                                disabled={processingId === client.id}
+                                            >
+                                                {processingId === client.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
                                                 ) : (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10 gap-1"
-                                                        onClick={() => handleReject(client)}
-                                                        disabled={processingId === client.id}
-                                                    >
-                                                        {processingId === client.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <XCircle className="h-4 w-4" />
-                                                        )}
-                                                        Снять
-                                                    </Button>
+                                                    <CheckCircle2 className="h-4 w-4" />
                                                 )}
-                                            </div>
+                                                Закрепить
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="flex-1 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10 gap-1"
+                                                onClick={() => handleReject(client)}
+                                                disabled={processingId === client.id}
+                                            >
+                                                {processingId === client.id ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <XCircle className="h-4 w-4" />
+                                                )}
+                                                Снять
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* Desktop: Table View */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Компания</TableHead>
+                                    <TableHead>ИНН</TableHead>
+                                    <TableHead>Агент</TableHead>
+                                    <TableHead>Статус</TableHead>
+                                    <TableHead>Дубликаты</TableHead>
+                                    <TableHead className="text-right">Действия</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredClients.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                            Клиенты не найдены
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : (
+                                    filteredClients.map((client) => (
+                                        <TableRow key={client.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-muted rounded-lg">
+                                                        <Building2 className="h-4 w-4" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium">
+                                                            {client.short_name || client.name || "Без названия"}
+                                                        </p>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {client.contact_email}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <code className="text-sm bg-muted px-2 py-1 rounded">
+                                                    {client.inn || "—"}
+                                                </code>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-4 w-4 text-muted-foreground" />
+                                                    <div>
+                                                        <p className="text-sm">{client.agent_name}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {client.agent_email}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {client.client_status === 'confirmed' ? (
+                                                    <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                        Закреплён
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                                        На рассмотрении
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {client.has_duplicates ? (
+                                                    <Badge variant="destructive" className="gap-1">
+                                                        <AlertTriangle className="h-3 w-3" />
+                                                        Есть дубликат
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground text-sm">Нет</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {client.client_status === 'pending' ? (
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-green-600 hover:bg-green-700 gap-1"
+                                                            onClick={() => handleConfirm(client)}
+                                                            disabled={processingId === client.id}
+                                                        >
+                                                            {processingId === client.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <CheckCircle2 className="h-4 w-4" />
+                                                            )}
+                                                            Закрепить
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/10 gap-1"
+                                                            onClick={() => handleReject(client)}
+                                                            disabled={processingId === client.id}
+                                                        >
+                                                            {processingId === client.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <XCircle className="h-4 w-4" />
+                                                            )}
+                                                            Снять
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>

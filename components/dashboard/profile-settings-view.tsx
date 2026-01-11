@@ -40,6 +40,7 @@ import { useAuth } from "@/lib/auth-context"
 import { authApi } from "@/lib/api"
 import { useDocumentMutations, useDocuments } from "@/hooks/use-documents"
 import { useAvatar } from "@/hooks/use-avatar"
+import { formatPhoneNumber } from "@/lib/utils"
 
 // Tax system options per ТЗ
 const TAX_SYSTEMS = [
@@ -63,246 +64,13 @@ const VAT_RATES = [
 // Agent documents for upload - documents that agent must provide
 // Using numeric document_type_id for backend API
 const AGENT_DOCUMENTS = [
-    { id: "zayavlenie", document_type_id: 8, name: "Заявление о присоединении к регламенту", acceptFormat: ".sig", description: "Подписанное заявление в формате SIG" },
-    { id: "soglasie", document_type_id: 9, name: "Согласие на обработку персональных данных", acceptFormat: ".sig", description: "Подписанное согласие в формате SIG" },
-    { id: "list_zapisi", document_type_id: 10, name: "Лист записи/Скан свидетельства ОГРНИП", acceptFormat: ".pdf,.jpg,.jpeg,.png", description: "Скан документа в формате PDF или изображение" },
-    { id: "contract", document_type_id: 11, name: "Агентский договор", acceptFormat: ".sig", description: "Подписанный договор в формате SIG" },
+    { id: "zayavlenie", document_type_id: 8, name: "Заявление о присоединении к регламенту", acceptFormat: ".pdf,.sig", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/zayavlenie.pdf" },
+    { id: "soglasie", document_type_id: 9, name: "Согласие на обработку персональных данных", acceptFormat: ".pdf,.sig", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/soglasie.pdf" },
+    { id: "list_zapisi", document_type_id: 10, name: "Лист записи/Скан свидетельства ОГРНИП", acceptFormat: ".pdf,.jpg,.jpeg,.png", description: "Загрузите скан документа", templateUrl: null },
+    { id: "contract", document_type_id: 11, name: "Агентский договор", acceptFormat: ".pdf,.sig", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/agent-contract.pdf" },
 ]
 
-// Contract conditions - commission rates for banking partners
-const CONTRACT_CONDITIONS = {
-    bankGuarantee: {
-        title: "Получение Банковской гарантии",
-        partners: [
-            {
-                partner: "АК Барс", conditions: [
-                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта до 50 000 000,00 ₽, +40% от превышения тарифа", startDate: null, endDate: null },
-                    { rate: "10% от комиссии, уплаченной на банк при сумме продукта от 50 000 000,01 ₽, +40% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Абсолют", conditions: [
-                    { rate: "15% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "27.07.2025", endDate: null },
-                ]
-            },
-            {
-                partner: "Альфа-Банк", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Банк Казани", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Банк Левобережный", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "17.06.2024", endDate: null },
-                ]
-            },
-            {
-                partner: "Газпромбанк", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Держава", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк при сумме продукта до 40 000 000,00 ₽, +50% от превышения тарифа", startDate: "15.02.2022", endDate: null },
-                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 40 000 000,01 ₽, +50% от превышения тарифа", startDate: "15.02.2021", endDate: null },
-                ]
-            },
-            {
-                partner: "Зенит", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Ингосстрах Банк (ранее Союз)", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "КБ Соколовский", conditions: [
-                    { rate: "30% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "15.10.2025", endDate: null },
-                ]
-            },
-            {
-                partner: "Камкомбанк", conditions: [
-                    { rate: "30% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "15.10.2025", endDate: null },
-                ]
-            },
-            {
-                partner: "Локо", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.09.2020", endDate: null },
-                ]
-            },
-            {
-                partner: "МКБ", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "МСП", conditions: [
-                    { rate: "15% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "МСП (Экспресс)", conditions: [
-                    { rate: "15% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "МТС", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "МетКомБанк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта до 50 000 000,00 ₽", startDate: null, endDate: null },
-                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 50 000 000,01 ₽", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "МеталлинвестБанк", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк при сумме продукта до 10 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
-                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта от 10 000 000,01 ₽ до 30 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
-                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 30 000 000,01 ₽ до 50 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
-                    { rate: "10% от комиссии, уплаченной на банк при сумме продукта от 50 000 000,01 ₽ до 100 000 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Примсоцбанк", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк", startDate: "02.08.2022", endDate: null },
-                ]
-            },
-            {
-                partner: "Промсвязьбанк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "06.12.2021", endDate: null },
-                    { rate: "25% от комиссии, уплаченной на банк при количестве закрытых сделок от 6 шт., +50% от превышения тарифа", startDate: "25.02.2021", endDate: null, note: "до 25.02.2021 - 30% по всем сделкам" },
-                ]
-            },
-            {
-                partner: "Реалист Банк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "РусНарБанк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта до 14 600 000,00 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
-                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 14 600 000,01 ₽, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "СГБ", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.03.2024", endDate: null },
-                ]
-            },
-            {
-                partner: "СДМ Банк", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.07.2024", endDate: null },
-                ]
-            },
-            {
-                partner: "Санкт-Петербург", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.12.2022", endDate: null },
-                ]
-            },
-            {
-                partner: "Сбербанк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк", startDate: "01.11.2022", endDate: null, note: "20% от комиссии (44/223/615 ФЗ, открытые закупки). Остальные закупки, в т.ч. КБГ - 15%, превышение запрещено" },
-                ]
-            },
-            {
-                partner: "Совкомбанк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "01.12.2022", endDate: null, note: "Перевыпуск, изменение и продление БГ 15%" },
-                    { rate: "10% от комиссии, уплаченной на банк при сумме продукта от 10 000 000,01 ₽, +50% от превышения тарифа", startDate: "08.04.2020", endDate: null, note: "Перевыпуск, изменение и продление БГ 15%" },
-                ]
-            },
-            {
-                partner: "Солид", conditions: [
-                    { rate: "15% от комиссии, уплаченной на банк, +35% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "ТКБ", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк", startDate: "01.02.2022", endDate: null },
-                ]
-            },
-            {
-                partner: "Трансстройбанк", conditions: [
-                    { rate: "30% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "15.10.2025", endDate: null },
-                ]
-            },
-            {
-                partner: "Урал ФД", conditions: [
-                    { rate: "25% от комиссии, уплаченной на банк, +50% от превышения тарифа", startDate: "10.04.2024", endDate: null },
-                ]
-            },
-            {
-                partner: "Уралсиб", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк при сумме продукта до 30 000 000,00 ₽", startDate: "01.12.2020", endDate: null },
-                    { rate: "15% от комиссии, уплаченной на банк при сумме продукта от 30 000 000,00 ₽", startDate: "01.12.2020", endDate: null },
-                ]
-            },
-        ]
-    },
-    tenderLoan: {
-        title: "Получение Тендерного займа или Тендерного кредита",
-        partners: [
-            {
-                partner: "Прочие партнёры", conditions: [
-                    { rate: "10% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Финтендер", conditions: [
-                    { rate: "10% от комиссии, уплаченной на банк", startDate: null, endDate: null, note: "Комиссия за гарантийное обеспечение уплаты процентов - вознаграждение агента не предусмотрено" },
-                ]
-            },
-        ]
-    },
-    stateContractCredit: {
-        title: "Получение кредита на исполнение госконтракта",
-        partners: [
-            {
-                partner: "Альфа-Банк", conditions: [
-                    { rate: "0.70% от суммы выданного кредита, +50% от превышения тарифа", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Держава", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "МеталлИнвестБанк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Промсвязьбанк", conditions: [
-                    { rate: "0.70% от суммы выданного кредита", startDate: null, endDate: null },
-                ]
-            },
-            {
-                partner: "Реалист Банк", conditions: [
-                    { rate: "20% от комиссии, уплаченной на банк", startDate: "07.06.2023", endDate: null },
-                ]
-            },
-        ]
-    },
-    settlementAccount: {
-        title: "Открытие расчетного счета",
-        partners: [
-            {
-                partner: "Прочие партнёры", conditions: [
-                    { rate: "1 500,00 ₽ (фиксированное)", startDate: null, endDate: null },
-                ]
-            },
-        ]
-    }
-}
+
 
 export function ProfileSettingsView() {
     const { user, refreshUser } = useAuth()
@@ -333,13 +101,7 @@ export function ProfileSettingsView() {
     const [confirmPassword, setConfirmPassword] = useState("")
     const [isSavingPassword, setIsSavingPassword] = useState(false)
 
-    // Contract sections expanded state
-    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-        bankGuarantee: true,
-        tenderLoan: false,
-        stateContractCredit: false,
-        settlementAccount: false
-    })
+
 
     // Agent documents - fetch from backend and track uploads
     const { documents: agentDocuments, refetch: refetchAgentDocs } = useDocuments({
@@ -364,27 +126,36 @@ export function ProfileSettingsView() {
             return
         }
 
-        // Validate file size (max 2MB for localStorage)
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error("Размер файла не должен превышать 2MB")
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("Размер файла не должен превышать 5MB")
             return
         }
 
         setIsUploadingAvatar(true)
 
-        // Create preview and save via hook
-        const reader = new FileReader()
-        reader.onload = () => {
-            const base64 = reader.result as string
-            updateAvatar(base64)
+        try {
+            // Optimistic review
+            const reader = new FileReader()
+            reader.onload = () => {
+                const base64 = reader.result as string
+                updateAvatar(base64)
+            }
+            reader.readAsDataURL(file)
+
+            // Upload to backend
+            await authApi.updateAvatar(file)
             toast.success("Фото профиля обновлено")
+
+            if (refreshUser) {
+                await refreshUser()
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Ошибка при загрузке фото")
+            console.error(error)
+        } finally {
             setIsUploadingAvatar(false)
         }
-        reader.onerror = () => {
-            toast.error("Ошибка при загрузке фото")
-            setIsUploadingAvatar(false)
-        }
-        reader.readAsDataURL(file)
     }
 
     // Check if a document type is already uploaded
@@ -397,9 +168,7 @@ export function ProfileSettingsView() {
         return agentDocuments.find(d => d.document_type_id === documentTypeId)
     }
 
-    const toggleSection = (section: string) => {
-        setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
-    }
+
 
     // Handle agent document upload - now uses real API
     const handleAgentDocUpload = async (docId: string, documentTypeId: number, file: File, docName: string) => {
@@ -468,8 +237,14 @@ export function ProfileSettingsView() {
     const handleSaveProfile = async () => {
         setIsSavingProfile(true)
         try {
+            // Split full name into first and last name for backend
+            const nameParts = profileFullName.trim().split(' ')
+            const firstName = nameParts[0] || ""
+            const lastName = nameParts.slice(1).join(' ') || ""
+
             await authApi.updateProfile({
-                full_name: profileFullName,
+                first_name: firstName,
+                last_name: lastName,
                 email: profileEmail,
                 phone: profilePhone
             })
@@ -494,94 +269,91 @@ export function ProfileSettingsView() {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-3 md:p-6 space-y-4 md:space-y-6">
             <div>
-                <h1 className="text-2xl font-bold">Настройки</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-xl md:text-2xl font-bold">Настройки</h1>
+                <p className="text-sm text-muted-foreground hidden sm:block">
                     Управление профилем и реквизитами партнера
                 </p>
             </div>
 
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className={`grid w-full bg-muted/50 ${isClient
-                    ? 'grid-cols-4'
-                    : isAgent
-                        ? 'grid-cols-4 md:grid-cols-7'
-                        : 'grid-cols-4 md:grid-cols-5'
-                    }`}>
-                    <TabsTrigger value="profile" className="flex items-center gap-1 px-2">
-                        <User className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Профиль</span>
-                    </TabsTrigger>
-                    {!isClient && (
-                        <TabsTrigger value="documents" className="flex items-center gap-1 px-2">
-                            <FileText className="h-4 w-4" />
-                            <span className="hidden lg:inline text-xs">Документы</span>
+                {/* Horizontal scroll for tabs on mobile */}
+                <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
+                    <TabsList className={`inline-flex min-w-max w-full bg-muted/50 ${isClient
+                        ? 'md:grid md:grid-cols-4'
+                        : isAgent
+                            ? 'md:grid md:grid-cols-7'
+                            : 'md:grid md:grid-cols-5'
+                        }`}>
+                        <TabsTrigger value="profile" className="flex items-center gap-1 px-3 text-xs md:text-sm">
+                            <User className="h-4 w-4" />
+                            <span className="md:inline">Профиль</span>
                         </TabsTrigger>
-                    )}
-                    <TabsTrigger value="notifications" className="flex items-center gap-1 px-2">
-                        <Bell className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Уведомления</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="security" className="flex items-center gap-1 px-2">
-                        <Shield className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Безопасность</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="contacts" className="flex items-center gap-1 px-2">
-                        <Phone className="h-4 w-4" />
-                        <span className="hidden lg:inline text-xs">Контакты</span>
-                    </TabsTrigger>
-                    {isAgent && (
-                        <TabsTrigger value="referrals" className="flex items-center gap-1 px-2">
-                            <Share2 className="h-4 w-4" />
-                            <span className="hidden lg:inline text-xs">Рефералы</span>
+                        {!isClient && (
+                            <TabsTrigger value="documents" className="flex items-center gap-1 px-3 text-xs md:text-sm">
+                                <FileText className="h-4 w-4" />
+                                <span className="md:inline">Документы</span>
+                            </TabsTrigger>
+                        )}
+                        <TabsTrigger value="notifications" className="flex items-center gap-1 px-3 text-xs md:text-sm">
+                            <Bell className="h-4 w-4" />
+                            <span className="hidden lg:inline">Уведомления</span>
                         </TabsTrigger>
-                    )}
-                    {isAgent && (
-                        <TabsTrigger value="contract" className="flex items-center gap-1 px-2">
-                            <FileCheck className="h-4 w-4" />
-                            <span className="hidden lg:inline text-xs">Мой договор</span>
+                        <TabsTrigger value="security" className="flex items-center gap-1 px-3 text-xs md:text-sm">
+                            <Shield className="h-4 w-4" />
+                            <span className="hidden lg:inline">Безопасность</span>
                         </TabsTrigger>
-                    )}
-                </TabsList>
+                        <TabsTrigger value="contacts" className="flex items-center gap-1 px-3 text-xs md:text-sm">
+                            <Phone className="h-4 w-4" />
+                            <span className="hidden lg:inline">Контакты</span>
+                        </TabsTrigger>
+                        {isAgent && (
+                            <TabsTrigger value="referrals" className="flex items-center gap-1 px-3 text-xs md:text-sm">
+                                <Share2 className="h-4 w-4" />
+                                <span className="hidden lg:inline">Рефералы</span>
+                            </TabsTrigger>
+                        )}
+                    </TabsList>
+                </div>
 
                 {/* TAB 1: PROFILE */}
-                <TabsContent value="profile" className="mt-6">
+                <TabsContent value="profile" className="mt-4 md:mt-6">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4">
                             <div>
-                                <CardTitle>Профиль пользователя</CardTitle>
-                                <CardDescription>Основная информация о вашем аккаунте</CardDescription>
+                                <CardTitle className="text-base md:text-lg">Профиль пользователя</CardTitle>
+                                <CardDescription className="text-xs md:text-sm">Основная информация о вашем аккаунте</CardDescription>
                             </div>
                             {!isEditingProfile && (
                                 <Button
                                     variant="outline"
                                     onClick={() => setIsEditingProfile(true)}
-                                    className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                    className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10 w-full sm:w-auto"
                                 >
                                     Редактировать
                                 </Button>
                             )}
                         </CardHeader>
-                        <CardContent className="space-y-6">
+                        <CardContent className="space-y-4 md:space-y-6">
                             {/* Avatar Section */}
-                            <div className="flex items-center gap-6">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
                                 <div className="relative">
-                                    <Avatar className="h-24 w-24">
+                                    <Avatar className="h-20 w-20 md:h-24 md:w-24">
                                         <AvatarImage src={avatarPreview || undefined} alt="Фото профиля" />
-                                        <AvatarFallback className="bg-[#3CE8D1]/10 text-[#3CE8D1] text-2xl">
+                                        <AvatarFallback className="bg-[#3CE8D1]/10 text-[#3CE8D1] text-xl md:text-2xl">
                                             {(profileFullName || user?.first_name || "U").charAt(0).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                     <button
-                                        className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] transition-colors"
+                                        className="absolute -bottom-1 -right-1 flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] transition-colors"
                                         onClick={() => avatarInputRef.current?.click()}
                                         disabled={isUploadingAvatar}
                                     >
                                         {isUploadingAvatar ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                                         ) : (
-                                            <Camera className="h-4 w-4" />
+                                            <Camera className="h-3 w-3 md:h-4 md:w-4" />
                                         )}
                                     </button>
                                     <input
@@ -592,9 +364,9 @@ export function ProfileSettingsView() {
                                         onChange={handleAvatarUpload}
                                     />
                                 </div>
-                                <div>
-                                    <p className="font-medium">Фото профиля</p>
-                                    <p className="text-sm text-muted-foreground">JPG, PNG или GIF. Макс. 5MB</p>
+                                <div className="text-center sm:text-left">
+                                    <p className="font-medium text-sm md:text-base">Фото профиля</p>
+                                    <p className="text-xs md:text-sm text-muted-foreground">JPG, PNG или GIF. Макс. 5MB</p>
                                 </div>
                             </div>
 
@@ -623,7 +395,7 @@ export function ProfileSettingsView() {
                                     <Label>Телефон</Label>
                                     <Input
                                         value={isEditingProfile ? profilePhone : (user?.phone || "+7 (XXX) XXX-XX-XX")}
-                                        onChange={(e) => setProfilePhone(e.target.value)}
+                                        onChange={(e) => setProfilePhone(formatPhoneNumber(e.target.value))}
                                         disabled={!isEditingProfile}
                                         className={!isEditingProfile ? "bg-muted" : ""}
                                         placeholder="+7 (XXX) XXX-XX-XX"
@@ -794,6 +566,19 @@ export function ProfileSettingsView() {
                                                     </span>
                                                 ) : (
                                                     <>
+                                                        {doc.templateUrl && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="gap-2 border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                                                asChild
+                                                            >
+                                                                <a href={doc.templateUrl} download>
+                                                                    <Download className="h-4 w-4" />
+                                                                    Скачать
+                                                                </a>
+                                                            </Button>
+                                                        )}
                                                         <input
                                                             type="file"
                                                             ref={(el) => { agentDocInputRefs.current[doc.id] = el }}
@@ -1078,237 +863,7 @@ export function ProfileSettingsView() {
                     </Card>
                 </TabsContent>
 
-                {/* TAB: CONTRACT (Мой договор) */}
-                <TabsContent value="contract" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <FileCheck className="h-5 w-5" />
-                                Мой договор
-                            </CardTitle>
-                            <CardDescription>
-                                Текущие условия вознаграждения агента по партнёрам сервиса
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Bank Guarantee Section */}
-                            <div className="rounded-lg border">
-                                <button
-                                    onClick={() => toggleSection('bankGuarantee')}
-                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3CE8D1]/20 text-[#3CE8D1]">
-                                            <FileCheck className="h-4 w-4" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-medium">{CONTRACT_CONDITIONS.bankGuarantee.title}</p>
-                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.bankGuarantee.partners.length} партнёров</p>
-                                        </div>
-                                    </div>
-                                    {expandedSections.bankGuarantee ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                                </button>
-                                {expandedSections.bankGuarantee && (
-                                    <div className="border-t max-h-[400px] overflow-y-auto">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted/50 sticky top-0">
-                                                <tr>
-                                                    <th className="text-left p-3 font-medium">Партнёр</th>
-                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
-                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {CONTRACT_CONDITIONS.bankGuarantee.partners.map((item, idx) => (
-                                                    item.conditions.map((cond, condIdx) => (
-                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
-                                                            {condIdx === 0 && (
-                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
-                                                                    {item.partner}
-                                                                </td>
-                                                            )}
-                                                            <td className="p-3">
-                                                                <span className="text-[#3CE8D1]">{cond.rate}</span>
-                                                                {(cond as any).note && (
-                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
-                                                                {cond.startDate || '—'}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
 
-                            {/* Tender Loan Section */}
-                            <div className="rounded-lg border">
-                                <button
-                                    onClick={() => toggleSection('tenderLoan')}
-                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#4F7DF3]/20 text-[#4F7DF3]">
-                                            <CreditCard className="h-4 w-4" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-medium">{CONTRACT_CONDITIONS.tenderLoan.title}</p>
-                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.tenderLoan.partners.length} партнёров</p>
-                                        </div>
-                                    </div>
-                                    {expandedSections.tenderLoan ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                                </button>
-                                {expandedSections.tenderLoan && (
-                                    <div className="border-t">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted/50">
-                                                <tr>
-                                                    <th className="text-left p-3 font-medium">Партнёр</th>
-                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
-                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {CONTRACT_CONDITIONS.tenderLoan.partners.map((item, idx) => (
-                                                    item.conditions.map((cond, condIdx) => (
-                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
-                                                            {condIdx === 0 && (
-                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
-                                                                    {item.partner}
-                                                                </td>
-                                                            )}
-                                                            <td className="p-3">
-                                                                <span className="text-[#4F7DF3]">{cond.rate}</span>
-                                                                {(cond as any).note && (
-                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
-                                                                {cond.startDate || '—'}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* State Contract Credit Section */}
-                            <div className="rounded-lg border">
-                                <button
-                                    onClick={() => toggleSection('stateContractCredit')}
-                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFA726]/20 text-[#FFA726]">
-                                            <Building2 className="h-4 w-4" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-medium">{CONTRACT_CONDITIONS.stateContractCredit.title}</p>
-                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.stateContractCredit.partners.length} партнёров</p>
-                                        </div>
-                                    </div>
-                                    {expandedSections.stateContractCredit ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                                </button>
-                                {expandedSections.stateContractCredit && (
-                                    <div className="border-t">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted/50">
-                                                <tr>
-                                                    <th className="text-left p-3 font-medium">Партнёр</th>
-                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
-                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {CONTRACT_CONDITIONS.stateContractCredit.partners.map((item, idx) => (
-                                                    item.conditions.map((cond, condIdx) => (
-                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
-                                                            {condIdx === 0 && (
-                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
-                                                                    {item.partner}
-                                                                </td>
-                                                            )}
-                                                            <td className="p-3">
-                                                                <span className="text-[#FFA726]">{cond.rate}</span>
-                                                                {(cond as any).note && (
-                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
-                                                                {cond.startDate || '—'}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Settlement Account Section */}
-                            <div className="rounded-lg border">
-                                <button
-                                    onClick={() => toggleSection('settlementAccount')}
-                                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#9C27B0]/20 text-[#9C27B0]">
-                                            <CreditCard className="h-4 w-4" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-medium">{CONTRACT_CONDITIONS.settlementAccount.title}</p>
-                                            <p className="text-xs text-muted-foreground">{CONTRACT_CONDITIONS.settlementAccount.partners.length} партнёров</p>
-                                        </div>
-                                    </div>
-                                    {expandedSections.settlementAccount ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-                                </button>
-                                {expandedSections.settlementAccount && (
-                                    <div className="border-t">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted/50">
-                                                <tr>
-                                                    <th className="text-left p-3 font-medium">Партнёр</th>
-                                                    <th className="text-left p-3 font-medium">Вознаграждение</th>
-                                                    <th className="text-left p-3 font-medium hidden md:table-cell">Дата начала</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {CONTRACT_CONDITIONS.settlementAccount.partners.map((item, idx) => (
-                                                    item.conditions.map((cond, condIdx) => (
-                                                        <tr key={`${idx}-${condIdx}`} className="border-t hover:bg-muted/30">
-                                                            {condIdx === 0 && (
-                                                                <td className="p-3 font-medium align-top" rowSpan={item.conditions.length}>
-                                                                    {item.partner}
-                                                                </td>
-                                                            )}
-                                                            <td className="p-3">
-                                                                <span className="text-[#9C27B0]">{cond.rate}</span>
-                                                                {(cond as any).note && (
-                                                                    <p className="text-xs text-muted-foreground mt-1">({(cond as any).note})</p>
-                                                                )}
-                                                            </td>
-                                                            <td className="p-3 text-muted-foreground hidden md:table-cell">
-                                                                {cond.startDate || '—'}
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
             </Tabs>
         </div>
     )

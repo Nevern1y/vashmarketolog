@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { useAuth } from "@/lib/auth-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Form,
@@ -36,8 +37,19 @@ import {
   ScrollText,
   Contact,
 } from "lucide-react"
-import { useMyCompany, type FounderData, type BankAccountData } from "@/hooks/use-companies"
+import {
+  useMyCompany,
+  Company,
+  FounderData,
+  BankAccountData,
+  EtpAccountData,
+  ContactPersonData,
+  ActivityData,
+  LegalFounderData,
+  LeaderData
+} from "@/hooks/use-companies"
 import { toast } from "sonner"
+import { Switch } from "@/components/ui/switch"
 
 // =============================================================================
 // ZOD SCHEMA - Extended for 8 Sections per ТЗ
@@ -55,13 +67,36 @@ const activitySchema = z.object({
   license_valid_until: z.string().optional(),
 })
 
-// ----------- Section 4: Management (Director) -----------
+const LATIN_REGEX = /^[\u0000-\u007F]*$/
+const LATIN_ERROR = "Только латинские символы"
+
+// ----------- Section 4: Management (Director & Additional) -----------
 const founderDocumentSchema = z.object({
   series: z.string().max(5, "Максимум 5 символов"),
   number: z.string().max(6, "Максимум 6 символов"),
   issued_at: z.string().optional(),
   authority_name: z.string().optional(),
   authority_code: z.string().max(7, "Формат: XXX-XXX").optional(),
+})
+
+const leaderSchema = z.object({
+  position: z.string().min(1, "Обязательное поле"),
+  full_name: z.string().min(1, "Обязательное поле"),
+  share_percent: z.coerce.number().min(0).max(100).optional(),
+  citizenship: z.string().default("РФ"),
+  birth_date: z.string().optional(),
+  birth_place: z.string().optional(),
+  email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
+  phone: z.string().optional(),
+  registration_address: z.string().optional(),
+  passport: z.object({
+    series: z.string().optional(),
+    number: z.string().optional(),
+    issued_date: z.string().optional(),
+    issued_by: z.string().optional(),
+    department_code: z.string().optional(),
+    registration_address: z.string().optional(),
+  }).optional(),
 })
 
 // ----------- Section 5: Individual Founders -----------
@@ -75,6 +110,8 @@ const founderSchema = z.object({
   gender: z.coerce.number().min(1).max(2).optional(),
   citizen: z.string().default("РФ"),
   registration_address: z.string().optional(),
+  is_resident: z.boolean().default(true),
+  actual_address: z.string().optional(), // Added for consistency
 })
 
 // ----------- Section 5: Legal Entity Founders -----------
@@ -87,8 +124,8 @@ const legalFounderSchema = z.object({
   first_registration_date: z.string().optional(),
   is_resident: z.boolean().default(true),
   bank_name: z.string().optional(),
-  website: z.string().optional(),
-  email: z.string().optional(),
+  website: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
+  email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
   phone: z.string().optional(),
   director_position: z.string().optional(),
   director_name: z.string().optional(),
@@ -117,7 +154,8 @@ const contactPersonSchema = z.object({
   last_name: z.string().optional(),
   first_name: z.string().optional(),
   middle_name: z.string().optional(),
-  email: z.string().optional(),
+
+  email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
   phone: z.string().optional(),
 })
 
@@ -139,8 +177,8 @@ const companyFormSchema = z.object({
   legal_address: z.string().optional().or(z.literal("")),
   actual_address: z.string().optional().or(z.literal("")),
   is_actual_same_as_legal: z.boolean().default(false),
-  website: z.string().optional().or(z.literal("")),
-  contact_email: z.string().optional().or(z.literal("")),
+  website: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional().or(z.literal("")),
+  contact_email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional().or(z.literal("")),
   contact_phone: z.string().optional().or(z.literal("")),
 
   // Section 2: State Registration
@@ -162,13 +200,14 @@ const companyFormSchema = z.object({
   activities: z.array(activitySchema).default([]),
 
   // Section 4: Management
+  leadership: z.array(leaderSchema).default([]),
   director_name: z.string().optional().or(z.literal("")),
   director_position: z.string().optional().or(z.literal("")),
   director_share: z.coerce.number().optional(),
   director_citizen: z.string().default("РФ"),
   director_birth_date: z.string().optional().or(z.literal("")),
   director_birth_place: z.string().optional().or(z.literal("")),
-  director_email: z.string().optional().or(z.literal("")),
+  director_email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional().or(z.literal("")),
   director_phone: z.string().optional().or(z.literal("")),
   passport_series: z.string().max(4, "Максимум 4 цифры").optional().or(z.literal("")),
   passport_number: z.string().max(6, "Максимум 6 цифр").optional().or(z.literal("")),
@@ -204,6 +243,20 @@ type CompanyFormData = z.infer<typeof companyFormSchema>
 
 const safeString = (value: string | null | undefined): string => value ?? ""
 
+// Create empty leader
+const createEmptyLeader = (): z.infer<typeof leaderSchema> => ({
+  position: "",
+  full_name: "",
+  share_percent: 0,
+  citizenship: "РФ",
+  birth_date: "",
+  birth_place: "",
+  email: "",
+  phone: "",
+  registration_address: "",
+  passport: { series: "", number: "", issued_date: "", issued_by: "", department_code: "", registration_address: "" },
+})
+
 // Create empty founder (physical person)
 const createEmptyFounder = (): z.infer<typeof founderSchema> => ({
   full_name: "",
@@ -215,6 +268,8 @@ const createEmptyFounder = (): z.infer<typeof founderSchema> => ({
   gender: 1,
   citizen: "РФ",
   registration_address: "",
+  is_resident: true,
+  actual_address: "",
 })
 
 // Create empty legal entity founder
@@ -300,6 +355,7 @@ const ETP_PLATFORMS = [
 // =============================================================================
 
 export function MyCompanyView() {
+  const { user } = useAuth()
   const { company, isLoading, isSaving, error, updateCompany, createCompany } = useMyCompany()
 
   // Helper to clean decimal values - convert empty strings to undefined and validate format
@@ -313,6 +369,83 @@ export function MyCompanyView() {
     // If number is too large (more than 13 digits before decimal), return undefined
     if (num >= 10000000000000) return undefined
     return cleaned
+  }
+
+  // Format phone number as +7 (XXX) XXX-XX-XX
+  // Format phone number as +7 (XXX) XXX XX XX
+  const formatPhoneNumber = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, "")
+
+    // Allow empty
+    if (!digits) return ""
+
+    // Handle initial 7 or 8
+    let processed = digits;
+    if (digits.length === 1 && digits === '8') {
+      processed = '7';
+    } else if (digits.startsWith('8')) {
+      processed = '7' + digits.slice(1);
+    } else if (digits.length > 0 && !digits.startsWith('7')) {
+      processed = '7' + digits; // enforce 7 prefix
+    }
+
+    // Limit to 11 digits
+    const limited = processed.slice(0, 11);
+
+    // Format
+    // +7 (XXX) XXX XX XX
+    if (limited.length === 0) return "";
+    if (limited.length <= 1) return `+${limited}`;
+    if (limited.length <= 4) return `+${limited.slice(0, 1)} (${limited.slice(1)}`;
+    if (limited.length <= 7) return `+${limited.slice(0, 1)} (${limited.slice(1, 4)}) ${limited.slice(4)}`;
+    if (limited.length <= 9) return `+${limited.slice(0, 1)} (${limited.slice(1, 4)}) ${limited.slice(4, 7)} ${limited.slice(7)}`;
+    return `+${limited.slice(0, 1)} (${limited.slice(1, 4)}) ${limited.slice(4, 7)} ${limited.slice(7, 9)} ${limited.slice(9, 11)}`;
+  }
+
+  // Format number with thousand separators (supports decimals: 1000000.5 -> "1 000 000,5")
+  const formatInputNumber = (value: number | string | undefined): string => {
+    if (!value && value !== 0) return ""
+
+    // Convert to string
+    let str = typeof value === 'number' ? value.toString() : value
+
+    // Remove all spaces for processing
+    str = str.replace(/\s/g, '')
+
+    // Split into integer and decimal parts
+    const parts = str.split(/[.,]/)
+    const integerPart = parts[0]
+    const decimalPart = parts[1]
+
+    // Format integer part with spaces
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+
+    // Reassemble
+    if (decimalPart !== undefined) {
+      return `${formattedInteger},${decimalPart}`
+    }
+
+    // If user just typed comma/dot
+    if (str.endsWith(',') || str.endsWith('.')) {
+      return `${formattedInteger},`
+    }
+
+    return formattedInteger
+  }
+
+  // Parse formatted string back to number ("1 000 000,50" -> 1000000.5)
+  const parseInputNumber = (value: string): number | undefined => {
+    if (!value) return undefined
+
+    // Allow only digits, spaces, comma and dot
+    const sanitized = value.replace(/[^\d\s,.]/g, '')
+
+    // Remove spaces and replace comma with dot
+    const cleaned = sanitized.replace(/\s/g, '').replace(',', '.')
+
+    const num = parseFloat(cleaned)
+    return isNaN(num) ? undefined : num
   }
 
   // Initialize form with react-hook-form + zod
@@ -332,6 +465,7 @@ export function MyCompanyView() {
       // Section 3: Activities
       activities: [],
       // Section 4: Management
+      leadership: [],
       director_name: "", director_position: "", director_share: 0, director_citizen: "РФ",
       director_birth_date: "", director_birth_place: "", director_email: "", director_phone: "",
       passport_series: "", passport_number: "", passport_date: "", passport_code: "",
@@ -350,6 +484,7 @@ export function MyCompanyView() {
   // useFieldArray for dynamic founders list
   const foundersArray = useFieldArray({ control: form.control, name: "founders" })
   const legalFoundersArray = useFieldArray({ control: form.control, name: "legal_founders" })
+  const leadersArray = useFieldArray({ control: form.control, name: "leadership" })
   const bankAccountsArray = useFieldArray({ control: form.control, name: "bank_accounts" })
   const activitiesArray = useFieldArray({ control: form.control, name: "activities" })
   const etpAccountsArray = useFieldArray({ control: form.control, name: "etp_accounts" })
@@ -386,7 +521,20 @@ export function MyCompanyView() {
           birth_date: f.birth_date || "",
           gender: f.gender || 1,
           citizen: f.citizen || "РФ",
+          registration_address: "", // Mapping missing in types, assume empty or check if backend sends it
+          is_resident: true, // Default
+          actual_address: "",
         }))
+
+      const mappedLegalFounders = (company.legal_founders_data || []).map((f: LegalFounderData) => ({
+        ...createEmptyLegalFounder(),
+        ...f
+      }));
+
+      const mappedLeadership = (company.leadership_data || []).map((l: LeaderData) => ({
+        ...createEmptyLeader(),
+        ...l
+      }));
 
       // Map bank_accounts_data from backend
       const mappedBankAccounts: z.infer<typeof bankAccountSchema>[] =
@@ -433,6 +581,7 @@ export function MyCompanyView() {
         // Section 3: Activities
         activities: (company as any).activities_data || [],
         // Section 4: Management
+        leadership: mappedLeadership,
         director_name: safeString(company.director_name),
         director_position: safeString(company.director_position),
         director_share: 0,
@@ -449,7 +598,7 @@ export function MyCompanyView() {
         director_registration_address: safeString(company.director_registration_address),
         // Section 5: Founders
         founders: mappedFounders,
-        legal_founders: [],
+        legal_founders: mappedLegalFounders,
         // Section 6: Bank Accounts
         bank_accounts: mappedBankAccounts,
         bank_name: safeString(company.bank_name),
@@ -461,9 +610,25 @@ export function MyCompanyView() {
         // Section 8: Contact Persons
         contact_persons: (company as any).contact_persons_data || [],
         contact_person: safeString(company.contact_person),
-      })
+      }, { keepDirty: true })
     }
   }, [company, form])
+
+  // Pre-fill from User if Company is null (New Registration)
+  useEffect(() => {
+    if (!isLoading && !company && user) {
+      const currentValues = form.getValues()
+      // Only autofill if fields are empty
+      if (!currentValues.contact_email && user.email) {
+        form.setValue("contact_email", user.email)
+      }
+      if (!currentValues.contact_phone && user.phone) {
+        // Apply phone formatting if needed, or just set raw
+        form.setValue("contact_phone", formatPhoneNumber(user.phone))
+      }
+    }
+  }, [isLoading, company, user, form])
+
 
   // Open Checko.ru verification
   const openCheckoVerification = () => {
@@ -496,6 +661,17 @@ export function MyCompanyView() {
       birth_date: f.birth_date || "",
       gender: (f.gender || 1) as 1 | 2,
       citizen: f.citizen || "РФ",
+      is_resident: f.is_resident,
+      legal_address: f.registration_address ? { value: f.registration_address, postal_code: "" } : undefined
+    }))
+
+    // Prepare leadership_data
+    const leadershipData: LeaderData[] = data.leadership.map(l => ({ ...l }))
+
+    // Prepare legal_founders_data
+    const legalFoundersData: LegalFounderData[] = data.legal_founders.map(l => ({
+      ...l,
+      website: l.website ? (l.website.match(/^https?:\/\//) ? l.website : `https://${l.website}`) : undefined
     }))
 
     // Prepare bank_accounts_data for backend
@@ -513,7 +689,7 @@ export function MyCompanyView() {
       legal_address: data.legal_address || undefined,
       actual_address: actualAddress || undefined,
       region: data.region || undefined,
-      website: data.website || undefined,
+      website: data.website ? (data.website.match(/^https?:\/\//) ? data.website : `https://${data.website}`) : undefined,
       contact_email: data.contact_email || undefined,
       contact_phone: data.contact_phone || undefined,
       // Section 2: State Registration
@@ -543,10 +719,12 @@ export function MyCompanyView() {
       passport_date: data.passport_date || undefined,
       passport_code: data.passport_code || undefined,
       passport_issued_by: data.passport_issued_by || undefined,
+      leadership_data: leadershipData.length > 0 ? leadershipData : undefined,
       // Section 3: Activities
       activities_data: data.activities.length > 0 ? data.activities : undefined,
       // Section 5: Founders
       founders_data: foundersData.length > 0 ? foundersData : undefined,
+      legal_founders_data: legalFoundersData.length > 0 ? legalFoundersData : undefined,
       // Section 6: Bank Accounts
       bank_accounts_data: bankAccountsData.length > 0 ? bankAccountsData : undefined,
       bank_name: data.bank_name || undefined,
@@ -771,6 +949,12 @@ export function MyCompanyView() {
                       )}
                     />
 
+                    {/* Official Contacts Header */}
+                    <div className="md:col-span-2 mt-4 mb-2">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Официальные контакты компании</h4>
+                      <div className="h-px bg-border mt-1" />
+                    </div>
+
                     {/* Contact Email */}
                     <FormField
                       control={form.control}
@@ -779,7 +963,12 @@ export function MyCompanyView() {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="info@company.ru" {...field} />
+                            <Input
+                              type="email"
+                              placeholder="info@company.ru"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z0-9@._-]/g, ""))}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -794,7 +983,11 @@ export function MyCompanyView() {
                         <FormItem>
                           <FormLabel>Телефон</FormLabel>
                           <FormControl>
-                            <Input placeholder="+7 (XXX) XXX-XX-XX" {...field} />
+                            <Input
+                              placeholder="+7 (XXX) XXX XX XX"
+                              value={field.value}
+                              onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -809,7 +1002,11 @@ export function MyCompanyView() {
                         <FormItem>
                           <FormLabel>Сайт</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://company.ru" {...field} />
+                            <Input
+                              placeholder="https://company.ru"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z0-9.:\/-]/g, ""))}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -889,13 +1086,13 @@ export function MyCompanyView() {
                     <FormField control={form.control} name="stated_capital" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Объявленный УК</FormLabel>
-                        <FormControl><Input placeholder="Сумма" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Сумма" {...field} value={formatInputNumber(field.value)} onChange={(e) => field.onChange(e.target.value.replace(/[^\d\s,.]/g, ''))} inputMode="decimal" /></FormControl>
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="paid_capital" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Оплаченный УК</FormLabel>
-                        <FormControl><Input placeholder="Сумма" {...field} /></FormControl>
+                        <FormControl><Input placeholder="Сумма" {...field} value={formatInputNumber(field.value)} onChange={(e) => field.onChange(e.target.value.replace(/[^\d\s,.]/g, ''))} inputMode="decimal" /></FormControl>
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="paid_capital_date" render={({ field }) => (
@@ -947,10 +1144,10 @@ export function MyCompanyView() {
                             <FormItem><FormLabel>Доп. ОКВЭД</FormLabel><FormControl><Input placeholder="через запятую" {...field} /></FormControl></FormItem>
                           )} />
                           <FormField control={form.control} name={`activities.${index}.revenue_share`} render={({ field }) => (
-                            <FormItem><FormLabel>Доля в выручке, %</FormLabel><FormControl><Input type="number" min="0" max="100" {...field} /></FormControl></FormItem>
+                            <FormItem><FormLabel>Доля в выручке, %</FormLabel><FormControl><Input type="text" inputMode="decimal" min="0" max="100" {...field} value={formatInputNumber(field.value)} onChange={(e) => field.onChange(parseInputNumber(e.target.value))} /></FormControl></FormItem>
                           )} />
                           <FormField control={form.control} name={`activities.${index}.activity_years`} render={({ field }) => (
-                            <FormItem><FormLabel>Срок деятельности, лет</FormLabel><FormControl><Input type="number" min="0" {...field} /></FormControl></FormItem>
+                            <FormItem><FormLabel>Срок деятельности, лет</FormLabel><FormControl><Input type="text" inputMode="numeric" min="0" {...field} value={formatInputNumber(field.value)} onChange={(e) => field.onChange(parseInputNumber(e.target.value))} /></FormControl></FormItem>
                           )} />
                         </div>
                         <div className="grid gap-4 md:grid-cols-4">
@@ -1007,6 +1204,80 @@ export function MyCompanyView() {
                           </FormControl>
                           <FormMessage />
                         </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="director_share"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Доля в капитале %</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              min="0"
+                              max="100"
+                              {...field}
+                              value={formatInputNumber(field.value)}
+                              onChange={(e) => field.onChange(parseInputNumber(e.target.value))}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="director_citizen"
+                      render={({ field }) => (
+                        <FormItem><FormLabel>Гражданство</FormLabel><FormControl><Input placeholder="РФ" {...field} /></FormControl></FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="director_birth_date"
+                      render={({ field }) => (
+                        <FormItem><FormLabel>Дата рождения</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="director_birth_place"
+                      render={({ field }) => (
+                        <FormItem><FormLabel>Место рождения</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="director_email"
+                      render={({ field }) => (
+                        <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="director_phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Телефон</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="+7 (XXX) XXX XX XX"
+                              value={field.value}
+                              onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="director_registration_address"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2"><FormLabel>Адрес регистрации</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
                       )}
                     />
                   </div>
@@ -1104,6 +1375,133 @@ export function MyCompanyView() {
                       />
                     </div>
                   </div>
+
+                  {/* Additional Managers */}
+                  <div className="border-t pt-6">
+                    <div className="flex flex-row items-center justify-between mb-4">
+                      <h4 className="font-medium text-foreground">
+                        Дополнительные руководители
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => leadersArray.append(createEmptyLeader())}
+                        className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1] hover:text-[#0a1628]"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Добавить руководителя
+                      </Button>
+                    </div>
+
+                    {leadersArray.fields.length > 0 && (
+                      <div className="space-y-4">
+                        {leadersArray.fields.map((field, index) => (
+                          <div key={field.id} className="rounded-lg border p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h5 className="font-medium">Руководитель #{index + 1}</h5>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => leadersArray.remove(index)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-4">
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.position`}
+                                render={({ field }) => (
+                                  <FormItem><FormLabel>Должность</FormLabel><FormControl><Input placeholder="Зам. директора" {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.full_name`}
+                                render={({ field }) => (
+                                  <FormItem><FormLabel>ФИО</FormLabel><FormControl><Input placeholder="Иванов И.И." {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.share_percent`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Доля в капитале %</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="text"
+                                        inputMode="decimal"
+                                        min="0"
+                                        max="100"
+                                        {...field}
+                                        value={formatInputNumber(field.value)}
+                                        onChange={(e) => field.onChange(parseInputNumber(e.target.value))}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.citizenship`}
+                                render={({ field }) => (
+                                  <FormItem><FormLabel>Гражданство</FormLabel><FormControl><Input placeholder="РФ" {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.birth_date`}
+                                render={({ field }) => (
+                                  <FormItem><FormLabel>Дата рождения</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.birth_place`}
+                                render={({ field }) => (
+                                  <FormItem><FormLabel>Место рождения</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.email`}
+                                render={({ field }) => (
+                                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.phone`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Телефон</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="+7 (XXX) XXX XX XX"
+                                        value={field.value}
+                                        onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`leadership.${index}.registration_address`}
+                                render={({ field }) => (
+                                  <FormItem className="col-span-2"><FormLabel>Адрес регистрации</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1192,11 +1590,14 @@ export function MyCompanyView() {
                                 <FormLabel>Доля (%)</FormLabel>
                                 <FormControl>
                                   <Input
-                                    type="number"
+                                    type="text"
+                                    inputMode="decimal"
                                     min="0"
                                     max="100"
                                     placeholder="0-100"
                                     {...field}
+                                    value={formatInputNumber(field.value)}
+                                    onChange={(e) => field.onChange(parseInputNumber(e.target.value))}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1271,6 +1672,37 @@ export function MyCompanyView() {
                                   <FormLabel>Гражданство</FormLabel>
                                   <FormControl>
                                     <Input placeholder="РФ" {...field} />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`founders.${index}.registration_address`}
+                              render={({ field }) => (
+                                <FormItem className="col-span-2">
+                                  <FormLabel>Адрес регистрации</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Адрес регистрации" {...field} />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`founders.${index}.is_resident`}
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                  <div className="space-y-0.5">
+                                    <FormLabel>Резидент РФ</FormLabel>
+                                  </div>
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
                                   </FormControl>
                                 </FormItem>
                               )}
@@ -1355,10 +1787,170 @@ export function MyCompanyView() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Legal Founders Section */}
+              <Card className="mt-6">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Учредители (Юридические лица)</CardTitle>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => legalFoundersArray.append(createEmptyLegalFounder())}
+                    className="border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1] hover:text-[#0a1628]"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Добавить юр. лицо
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {legalFoundersArray.fields.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Юридические лица не добавлены</p>
+                    </div>
+                  ) : (
+                    legalFoundersArray.fields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="rounded-lg border p-4 space-y-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-medium">Юр. лицо #{index + 1}</h5>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => legalFoundersArray.remove(index)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>Наименование</FormLabel><FormControl><Input placeholder="ООО Ромашка" {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.inn`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>ИНН</FormLabel><FormControl><Input placeholder="10 цифр" maxLength={10} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.ogrn`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>ОГРН</FormLabel><FormControl><Input placeholder="13 цифр" maxLength={13} {...field} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.share_relative`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Доля (%)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    min="0"
+                                    max="100"
+                                    {...field}
+                                    value={formatInputNumber(field.value)}
+                                    onChange={(e) => field.onChange(parseInputNumber(e.target.value))}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.registration_date`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>Дата регистрации</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.first_registration_date`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>Дата перв. регистрации</FormLabel><FormControl><Input type="date" {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.bank_name`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>Банк</FormLabel><FormControl><Input placeholder="Название банка" {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.is_resident`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm h-[62px]">
+                                <div className="space-y-0.5"><FormLabel>Резидент РФ</FormLabel></div>
+                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="border-t pt-4 grid gap-4 md:grid-cols-4">
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.director_position`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>Должность руководителя</FormLabel><FormControl><Input placeholder="Генеральный директор" {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.director_name`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>ФИО руководителя</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.email`}
+                            render={({ field }) => (
+                              <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`legal_founders.${index}.phone`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Телефон</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="+7 (XXX) XXX XX XX"
+                                    {...field}
+                                    value={field.value}
+                                    onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* TAB 5: BANK ACCOUNTS */}
-            <TabsContent value="banks">
+            < TabsContent value="banks" >
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Банковские реквизиты</CardTitle>
@@ -1613,7 +2205,17 @@ export function MyCompanyView() {
                             <FormItem><FormLabel>E-mail</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
                           )} />
                           <FormField control={form.control} name={`contact_persons.${index}.phone`} render={({ field }) => (
-                            <FormItem><FormLabel>Телефон</FormLabel><FormControl><Input placeholder="+7..." {...field} /></FormControl></FormItem>
+                            <FormItem>
+                              <FormLabel>Телефон</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="+7 (XXX) XXX XX XX"
+                                  {...field}
+                                  value={field.value}
+                                  onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                                />
+                              </FormControl>
+                            </FormItem>
                           )} />
                         </div>
                       </div>
@@ -1625,6 +2227,6 @@ export function MyCompanyView() {
           </Tabs>
         </form>
       </Form>
-    </div>
+    </div >
   )
 }

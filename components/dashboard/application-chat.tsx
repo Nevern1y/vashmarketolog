@@ -239,7 +239,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                 "rounded-xl px-4 py-2.5 shadow-sm",
                                                 isOwn
                                                     ? "bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]"
-                                                    : "bg-card border border-border text-foreground"
+                                                    : "bg-[#1e3a5f] border border-[#3CE8D1]/30 text-white"
                                             )}>
                                                 {/* Text Content */}
                                                 {message.content && (

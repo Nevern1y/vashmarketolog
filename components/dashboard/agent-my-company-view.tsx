@@ -37,6 +37,7 @@ import {
 } from "lucide-react"
 import { useMyCompany } from "@/hooks/use-companies"
 import { toast } from "sonner"
+import { formatPhoneNumber } from "@/lib/utils"
 
 // =============================================================================
 // ZOD SCHEMAS - Agent version (simplified)
@@ -130,6 +131,8 @@ export function AgentMyCompanyView() {
     const { company, isLoading, isSaving, updateCompany, createCompany } = useMyCompany()
     const [activeTab, setActiveTab] = useState("general")
 
+    // Format phone number as +7 (XXX) XXX XX XX
+
     const form = useForm<AgentCompanyFormData>({
         resolver: zodResolver(agentCompanyFormSchema),
         defaultValues: {
@@ -220,7 +223,7 @@ export function AgentMyCompanyView() {
                 tax_system: data.tax_system,
                 legal_address: data.legal_address,
                 actual_address: data.actual_address,
-                website: data.website,
+                website: data.website ? (data.website.match(/^https?:\/\//) ? data.website : `https://${data.website}`) : "",
                 contact_email: data.email,
                 contact_phone: data.phone,
                 // Dynamic arrays
@@ -492,7 +495,11 @@ export function AgentMyCompanyView() {
                                                 <FormItem>
                                                     <FormLabel>Телефон офиса</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="+7 (XXX) XXX-XX-XX" {...field} />
+                                                        <Input
+                                                            placeholder="+7 (XXX) XXX XX XX"
+                                                            value={field.value}
+                                                            onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -656,7 +663,11 @@ export function AgentMyCompanyView() {
                                                             <FormItem>
                                                                 <FormLabel>Телефон</FormLabel>
                                                                 <FormControl>
-                                                                    <Input placeholder="+7 (XXX) XXX-XX-XX" {...field} />
+                                                                    <Input
+                                                                        placeholder="+7 (XXX) XXX XX XX"
+                                                                        value={field.value}
+                                                                        onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                                                                    />
                                                                 </FormControl>
                                                             </FormItem>
                                                         )}
@@ -961,7 +972,11 @@ export function AgentMyCompanyView() {
                                                             <FormItem>
                                                                 <FormLabel>Телефон</FormLabel>
                                                                 <FormControl>
-                                                                    <Input placeholder="+7 (XXX) XXX-XX-XX" {...field} />
+                                                                    <Input
+                                                                        placeholder="+7 (XXX) XXX XX XX"
+                                                                        value={field.value}
+                                                                        onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
+                                                                    />
                                                                 </FormControl>
                                                             </FormItem>
                                                         )}

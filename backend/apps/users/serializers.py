@@ -147,6 +147,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'full_name',
+            'avatar',
             'is_active',
             'date_joined',
             'updated_at',
@@ -179,6 +180,7 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'full_name',
+            'avatar',
         ]
         extra_kwargs = {
             'email': {'required': False},

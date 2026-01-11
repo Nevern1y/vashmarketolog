@@ -22,7 +22,8 @@ import {
 import { toast } from "sonner"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations } from "@/hooks/use-applications"
-import { useMyCompany, useCRMClients, type CompanyListItem } from "@/hooks/use-companies"
+import { useMyCompany, useCRMClients, useCRMClientMutations, type CompanyListItem } from "@/hooks/use-companies"
+import { AddClientModal } from "./add-client-modal"
 
 // =============================================================================
 // BANK DATABASE (Real data used for calculations)
@@ -38,7 +39,7 @@ const BG_TYPES = [
     { value: "vat_refund", label: "На возвращение НДС" }
 ]
 
-const LAWS = ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"]
+const LAWS = ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "275-ФЗ", "КБГ (Коммерческие)"]
 
 // Credit types per ТЗ
 const CREDIT_TYPES = [
@@ -53,31 +54,46 @@ const KIK_TYPES = [
     "Займ"
 ]
 
-// Leasing credit types per ТЗ
-const LEASING_CREDIT_TYPES = [
-    "Разовый кредит",
-    "Невозобновляемая кредитная линия",
-    "Возобновляемая кредитная линия",
-    "Кредит на исполнение контракта"
+// Leasing types per employer requirements
+const LEASING_TYPES = [
+    "Оборудование",
+    "Спецтехника",
+    "Автотранспорт",
+    "Другое"
 ]
 
 const FACTORING_TYPES = ["Классический факторинг", "Закрытый факторинг", "Закупочный факторинг"]
 
-// Insurance categories and products per ТЗ
-const INSURANCE_CATEGORIES = ["Персонал", "Транспорт", "Имущество", "Ответственность"]
-const INSURANCE_PRODUCTS = {
+// Insurance categories and products per ТЗ + employer requirements
+const INSURANCE_CATEGORIES = ["Персонал", "Транспорт", "Имущество", "Ответственность", "Строительно-монтажные риски", "Контракта"]
+const INSURANCE_PRODUCTS: Record<string, string[]> = {
     "Персонал": ["ДМС", "Страхование критических заболеваний", "Страхование несчастных случаев", "Комплексное страхование в поездках"],
     "Транспорт": ["ОСАГО юридических лиц", "Комплексное страхование автопарков", "Страхование специальной техники", "Страхование ответственности перевозчика"],
     "Имущество": ["Страхование объектов строительства", "Страхование грузов и перевозок", "Страхование имущества компаний", "Страхование перерывов деятельности"],
-    "Ответственность": ["Страхование гражданской ответственности", "Страхование опасных объектов", "Страхование профессиональных рисков", "Страхование ответственности за качество"]
+    "Ответственность": ["Страхование гражданской ответственности", "Страхование опасных объектов", "Страхование профессиональных рисков", "Страхование ответственности за качество"],
+    "Строительно-монтажные риски": ["СМР полный пакет", "СМР базовый", "Страхование строительных рисков"],
+    "Контракта": ["Страхование исполнения контракта", "Страхование ответственности по контракту"]
 }
 
 const TENDER_TYPES = ["Разовое сопровождение", "Тендерное сопровождение под ключ"]
 
 const COUNTRIES = ["Россия", "Австрия", "Германия", "Казахстан", "Китай", "ОАЭ", "США", "Турция", "Узбекистан"]
 
+// Bank Interface
+interface Bank {
+    name: string
+    minAmount: number
+    maxAmount: number
+    bgRate: number
+    creditRate: number
+    speed: string
+    laws: string[]
+    individual?: boolean
+    type?: string
+}
+
 // Bank database with conditions
-const BANKS_DB = [
+const BANKS_DB: Bank[] = [
     { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "ВТБ", minAmount: 500000, maxAmount: 300000000, bgRate: 2.8, creditRate: 14.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
     { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)"] },
@@ -90,15 +106,32 @@ const BANKS_DB = [
     { name: "Локо-Банк", minAmount: 100000, maxAmount: 100000000, bgRate: 3.5, creditRate: 19, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"] },
     { name: "МКБ", minAmount: 300000, maxAmount: 250000000, bgRate: 2.8, creditRate: 15.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "Уралсиб", minAmount: 200000, maxAmount: 100000000, bgRate: 3.1, creditRate: 16.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Лидер-Гарант", minAmount: 10000, maxAmount: 999999999, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"], individual: true },
+    { name: "Индивидуальное рассмотрение", minAmount: 10000, maxAmount: 999999999, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)", "275-ФЗ"], individual: true, type: "bank" },
+    // Leasing companies
+    { name: "Эволюция (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
+    { name: "Carcade (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
+    { name: "Европлан (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
+    { name: "ВТБ Лизинг", minAmount: 1000000, maxAmount: 1000000000, bgRate: 0, creditRate: 0, speed: "Средняя", laws: [], type: "leasing" },
+    { name: "ПСБ Лизинг", minAmount: 1000000, maxAmount: 1000000000, bgRate: 0, creditRate: 0, speed: "Средняя", laws: [], type: "leasing" },
+    { name: "Газпромбанк Автолизинг", minAmount: 1000000, maxAmount: 1000000000, bgRate: 0, creditRate: 0, speed: "Средняя", laws: [], type: "leasing" },
+    { name: "Ресо Лизинг", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
+    { name: "Контрол Лизинг", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
+    { name: "МГКЛ (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Средняя", laws: [], type: "leasing" },
 ]
 
 // Calculate bank offers based on form data
-const calculateOffers = (amount: number, law: string, days: number) => {
+const calculateOffers = (amount: number, law: string, days: number, productType: string = "bg") => {
     const approved: typeof BANKS_DB = []
     const rejected: { bank: string; reason: string }[] = []
 
     BANKS_DB.forEach(bank => {
+        // Filter banks vs leasing companies
+        if (productType === "leasing") {
+            if (bank.type !== "leasing") return
+        } else {
+            if (bank.type === "leasing") return
+        }
+
         if (bank.individual) {
             approved.push(bank)
             return
@@ -108,7 +141,7 @@ const calculateOffers = (amount: number, law: string, days: number) => {
             rejected.push({ bank: bank.name, reason: `Минимальная сумма ${bank.minAmount.toLocaleString("ru-RU")} ₽` })
         } else if (amount > bank.maxAmount) {
             rejected.push({ bank: bank.name, reason: `Максимальная сумма ${bank.maxAmount.toLocaleString("ru-RU")} ₽` })
-        } else if (!bank.laws.includes(law)) {
+        } else if (productType !== "leasing" && !bank.laws.includes(law)) { // Skip law check for leasing
             rejected.push({ bank: bank.name, reason: `Банк не работает с ${law}` })
         } else {
             approved.push(bank)
@@ -166,6 +199,9 @@ export function AgentCalculatorView() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showResults, setShowResults] = useState<string | null>(null)
     const [selectedOffers, setSelectedOffers] = useState<Set<number>>(new Set())
+    const [isAddClientOpen, setIsAddClientOpen] = useState(false)
+    const [counterpartyQuery, setCounterpartyQuery] = useState("")
+    const { createClient } = useCRMClientMutations()
 
     // API hooks for real backend integration
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
@@ -211,6 +247,8 @@ export function AgentCalculatorView() {
     const [creditAmount, setCreditAmount] = useState<number | undefined>(undefined)
     const [completionPercent, setCompletionPercent] = useState<number | undefined>(undefined)
     const [ignoreCompletion, setIgnoreCompletion] = useState(false)
+    const [contractDateFrom, setContractDateFrom] = useState("")
+    const [contractDateTo, setContractDateTo] = useState("")
 
     // Factoring specific
     const [contractType, setContractType] = useState("gov")
@@ -276,6 +314,8 @@ export function AgentCalculatorView() {
         setContractPrice(undefined)
         setDateFrom("")
         setDateTo("")
+        setContractDateFrom("")
+        setContractDateTo("")
         setHasAdvance(false)
         setAdvancePercent(undefined)
         setCreditAmount(undefined)
@@ -325,17 +365,49 @@ export function AgentCalculatorView() {
     // FORMATTED NUMBER INPUT HELPER
     // =========================================================================
 
-    // Format number with thousand separators (1000000 -> "1 000 000")
-    const formatInputNumber = (value: number | undefined): string => {
-        if (value === undefined || value === null || value === 0) return ""
-        return value.toLocaleString("ru-RU")
+    // Format number with thousand separators (supports decimals: 1000000.5 -> "1 000 000,5")
+    const formatInputNumber = (value: number | string | undefined): string => {
+        if (!value && value !== 0) return ""
+
+        // Convert to string
+        let str = typeof value === 'number' ? value.toString() : value
+
+        // Remove all spaces for processing
+        str = str.replace(/\s/g, '')
+
+        // Split into integer and decimal parts
+        const parts = str.split(/[.,]/)
+        const integerPart = parts[0]
+        const decimalPart = parts[1]
+
+        // Format integer part with spaces
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+
+        // Reassemble
+        if (decimalPart !== undefined) {
+            return `${formattedInteger},${decimalPart}`
+        }
+
+        // If user just typed comma/dot
+        if (str.endsWith(',') || str.endsWith('.')) {
+            return `${formattedInteger},`
+        }
+
+        return formattedInteger
     }
 
-    // Parse formatted string back to number ("1 000 000" -> 1000000)
-    const parseInputNumber = (value: string): number => {
-        const cleanValue = value.replace(/\s/g, "").replace(/,/g, ".")
-        const num = parseFloat(cleanValue)
-        return isNaN(num) ? 0 : num
+    // Parse formatted string back to number ("1 000 000,50" -> 1000000.5)
+    const parseInputNumber = (value: string): number | undefined => {
+        if (!value) return undefined
+
+        // Allow only digits, spaces, comma and dot
+        const sanitized = value.replace(/[^\d\s,.]/g, '')
+
+        // Remove spaces and replace comma with dot
+        const cleaned = sanitized.replace(/\s/g, '').replace(',', '.')
+
+        const num = parseFloat(cleaned)
+        return isNaN(num) ? undefined : num
     }
 
     // =========================================================================
@@ -404,6 +476,43 @@ export function AgentCalculatorView() {
         return { valid: errors.length === 0, errors }
     }
 
+    // Validate Leasing form
+    const validateLeasing = (): { valid: boolean; errors: string[] } => {
+        const errors: string[] = []
+        if (!leasingCreditType) errors.push("Тип предмета лизинга")
+        if (!leasingAmount || leasingAmount <= 0) errors.push("Сумма лизинга")
+        return { valid: errors.length === 0, errors }
+    }
+
+    // Validate International Payments form
+    const validateInternational = (): { valid: boolean; errors: string[] } => {
+        const errors: string[] = []
+        if (!amount || amount <= 0) errors.push("Сумма платежа")
+        return { valid: errors.length === 0, errors }
+    }
+
+    // Format phone number as +7 XXX XXX XX XX
+    const formatPhoneNumber = (value: string): string => {
+        // Remove all non-digit characters
+        const digits = value.replace(/\D/g, "")
+
+        // Handle Russian phone numbers
+        let normalized = digits
+        if (digits.startsWith("8") && digits.length > 1) {
+            normalized = "7" + digits.slice(1)
+        } else if (!digits.startsWith("7") && digits.length > 0) {
+            normalized = "7" + digits
+        }
+
+        // Format: +7 XXX XXX XX XX
+        if (normalized.length === 0) return ""
+        if (normalized.length <= 1) return `+${normalized}`
+        if (normalized.length <= 4) return `+${normalized.slice(0, 1)} ${normalized.slice(1)}`
+        if (normalized.length <= 7) return `+${normalized.slice(0, 1)} ${normalized.slice(1, 4)} ${normalized.slice(4)}`
+        if (normalized.length <= 9) return `+${normalized.slice(0, 1)} ${normalized.slice(1, 4)} ${normalized.slice(4, 7)} ${normalized.slice(7)}`
+        return `+${normalized.slice(0, 1)} ${normalized.slice(1, 4)} ${normalized.slice(4, 7)} ${normalized.slice(7, 9)} ${normalized.slice(9, 11)}`
+    }
+
     // Get validation result for current product
     const getValidation = (productType: string) => {
         switch (productType) {
@@ -414,6 +523,8 @@ export function AgentCalculatorView() {
             case "factoring": return validateFactoring()
             case "unsecured": return validateUnsecured()
             case "insurance": return validateInsurance()
+            case "leasing": return validateLeasing()
+            case "international": return validateInternational()
             default: return { valid: true, errors: [] }
         }
     }
@@ -435,9 +546,16 @@ export function AgentCalculatorView() {
         await new Promise(r => setTimeout(r, 800)) // Simulate API call
 
         // Calculate based on form data
-        const law = federalLaw === "44" ? "44-ФЗ" : federalLaw === "223" ? "223-ФЗ" : federalLaw === "615" ? "185-ФЗ (615-ПП)" : "КБГ (Коммерческие)"
+        const law = federalLaw === "44" ? "44-ФЗ" : federalLaw === "223" ? "223-ФЗ" : federalLaw === "615" ? "185-ФЗ (615-ПП)" : federalLaw === "275" ? "275-ФЗ" : "КБГ (Коммерческие)"
         const days = dateFrom && dateTo ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24)) : 30
-        const offers = calculateOffers(amount ?? 0, law, days)
+
+        let calculatedAmount = amount
+        if (productType === "kik") calculatedAmount = creditAmount
+        if (productType === "leasing") calculatedAmount = leasingAmount
+        if (productType === "factoring") calculatedAmount = financingAmount
+        if (productType === "insurance") calculatedAmount = insuranceAmount
+
+        const offers = calculateOffers(calculatedAmount ?? 0, law, days, productType)
 
         setCalculatedOffers(offers)
         setIsSubmitting(false)
@@ -475,6 +593,8 @@ export function AgentCalculatorView() {
                 case "kik": return "contract_loan"
                 case "express": return "corporate_credit"
                 case "factoring": return "factoring"
+                case "leasing": return "leasing"
+                case "insurance": return "insurance"
                 default: return "bank_guarantee"
             }
         }
@@ -601,11 +721,33 @@ export function AgentCalculatorView() {
         setSelectedOffers(new Set())
     }
 
-    // Toggle offer selection
+    // Toggle offer selection (Exclusive logic for Individual Consideration)
     const toggleOffer = (index: number) => {
+        const bank = calculatedOffers.approved[index]
+        if (!bank) return
+
         const newSet = new Set(selectedOffers)
-        if (newSet.has(index)) newSet.delete(index)
-        else newSet.add(index)
+
+        if (bank.individual) {
+            // If selecting individual, clear all others and select only this one
+            if (newSet.has(index)) {
+                newSet.delete(index)
+            } else {
+                newSet.clear()
+                newSet.add(index)
+            }
+        } else {
+            // If selecting regular bank, ensure individual is not selected
+            // Find index of individual bank if it exists
+            const individualIndex = calculatedOffers.approved.findIndex(b => b.individual)
+            if (individualIndex !== -1) {
+                newSet.delete(individualIndex)
+            }
+
+            if (newSet.has(index)) newSet.delete(index)
+            else newSet.add(index)
+        }
+
         setSelectedOffers(newSet)
     }
 
@@ -1008,12 +1150,69 @@ export function AgentCalculatorView() {
         </div>
     )
 
+    // Leasing Results (uses calculatedOffers)
+    const LeasingResultsView = () => (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <Button variant="ghost" onClick={backToForm}><ArrowLeft className="h-4 w-4 mr-2" />Назад</Button>
+                <h2 className="text-xl font-bold">Результат расчета лизинга</h2>
+                <Badge variant="default" className="bg-green-600">Предложений: {calculatedOffers.approved.length}</Badge>
+            </div>
+
+            <div className="bg-muted/30 p-3 rounded-lg text-sm">
+                <span className="text-muted-foreground">Параметры:</span>
+                <span className="ml-2">Тип: <strong className="text-[#3CE8D1]">{leasingCreditType || "Не указан"}</strong></span>
+                <span className="ml-4">Сумма: <strong>{(leasingAmount ?? 0).toLocaleString("ru-RU")} ₽</strong></span>
+                {leasingEndDate && <span className="ml-4">Дата окончания: <strong>{leasingEndDate}</strong></span>}
+            </div>
+
+            <Card>
+                <CardHeader className="py-3">
+                    <span className="text-green-500 font-bold">ЛИЗИНГОВЫЕ КОМПАНИИ: {calculatedOffers.approved.length}</span>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <table className="w-full text-sm">
+                        <thead className="bg-muted/50 text-xs">
+                            <tr>
+                                <th className="text-left p-2">Компания</th>
+                                <th className="text-center p-2">Условия</th>
+                                <th className="text-center p-2">Скорость</th>
+                                <th className="text-center p-2">Выбрать</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {calculatedOffers.approved.map((bank, i) => (
+                                <tr key={i} className={cn("border-t", bank.individual && "bg-[#3CE8D1]/10")}>
+                                    <td className="p-2">
+                                        <span className="font-medium">{bank.name}</span>
+                                        {bank.individual && <Badge className="ml-2 bg-[#3CE8D1] text-[#0a1628]">Инд. условия</Badge>}
+                                    </td>
+                                    <td className="p-2 text-center">{bank.individual ? "Индивидуальные условия" : "Стандартные условия"}</td>
+                                    <td className="p-2 text-center"><SpeedBadge speed={bank.speed} /></td>
+                                    <td className="p-2 text-center"><Checkbox checked={selectedOffers.has(i)} onCheckedChange={() => toggleOffer(i)} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </CardContent>
+            </Card>
+
+            <p className="text-xs text-muted-foreground text-center">Приведенные расчеты являются предварительными и не являются публичной офертой.</p>
+            <div className="flex justify-end">
+                <Button onClick={handleCreateApplication} className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
+                    СОЗДАТЬ ЗАЯВКУ
+                </Button>
+            </div>
+        </div>
+    )
+
     // Show results if calculated
     if (showResults === "tz") return <TZResultsView />
     if (showResults === "bg") return <BGResultsView />
     if (showResults === "kik") return <KIKResultsView />
     if (showResults === "express") return <ExpressResultsView />
     if (showResults === "factoring") return <FactoringResultsView />
+    if (showResults === "leasing") return <LeasingResultsView />
     if (showResults === "insurance") return <InsuranceResultsView />
 
     // =============================================================================
@@ -1056,7 +1255,13 @@ export function AgentCalculatorView() {
                             </div>
                             <div className="flex-1 space-y-2">
                                 <Label className="text-sm font-medium text-white">Выберите клиента для заявки *</Label>
-                                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                                <Select value={selectedClientId} onValueChange={(val) => {
+                                    if (val === "add_new_client") {
+                                        setIsAddClientOpen(true)
+                                    } else {
+                                        setSelectedClientId(val)
+                                    }
+                                }}>
                                     <SelectTrigger className="h-11 bg-[#1a2942]/50 border-[#2a3a5c]/50 hover:border-[#3CE8D1]/50">
                                         <SelectValue placeholder={clientsLoading ? "Загрузка..." : confirmedClients.length === 0 ? "Нет подтвержденных клиентов" : "Выберите клиента"} />
                                     </SelectTrigger>
@@ -1066,6 +1271,9 @@ export function AgentCalculatorView() {
                                                 {client.name} (ИНН: {client.inn})
                                             </SelectItem>
                                         ))}
+                                        <SelectItem value="add_new_client" className="text-[#3CE8D1] font-medium bg-[#3CE8D1]/10 focus:bg-[#3CE8D1]/20 focus:text-[#3CE8D1] mt-1 border-t border-[#2a3a5c]">
+                                            + Добавить нового клиента
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 {confirmedClients.length === 0 && !clientsLoading && (
@@ -1075,6 +1283,43 @@ export function AgentCalculatorView() {
                                 )}
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Counterparty Check - Agent Tool */}
+                <Card className="border border-[#3CE8D1]/30 bg-gradient-to-br from-[#0f1d32] to-[#0a1425]">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-lg text-white flex items-center gap-2">
+                            <Search className="h-5 w-5 text-[#3CE8D1]" />
+                            Проверка контрагента
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <Input
+                                    placeholder="Введите ИНН, ОГРН или название компании"
+                                    className="bg-[#1a2942]/50 border-[#2a3a5c]/50"
+                                    value={counterpartyQuery}
+                                    onChange={(e) => setCounterpartyQuery(e.target.value)}
+                                />
+                            </div>
+                            <Button
+                                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                onClick={() => {
+                                    if (counterpartyQuery) {
+                                        window.open(`https://checko.ru/search?query=${encodeURIComponent(counterpartyQuery)}`, "_blank");
+                                    } else {
+                                        toast.error("Введите данные для проверки");
+                                    }
+                                }}
+                            >
+                                Проверить
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Быстрая проверка надежности контрагента через сервис Checko.ru
+                        </p>
                     </CardContent>
                 </Card>
 
@@ -1198,7 +1443,7 @@ export function AgentCalculatorView() {
                             {/* Amount */}
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Сумма запрашиваемого займа *</Label>
-                                <Input type="number" value={amount} onChange={e => setAmount(+e.target.value)} placeholder="1 000 000" className="text-lg" />
+                                <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="1 000 000" className="text-lg" />
                             </div>
 
                             {/* Platform and Deadline */}
@@ -1220,11 +1465,11 @@ export function AgentCalculatorView() {
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Контракты 44-ФЗ</Label>
-                                    <Input type="number" value={contracts44} onChange={e => setContracts44(+e.target.value)} placeholder="0" />
+                                    <Input type="text" inputMode="numeric" value={formatInputNumber(contracts44)} onChange={e => setContracts44(parseInputNumber(e.target.value))} placeholder="0" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Контракты 223-ФЗ</Label>
-                                    <Input type="number" value={contracts223} onChange={e => setContracts223(+e.target.value)} placeholder="0" />
+                                    <Input type="text" inputMode="numeric" value={formatInputNumber(contracts223)} onChange={e => setContracts223(parseInputNumber(e.target.value))} placeholder="0" />
                                 </div>
                             </div>
 
@@ -1331,9 +1576,10 @@ export function AgentCalculatorView() {
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Сумма БГ, ₽ <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
-                                            type="number"
-                                            value={amount ?? ""}
-                                            onChange={e => setAmount(+e.target.value)}
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={formatInputNumber(amount)}
+                                            onChange={e => setAmount(parseInputNumber(e.target.value))}
                                             placeholder="1 000 000"
                                             className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
                                         />
@@ -1354,7 +1600,7 @@ export function AgentCalculatorView() {
                                             type="date"
                                             value={dateFrom}
                                             onChange={e => setDateFrom(e.target.value)}
-                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -1363,7 +1609,7 @@ export function AgentCalculatorView() {
                                             type="date"
                                             value={dateTo}
                                             onChange={e => setDateTo(e.target.value)}
-                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -1392,11 +1638,12 @@ export function AgentCalculatorView() {
                                         {hasAdvance && (
                                             <div className="flex items-center gap-2">
                                                 <Input
-                                                    type="number"
+                                                    type="text"
+                                                    inputMode="numeric"
                                                     className="w-20 h-9 text-center bg-[#1a2942]/50 border-[#3CE8D1]/30"
                                                     placeholder="%"
-                                                    value={advancePercent || ""}
-                                                    onChange={e => setAdvancePercent(+e.target.value)}
+                                                    value={formatInputNumber(advancePercent)}
+                                                    onChange={e => setAdvancePercent(parseInputNumber(e.target.value))}
                                                 />
                                                 <span className="text-sm text-[#94a3b8]">%</span>
                                             </div>
@@ -1421,9 +1668,10 @@ export function AgentCalculatorView() {
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Контракты 44-ФЗ</Label>
                                         <Input
-                                            type="number"
-                                            value={contracts44 ?? ""}
-                                            onChange={e => setContracts44(+e.target.value)}
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={formatInputNumber(contracts44)}
+                                            onChange={e => setContracts44(parseInputNumber(e.target.value))}
                                             placeholder="Количество"
                                             className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
                                         />
@@ -1431,9 +1679,10 @@ export function AgentCalculatorView() {
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Контракты 223-ФЗ</Label>
                                         <Input
-                                            type="number"
-                                            value={contracts223 ?? ""}
-                                            onChange={e => setContracts223(+e.target.value)}
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={formatInputNumber(contracts223)}
+                                            onChange={e => setContracts223(parseInputNumber(e.target.value))}
                                             placeholder="Количество"
                                             className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
                                         />
@@ -1523,21 +1772,35 @@ export function AgentCalculatorView() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Цена контракта, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input type="number" value={contractPrice || ""} onChange={e => setContractPrice(+e.target.value)} placeholder="1 000 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Input type="text" inputMode="decimal" value={formatInputNumber(contractPrice)} onChange={e => setContractPrice(parseInputNumber(e.target.value))} placeholder="1 000 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок контракта с</Label>
-                                        <Input type="date" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input
+                                            type="date"
+                                            value={contractDateFrom}
+                                            onChange={e => setContractDateFrom(e.target.value)}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">по</Label>
-                                        <Input type="date" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input
+                                            type="date"
+                                            value={contractDateTo}
+                                            onChange={e => setContractDateTo(e.target.value)}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
                                         <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">—</span>
+                                            <span className="text-lg font-bold text-[#3CE8D1]">
+                                                {contractDateFrom && contractDateTo
+                                                    ? Math.max(0, Math.ceil((new Date(contractDateTo).getTime() - new Date(contractDateFrom).getTime()) / (1000 * 60 * 60 * 24)))
+                                                    : "—"}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -1556,28 +1819,42 @@ export function AgentCalculatorView() {
                                     </div>
                                     {hasAdvance && (
                                         <div className="flex items-center gap-2">
-                                            <Input type="number" className="w-20 h-9 text-center bg-[#1a2942]/50 border-[#3CE8D1]/30" placeholder="%" />
+                                            <Input type="text" inputMode="numeric" className="w-20 h-9 text-center bg-[#1a2942]/50 border-[#3CE8D1]/30" placeholder="%" value={formatInputNumber(advancePercent)} onChange={e => setAdvancePercent(parseInputNumber(e.target.value))} />
                                             <span className="text-sm text-[#94a3b8]">%</span>
                                         </div>
                                     )}
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Сумма кредита, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input type="number" value={creditAmount || ""} onChange={e => setCreditAmount(+e.target.value)} placeholder="500 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Input type="text" inputMode="decimal" value={formatInputNumber(creditAmount)} onChange={e => setCreditAmount(parseInputNumber(e.target.value))} placeholder="500 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок кредита с</Label>
-                                        <Input type="date" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input
+                                            type="date"
+                                            value={dateFrom}
+                                            onChange={e => setDateFrom(e.target.value)}
+                                            className="h-11 max-w-[180px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">по</Label>
-                                        <Input type="date" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input
+                                            type="date"
+                                            value={dateTo}
+                                            onChange={e => setDateTo(e.target.value)}
+                                            className="h-11 max-w-[180px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
                                         <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">—</span>
+                                            <span className="text-lg font-bold text-[#3CE8D1]">
+                                                {dateFrom && dateTo
+                                                    ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24)))
+                                                    : "—"}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -1592,11 +1869,11 @@ export function AgentCalculatorView() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Контракты 44-ФЗ</Label>
-                                        <Input type="number" placeholder="Количество" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="numeric" placeholder="Количество" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Контракты 223-ФЗ</Label>
-                                        <Input type="number" placeholder="Количество" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="numeric" placeholder="Количество" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                 </div>
                                 <div className="p-4 rounded-xl bg-[#0f1d32]/50 border border-[#2a3a5c]/30 space-y-3">
@@ -1676,16 +1953,16 @@ export function AgentCalculatorView() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Сумма кредита, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input type="number" value={amount || ""} onChange={e => setAmount(+e.target.value)} placeholder="500 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="500 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок кредита с</Label>
-                                        <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">по</Label>
-                                        <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
@@ -1771,11 +2048,11 @@ export function AgentCalculatorView() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Сумма финансирования, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Input type="number" value={financingAmount || ""} onChange={e => setFinancingAmount(+e.target.value)} placeholder="0,00" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="decimal" value={formatInputNumber(financingAmount)} onChange={e => setFinancingAmount(parseInputNumber(e.target.value))} placeholder="0,00" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок финансирования</Label>
-                                        <Input type="date" value={financingDate} onChange={e => setFinancingDate(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="date" value={financingDate} onChange={e => setFinancingDate(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                 </div>
                             </div>
@@ -1824,7 +2101,7 @@ export function AgentCalculatorView() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">НМЦ</Label>
-                                        <Input type="number" value={nmc || ""} onChange={e => setNmc(+e.target.value)} placeholder="Введите сумму" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="decimal" value={formatInputNumber(nmc)} onChange={e => setNmc(parseInputNumber(e.target.value))} placeholder="Введите сумму" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Валюта</Label>
@@ -1834,11 +2111,11 @@ export function AgentCalculatorView() {
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок контракта с</Label>
-                                        <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 max-w-[180px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">по</Label>
-                                        <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 max-w-[180px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
@@ -1859,12 +2136,12 @@ export function AgentCalculatorView() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Объём отгрузки, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input type="number" value={shipmentVolume || ""} onChange={e => setShipmentVolume(+e.target.value)} placeholder="1 000 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Input type="text" inputMode="decimal" value={formatInputNumber(shipmentVolume)} onChange={e => setShipmentVolume(parseInputNumber(e.target.value))} placeholder="1 000 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Отсрочка платежа (дней) <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Input type="number" value={paymentDelay || ""} onChange={e => setPaymentDelay(+e.target.value)} placeholder="30" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="numeric" value={formatInputNumber(paymentDelay)} onChange={e => setPaymentDelay(parseInputNumber(e.target.value))} placeholder="30" className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">ИНН Заказчика</Label>
@@ -1921,31 +2198,31 @@ export function AgentCalculatorView() {
                                     <span className="text-sm font-medium text-white">Параметры лизинга</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm text-[#94a3b8]">Тип кредита <span className="text-[#3CE8D1]">*</span></Label>
+                                    <Label className="text-sm text-[#94a3b8]">Тип предмета лизинга <span className="text-[#3CE8D1]">*</span></Label>
                                     <Select value={leasingCreditType} onValueChange={setLeasingCreditType}>
                                         <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
-                                            <SelectValue placeholder="Выберите тип кредита" />
+                                            <SelectValue placeholder="Выберите тип" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {LEASING_CREDIT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                            {LEASING_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label className="text-sm text-[#94a3b8]">Сумма кредита, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input type="number" value={leasingAmount || ""} onChange={e => setLeasingAmount(+e.target.value)} placeholder="Введите сумму" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Label className="text-sm text-[#94a3b8]">Сумма лизинга, ₽ <span className="text-[#3CE8D1]">*</span></Label>
+                                    <Input type="text" inputMode="decimal" value={formatInputNumber(leasingAmount)} onChange={e => setLeasingAmount(parseInputNumber(e.target.value))} placeholder="Введите сумму" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Дата окончания</Label>
-                                    <Input type="date" value={leasingEndDate} onChange={e => setLeasingEndDate(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Input type="date" value={leasingEndDate} onChange={e => setLeasingEndDate(e.target.value)} className="h-11 max-w-[200px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                 </div>
                             </div>
 
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 <div className="flex items-center gap-4">
-                                    <Button className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all">
-                                        <Calculator className="h-5 w-5 mr-2" />
+                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all disabled:opacity-50">
+                                        {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
                                     <Button variant="outline" onClick={clearLeasingForm} className="h-12 px-6 border-[#2a3a5c]/50 text-[#94a3b8] hover:text-white hover:border-[#3CE8D1]/30 transition-all">
@@ -1993,7 +2270,7 @@ export function AgentCalculatorView() {
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 insuranceCategory === cat
                                                     ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
-                                                    : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
+                                                    : "bg-[#1e3a5f] text-white border border-[#3CE8D1]/30 hover:border-[#3CE8D1]/50 hover:bg-[#1e3a5f]/80"
                                             )}
                                         >
                                             {cat}
@@ -2025,7 +2302,7 @@ export function AgentCalculatorView() {
                                 )}
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Сумма страхования, ₽ <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input type="number" value={insuranceAmount || ""} onChange={e => setInsuranceAmount(+e.target.value)} placeholder="0,00" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Input type="text" inputMode="decimal" value={formatInputNumber(insuranceAmount)} onChange={e => setInsuranceAmount(parseInputNumber(e.target.value))} placeholder="0,00" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Срок договора (месяцев) <span className="text-[#3CE8D1]">*</span></Label>
@@ -2092,7 +2369,7 @@ export function AgentCalculatorView() {
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Сумма платежа <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Input type="number" placeholder="100 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="100 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Валюта <span className="text-[#3CE8D1]">*</span></Label>
@@ -2130,7 +2407,7 @@ export function AgentCalculatorView() {
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 <div className="flex items-center gap-4">
-                                    <Button className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all">
+                                    <Button className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all">
                                         <Upload className="h-5 w-5 mr-2" />
                                         ОТПРАВИТЬ ЗАЯВКУ
                                     </Button>
@@ -2153,12 +2430,12 @@ export function AgentCalculatorView() {
                         <CardContent className="space-y-6 pt-6">
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Сумма размещения, ₽ *</Label>
-                                <Input type="number" placeholder="10 000 000" className="text-lg" />
+                                <Input type="text" inputMode="decimal" placeholder="10 000 000" className="text-lg" />
                             </div>
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Срок размещения (дней)</Label>
-                                    <Input type="number" placeholder="90" />
+                                    <Input type="text" inputMode="numeric" placeholder="90" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Тип депозита</Label>
@@ -2475,7 +2752,7 @@ export function AgentCalculatorView() {
                         <CardHeader><CardTitle>Займы без залога</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-sm text-muted-foreground">* - поля, обязательные для заполнения</p>
-                            <div><Label>Сумма займа *</Label><Input type="number" placeholder="1000,00" /></div>
+                            <div><Label>Сумма займа *</Label><Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="1000,00" /></div>
                             <div className="grid gap-4 md:grid-cols-3"><div><Label>Срок займа с *</Label><Input type="date" /></div><div><Label>по *</Label><Input type="date" /></div><div><Label>дней</Label><Input readOnly /></div></div>
                             <div><Label>ФИО *</Label><Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Иванов Иван Иванович" /></div>
                             <div><Label>Телефон *</Label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+7 (123) 456-78-91" /></div>

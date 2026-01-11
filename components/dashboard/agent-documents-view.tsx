@@ -57,12 +57,28 @@ import {
 } from "@/components/ui/accordion"
 
 // =============================================================================
+// AGENT REQUIRED DOCUMENTS (Скачать шаблон -> Подписать -> Загрузить)
+// =============================================================================
+const AGENT_REQUIRED_DOCS = [
+    { id: "zayavlenie", name: "Заявление о присоединении к регламенту", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/zayavlenie.pdf", acceptFormat: ".pdf,.sig" },
+    { id: "soglasie", name: "Согласие на обработку персональных данных", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/soglasie.pdf", acceptFormat: ".pdf,.sig" },
+    { id: "list_zapisi", name: "Лист записи/Скан свидетельства ОГРНИП", description: "Загрузите скан документа", templateUrl: null, acceptFormat: ".pdf,.jpg,.jpeg,.png" },
+    { id: "contract", name: "Агентский договор", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/agent-contract.pdf", acceptFormat: ".pdf,.sig" },
+]
+
+// =============================================================================
 // COMPONENT
 // =============================================================================
 
 
-export function AgentDocumentsView() {
-    const [activeTab, setActiveTab] = useState("bank_conditions")
+
+interface AgentDocumentsViewProps {
+    initialTab?: "bank_conditions" | "my_documents"
+    hideTabs?: boolean
+}
+
+export function AgentDocumentsView({ initialTab = "bank_conditions", hideTabs = false }: AgentDocumentsViewProps) {
+    const [activeTab, setActiveTab] = useState(initialTab)
     const [searchQuery, setSearchQuery] = useState("")
     const [sortBy, setSortBy] = useState<"bank" | "rate" | "sum" | "term">("bank")
     const [selectedBank, setSelectedBank] = useState<string>("all")
@@ -284,28 +300,26 @@ export function AgentDocumentsView() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">Мои документы</h1>
-                    <p className="text-muted-foreground">Условия банков и ваши документы</p>
-                </div>
+            <div className="flex items-center justify-end">
                 <Button onClick={activeTab === "bank_conditions" ? refetchConditions : refetchDocs} variant="outline" size="sm">
                     <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                     Обновить
                 </Button>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-muted/50">
-                    <TabsTrigger value="bank_conditions" className="flex items-center gap-2 py-2">
-                        <Building2 className="h-4 w-4" />
-                        Условия банков
-                    </TabsTrigger>
-                    <TabsTrigger value="my_documents" className="flex items-center gap-2 py-2">
-                        <FileText className="h-4 w-4" />
-                        Мои документы
-                    </TabsTrigger>
-                </TabsList>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "bank_conditions" | "my_documents")} className="w-full">
+                {!hideTabs && (
+                    <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-muted/50">
+                        <TabsTrigger value="bank_conditions" className="flex items-center gap-2 py-2">
+                            <Building2 className="h-4 w-4" />
+                            Условия банков
+                        </TabsTrigger>
+                        <TabsTrigger value="my_documents" className="flex items-center gap-2 py-2">
+                            <FileText className="h-4 w-4" />
+                            Мои документы
+                        </TabsTrigger>
+                    </TabsList>
+                )}
 
                 {/* Tab 1: Bank Conditions */}
                 <TabsContent value="bank_conditions" className="mt-6 space-y-6">
@@ -612,6 +626,61 @@ export function AgentDocumentsView() {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
+
+                    {/* Required Agent Documents */}
+                    <Card className="border-[#3CE8D1]/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-[#3CE8D1]" />
+                                Обязательные документы агента
+                            </CardTitle>
+                            <CardDescription>
+                                Скачайте шаблоны, подпишите и загрузите обратно
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {AGENT_REQUIRED_DOCS.map((doc) => (
+                                    <div
+                                        key={doc.id}
+                                        className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <FileText className="h-5 w-5 text-muted-foreground" />
+                                            <div>
+                                                <p className="font-medium text-sm">{doc.name}</p>
+                                                <p className="text-xs text-muted-foreground">{doc.description}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {doc.templateUrl && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                                    asChild
+                                                >
+                                                    <a href={doc.templateUrl} download>
+                                                        <Download className="h-4 w-4" />
+                                                        Скачать
+                                                    </a>
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="gap-2"
+                                                onClick={() => setIsUploadDialogOpen(true)}
+                                            >
+                                                <Upload className="h-4 w-4" />
+                                                Загрузить
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">

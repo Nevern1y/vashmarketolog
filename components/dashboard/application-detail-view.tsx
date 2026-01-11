@@ -355,37 +355,38 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
     const canSubmit = formProgress === 100 && application.status === 'draft'
 
     return (
-        <div className="space-y-6 pb-8">
+        <div className="space-y-4 md:space-y-6 pb-8">
             {/* Header with Breadcrumb - per reference format */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 md:gap-4">
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onBack}
-                        className="text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f]"
+                        className="text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f] shrink-0"
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <div>
-                        {/* Breadcrumb: Мои заявки / ID / tender_number */}
-                        <nav className="flex items-center gap-2 text-sm text-[#94a3b8] mb-1">
-                            <button onClick={onBack} className="hover:text-[#3CE8D1] transition-colors">
-                                Мои заявки
+                    <div className="min-w-0">
+                        {/* Breadcrumb: ← Мои заявки / Тип / Заявка #ID */}
+                        <nav className="flex items-center gap-2 text-xs md:text-sm text-[#94a3b8] mb-1">
+                            <button onClick={onBack} className="hover:text-[#3CE8D1] transition-colors flex items-center gap-1">
+                                <span>←</span>
+                                <span>Мои заявки</span>
                             </button>
                             <span>/</span>
-                            <span className="text-[#3CE8D1]">{application.id}</span>
-                            {application.tender_number && (
-                                <>
-                                    <span>/</span>
-                                    <span className="text-white">{application.tender_number}</span>
-                                </>
-                            )}
+                            <button onClick={onBack} className="hover:text-[#3CE8D1] transition-colors">
+                                {application.product_type_display || application.product_type || 'Заявка'}
+                            </button>
+                            <span>/</span>
+                            <span className="text-[#3CE8D1]">Заявка #{application.id}</span>
                         </nav>
                         {/* Title: Заявка: TENDER_NUMBER | LAW-ФЗ with date */}
-                        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-                            Заявка: {application.tender_number || application.id} | {application.goscontract_data?.law || application.tender_law || '44'}-ФЗ
-                            <span className="text-sm font-normal text-[#94a3b8]">
+                        <h1 className="text-lg md:text-2xl font-bold text-white flex flex-wrap items-center gap-2 md:gap-3">
+                            <span className="truncate">Заявка: {application.tender_number || application.id}</span>
+                            <span className="hidden sm:inline">|</span>
+                            <span className="hidden sm:inline">{application.goscontract_data?.law || application.tender_law || '44'}-ФЗ</span>
+                            <span className="text-xs md:text-sm font-normal text-[#94a3b8]">
                                 ✓ {new Date(application.created_at).toLocaleDateString('ru-RU')}
                             </span>
                         </h1>
@@ -407,50 +408,50 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
 
                     {/* Application Info Card */}
                     <Card className="bg-[#0f2042] border-[#1e3a5f]">
-                        <CardContent className="p-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                <div className="flex items-start gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
-                                        <Building2 className="h-5 w-5 text-[#3CE8D1]" />
+                        <CardContent className="p-3 md:p-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+                                <div className="flex items-start gap-2 md:gap-3">
+                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
+                                        <Building2 className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-[#94a3b8]">Клиент</p>
-                                        <p className="font-medium text-white">{application.company_name}</p>
-                                        <p className="text-xs text-[#94a3b8]">ИНН: {application.company_inn}</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
-                                        <FileText className="h-5 w-5 text-[#3CE8D1]" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-[#94a3b8]">Продукт</p>
-                                        <p className="font-medium text-white">{application.product_type_display}</p>
-                                        <p className="text-xs text-[#94a3b8]">{application.tender_law || application.goscontract_data?.law || ''}</p>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Клиент</p>
+                                        <p className="font-medium text-white text-sm md:text-base truncate">{application.company_name}</p>
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">ИНН: {application.company_inn}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
-                                        <Banknote className="h-5 w-5 text-[#3CE8D1]" />
+                                <div className="flex items-start gap-2 md:gap-3">
+                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
+                                        <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-[#94a3b8]">Сумма</p>
-                                        <p className="font-medium text-white">
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Продукт</p>
+                                        <p className="font-medium text-white text-sm md:text-base truncate">{application.product_type_display}</p>
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">{application.tender_law || application.goscontract_data?.law || ''}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2 md:gap-3">
+                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
+                                        <Banknote className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Сумма</p>
+                                        <p className="font-medium text-white text-sm md:text-base">
                                             {parseFloat(application.amount || '0').toLocaleString('ru-RU')} ₽
                                         </p>
-                                        <p className="text-xs text-[#94a3b8]">{application.term_months} мес.</p>
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">{application.term_months} мес.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-3">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
-                                        <Calendar className="h-5 w-5 text-[#3CE8D1]" />
+                                <div className="flex items-start gap-2 md:gap-3">
+                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
+                                        <Calendar className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-[#94a3b8]">Дата создания</p>
-                                        <p className="font-medium text-white">
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Дата</p>
+                                        <p className="font-medium text-white text-sm md:text-base">
                                             {new Date(application.created_at).toLocaleDateString('ru-RU')}
                                         </p>
-                                        <p className="text-xs text-[#94a3b8]">
+                                        <p className="text-[10px] md:text-xs text-[#94a3b8] truncate">
                                             {application.target_bank_name || 'Банк не выбран'}
                                         </p>
                                     </div>
@@ -469,20 +470,23 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                         </CardHeader>
                         <CardContent className="pt-0">
                             <Tabs defaultValue="general" className="w-full">
-                                <TabsList className="grid w-full grid-cols-4 bg-[#0a1628] mb-4">
-                                    <TabsTrigger value="general" className="data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black">
-                                        Общие данные
-                                    </TabsTrigger>
-                                    <TabsTrigger value="registration" className="data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black">
-                                        Регистрация
-                                    </TabsTrigger>
-                                    <TabsTrigger value="bank" className="data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black">
-                                        Банковские реквизиты
-                                    </TabsTrigger>
-                                    <TabsTrigger value="contacts" className="data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black">
-                                        Контакты
-                                    </TabsTrigger>
-                                </TabsList>
+                                {/* Horizontal scroll tabs on mobile */}
+                                <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                                    <TabsList className="inline-flex min-w-max w-full md:grid md:grid-cols-4 bg-[#0a1628] mb-4 gap-1">
+                                        <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black whitespace-nowrap">
+                                            Общие
+                                        </TabsTrigger>
+                                        <TabsTrigger value="registration" className="text-xs md:text-sm data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black whitespace-nowrap">
+                                            Регистр.
+                                        </TabsTrigger>
+                                        <TabsTrigger value="bank" className="text-xs md:text-sm data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black whitespace-nowrap">
+                                            Банк
+                                        </TabsTrigger>
+                                        <TabsTrigger value="contacts" className="text-xs md:text-sm data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black whitespace-nowrap">
+                                            Контакты
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </div>
 
                                 {/* General Information Tab */}
                                 <TabsContent value="general" className="space-y-4">

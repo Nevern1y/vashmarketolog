@@ -255,7 +255,7 @@ export function MyDocumentsView() {
 
       {/* Upload Dialog */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>Загрузить документ</DialogTitle>
           </DialogHeader>
@@ -335,7 +335,7 @@ export function MyDocumentsView() {
                     Загрузка...
                   </>
                 ) : (
-                  "Загрузить"
+                  "Отправить"
                 )}
               </Button>
             </div>

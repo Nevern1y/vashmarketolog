@@ -10,6 +10,7 @@ import { PartnerAgentsView } from "@/components/dashboard/partner/partner-agents
 import { PartnerClientsView } from "@/components/dashboard/partner/partner-clients-view"
 import { PartnerApplicationsView } from "@/components/dashboard/partner/partner-applications-view"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
+import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { useApplications } from "@/hooks/use-applications"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { cn } from "@/lib/utils"
@@ -133,6 +134,7 @@ export function PartnerLayout() {
             {/* Main Content */}
             <div className="flex flex-1 flex-col overflow-hidden">
                 <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+                <DashboardHeader onNotificationClick={(n) => n.details.applicationId && handleOpenDetail(String(n.details.applicationId))} onNavigateToSettings={() => setActiveView("help")} />
                 <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
                     {renderContent()}
                 </main>

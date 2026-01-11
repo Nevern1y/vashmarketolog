@@ -392,51 +392,51 @@ export function AdminAgentsView() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Users className="h-6 w-6 text-[#3CE8D1]" />
+                    <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                        <Users className="h-5 w-5 md:h-6 md:w-6 text-[#3CE8D1]" />
                         Агенты
                     </h1>
-                    <p className="text-sm text-muted-foreground">Управление агентами и их документами</p>
+                    <p className="text-sm text-muted-foreground hidden sm:block">Управление агентами и их документами</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={loadAgents} disabled={isLoading}>
+                <Button variant="outline" size="sm" onClick={loadAgents} disabled={isLoading} className="w-full sm:w-auto">
                     <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
                     Обновить
                 </Button>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-5 gap-4">
+            {/* Stats - Responsive Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
                 <Card className={cn("cursor-pointer transition-colors", statusFilter === 'all' && "border-[#3CE8D1]")} onClick={() => setStatusFilter('all')}>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold">{statusCounts.all}</div>
+                    <CardContent className="p-3 md:p-4">
+                        <div className="text-xl md:text-2xl font-bold">{statusCounts.all}</div>
                         <div className="text-xs text-muted-foreground">Всего</div>
                     </CardContent>
                 </Card>
                 <Card className={cn("cursor-pointer transition-colors", statusFilter === 'approved' && "border-emerald-500")} onClick={() => setStatusFilter('approved')}>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-emerald-500">{statusCounts.approved}</div>
-                        <div className="text-xs text-muted-foreground">Аккредитовано</div>
+                    <CardContent className="p-3 md:p-4">
+                        <div className="text-xl md:text-2xl font-bold text-emerald-500">{statusCounts.approved}</div>
+                        <div className="text-xs text-muted-foreground">Аккредит.</div>
                     </CardContent>
                 </Card>
                 <Card className={cn("cursor-pointer transition-colors", statusFilter === 'pending' && "border-amber-500")} onClick={() => setStatusFilter('pending')}>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-amber-500">{statusCounts.pending}</div>
+                    <CardContent className="p-3 md:p-4">
+                        <div className="text-xl md:text-2xl font-bold text-amber-500">{statusCounts.pending}</div>
                         <div className="text-xs text-muted-foreground">На проверке</div>
                     </CardContent>
                 </Card>
                 <Card className={cn("cursor-pointer transition-colors", statusFilter === 'rejected' && "border-rose-500")} onClick={() => setStatusFilter('rejected')}>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-rose-500">{statusCounts.rejected}</div>
+                    <CardContent className="p-3 md:p-4">
+                        <div className="text-xl md:text-2xl font-bold text-rose-500">{statusCounts.rejected}</div>
                         <div className="text-xs text-muted-foreground">Отклонено</div>
                     </CardContent>
                 </Card>
-                <Card className={cn("cursor-pointer transition-colors", statusFilter === 'none' && "border-slate-500")} onClick={() => setStatusFilter('none')}>
-                    <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-slate-500">{statusCounts.none}</div>
+                <Card className={cn("cursor-pointer transition-colors col-span-2 sm:col-span-1", statusFilter === 'none' && "border-slate-500")} onClick={() => setStatusFilter('none')}>
+                    <CardContent className="p-3 md:p-4">
+                        <div className="text-xl md:text-2xl font-bold text-slate-500">{statusCounts.none}</div>
                         <div className="text-xs text-muted-foreground">Не подали</div>
                     </CardContent>
                 </Card>
@@ -474,27 +474,27 @@ export function AdminAgentsView() {
                                 <div
                                     key={agent.id}
                                     onClick={() => openAgentModal(agent)}
-                                    className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors"
+                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border hover:bg-accent/50 cursor-pointer transition-colors gap-3"
                                 >
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                                        <Avatar className="h-12 w-12 shrink-0">
-                                            <AvatarFallback className="bg-[#4F7DF3]/20 text-[#4F7DF3]">
+                                    <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                                        <Avatar className="h-10 w-10 md:h-12 md:w-12 shrink-0">
+                                            <AvatarFallback className="bg-[#4F7DF3]/20 text-[#4F7DF3] text-sm md:text-base">
                                                 {getInitials(agent)}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0 flex-1">
-                                            <p className="font-semibold truncate">{getName(agent)}</p>
-                                            <p className="text-sm text-muted-foreground truncate">{agent.company_short_name || agent.company_name || agent.email}</p>
+                                            <p className="font-semibold truncate text-sm md:text-base">{getName(agent)}</p>
+                                            <p className="text-xs md:text-sm text-muted-foreground truncate">{agent.company_short_name || agent.company_name || agent.email}</p>
                                             {agent.company_inn && (
                                                 <p className="text-xs text-muted-foreground">ИНН: {agent.company_inn}</p>
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 shrink-0 ml-4">
-                                        <div className="text-right">
+                                    <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 shrink-0 sm:ml-4 pl-13 sm:pl-0">
+                                        <div className="text-left sm:text-right">
                                             {getStatusBadge(agent.accreditation_status)}
                                             <p className="text-xs text-muted-foreground mt-1">
-                                                Регистрация: {formatDate(agent.date_joined)}
+                                                {formatDate(agent.date_joined)}
                                             </p>
                                         </div>
                                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -508,7 +508,7 @@ export function AdminAgentsView() {
 
             {/* Agent Detail Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogContent className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
                     {selectedAgent && (
                         <>
                             <DialogHeader>
@@ -542,7 +542,7 @@ export function AdminAgentsView() {
 
                                 <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
                                     {/* Contact info */}
-                                    <div className="grid grid-cols-3 gap-4 p-4 rounded-lg bg-accent/30">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-accent/30">
                                         <div className="flex items-center gap-2">
                                             <Mail className="h-4 w-4 text-muted-foreground" />
                                             <span className="text-sm">{selectedAgent.email}</span>
@@ -569,7 +569,7 @@ export function AdminAgentsView() {
                                             </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent className="pt-3 px-1">
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <InfoRow label="Полное наименование" value={selectedAgent.company_name} />
                                                 <InfoRow label="Краткое наименование" value={selectedAgent.company_short_name} />
                                                 <InfoRow label="ИНН" value={selectedAgent.company_inn} highlight />
@@ -603,7 +603,7 @@ export function AdminAgentsView() {
                                             </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent className="pt-3 px-1">
-                                            <div className="grid grid-cols-3 gap-3">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                                 <InfoRow label="ОКАТО" value={selectedAgent.okato} />
                                                 <InfoRow label="ОКТМО" value={selectedAgent.oktmo} />
                                                 <InfoRow label="ОКПО" value={selectedAgent.okpo} />
@@ -626,7 +626,7 @@ export function AdminAgentsView() {
                                             </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent className="pt-3 px-1">
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <InfoRow label="ФИО" value={selectedAgent.director_name} highlight />
                                                 <InfoRow label="Должность" value={selectedAgent.director_position} />
                                                 <InfoRow label="Email" value={selectedAgent.director_email} />
@@ -647,7 +647,7 @@ export function AdminAgentsView() {
                                             </div>
                                         </CollapsibleTrigger>
                                         <CollapsibleContent className="pt-3 px-1">
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <InfoRow label="Банк" value={selectedAgent.bank_name} />
                                                 <InfoRow label="БИК" value={selectedAgent.bank_bik} highlight />
                                                 <InfoRow label="Р/с" value={selectedAgent.bank_account} highlight />
@@ -685,7 +685,7 @@ export function AdminAgentsView() {
                                                 <div
                                                     key={doc.id}
                                                     className={cn(
-                                                        "flex items-center justify-between p-4 rounded-lg border",
+                                                        "flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3",
                                                         doc.status === 'verified' && "border-emerald-500/30 bg-emerald-500/5",
                                                         doc.status === 'rejected' && "border-rose-500/30 bg-rose-500/5",
                                                         doc.status === 'pending' && "border-amber-500/30 bg-amber-500/5"

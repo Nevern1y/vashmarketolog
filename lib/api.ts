@@ -32,6 +32,7 @@ export interface User {
   id: number;
   email: string;
   phone: string;
+  avatar?: string;
   role: 'client' | 'agent' | 'partner' | 'admin';
   first_name: string;
   last_name: string;
@@ -465,6 +466,12 @@ export const authApi = {
 
   updateProfile: async (data: Partial<User>): Promise<User> => {
     return api.patch<User>('/auth/me/', data);
+  },
+
+  updateAvatar: async (file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    return api.patch<User>('/auth/me/', formData);
   },
 
   changePassword: async (oldPassword: string, newPassword: string, newPasswordConfirm: string): Promise<void> => {

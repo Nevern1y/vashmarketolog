@@ -3,7 +3,6 @@
 import type { PartnerViewType } from "@/lib/types"
 import { Landmark, Users, UserCheck, FileText, LogOut, HelpCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
 
@@ -72,7 +71,7 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
       {/* Footer */}
       <div className="border-t border-white/10 p-4">
         {/* User Info */}
-        <div className="mb-4 flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
             <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
               {user?.first_name?.[0] || user?.email?.[0]?.toUpperCase() || "П"}
@@ -83,29 +82,6 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
             <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
           </div>
         </div>
-
-        {/* Support */}
-        <div className="mb-4">
-          <p className="mb-1 text-xs text-[#94a3b8]">Техподдержка</p>
-          <p className="mb-2 text-sm font-medium">8-800-800-00-00</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full border-[#FF521D] bg-transparent text-[#FF521D] hover:bg-[#FF521D] hover:text-white"
-          >
-            <HelpCircle className="mr-2 h-4 w-4" />
-            Связаться
-          </Button>
-        </div>
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2 text-sm text-[#94a3b8] hover:text-white transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          Выйти
-        </button>
       </div>
     </aside>
   )

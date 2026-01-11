@@ -13,6 +13,8 @@ import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
 import { useVerifiedDocuments, useDocumentMutations } from "@/hooks/use-documents"
 import { useApplicationMutations } from "@/hooks/use-applications"
 import { toast } from "sonner"
+import { AddClientModal } from "./add-client-modal"
+import { useCRMClientMutations } from "@/hooks/use-companies"
 
 interface CreateApplicationWizardProps {
   isOpen: boolean
@@ -226,14 +228,15 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const isAgent = user?.role === "agent"
 
   // API Hooks
-  const { clients, isLoading: clientsLoading } = useCRMClients()
+  const { clients, isLoading: clientsLoading, refetch: refetchClients } = useCRMClients()
   const { company: myCompany, isLoading: companyLoading } = useMyCompany()
   const { documents: verifiedDocs, isLoading: docsLoading } = useVerifiedDocuments()
   const { uploadDocument, isLoading: uploading } = useDocumentMutations()
   const { createApplication, submitApplication, isLoading: submitting, error } = useApplicationMutations()
+  const { createClient } = useCRMClientMutations()
 
-  // Set initial client when provided (e.g., from CRM "Create Application" action)
-  // Using useRef to track if we've already set the initial client
+  // State for Add Client Modal
+  const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const initialClientSet = useRef(false)
 
   // Effect to set initial client when wizard opens with a pre-selected client
@@ -643,6 +646,23 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setCreditDateTo("")
     setContractExecutionPercent(0)
     setIgnoreExecutionPercent(false)
+    setIgnoreExecutionPercent(false)
+  }
+
+  const handleCreateClient = async (data: any) => {
+    try {
+      const newClient = await createClient(data)
+      if (newClient) {
+        await refetchClients()
+        setSelectedCompanyId(newClient.id.toString())
+        setIsAddClientOpen(false)
+        toast.success("Клиент успешно добавлен")
+        // Don't close wizard, user continues creating app
+      }
+    } catch (err) {
+      console.error("Failed to create client", err)
+      toast.error("Не удалось создать клиента")
+    }
   }
 
   // Format amount with spaces
@@ -773,16 +793,18 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                           )}
                           {/* Add new client option */}
                           <div className="border-t mt-1 pt-1">
-                            <button
-                              className="w-full text-left px-3 py-2 text-sm text-[#3CE8D1] hover:bg-accent rounded-sm flex items-center gap-2"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                // TODO: Open add client modal
-                              }}
-                            >
-                              <Plus className="h-4 w-4" />
-                              Добавить нового клиента
-                            </button>
+                            <div className="border-t mt-1 pt-1">
+                              <button
+                                className="w-full text-left px-3 py-2 text-sm text-[#3CE8D1] hover:bg-accent rounded-sm flex items-center gap-2"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  setIsAddClientOpen(true)
+                                }}
+                              >
+                                <Plus className="h-4 w-4" />
+                                Добавить нового клиента
+                              </button>
+                            </div>
                           </div>
                         </SelectContent>
                       </Select>
@@ -2144,6 +2166,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
           }
         </div >
       </div >
-    </div >
+      <AddClientModal
+        isOpen={isAddClientOpen}
+        onClose={() => setIsAddClientOpen(false)}
+        onSubmit={handleCreateClient}
+      />
+    </div>
   )
 }

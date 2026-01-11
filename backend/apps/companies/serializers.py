@@ -74,6 +74,7 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'passport_code',
             # JSONField data (founders & bank accounts)
             'founders_data',
+            'legal_founders_data',
             'bank_accounts_data',
             # New Phase 1 JSONFields (ТЗ Клиенты)
             'leadership_data',
@@ -145,6 +146,7 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             'passport_code',
             # JSONField data
             'founders_data',
+            'legal_founders_data',
             'bank_accounts_data',
             # Tax and signatory settings
             'signatory_basis',
@@ -220,6 +222,7 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'passport_code',
             # JSONField data
             'founders_data',
+            'legal_founders_data',
             'bank_accounts_data',
             # Tax and signatory settings
             'signatory_basis',

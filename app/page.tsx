@@ -22,17 +22,21 @@ import { AdminDashboard } from "@/components/dashboard/admin-dashboard"
 import { ApplicationDetailView } from "@/components/dashboard/application-detail-view"
 import { CreateApplicationWizard } from "@/components/dashboard/create-application-wizard"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
+import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { HelpView } from "@/components/dashboard/help-view"
 import { ClientCalculatorView } from "@/components/dashboard/client-calculator-view"
 import { AgentCalculatorView } from "@/components/dashboard/agent-calculator-view"
 import { NewsView } from "@/components/dashboard/news-view"
 import { AgentDocumentsView } from "@/components/dashboard/agent-documents-view"
+import { AgentBanksView } from "@/components/dashboard/agent-banks-view"
+import { AgentCheckCounterpartyView } from "@/components/dashboard/agent-check-counterparty-view"
+import { AgentActsView } from "@/components/dashboard/agent-acts-view"
 import { ClientTenderSupportView } from "@/components/dashboard/client-tender-support-view"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 
 // Valid view values for type safety
-const AGENT_VIEWS: ViewType[] = ["company", "my_contract", "applications", "clients", "documents", "calculator", "check_counterparty", "call_database", "acts", "profile-settings", "individual_terms", "news", "help"]
+const AGENT_VIEWS: ViewType[] = ["company", "applications", "clients", "banks", "calculator", "check_counterparty", "call_database", "acts", "profile-settings", "news", "help", "documents", "contract", "bank_conditions"]
 const CLIENT_VIEWS: ClientViewType[] = ["accreditation", "company", "documents", "applications", "victories", "tender_support", "calculator", "news", "help", "profile-settings"]
 
 export default function DashboardPage() {
@@ -153,6 +157,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-1 flex-col overflow-hidden">
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
                 <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} />
               </main>
@@ -195,6 +200,7 @@ export default function DashboardPage() {
 
           <div className="flex flex-1 flex-col overflow-hidden">
             <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+            <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
             <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
               {clientView === "accreditation" && <AccreditationView />}
               {clientView === "company" && <MyCompanyView />}
@@ -260,6 +266,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-1 flex-col overflow-hidden">
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
                 <ClientsListView onCreateApplication={(clientId) => openWizard(clientId)} />
               </main>
@@ -301,6 +308,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-1 flex-col overflow-hidden">
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
                 <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} />
               </main>
@@ -343,6 +351,7 @@ export default function DashboardPage() {
 
           <div className="flex flex-1 flex-col overflow-hidden">
             <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+            <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
             <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
               {agentView === "company" && <AgentMyCompanyView />}
               {agentView === "accreditation" && <AgentAccreditationView />}
@@ -351,23 +360,35 @@ export default function DashboardPage() {
                   onOpenDetail={(id: string) => openDetail(id)}
                 />
               )}
-              {agentView === "individual_terms" && <IndividualReviewView />}
+              {agentView === "banks" && <AgentBanksView />}
               {agentView === "profile-settings" && <ProfileSettingsView />}
-              {agentView === "documents" && <AgentDocumentsView />}
               {agentView === "victories" && <MyVictoriesView />}
               {agentView === "calculator" && <AgentCalculatorView />}
+              {agentView === "check_counterparty" && <AgentCheckCounterpartyView />}
+              {agentView === "acts" && <AgentActsView />}
               {agentView === "news" && <NewsView />}
               {agentView === "help" && <HelpView />}
-              {!["company", "my_contract", "applications", "clients", "documents", "individual_terms", "profile-settings", "calculator", "news", "help", "check_counterparty", "acts", "call_database"].includes(agentView) && (
+              {agentView === "documents" && <AgentDocumentsView />}
+              {agentView === "contract" && (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-muted-foreground">Раздел "Мой договор" в разработке</p>
+                </div>
+              )}
+              {agentView === "bank_conditions" && (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-muted-foreground">Раздел "Условия банков" в разработке</p>
+                </div>
+              )}
+              {!["company", "applications", "clients", "banks", "profile-settings", "calculator", "news", "help", "check_counterparty", "acts", "call_database", "documents", "contract", "bank_conditions"].includes(agentView) && (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-muted-foreground">Раздел в разработке</p>
                 </div>
               )}
             </main>
-          </div>
+          </div >
 
           <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
-        </div>
+        </div >
       )
 
     // =====================================

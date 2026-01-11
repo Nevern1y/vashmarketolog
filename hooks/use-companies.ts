@@ -40,6 +40,7 @@ export interface FounderData {
     citizen: string;             // Гражданство
     legal_address?: FounderAddress;  // Адрес регистрации
     actual_address?: FounderAddress; // Фактический адрес
+    is_resident?: boolean;       // Резидент РФ
 }
 
 // =============================================================================
@@ -73,6 +74,47 @@ export interface ContactPersonData {
     middle_name?: string;   // Отчество
     email?: string;         // Email
     phone?: string;         // Телефон
+}
+
+// =============================================================================
+// Legal Founder data structure
+// =============================================================================
+export interface LegalFounderData {
+    share_relative?: number;
+    inn?: string;
+    ogrn?: string;
+    name?: string;
+    registration_date?: string;
+    first_registration_date?: string;
+    is_resident?: boolean;
+    bank_name?: string;
+    website?: string;
+    email?: string;
+    phone?: string;
+    director_position?: string;
+    director_name?: string;
+}
+
+// =============================================================================
+// Leadership/Management data structure
+// =============================================================================
+export interface LeaderData {
+    position?: string;
+    full_name?: string;
+    share_percent?: number;
+    citizenship?: string;
+    birth_date?: string;
+    birth_place?: string;
+    email?: string;
+    phone?: string;
+    registration_address?: string;
+    passport?: {
+        series?: string;
+        number?: string;
+        issued_date?: string;
+        issued_by?: string;
+        department_code?: string;
+    };
 }
 
 // =============================================================================
@@ -157,6 +199,8 @@ export interface Company {
     mchd_date?: string;                  // MCHD date
     // JSONField data (API-Ready for future integrations)
     founders_data: FounderData[];
+    legal_founders_data: LegalFounderData[];
+    leadership_data: LeaderData[];
     bank_accounts_data: BankAccountData[];
     etp_accounts_data: EtpAccountData[];
     contact_persons_data: ContactPersonData[];
@@ -237,6 +281,8 @@ export interface CreateCompanyPayload {
     passport_code?: string;
     // JSONField data
     founders_data?: FounderData[];
+    legal_founders_data?: LegalFounderData[];
+    leadership_data?: LeaderData[];
     bank_accounts_data?: BankAccountData[];
     etp_accounts_data?: EtpAccountData[];
     contact_persons_data?: ContactPersonData[];
@@ -264,6 +310,7 @@ export interface PaginatedResponse<T> {
 
 // Hook for current user's company
 export function useMyCompany() {
+    const { logout } = useAuth();
     const [company, setCompany] = useState<Company | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -302,6 +349,12 @@ export function useMyCompany() {
         } catch (err) {
             console.error("[DEBUG] updateCompany error:", err);
             const apiError = err as ApiError;
+
+            // Handle 401 Unauthorized - logout user
+            if (apiError.status === 401) {
+                logout();
+                return null;
+            }
 
             // Extract detailed error message
             let errorMessage = 'Ошибка обновления профиля компании';
@@ -351,6 +404,12 @@ export function useMyCompany() {
         } catch (err) {
             console.error("[DEBUG] createCompany error:", err);
             const apiError = err as ApiError;
+
+            // Handle 401 Unauthorized - logout user
+            if (apiError.status === 401) {
+                logout();
+                return null;
+            }
 
             // Extract detailed error message
             let errorMessage = 'Ошибка создания профиля компании';

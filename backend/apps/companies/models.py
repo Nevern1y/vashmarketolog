@@ -273,7 +273,34 @@ class CompanyProfile(models.Model):
             "birth_place": "Место рождения",
             "birth_date": "YYYY-MM-DD",
             "gender": 1 или 2,
-            "citizen": "РФ"
+            "citizen": "РФ",
+            "legal_address": {"value": "...", "postal_code": "..."},
+            "is_resident": true/false
+        }]'''
+    )
+    
+    # =============================================================================
+    # LEGAL FOUNDERS STRUCTURE (ТЗ: Раздел Учредители - Юридические лица)
+    # =============================================================================
+    legal_founders_data = models.JSONField(
+        'Учредители - Юр.лица (JSON)',
+        default=list,
+        blank=True,
+        help_text='''Список учредителей (юр.лица):
+        [{
+            "share_relative": 10,
+            "inn": "77...",
+            "ogrn": "102...",
+            "name": "ООО Ромашка",
+            "registration_date": "YYYY-MM-DD",
+            "first_registration_date": "YYYY-MM-DD",
+            "is_resident": true,
+            "bank_name": "Сбер",
+            "website": "...",
+            "email": "...",
+            "phone": "...",
+            "director_position": "Гендир",
+            "director_name": "Иванов И.И."
         }]'''
     )
     
