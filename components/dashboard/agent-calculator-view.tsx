@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
-import { useMyCompany, useCRMClients, useCRMClientMutations, type CompanyListItem } from "@/hooks/use-companies"
+import { useMyCompany, useCRMClients, useCRMClientMutations, type CreateCompanyPayload, type CompanyListItem } from "@/hooks/use-companies"
 import { AddClientModal } from "./add-client-modal"
 
 // =============================================================================
@@ -209,7 +209,7 @@ export function AgentCalculatorView() {
     const { company: agentCompany, isLoading: isLoadingCompany } = useMyCompany()
 
     // CRM Clients hook - for selecting which client to create application for
-    const { clients, isLoading: clientsLoading } = useCRMClients()
+    const { clients, isLoading: clientsLoading, refetch: refetchClients } = useCRMClients()
     const [selectedClientId, setSelectedClientId] = useState<string>("")
 
     // Get confirmed clients only (clients invited by this agent)
@@ -565,6 +565,21 @@ export function AgentCalculatorView() {
         setIsSubmitting(false)
         setShowResults(productType)
         setSelectedOffers(new Set())
+    }
+
+    // Handle add new client from modal
+    const handleAddClient = async (newClient: CreateCompanyPayload) => {
+        const created = await createClient(newClient)
+        if (created) {
+            toast.success(`Клиент "${newClient.name}" добавлен`)
+            setIsAddClientOpen(false)
+            await refetchClients()
+            if (created.id) {
+                setSelectedClientId(created.id.toString())
+            }
+        } else {
+            toast.error("Ошибка добавления клиента")
+        }
     }
 
     // Handle create application - REAL API INTEGRATION
@@ -1333,7 +1348,10 @@ export function AgentCalculatorView() {
                                 <Label className="text-sm font-medium text-white">Выберите клиента для заявки *</Label>
                                 <Select value={selectedClientId} onValueChange={(val) => {
                                     if (val === "add_new_client") {
-                                        setIsAddClientOpen(true)
+                                        setSelectedClientId("")
+                                        setTimeout(() => {
+                                            setIsAddClientOpen(true)
+                                        }, 200)
                                     } else {
                                         setSelectedClientId(val)
                                     }
@@ -1440,6 +1458,15 @@ export function AgentCalculatorView() {
                 <p className="text-center text-xs text-muted-foreground">
                     Приведенные расчеты стоимости являются предварительными и не являются публичной офертой.
                 </p>
+
+                {/* Add Client Modal */}
+                <AddClientModal
+                    isOpen={isAddClientOpen}
+                    onClose={() => {
+                        setIsAddClientOpen(false)
+                    }}
+                    onSubmit={handleAddClient}
+                />
             </div>
         )
     }
@@ -2861,6 +2888,15 @@ export function AgentCalculatorView() {
                     </Card>
                 </TabsContent >
             </Tabs >
+
+            {/* Add Client Modal */}
+            <AddClientModal
+                isOpen={isAddClientOpen}
+                onClose={() => {
+                    setIsAddClientOpen(false)
+                }}
+                onSubmit={handleAddClient}
+            />
         </div >
     )
 }

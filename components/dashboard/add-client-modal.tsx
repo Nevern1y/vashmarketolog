@@ -109,8 +109,14 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
         onClose()
     }
 
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            handleClose()
+        }
+    }
+
     return (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <div className="flex items-center gap-3">
