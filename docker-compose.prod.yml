@@ -73,7 +73,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ALLOWED_HOSTS=.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost
-      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,http://85.198.97.62
+      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,http://85.198.97.62,https://85.198.97.62
       - SECURE_SSL_REDIRECT=False # Nginx handles SSL
       # Bank API
       - BANK_API_URL=${BANK_API_URL:-https://stagebg.realistbank.ru/agent_api1_1}
@@ -104,7 +104,7 @@ services:
       context: .
       dockerfile: Dockerfile.prod
       args:
-        - NEXT_PUBLIC_API_URL=http://85.198.97.62/api
+        - NEXT_PUBLIC_API_URL=https://85.198.97.62/api
     container_name: lider_prod_frontend
     restart: always
     environment:
