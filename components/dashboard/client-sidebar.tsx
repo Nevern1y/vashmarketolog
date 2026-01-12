@@ -15,6 +15,9 @@ import {
   Settings,
   AlertTriangle,
   Briefcase,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -29,6 +32,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
@@ -50,7 +59,6 @@ const mainNavItems = [
   { id: "tender_support" as ClientViewType, label: "Сопровождение", icon: Briefcase },
 ]
 
-// Client menu items per CSV specification (ЛК Клиента Меню)
 const toolsNavItems = [
   { id: "calculator" as ClientViewType, label: "Калькулятор", icon: Calculator },
   { id: "news" as ClientViewType, label: "Новости", icon: Newspaper },
@@ -62,29 +70,23 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
   const { avatar, getInitials } = useAvatar()
   const { company, isLoading: companyLoading } = useMyCompany()
 
-  // 🛡️ Accreditation Guard State
   const [showGuardAlert, setShowGuardAlert] = useState(false)
 
   const handleLogout = async () => {
     await logout()
   }
 
-  // 🛡️ Guard Check: Can user create application?
   const handleCreateClick = () => {
-    // Wait for company data to load
     if (companyLoading) return
 
-    // Check if company exists and has required data (at least INN)
     if (!company || !company.inn) {
       setShowGuardAlert(true)
       return
     }
 
-    // Redirect to Calculator for application creation
     onViewChange("calculator")
   }
 
-  // Navigate to company profile and close dialog
   const handleGoToProfile = () => {
     setShowGuardAlert(false)
     onViewChange("company")
@@ -157,7 +159,6 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
 
         {/* Footer */}
         <div className="border-t border-white/10 p-4">
-          {/* User Info */}
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
               <AvatarImage src={avatar || undefined} alt="Фото профиля" />
@@ -173,8 +174,6 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
         </div>
       </aside>
 
-
-      {/* 🛡️ Accreditation Guard Alert Dialog */}
       <AlertDialog open={showGuardAlert} onOpenChange={setShowGuardAlert}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>

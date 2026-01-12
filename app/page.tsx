@@ -163,6 +163,7 @@ export default function DashboardPage() {
                     openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
+
                 />
               </div>
             </div>
@@ -193,6 +194,7 @@ export default function DashboardPage() {
                   closeDetail()
                 }}
                 onCreateApplication={() => openWizard()}
+
               />
             </div>
 
@@ -210,6 +212,7 @@ export default function DashboardPage() {
                     openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
+
                 />
               </div>
             </div>
@@ -236,6 +239,7 @@ export default function DashboardPage() {
               activeView={clientView}
               onViewChange={setClientView}
               onCreateApplication={() => openWizard()}
+
             />
           </div>
 
@@ -253,6 +257,7 @@ export default function DashboardPage() {
                   openWizard()
                   setIsMobileSidebarOpen(false)
                 }}
+
               />
             </div>
           </div>
@@ -304,6 +309,7 @@ export default function DashboardPage() {
                   setAgentView(view)
                 }}
                 onCreateApplication={() => openWizard()}
+
               />
             </div>
 
@@ -320,6 +326,7 @@ export default function DashboardPage() {
                     openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
+
                 />
               </div>
             </div>
@@ -349,6 +356,7 @@ export default function DashboardPage() {
                   closeCalculationSession()
                 }}
                 onCreateApplication={() => openWizard()}
+
               />
             </div>
 
@@ -366,6 +374,7 @@ export default function DashboardPage() {
                     openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
+
                 />
               </div>
             </div>
@@ -393,6 +402,7 @@ export default function DashboardPage() {
                 activeView={agentView}
                 onViewChange={setAgentView}
                 onCreateApplication={() => openWizard()}
+
               />
             </div>
 
@@ -409,6 +419,7 @@ export default function DashboardPage() {
                     openWizard()
                     setIsMobileSidebarOpen(false)
                   }}
+
                 />
               </div>
             </div>
@@ -436,6 +447,7 @@ export default function DashboardPage() {
                 setAgentView(view)
               }}
               onCreateApplication={() => openWizard()}
+
             />
           </div>
 
@@ -452,6 +464,7 @@ export default function DashboardPage() {
                   openWizard()
                   setIsMobileSidebarOpen(false)
                 }}
+
               />
             </div>
           </div>

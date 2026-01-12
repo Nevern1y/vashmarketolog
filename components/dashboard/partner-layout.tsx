@@ -13,6 +13,7 @@ import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { useApplications } from "@/hooks/use-applications"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
+
 import { cn } from "@/lib/utils"
 import { HelpView } from "@/components/dashboard/help-view"
 
@@ -28,6 +29,7 @@ export function PartnerLayout() {
     const [activeView, setActiveView] = usePersistedView<PartnerViewType>("view", "my_bank", PARTNER_VIEWS)
     const { appId: selectedApplicationId, openDetail, closeDetail } = usePersistedAppDetail()
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+
 
     // Fetch applications - backend filters by assigned_partner automatically
     const { applications } = useApplications()
@@ -116,6 +118,7 @@ export function PartnerLayout() {
                     activeView={activeView}
                     onViewChange={handleViewChange}
                     newApplicationsCount={newApplicationsCount}
+
                 />
             </div>
 
@@ -127,6 +130,7 @@ export function PartnerLayout() {
                         activeView={activeView}
                         onViewChange={handleViewChange}
                         newApplicationsCount={newApplicationsCount}
+
                     />
                 </div>
             </div>

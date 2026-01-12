@@ -310,7 +310,7 @@ export interface PaginatedResponse<T> {
 
 // Hook for current user's company
 export function useMyCompany() {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     const [company, setCompany] = useState<Company | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -335,6 +335,15 @@ export function useMyCompany() {
             setIsLoading(false);
         }
     }, []);
+
+    const fetchCompanyWithRoleCheck = useCallback(async () => {
+        if (!user || (user.role !== 'client' && user.role !== 'agent')) {
+            setCompany(null);
+            setIsLoading(false);
+            return;
+        }
+        fetchCompany();
+    }, [user, fetchCompany]);
 
     const updateCompany = useCallback(async (data: Partial<CreateCompanyPayload>): Promise<Company | null> => {
         setIsSaving(true);
@@ -442,8 +451,8 @@ export function useMyCompany() {
     }, []);
 
     useEffect(() => {
-        fetchCompany();
-    }, [fetchCompany]);
+        fetchCompanyWithRoleCheck();
+    }, [fetchCompanyWithRoleCheck]);
 
     return {
         company,

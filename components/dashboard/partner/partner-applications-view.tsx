@@ -301,14 +301,14 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="border-[#1e3a5f] hover:bg-transparent">
-                                            <TableHead className="text-[#94a3b8] font-medium">№ заявки / № извещ.</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">Продукт</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">Дата созд.</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">МФО/Банк</TableHead>
-                                            {userRole !== 'client' && <TableHead className="text-[#94a3b8] font-medium">Агент</TableHead>}
-                                            {userRole !== 'client' && <TableHead className="text-[#94a3b8] font-medium">Клиент</TableHead>}
-                                            <TableHead className="text-[#94a3b8] font-medium text-right">Сумма, ₽</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">Статус</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium min-w-[120px]">№ заявки / № извещ.</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium min-w-[100px]">Продукт</TableHead>
+                                            <TableHead className="hidden lg:table-cell text-[#94a3b8] font-medium min-w-[100px]">Дата созд.</TableHead>
+                                            <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[120px]">МФО/Банк</TableHead>
+                                            {userRole !== 'client' && <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[120px]">Агент</TableHead>}
+                                            {userRole !== 'client' && <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[150px]">Клиент</TableHead>}
+                                            <TableHead className="hidden lg:table-cell text-[#94a3b8] font-medium min-w-[100px] text-right">Сумма, ₽</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium min-w-[100px]">Статус</TableHead>
                                             <TableHead className="text-[#94a3b8] font-medium w-10"></TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -338,26 +338,26 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                                         {getProductType(app)}
                                                     </Badge>
                                                 </TableCell>
-                                                <TableCell className="text-white">
+                                                <TableCell className="hidden lg:table-cell text-white">
                                                     {new Date(app.created_at).toLocaleDateString('ru-RU')}
                                                 </TableCell>
-                                                <TableCell className="text-white">
+                                                <TableCell className="hidden xl:table-cell text-white">
                                                     {app.target_bank_name || '-'}
                                                 </TableCell>
                                                 {userRole !== 'client' && (
-                                                    <TableCell>
+                                                    <TableCell className="hidden xl:table-cell">
                                                         <span className="text-[#3CE8D1]">{app.created_by_name || app.created_by_email || '-'}</span>
                                                     </TableCell>
                                                 )}
                                                 {userRole !== 'client' && (
-                                                    <TableCell>
+                                                    <TableCell className="hidden xl:table-cell">
                                                         <div className="flex flex-col">
                                                             <span className="text-white font-medium">{app.company_name}</span>
                                                             <span className="text-xs text-[#94a3b8]">ИНН: {app.company_inn}</span>
                                                         </div>
                                                     </TableCell>
                                                 )}
-                                                <TableCell className="text-right">
+                                                <TableCell className="hidden lg:table-cell text-right">
                                                     <span className="text-white font-medium">
                                                         {parseFloat(app.amount || '0').toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
                                                     </span>

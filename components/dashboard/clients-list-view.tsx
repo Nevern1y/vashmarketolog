@@ -372,13 +372,13 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Краткое наименование</TableHead>
-                  <TableHead>ИНН / ОГРН</TableHead>
-                  <TableHead>Контакты</TableHead>
-                  <TableHead>Регион</TableHead>
-                  <TableHead>Акт. заявки</TableHead>
-                  <TableHead>Статус клиента</TableHead>
-                  <TableHead>Аккредитация</TableHead>
+                  <TableHead className="min-w-[200px]">Краткое наименование</TableHead>
+                  <TableHead className="hidden lg:table-cell min-w-[120px]">ИНН / ОГРН</TableHead>
+                  <TableHead className="hidden xl:table-cell min-w-[150px]">Контакты</TableHead>
+                  <TableHead className="hidden xl:table-cell min-w-[120px]">Регион</TableHead>
+                  <TableHead className="hidden xl:table-cell min-w-[80px]">Акт. заявки</TableHead>
+                  <TableHead className="min-w-[120px]">Статус клиента</TableHead>
+                  <TableHead className="hidden lg:table-cell min-w-[120px]">Аккредитация</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -416,7 +416,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                         </div>
                       </TableCell>
                       {/* Column 2: ИНН / ОГРН per ТЗ */}
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div>
                           <p className="font-mono text-sm font-medium">{client.inn || "—"}</p>
                           {client.ogrn && (
@@ -425,18 +425,18 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                         </div>
                       </TableCell>
                       {/* Column 3: Контакты (email/phone) */}
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <div className="text-sm">
                           <p className="text-foreground">{client.contact_person || "—"}</p>
                           <p className="text-xs text-muted-foreground">{client.email || client.phone || "—"}</p>
                         </div>
                       </TableCell>
                       {/* Column 4: Регион */}
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <span className="text-sm text-muted-foreground">{client.region || "—"}</span>
                       </TableCell>
                       {/* Column 5: Акт. заявки */}
-                      <TableCell>
+                      <TableCell className="hidden xl:table-cell">
                         <span className="inline-flex h-6 min-w-6 px-2 items-center justify-center rounded-full bg-[#3CE8D1]/10 text-xs font-semibold text-[#3CE8D1]">
                           {client.applications_count ?? "—"}
                         </span>
@@ -446,7 +446,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                         {getStatusBadge(client)}
                       </TableCell>
                       {/* Column 7: Аккредитация */}
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {getAccreditationBadge(client)}
                       </TableCell>
                       {/* Column 7: Actions */}

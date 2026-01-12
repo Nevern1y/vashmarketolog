@@ -1,10 +1,17 @@
 "use client"
 
 import type { PartnerViewType } from "@/lib/types"
-import { Landmark, Users, UserCheck, FileText, LogOut, HelpCircle } from "lucide-react"
+import { Landmark, Users, UserCheck, FileText, LogOut, HelpCircle, ChevronLeft, ChevronRight, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth-context"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface PartnerSidebarProps {
   activeView: PartnerViewType
@@ -12,7 +19,6 @@ interface PartnerSidebarProps {
   newApplicationsCount?: number
 }
 
-// Partner menu items per CSV specification (ЛК Партнера Меню)
 const navItems = [
   { id: "my_bank" as PartnerViewType, label: "Мой банк/МФО", icon: Landmark },
   { id: "clients" as PartnerViewType, label: "Мои клиенты", icon: Users },
@@ -41,8 +47,8 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
         <p className="text-sm font-semibold">Финансовая организация</p>
       </div>
 
-      {/* Navigation - NO Create Application Button for Partners */}
-      <nav className="flex-1 px-3">
+      {/* Navigation */}
+      <nav className="flex-1 px-3 overflow-y-auto">
         <ul className="space-y-1">
           {navItems.map((item) => (
             <li key={item.id}>
@@ -70,7 +76,6 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
 
       {/* Footer */}
       <div className="border-t border-white/10 p-4">
-        {/* User Info */}
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
             <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">

@@ -55,7 +55,7 @@ export function PartnerClientsView() {
             </div>
 
             {/* Stats Cards with Real Data */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <Card className="bg-[#0f2042] border-[#1e3a5f]">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-sm font-medium text-[#94a3b8]">

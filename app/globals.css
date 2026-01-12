@@ -117,6 +117,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --breakpoint-mdx: 1152px;
 }
 
 @layer base {
@@ -126,6 +127,25 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ============================================
+   🖥️ CUSTOM BREAKPOINT - MDX (1152px)
+   For laptop screens between lg:1024px and xl:1280px
+   ============================================ */
+
+@media (min-width: 1152px) {
+  .mdx\:block { display: block; }
+  .mdx\:hidden { display: none; }
+  .mdx\:flex { display: flex; }
+  .mdx\:grid { display: grid; }
+  .mdx\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mdx\:col-span-1 { grid-column: span 1 / span 1; }
+  .mdx\:col-span-2 { grid-column: span 2 / span 2; }
+  .mdx\:table-cell { display: table-cell; }
+  .mdx\:p-6 { padding: 1.5rem; }
+  .mdx\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .mdx\:gap-4 { gap: 1rem; }
 }
 
 /* ============================================

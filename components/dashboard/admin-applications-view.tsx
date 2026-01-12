@@ -750,19 +750,19 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                     <thead>
                                         <tr className="border-b border-border bg-muted/30">
                                             <th className="text-left text-xs font-semibold text-muted-foreground p-4 w-10"></th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">#</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Компания</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Продукт</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Закон</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">МФО/Банк</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Сумма</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Создатель</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Статус</th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Дата</th>
-                                            <th className="text-center text-xs font-semibold text-muted-foreground p-4">
+                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[60px]">#</th>
+                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[200px]">Компания</th>
+                                            <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">Продукт</th>
+                                            <th className="hidden xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Закон</th>
+                                            <th className="hidden xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">МФО/Банк</th>
+                                            <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Сумма</th>
+                                            <th className="hidden xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[150px]">Создатель</th>
+                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Статус</th>
+                                            <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Дата</th>
+                                            <th className="hidden 2xl:table-cell text-center text-xs font-semibold text-muted-foreground p-4 min-w-[50px]">
                                                 <MessageSquare className="h-4 w-4 mx-auto" />
                                             </th>
-                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4">Действия</th>
+                                            <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[50px]">Действия</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">
@@ -804,12 +804,12 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm text-foreground">
                                                                 {PRODUCT_TABS.find(p => p.value === app.product_type)?.shortLabel || app.product_type}
                                                             </span>
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="hidden xl:table-cell p-4">
                                                             {law ? (
                                                                 <Badge variant="outline" className="text-xs">
                                                                     {TENDER_LAW_LABELS[law] || law}
@@ -818,17 +818,17 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 <span className="text-muted-foreground">—</span>
                                                             )}
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="hidden xl:table-cell p-4">
                                                             <span className="text-sm text-foreground">
                                                                 {app.target_bank_name || "—"}
                                                             </span>
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm font-medium text-foreground">
                                                                 {formatCurrency(app.amount)} ₽
                                                             </span>
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="hidden xl:table-cell p-4">
                                                             <div className="max-w-[150px]">
                                                                 <p className="text-sm text-foreground truncate">
                                                                     {app.created_by_name || "—"}
@@ -845,12 +845,12 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 {statusCfg.label}
                                                             </Badge>
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm text-muted-foreground">
                                                                 {formatDate(app.created_at)}
                                                             </span>
                                                         </td>
-                                                        <td className="p-4 text-center">
+                                                        <td className="hidden 2xl:table-cell p-4 text-center">
                                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
                                                                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                                                             </Button>

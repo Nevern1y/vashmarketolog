@@ -17,12 +17,22 @@ import {
   PhoneCall,
   ScrollText,
   Folder,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Menu,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
 import { useAvatar } from "@/hooks/use-avatar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 
 interface SidebarProps {
@@ -39,12 +49,10 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
     await logout()
   }
 
-  // Handle create application - redirect to calculator
   const handleCreateApplication = () => {
     onViewChange("calculator")
   }
 
-  // Agent menu items - new structure without accreditation
   const mainNavItems = [
     { id: "company" as ViewType, label: "Моя компания", icon: Building2 },
     { id: "applications" as ViewType, label: "Мои заявки", icon: FileText },
@@ -79,7 +87,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
         </Button>
       </div>
 
-      {/* Main Navigation - with scroll */}
+      {/* Main Navigation */}
       <nav className="flex-1 px-3 overflow-y-auto">
         <ul className="space-y-0.5">
           {mainNavItems.map((item) => (
@@ -126,7 +134,6 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
 
       {/* Footer */}
       <div className="border-t border-white/10 p-3">
-        {/* User Info */}
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border-2 border-[#3CE8D1]">
             <AvatarImage src={avatar || undefined} alt="Фото профиля" />
@@ -143,4 +150,3 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
     </aside>
   )
 }
-

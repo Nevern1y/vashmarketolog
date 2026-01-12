@@ -327,9 +327,9 @@ export function HelpView() {
             </div>
 
             {/* FAQ Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {/* Sidebar - Product Categories */}
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 xl:col-span-1">
                     <div className="sticky top-4 p-4 rounded-xl bg-card border border-border">
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">
                             Категории
