@@ -53,7 +53,6 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
     { id: "banks" as ViewType, label: "Банки", icon: Landmark },
     { id: "acts" as ViewType, label: "Акты", icon: FileCheck },
     { id: "check_counterparty" as ViewType, label: "Проверка контрагента", icon: Search },
-    { id: "profile-settings" as ViewType, label: "Настройки", icon: Settings },
   ]
 
   const toolsNavItems = [

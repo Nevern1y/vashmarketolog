@@ -2,7 +2,66 @@
 API Serializers for Applications.
 """
 from rest_framework import serializers
-from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus
+from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, CalculationSession
+
+
+class CalculationSessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for CalculationSession (root application).
+    Used to return to bank selection page from application detail.
+    """
+    created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    product_type_display = serializers.CharField(source='get_product_type_display', read_only=True)
+    remaining_banks_count = serializers.IntegerField(read_only=True)
+    applications_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CalculationSession
+        fields = [
+            'id',
+            'created_by',
+            'created_by_email',
+            'company',
+            'company_name',
+            'product_type',
+            'product_type_display',
+            'form_data',
+            'approved_banks',
+            'rejected_banks',
+            'submitted_banks',
+            'title',
+            'remaining_banks_count',
+            'applications_count',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_by', 'created_by_email', 'remaining_banks_count', 'applications_count', 'created_at', 'updated_at']
+
+    def get_applications_count(self, obj):
+        return obj.applications.count()
+
+
+class CalculationSessionCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating CalculationSession.
+    """
+    class Meta:
+        model = CalculationSession
+        fields = [
+            'id',
+            'company',
+            'product_type',
+            'form_data',
+            'approved_banks',
+            'rejected_banks',
+            'title',
+        ]
+        read_only_fields = ['id']
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        return super().create(validated_data)
 
 
 class CompanyDataForPartnerSerializer(serializers.Serializer):
@@ -115,6 +174,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'industry',                # Tender Support
             'account_type',            # RKO/SpecAccount
             'target_bank_name',  # For Admin routing
+            'calculation_session',  # Link to root application (bank selection)
             'tender_number',
             'tender_platform',
             'tender_deadline',
@@ -146,6 +206,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'partner_email',
             'has_signature',
             'decisions_count',
+            'calculation_session',  # Link to root application
             'external_id',
             'bank_status',
             'created_at',
@@ -190,6 +251,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             'financing_term_days',  # Term in days for credits
             'pledge_description',   # Collateral description
             'target_bank_name',  # For Admin routing
+            'calculation_session',  # Link to root application (bank selection page)
             'tender_number',
             'tender_platform',
             'tender_deadline',

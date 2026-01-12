@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils"
 
 interface PartnerApplicationsViewProps {
     onOpenDetail?: (id: string) => void
+    userRole?: "client" | "agent" | "partner" | "admin"
 }
 
 const PRODUCT_TABS = [
@@ -56,7 +57,7 @@ const PRODUCT_TABS = [
  * PartnerApplicationsView - Responsive applications list
  * Desktop: Table view | Mobile: Card view
  */
-export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsViewProps) {
+export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerApplicationsViewProps) {
     const { applications, isLoading } = useApplications()
     const [searchQuery, setSearchQuery] = useState("")
     const [productFilter, setProductFilter] = useState<string>("all")
@@ -130,7 +131,8 @@ export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsVie
         const productLabel = productTypeMap[app.product_type] || app.product_type_display || app.product_type
         const law = app.goscontract_data?.law || app.tender_law
         if (law && (app.product_type === "bank_guarantee" || app.product_type === "tender_loan" || app.product_type === "contract_loan")) {
-            return `${productLabel} ${law}`
+            // User request: Law info is low priority, don't show it
+            return productLabel
         }
         return productLabel
     }
@@ -163,14 +165,16 @@ export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsVie
                 </div>
             </div>
 
-            {/* Company */}
-            <div className="flex items-center gap-2 mb-2">
-                <Building2 className="h-4 w-4 text-[#94a3b8] shrink-0" />
-                <div className="min-w-0">
-                    <p className="text-white font-medium truncate">{app.company_name}</p>
-                    <p className="text-xs text-[#94a3b8]">ИНН: {app.company_inn}</p>
+            {/* Company - Hide for Client */}
+            {userRole !== 'client' && (
+                <div className="flex items-center gap-2 mb-2">
+                    <Building2 className="h-4 w-4 text-[#94a3b8] shrink-0" />
+                    <div className="min-w-0">
+                        <p className="text-white font-medium truncate">{app.company_name}</p>
+                        <p className="text-xs text-[#94a3b8]">ИНН: {app.company_inn}</p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Amount + Date */}
             <div className="flex items-center justify-between gap-4 text-sm">
@@ -188,10 +192,15 @@ export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsVie
 
             {/* Agent + Bank */}
             <div className="flex items-center justify-between gap-4 mt-2 pt-2 border-t border-[#1e3a5f] text-sm">
-                <div className="flex items-center gap-2 min-w-0">
-                    <User className="h-4 w-4 text-[#94a3b8] shrink-0" />
-                    <span className="text-[#3CE8D1] truncate">{app.created_by_name || app.created_by_email || '-'}</span>
-                </div>
+                {/* Hide Agent for Client */}
+                {userRole !== 'client' ? (
+                    <div className="flex items-center gap-2 min-w-0">
+                        <User className="h-4 w-4 text-[#94a3b8] shrink-0" />
+                        <span className="text-[#3CE8D1] truncate">{app.created_by_name || app.created_by_email || '-'}</span>
+                    </div>
+                ) : (
+                    <div></div> // Empty spacer if Agent hidden
+                )}
                 {app.target_bank_name && (
                     <span className="text-[#94a3b8] truncate">{app.target_bank_name}</span>
                 )}
@@ -293,11 +302,11 @@ export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsVie
                                     <TableHeader>
                                         <TableRow className="border-[#1e3a5f] hover:bg-transparent">
                                             <TableHead className="text-[#94a3b8] font-medium">№ заявки / № извещ.</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">ФЗ</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium">Продукт</TableHead>
                                             <TableHead className="text-[#94a3b8] font-medium">Дата созд.</TableHead>
                                             <TableHead className="text-[#94a3b8] font-medium">МФО/Банк</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">Агент</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium">Клиент</TableHead>
+                                            {userRole !== 'client' && <TableHead className="text-[#94a3b8] font-medium">Агент</TableHead>}
+                                            {userRole !== 'client' && <TableHead className="text-[#94a3b8] font-medium">Клиент</TableHead>}
                                             <TableHead className="text-[#94a3b8] font-medium text-right">Сумма, ₽</TableHead>
                                             <TableHead className="text-[#94a3b8] font-medium">Статус</TableHead>
                                             <TableHead className="text-[#94a3b8] font-medium w-10"></TableHead>
@@ -335,15 +344,19 @@ export function PartnerApplicationsView({ onOpenDetail }: PartnerApplicationsVie
                                                 <TableCell className="text-white">
                                                     {app.target_bank_name || '-'}
                                                 </TableCell>
-                                                <TableCell>
-                                                    <span className="text-[#3CE8D1]">{app.created_by_name || app.created_by_email || '-'}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-white font-medium">{app.company_name}</span>
-                                                        <span className="text-xs text-[#94a3b8]">ИНН: {app.company_inn}</span>
-                                                    </div>
-                                                </TableCell>
+                                                {userRole !== 'client' && (
+                                                    <TableCell>
+                                                        <span className="text-[#3CE8D1]">{app.created_by_name || app.created_by_email || '-'}</span>
+                                                    </TableCell>
+                                                )}
+                                                {userRole !== 'client' && (
+                                                    <TableCell>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-white font-medium">{app.company_name}</span>
+                                                            <span className="text-xs text-[#94a3b8]">ИНН: {app.company_inn}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                )}
                                                 <TableCell className="text-right">
                                                     <span className="text-white font-medium">
                                                         {parseFloat(app.amount || '0').toLocaleString('ru-RU', { minimumFractionDigits: 2 })}

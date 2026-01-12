@@ -98,7 +98,6 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="text-right leading-tight">
-                                    <p className="text-[10px] text-[#94a3b8] uppercase tracking-wide">{roleLabel}</p>
                                     <p className="text-sm font-medium text-white max-w-[160px] truncate">
                                         {companyLoading ? "..." : companyName}
                                     </p>
@@ -142,7 +141,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
 
             {/* Contact Popup */}
             <Dialog open={showContactPopup} onOpenChange={setShowContactPopup}>
-                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0">
+                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                     <div className="p-5">
                         <DialogHeader className="mb-5">
                             <DialogTitle className="text-lg font-semibold text-white">Связаться с нами</DialogTitle>

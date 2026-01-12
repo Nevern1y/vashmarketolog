@@ -162,11 +162,41 @@ export interface Application {
         agent?: number;
         default?: number;
     } | null;
+    // Link to calculation session (root application)
+    calculation_session: number | null;
     created_at: string;
     updated_at: string;
     submitted_at: string | null;
 }
 
+// CalculationSession - stores calculation results for "Результат отбора" page
+export interface CalculationSession {
+    id: number;
+    created_by: number;
+    created_by_email: string;
+    company: number;
+    company_name: string;
+    product_type: string;
+    product_type_display: string;
+    form_data: Record<string, unknown>;
+    approved_banks: Array<{
+        name: string;
+        bgRate: number;
+        creditRate: number;
+        speed: string;
+        individual?: boolean;
+    }>;
+    rejected_banks: Array<{
+        bank: string;
+        reason: string;
+    }>;
+    submitted_banks: string[];
+    title: string;
+    remaining_banks_count: number;
+    applications_count: number;
+    created_at: string;
+    updated_at: string;
+}
 
 
 export interface ApplicationListItem {
@@ -343,6 +373,24 @@ export function useApplication(id: number | string | null, pollingInterval: numb
 
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Start/stop polling
+    const startPolling = useCallback((callback?: () => void) => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+        }
+
+        pollingRef.current = setInterval(() => {
+            callback?.();
+        }, pollingInterval);
+    }, [pollingInterval]);
+
+    const stopPolling = useCallback(() => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, []);
+
     const fetchApplication = useCallback(async (showLoading: boolean = false) => {
         if (!id) return;
 
@@ -356,35 +404,23 @@ export function useApplication(id: number | string | null, pollingInterval: numb
             setApplication(response);
         } catch (err) {
             const apiError = err as ApiError;
+            // If 404 (not found), it likely means it was deleted. Stop polling and don't show error.
+            if (apiError.status === 404) {
+                stopPolling();
+                return;
+            }
             setError(apiError.message || 'Ошибка загрузки заявки');
         } finally {
             setIsLoading(false);
         }
-    }, [id]);
-
-    // Start/stop polling
-    const startPolling = useCallback(() => {
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-        }
-
-        pollingRef.current = setInterval(() => {
-            fetchApplication(false); // Silent refetch without loading state
-        }, pollingInterval);
-    }, [fetchApplication, pollingInterval]);
-
-    const stopPolling = useCallback(() => {
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    }, []);
+    }, [id, stopPolling]);
 
     // Initialize on mount and when id changes
     useEffect(() => {
         if (id) {
             fetchApplication(true); // Initial load with loading state
-            startPolling();
+            // Start polling with the fetch callback
+            startPolling(() => fetchApplication(false));
         }
 
         return () => {
@@ -634,3 +670,95 @@ export function usePartnerActions() {
     };
 }
 
+// Hook for fetching a single CalculationSession
+export function useCalculationSession(id: number | string | null) {
+    const [session, setSession] = useState<CalculationSession | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchSession = useCallback(async () => {
+        if (!id) return;
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.get<CalculationSession>(`/applications/calculation-sessions/${id}/`);
+            setSession(response);
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка загрузки сессии калькуляции');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (id) {
+            fetchSession();
+        }
+    }, [id, fetchSession]);
+
+    return {
+        session,
+        isLoading,
+        error,
+        refetch: fetchSession,
+    };
+}
+
+// Hook for CalculationSession mutations
+export function useCalculationSessionMutations() {
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const createSession = useCallback(async (payload: {
+        company: number;
+        product_type: string;
+        form_data: Record<string, unknown>;
+        approved_banks: Array<{ name: string; bgRate: number; creditRate: number; speed: string; individual?: boolean }>;
+        rejected_banks: Array<{ bank: string; reason: string }>;
+        title: string;
+    }): Promise<CalculationSession | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<CalculationSession>('/applications/calculation-sessions/', payload);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка создания сессии калькуляции');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const updateSubmittedBanks = useCallback(async (sessionId: number, bankNames: string[]): Promise<CalculationSession | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<CalculationSession>(
+                `/applications/calculation-sessions/${sessionId}/update_submitted/`,
+                { bank_names: bankNames }
+            );
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка обновления сессии');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    return {
+        isLoading,
+        error,
+        createSession,
+        updateSubmittedBanks,
+        clearError: () => setError(null),
+    };
+}

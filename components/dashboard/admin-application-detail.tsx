@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,6 +28,12 @@ import {
     X,
     RefreshCw,
     Eye,
+    MapPin,
+    CreditCard,
+    Banknote,
+    Briefcase,
+    Shield,
+    Users,
 } from "lucide-react"
 import { useApplication, usePartnerActions } from "@/hooks/use-applications"
 import { toast } from "sonner"
@@ -42,6 +48,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { ApplicationChat } from "./application-chat"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface AdminApplicationDetailProps {
     applicationId: string
@@ -49,12 +56,14 @@ interface AdminApplicationDetailProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+    draft: { label: "Черновик", color: "text-gray-500", bgColor: "bg-gray-500/10" },
     pending: { label: "Новая", color: "text-amber-500", bgColor: "bg-amber-500/10" },
     in_review: { label: "В работе", color: "text-blue-500", bgColor: "bg-blue-500/10" },
     info_requested: { label: "Запрос инфо", color: "text-orange-500", bgColor: "bg-orange-500/10" },
     approved: { label: "Одобрено", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
     rejected: { label: "Отклонено", color: "text-rose-500", bgColor: "bg-rose-500/10" },
     won: { label: "Выигран", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
+    lost: { label: "Проигран", color: "text-rose-500", bgColor: "bg-rose-500/10" },
 }
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -71,7 +80,7 @@ const PRODUCT_LABELS: Record<string, string> = {
     tender_support: "Тендерное сопровождение",
 }
 
-// Bank Guarantee types (ТЗ: Банковская гарантия)
+// Bank Guarantee types
 const GUARANTEE_TYPE_LABELS: Record<string, string> = {
     application_security: "Обеспечение заявки",
     contract_execution: "Исполнение контракта",
@@ -82,7 +91,7 @@ const GUARANTEE_TYPE_LABELS: Record<string, string> = {
     vat_refund: "Возмещение НДС",
 }
 
-// Tender law types (ТЗ: Банковская гарантия)
+// Tender law types
 const TENDER_LAW_LABELS: Record<string, string> = {
     "44_fz": "44-ФЗ",
     "223_fz": "223-ФЗ",
@@ -92,14 +101,14 @@ const TENDER_LAW_LABELS: Record<string, string> = {
     commercial: "Коммерческий",
 }
 
-// Factoring types (ТЗ: Факторинг)
+// Factoring types
 const FACTORING_TYPE_LABELS: Record<string, string> = {
     classic: "Классический факторинг",
     closed: "Закрытый факторинг",
     procurement: "Закупочный факторинг",
 }
 
-// Insurance category labels (ТЗ: Страхование)
+// Insurance category labels
 const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
     personnel: "Персонал",
     transport: "Транспорт",
@@ -107,7 +116,7 @@ const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
     liability: "Ответственность",
 }
 
-// Insurance product type labels (ТЗ: Страхование)
+// Insurance product type labels
 const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
     dms: "ДМС",
     critical_illness: "Критические заболевания",
@@ -127,7 +136,7 @@ const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
     quality_liability: "Ответственность за качество",
 }
 
-// Credit sub-types (ТЗ: Корпоративный кредит)
+// Credit sub-types
 const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
     one_time_credit: "Разовый кредит",
     non_revolving_line: "Невозобновляемая КЛ",
@@ -135,7 +144,7 @@ const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
     overdraft: "Овердрафт",
 }
 
-// Account types (ТЗ: РКО и Спецсчета)
+// Account types
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     rko: "РКО",
     rko_basic: "РКО Базовый",
@@ -147,7 +156,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     "615pp": "Спецсчет 615-ПП",
 }
 
-// Tender Support types (ТЗ: Тендерное сопровождение)
+// Tender Support types
 const TENDER_SUPPORT_TYPE_LABELS: Record<string, string> = {
     one_time: "Разовое сопровождение",
     full_service: "Тендерное сопровождение под ключ",
@@ -158,6 +167,55 @@ const PURCHASE_CATEGORY_LABELS: Record<string, string> = {
     "223fz": "Закупки по 223-ФЗ",
     property_auctions: "Имущественные торги",
     commercial: "Коммерческие закупки",
+}
+
+// ============================================
+// Helper Components
+// ============================================
+
+function DataField({ label, value, mono, highlight, icon: Icon, fullWidth }: {
+    label: string
+    value?: string | number | null
+    mono?: boolean
+    highlight?: boolean
+    icon?: React.ComponentType<{ className?: string }>
+    fullWidth?: boolean
+}) {
+    if (!value && value !== 0) return null
+    return (
+        <div className={cn("py-2", fullWidth && "col-span-full")}>
+            <div className="flex items-start gap-2">
+                {Icon && <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />}
+                <div className="min-w-0 flex-1">
+                    <span className="text-xs text-muted-foreground block mb-0.5">{label}</span>
+                    <span className={cn(
+                        "text-sm font-medium break-words",
+                        mono && "font-mono text-xs",
+                        highlight && "text-[#3CE8D1]"
+                    )}>{value}</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function DataSection({ title, icon: Icon, children, className }: {
+    title: string
+    icon?: React.ComponentType<{ className?: string }>
+    children: React.ReactNode
+    className?: string
+}) {
+    return (
+        <div className={cn("space-y-2", className)}>
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-2">
+                {Icon && <Icon className="h-4 w-4 text-[#3CE8D1]" />}
+                {title}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-1">
+                {children}
+            </div>
+        </div>
+    )
 }
 
 
@@ -173,14 +231,16 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     const [isEditingNotes, setIsEditingNotes] = useState(false)
     const [editedNotes, setEditedNotes] = useState("")
     const [isSavingNotes, setIsSavingNotes] = useState(false)
+    const [activeTab, setActiveTab] = useState("overview")
 
     const statusCfg = application ? STATUS_CONFIG[application.status] || STATUS_CONFIG.pending : STATUS_CONFIG.pending
 
-    const formatCurrency = (amount: string) => {
-        return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(parseFloat(amount || "0"))
+    const formatCurrency = (amount: string | number | null | undefined) => {
+        if (!amount) return "—"
+        return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(parseFloat(String(amount)))
     }
 
-    const formatDate = (dateStr: string | null) => {
+    const formatDate = (dateStr: string | null | undefined) => {
         if (!dateStr) return "—"
         return new Date(dateStr).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })
     }
@@ -224,7 +284,6 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     }
 
     const handleReview = async () => {
-        // Set status back to in_review for reconsideration
         const result = await restoreApplication(parseInt(applicationId))
         if (result) {
             toast.success("Заявка отправлена на пересмотр")
@@ -270,7 +329,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9">
                         <ArrowLeft className="h-5 w-5" />
@@ -280,19 +339,29 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                         <p className="text-sm text-muted-foreground">{PRODUCT_LABELS[application.product_type] || application.product_type}</p>
                     </div>
                 </div>
-                <Badge className={cn("text-sm px-3 py-1", statusCfg.bgColor, statusCfg.color)}>{statusCfg.label}</Badge>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <Badge className={cn("text-sm px-3 py-1", statusCfg.bgColor, statusCfg.color)}>{statusCfg.label}</Badge>
+                    {application.external_id && (
+                        <Badge variant="outline" className="text-xs font-mono">
+                            EXT: {application.external_id}
+                        </Badge>
+                    )}
+                    {application.bank_status && (
+                        <Badge variant="secondary" className="text-xs">
+                            Банк: {application.bank_status}
+                        </Badge>
+                    )}
+                </div>
             </div>
 
-            {/* Action Buttons - Dynamic based on status */}
-            <div className="flex items-center gap-3">
-                {/* Request Info button - only for applications under review */}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 flex-wrap">
                 {(application.status === 'pending' || application.status === 'in_review' || application.status === 'info_requested') && (
                     <Button variant="outline" onClick={() => setShowRequestDialog(true)} disabled={isActioning}>
                         <MessageSquare className="h-4 w-4 mr-2" />Запросить инфо
                     </Button>
                 )}
 
-                {/* Status: rejected/lost → only Restore button (no Approve) */}
                 {(application.status === 'rejected' || application.status === 'lost') && (
                     <Button
                         variant="outline"
@@ -304,7 +373,6 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                     </Button>
                 )}
 
-                {/* Status: approved/won → only Review button (no Reject) */}
                 {(application.status === 'approved' || application.status === 'won') && (
                     <Button
                         variant="outline"
@@ -316,7 +384,6 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                     </Button>
                 )}
 
-                {/* Status: pending/in_review/info_requested → both Reject and Approve */}
                 {application.status !== 'rejected' && application.status !== 'lost' &&
                     application.status !== 'approved' && application.status !== 'won' && (
                         <>
@@ -345,342 +412,420 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                 )}
             </div>
 
-            {/* Main Content */}
-            <div className="grid grid-cols-12 gap-6">
-                {/* Left: Company Info */}
-                <Card className="col-span-4 border-border">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2"><Building2 className="h-4 w-4" />Компания</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <InfoRow label="Название" value={application.company_name} />
-                        <InfoRow label="ИНН" value={application.company_inn} mono />
-                        {application.company_data && (
-                            <>
-                                <InfoRow label="КПП" value={application.company_data.kpp} mono />
-                                <InfoRow label="ОГРН" value={application.company_data.ogrn} mono />
-                                <InfoRow label="Руководитель" value={application.company_data.director_name} />
-                            </>
-                        )}
-                        <Separator className="my-3" />
-                        <InfoRow label="Создано" value={formatDate(application.created_at)} />
-                        <InfoRow label="Обновлено" value={formatDate(application.updated_at)} />
-                    </CardContent>
-                </Card>
+            {/* Tabs for different sections */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+                    <TabsTrigger value="overview">Обзор</TabsTrigger>
+                    <TabsTrigger value="company">Компания</TabsTrigger>
+                    <TabsTrigger value="product">Продукт</TabsTrigger>
+                    <TabsTrigger value="documents">Документы</TabsTrigger>
+                    <TabsTrigger value="chat">Чат</TabsTrigger>
+                </TabsList>
 
-                {/* Middle: Application Details */}
-                <Card className="col-span-4 border-border">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" />Параметры заявки</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <InfoRow label="Сумма" value={formatCurrency(application.amount)} highlight />
-                        <InfoRow label="Срок" value={`${application.term_months} мес.`} />
-                        <InfoRow label="Целевой банк" value={application.target_bank_name || "—"} />
-                        {application.tender_number && <InfoRow label="№ тендера" value={application.tender_number} mono />}
-                        {application.tender_platform && <InfoRow label="Площадка" value={application.tender_platform} />}
-                        {application.tender_deadline && <InfoRow label="Дедлайн" value={formatDate(application.tender_deadline)} />}
-                        {application.external_id && <InfoRow label="External ID" value={application.external_id} mono />}
-                        {application.bank_status && <InfoRow label="Статус банка" value={application.bank_status} />}
+                {/* Overview Tab */}
+                <TabsContent value="overview" className="mt-6 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Main Info Card */}
+                        <Card className="lg:col-span-2 border-border">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                    <Briefcase className="h-4 w-4 text-[#3CE8D1]" />
+                                    Основные данные заявки
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <DataSection title="Финансовые параметры" icon={Banknote}>
+                                    <DataField label="Сумма" value={formatCurrency(application.amount)} highlight icon={Banknote} />
+                                    <DataField label="Срок (мес.)" value={application.term_months} icon={Clock} />
+                                    <DataField label="Целевой банк/МФО" value={application.target_bank_name} icon={Building2} />
+                                </DataSection>
 
-                        {/* Product-specific fields section */}
-                        <Separator className="my-3" />
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Параметры продукта</p>
+                                <Separator className="my-4" />
 
-                        {/* Bank Guarantee specific */}
-                        {application.product_type === 'bank_guarantee' && (
-                            <>
-                                {application.guarantee_type && (
-                                    <InfoRow
-                                        label="Тип гарантии"
-                                        value={GUARANTEE_TYPE_LABELS[application.guarantee_type] || application.guarantee_type}
-                                    />
-                                )}
-                                {application.tender_law && (
-                                    <InfoRow
-                                        label="Закон"
-                                        value={TENDER_LAW_LABELS[application.tender_law] || application.tender_law}
-                                    />
-                                )}
-                                {application.goscontract_data?.purchase_number && (
-                                    <InfoRow label="№ извещения" value={application.goscontract_data.purchase_number} mono />
-                                )}
-                                {application.goscontract_data?.lot_number && (
-                                    <InfoRow label="№ лота" value={application.goscontract_data.lot_number} mono />
-                                )}
-                                {application.goscontract_data?.guarantee_start_date && (
-                                    <InfoRow label="Срок БГ с" value={formatDate(application.goscontract_data.guarantee_start_date)} />
-                                )}
-                                {application.goscontract_data?.guarantee_end_date && (
-                                    <InfoRow label="Срок БГ по" value={formatDate(application.goscontract_data.guarantee_end_date)} />
-                                )}
-                                {application.goscontract_data?.is_close_auction && (
-                                    <InfoRow label="Закрытые торги" value="Да" />
-                                )}
-                                {application.goscontract_data?.has_prepayment && (
-                                    <InfoRow
-                                        label="Наличие авансирования"
-                                        value={application.goscontract_data.advance_percent
-                                            ? `Да (${application.goscontract_data.advance_percent}%)`
-                                            : "Да"
-                                        }
-                                    />
-                                )}
-                                {application.goscontract_data?.has_customer_template && (
-                                    <InfoRow label="Шаблон заказчика" value="Да" />
-                                )}
-                                {((application.goscontract_data?.contracts_44fz_count ?? 0) > 0 || (application.goscontract_data?.contracts_223fz_count ?? 0) > 0) && (
-                                    <InfoRow
-                                        label="Исполненных контрактов"
-                                        value={`44-ФЗ: ${application.goscontract_data?.contracts_44fz_count ?? 0}, 223-ФЗ: ${application.goscontract_data?.contracts_223fz_count ?? 0}`}
-                                    />
-                                )}
-                            </>
-                        )}
+                                <DataSection title="Даты и статус" icon={Calendar}>
+                                    <DataField label="Создано" value={formatDate(application.created_at)} icon={Calendar} />
+                                    <DataField label="Обновлено" value={formatDate(application.updated_at)} icon={Calendar} />
+                                    <DataField label="Отправлено" value={formatDate(application.submitted_at)} icon={Calendar} />
+                                    <DataField label="Создатель" value={application.created_by_email} icon={User} />
+                                    {application.created_by_name && (
+                                        <DataField label="Имя создателя" value={application.created_by_name} />
+                                    )}
+                                    <DataField label="Партнёр" value={application.partner_email} icon={User} />
+                                </DataSection>
 
-                        {/* Contract Loan (КИК) specific */}
-                        {application.product_type === 'contract_loan' && (
-                            <>
-                                {application.goscontract_data?.contract_loan_type && (
-                                    <InfoRow
-                                        label="Тип продукта"
-                                        value={application.goscontract_data.contract_loan_type === 'credit_execution' ? 'Кредит на исполнение контракта' :
-                                            application.goscontract_data.contract_loan_type === 'loan' ? 'Займ' :
-                                                application.goscontract_data.contract_loan_type}
-                                    />
+                                {/* Tender Info */}
+                                {(application.tender_number || application.tender_platform || application.tender_deadline) && (
+                                    <>
+                                        <Separator className="my-4" />
+                                        <DataSection title="Тендерная информация" icon={FileText}>
+                                            <DataField label="Номер тендера" value={application.tender_number} mono />
+                                            <DataField label="Площадка" value={application.tender_platform} />
+                                            <DataField label="Дедлайн" value={formatDate(application.tender_deadline)} icon={Calendar} />
+                                        </DataSection>
+                                    </>
                                 )}
-                                {application.goscontract_data?.purchase_number && (
-                                    <InfoRow label="№ извещения/контракта" value={application.goscontract_data.purchase_number} mono />
-                                )}
-                                {application.goscontract_data?.lot_number && (
-                                    <InfoRow label="№ лота" value={application.goscontract_data.lot_number} mono />
-                                )}
-                                {application.goscontract_data?.contract_price && (
-                                    <InfoRow label="Цена контракта" value={formatCurrency(application.goscontract_data.contract_price)} />
-                                )}
-                                {application.goscontract_data?.contract_start_date && (
-                                    <InfoRow label="Срок контракта с" value={formatDate(application.goscontract_data.contract_start_date)} />
-                                )}
-                                {application.goscontract_data?.contract_end_date && (
-                                    <InfoRow label="Срок контракта по" value={formatDate(application.goscontract_data.contract_end_date)} />
-                                )}
-                                {application.goscontract_data?.has_prepayment && (
-                                    <InfoRow
-                                        label="Наличие авансирования"
-                                        value={application.goscontract_data.advance_percent
-                                            ? `Да (${application.goscontract_data.advance_percent}%)`
-                                            : "Да"
-                                        }
-                                    />
-                                )}
-                                {application.goscontract_data?.credit_amount && (
-                                    <InfoRow label="Сумма кредита" value={formatCurrency(application.goscontract_data.credit_amount)} />
-                                )}
-                                {application.goscontract_data?.credit_start_date && (
-                                    <InfoRow label="Срок кредита с" value={formatDate(application.goscontract_data.credit_start_date)} />
-                                )}
-                                {application.goscontract_data?.credit_end_date && (
-                                    <InfoRow label="Срок кредита по" value={formatDate(application.goscontract_data.credit_end_date)} />
-                                )}
-                                {((application.goscontract_data?.contracts_44fz_count ?? 0) > 0 || (application.goscontract_data?.contracts_223fz_count ?? 0) > 0) && (
-                                    <InfoRow
-                                        label="Исполненных контрактов"
-                                        value={`44-ФЗ: ${application.goscontract_data?.contracts_44fz_count ?? 0}, 223-ФЗ: ${application.goscontract_data?.contracts_223fz_count ?? 0}`}
-                                    />
-                                )}
-                                {application.goscontract_data?.contract_execution_percent != null && !application.goscontract_data?.ignore_execution_percent && (
-                                    <InfoRow label="Выполнение контракта" value={`${application.goscontract_data?.contract_execution_percent ?? 0}%`} />
-                                )}
-                            </>
-                        )}
 
-                        {/* Factoring specific */}
-                        {application.product_type === 'factoring' && (
-                            <>
-                                {application.factoring_type && (
-                                    <InfoRow
-                                        label="Тип факторинга"
-                                        value={FACTORING_TYPE_LABELS[application.factoring_type] || application.factoring_type}
-                                    />
+                                {/* Bank Integration */}
+                                {(application.external_id || application.bank_status || application.commission_data) && (
+                                    <>
+                                        <Separator className="my-4" />
+                                        <DataSection title="Интеграция с банком" icon={Building2}>
+                                            <DataField label="External ID" value={application.external_id} mono />
+                                            <DataField label="Статус банка" value={application.bank_status} />
+                                            {application.commission_data && (
+                                                <>
+                                                    <DataField label="Комиссия всего" value={application.commission_data.total != null ? formatCurrency(application.commission_data.total) : null} />
+                                                    <DataField label="Комиссия банка" value={application.commission_data.bank != null ? formatCurrency(application.commission_data.bank) : null} />
+                                                    <DataField label="Комиссия агента" value={application.commission_data.agent != null ? formatCurrency(application.commission_data.agent) : null} />
+                                                </>
+                                            )}
+                                        </DataSection>
+                                    </>
                                 )}
-                                {application.contractor_inn && (
-                                    <InfoRow label="ИНН контрагента" value={application.contractor_inn} mono />
-                                )}
-                                {application.financing_term_days && (
-                                    <InfoRow label="Срок финансирования" value={`${application.financing_term_days} дн.`} />
-                                )}
-                            </>
-                        )}
+                            </CardContent>
+                        </Card>
 
-                        {/* VED specific */}
-                        {application.product_type === 'ved' && (
-                            <>
-                                {application.ved_currency && (
-                                    <InfoRow label="Валюта" value={application.ved_currency} />
+                        {/* Notes Card */}
+                        <Card className="border-border">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                        <Edit className="h-4 w-4 text-[#3CE8D1]" />
+                                        Заметки менеджера
+                                    </CardTitle>
+                                    {!isEditingNotes && (
+                                        <Button variant="ghost" size="sm" onClick={startEditNotes}>
+                                            <Edit className="h-3 w-3 mr-1" />Редактировать
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {isEditingNotes ? (
+                                    <div className="space-y-2">
+                                        <Textarea value={editedNotes} onChange={(e) => setEditedNotes(e.target.value)} rows={6} placeholder="Добавьте заметки..." />
+                                        <div className="flex gap-2">
+                                            <Button size="sm" onClick={handleSaveNotes} disabled={isSavingNotes} className="bg-[#3CE8D1] text-[#0a1628]">
+                                                {isSavingNotes ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}Сохранить
+                                            </Button>
+                                            <Button size="sm" variant="ghost" onClick={() => setIsEditingNotes(false)}><X className="h-3 w-3 mr-1" />Отмена</Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{application.notes || "Нет заметок"}</p>
                                 )}
-                                {application.ved_country && (
-                                    <InfoRow label="Страна платежа" value={application.ved_country} />
-                                )}
-                            </>
-                        )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
 
-                        {/* Insurance specific */}
-                        {application.product_type === 'insurance' && (
-                            <>
-                                {application.insurance_category && (
-                                    <InfoRow
-                                        label="Категория"
-                                        value={INSURANCE_CATEGORY_LABELS[application.insurance_category] || application.insurance_category}
-                                    />
-                                )}
-                                {application.insurance_product_type && (
-                                    <InfoRow
-                                        label="Страховой продукт"
-                                        value={INSURANCE_PRODUCT_LABELS[application.insurance_product_type] || application.insurance_product_type}
-                                    />
-                                )}
-                            </>
-                        )}
-
-                        {/* Leasing specific */}
-                        {application.product_type === 'leasing' && (
-                            <>
-                                {application.credit_sub_type && (
-                                    <InfoRow
-                                        label="Тип кредита"
-                                        value={CREDIT_SUB_TYPE_LABELS[application.credit_sub_type] || application.credit_sub_type}
-                                    />
-                                )}
-                                {application.goscontract_data?.equipment_type && (
-                                    <InfoRow label="Тип оборудования" value={application.goscontract_data.equipment_type} />
-                                )}
-                            </>
-                        )}
-
-                        {/* Corporate/Contract Credit specific */}
-                        {(application.product_type === 'corporate_credit' || application.product_type === 'contract_loan' || application.product_type === 'tender_loan') && (
-                            <>
-                                {application.credit_sub_type && (
-                                    <InfoRow
-                                        label="Тип кредита"
-                                        value={CREDIT_SUB_TYPE_LABELS[application.credit_sub_type] || application.credit_sub_type}
-                                    />
-                                )}
-                                {application.pledge_description && (
-                                    <InfoRow label="Обеспечение/залог" value={application.pledge_description} />
-                                )}
-                                {application.financing_term_days && (
-                                    <InfoRow label="Срок (дни)" value={`${application.financing_term_days} дн.`} />
-                                )}
-                            </>
-                        )}
-
-                        {/* Tender Support specific */}
-                        {application.product_type === 'tender_support' && (
-                            <>
-                                {application.tender_support_type && (
-                                    <InfoRow
-                                        label="Вариант сопровождения"
-                                        value={TENDER_SUPPORT_TYPE_LABELS[application.tender_support_type] || application.tender_support_type}
-                                    />
-                                )}
-                                {application.purchase_category && (
-                                    <InfoRow
-                                        label="Тип закупки"
-                                        value={PURCHASE_CATEGORY_LABELS[application.purchase_category] || application.purchase_category}
-                                    />
-                                )}
-                                {application.industry && (
-                                    <InfoRow label="Закупки в отрасли" value={application.industry} />
-                                )}
-                            </>
-                        )}
-
-                        {/* RKO/SpecAccount specific */}
-                        {(application.product_type === 'rko' || application.product_type === 'special_account') && (
-                            <>
-                                {application.account_type && (
-                                    <InfoRow
-                                        label="Тип счёта"
-                                        value={ACCOUNT_TYPE_LABELS[application.account_type] || application.account_type}
-                                    />
-                                )}
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Right: Notes & Documents */}
-                <div className="col-span-4 space-y-6">
-                    {/* Notes */}
+                {/* Company Tab */}
+                <TabsContent value="company" className="mt-6">
                     <Card className="border-border">
                         <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-sm flex items-center gap-2"><Edit className="h-4 w-4" />Заметки менеджера</CardTitle>
-                                {!isEditingNotes && (
-                                    <Button variant="ghost" size="sm" onClick={startEditNotes}>
-                                        <Edit className="h-3 w-3 mr-1" />Редактировать
-                                    </Button>
-                                )}
-                            </div>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-[#3CE8D1]" />
+                                Полные данные компании
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            {isEditingNotes ? (
-                                <div className="space-y-2">
-                                    <Textarea value={editedNotes} onChange={(e) => setEditedNotes(e.target.value)} rows={4} placeholder="Добавьте заметки..." />
-                                    <div className="flex gap-2">
-                                        <Button size="sm" onClick={handleSaveNotes} disabled={isSavingNotes} className="bg-[#3CE8D1] text-[#0a1628]">
-                                            {isSavingNotes ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}Сохранить
-                                        </Button>
-                                        <Button size="sm" variant="ghost" onClick={() => setIsEditingNotes(false)}><X className="h-3 w-3 mr-1" />Отмена</Button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">{application.notes || "Нет заметок"}</p>
+                        <CardContent className="space-y-6">
+                            {/* Basic Company Info */}
+                            <DataSection title="Основная информация" icon={Building2}>
+                                <DataField label="Название" value={application.company_name} />
+                                <DataField label="ИНН" value={application.company_inn} mono />
+                                {application.company_data && (
+                                    <>
+                                        <DataField label="КПП" value={application.company_data.kpp} mono />
+                                        <DataField label="ОГРН" value={application.company_data.ogrn} mono />
+                                        <DataField label="Краткое наименование" value={application.company_data.short_name} />
+                                    </>
+                                )}
+                            </DataSection>
+
+                            {application.company_data && (
+                                <>
+                                    {/* Director Info */}
+                                    <DataSection title="Руководитель" icon={User}>
+                                        <DataField label="ФИО руководителя" value={application.company_data.director_name} icon={User} />
+                                        <DataField label="Должность" value={application.company_data.director_position} />
+                                        {application.company_data.passport_series && (
+                                            <>
+                                                <DataField label="Паспорт серия/номер" value={`${application.company_data.passport_series} ${application.company_data.passport_number}`} mono />
+                                                <DataField label="Выдан" value={application.company_data.passport_issued_by} />
+                                                <DataField label="Дата выдачи" value={formatDate(application.company_data.passport_date)} />
+                                                <DataField label="Код подразделения" value={application.company_data.passport_code} mono />
+                                            </>
+                                        )}
+                                    </DataSection>
+
+                                    {/* Addresses */}
+                                    <DataSection title="Адреса" icon={MapPin}>
+                                        <DataField label="Юридический адрес" value={application.company_data.legal_address} icon={MapPin} fullWidth />
+                                        <DataField label="Фактический адрес" value={application.company_data.actual_address} icon={MapPin} fullWidth />
+                                    </DataSection>
+
+                                    {/* Contacts */}
+                                    <DataSection title="Контакты" icon={Phone}>
+                                        <DataField label="Контактное лицо" value={application.company_data.contact_person} icon={User} />
+                                        <DataField label="Телефон" value={application.company_data.contact_phone} icon={Phone} />
+                                        <DataField label="Email" value={application.company_data.contact_email} icon={Mail} />
+                                    </DataSection>
+
+                                    {/* Bank Details */}
+                                    <DataSection title="Банковские реквизиты" icon={CreditCard}>
+                                        <DataField label="Банк" value={application.company_data.bank_name} icon={Building2} />
+                                        <DataField label="БИК" value={application.company_data.bank_bic} mono />
+                                        <DataField label="Расчётный счёт" value={application.company_data.bank_account} mono />
+                                        <DataField label="Корреспондентский счёт" value={application.company_data.bank_corr_account} mono />
+                                    </DataSection>
+
+                                    {/* Founders */}
+                                    {application.company_data.founders_data && application.company_data.founders_data.length > 0 && (
+                                        <DataSection title="Учредители" icon={Users}>
+                                            <div className="col-span-full space-y-2">
+                                                {application.company_data.founders_data.map((founder, idx) => (
+                                                    <div key={idx} className="flex items-center gap-4 p-2 rounded-lg bg-accent/30">
+                                                        <User className="h-4 w-4 text-muted-foreground" />
+                                                        <div>
+                                                            <span className="text-sm font-medium">{founder.name}</span>
+                                                            {founder.inn && <span className="text-xs text-muted-foreground ml-2">ИНН: {founder.inn}</span>}
+                                                            {founder.share != null && <span className="text-xs text-muted-foreground ml-2">Доля: {founder.share}%</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </DataSection>
+                                    )}
+
+                                    {/* Additional Bank Accounts */}
+                                    {application.company_data.bank_accounts_data && application.company_data.bank_accounts_data.length > 0 && (
+                                        <DataSection title="Дополнительные счета" icon={CreditCard}>
+                                            <div className="col-span-full space-y-2">
+                                                {application.company_data.bank_accounts_data.map((acc, idx) => (
+                                                    <div key={idx} className="flex items-center gap-4 p-2 rounded-lg bg-accent/30">
+                                                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                                        <div>
+                                                            <span className="text-sm font-medium font-mono">{acc.account}</span>
+                                                            <span className="text-xs text-muted-foreground ml-2">{acc.bank_name}</span>
+                                                            <span className="text-xs text-muted-foreground ml-2">БИК: {acc.bic}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </DataSection>
+                                    )}
+                                </>
                             )}
                         </CardContent>
                     </Card>
+                </TabsContent>
 
-                    {/* Documents */}
+                {/* Product Tab */}
+                <TabsContent value="product" className="mt-6">
                     <Card className="border-border">
                         <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" />Документы</CardTitle>
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-[#3CE8D1]" />
+                                Параметры продукта: {PRODUCT_LABELS[application.product_type] || application.product_type}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Bank Guarantee specific */}
+                            {application.product_type === 'bank_guarantee' && (
+                                <>
+                                    <DataSection title="Параметры гарантии" icon={Shield}>
+                                        <DataField label="Тип гарантии" value={application.guarantee_type ? GUARANTEE_TYPE_LABELS[application.guarantee_type] || application.guarantee_type : null} />
+                                        <DataField label="Закон" value={application.tender_law ? TENDER_LAW_LABELS[application.tender_law] || application.tender_law : null} />
+                                    </DataSection>
+
+                                    {application.goscontract_data && (
+                                        <>
+                                            <DataSection title="Данные госконтракта" icon={FileText}>
+                                                <DataField label="№ извещения" value={application.goscontract_data.purchase_number} mono />
+                                                <DataField label="№ лота" value={application.goscontract_data.lot_number} mono />
+                                                <DataField label="Предмет закупки" value={application.goscontract_data.subject} fullWidth />
+                                                <DataField label="ИНН заказчика" value={application.goscontract_data.beneficiary_inn} mono />
+                                                <DataField label="Наименование заказчика" value={application.goscontract_data.beneficiary_name} />
+                                                <DataField label="Начальная (максимальная) цена" value={formatCurrency(application.goscontract_data.initial_price)} />
+                                                <DataField label="Предложенная цена" value={formatCurrency(application.goscontract_data.offered_price)} />
+                                            </DataSection>
+
+                                            <DataSection title="Сроки гарантии" icon={Calendar}>
+                                                <DataField label="Срок БГ с" value={formatDate(application.goscontract_data.guarantee_start_date)} icon={Calendar} />
+                                                <DataField label="Срок БГ по" value={formatDate(application.goscontract_data.guarantee_end_date)} icon={Calendar} />
+                                            </DataSection>
+
+                                            <DataSection title="Дополнительные параметры" icon={Briefcase}>
+                                                {application.goscontract_data.has_prepayment && (
+                                                    <DataField label="Авансирование" value={application.goscontract_data.advance_percent ? `Да (${application.goscontract_data.advance_percent}%)` : "Да"} />
+                                                )}
+                                                {application.goscontract_data.is_close_auction && <DataField label="Закрытые торги" value="Да" />}
+                                                {application.goscontract_data.has_customer_template && <DataField label="Шаблон заказчика" value="Да" />}
+                                                {application.goscontract_data.is_single_supplier && <DataField label="Единственный поставщик" value="Да" />}
+                                                {application.goscontract_data.is_resecuring && <DataField label="Переобеспечение" value="Да" />}
+                                                {application.goscontract_data.no_eis_placement && <DataField label="Без размещения в ЕИС" value="Да" />}
+                                                {application.goscontract_data.tender_not_held && <DataField label="Торги не проведены" value="Да" />}
+                                                {application.goscontract_data.needs_credit && <DataField label="Нужен кредит" value="Да" />}
+                                                {(application.goscontract_data.contracts_44fz_count != null || application.goscontract_data.contracts_223fz_count != null) && (
+                                                    <>
+                                                        <DataField label="Исполнено (44-ФЗ)" value={application.goscontract_data.contracts_44fz_count} />
+                                                        <DataField label="Исполнено (223-ФЗ)" value={application.goscontract_data.contracts_223fz_count} />
+                                                    </>
+                                                )}
+                                            </DataSection>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Contract Loan (КИК) specific */}
+                            {application.product_type === 'contract_loan' && application.goscontract_data && (
+                                <>
+                                    <DataSection title="Параметры КИК" icon={CreditCard}>
+                                        <DataField label="Тип продукта" value={
+                                            application.goscontract_data.contract_loan_type === 'credit_execution' ? 'Кредит на исполнение контракта' :
+                                                application.goscontract_data.contract_loan_type === 'loan' ? 'Займ' :
+                                                    application.goscontract_data.contract_loan_type
+                                        } />
+                                        <DataField label="№ извещения/контракта" value={application.goscontract_data.purchase_number} mono />
+                                        <DataField label="№ лота" value={application.goscontract_data.lot_number} mono />
+                                        <DataField label="Цена контракта" value={formatCurrency(application.goscontract_data.contract_price)} />
+                                    </DataSection>
+
+                                    <DataSection title="Сроки контракта" icon={Calendar}>
+                                        <DataField label="Срок контракта с" value={formatDate(application.goscontract_data.contract_start_date)} icon={Calendar} />
+                                        <DataField label="Срок контракта по" value={formatDate(application.goscontract_data.contract_end_date)} icon={Calendar} />
+                                    </DataSection>
+
+                                    <DataSection title="Параметры кредита" icon={Banknote}>
+                                        <DataField label="Сумма кредита" value={formatCurrency(application.goscontract_data.credit_amount)} highlight />
+                                        <DataField label="Срок кредита с" value={formatDate(application.goscontract_data.credit_start_date)} icon={Calendar} />
+                                        <DataField label="Срок кредита по" value={formatDate(application.goscontract_data.credit_end_date)} icon={Calendar} />
+                                        {application.goscontract_data.has_prepayment && (
+                                            <DataField label="Авансирование" value={application.goscontract_data.advance_percent ? `${application.goscontract_data.advance_percent}%` : "Да"} />
+                                        )}
+                                        {application.goscontract_data.contract_execution_percent != null && !application.goscontract_data.ignore_execution_percent && (
+                                            <DataField label="Выполнение контракта" value={`${application.goscontract_data.contract_execution_percent}%`} />
+                                        )}
+                                    </DataSection>
+                                </>
+                            )}
+
+                            {/* Factoring specific */}
+                            {application.product_type === 'factoring' && (
+                                <DataSection title="Параметры факторинга" icon={CreditCard}>
+                                    <DataField label="Тип факторинга" value={application.factoring_type ? FACTORING_TYPE_LABELS[application.factoring_type] || application.factoring_type : null} />
+                                    <DataField label="ИНН контрагента" value={application.contractor_inn} mono />
+                                    <DataField label="Срок финансирования (дней)" value={application.financing_term_days} />
+                                </DataSection>
+                            )}
+
+                            {/* VED specific */}
+                            {application.product_type === 'ved' && (
+                                <DataSection title="Параметры ВЭД" icon={ExternalLink}>
+                                    <DataField label="Валюта" value={application.ved_currency} />
+                                    <DataField label="Страна платежа" value={application.ved_country} />
+                                </DataSection>
+                            )}
+
+                            {/* Insurance specific */}
+                            {application.product_type === 'insurance' && (
+                                <DataSection title="Параметры страхования" icon={Shield}>
+                                    <DataField label="Категория" value={application.insurance_category ? INSURANCE_CATEGORY_LABELS[application.insurance_category] || application.insurance_category : null} />
+                                    <DataField label="Страховой продукт" value={application.insurance_product_type ? INSURANCE_PRODUCT_LABELS[application.insurance_product_type] || application.insurance_product_type : null} />
+                                </DataSection>
+                            )}
+
+                            {/* Leasing specific */}
+                            {application.product_type === 'leasing' && (
+                                <DataSection title="Параметры лизинга" icon={CreditCard}>
+                                    <DataField label="Тип кредита" value={application.credit_sub_type ? CREDIT_SUB_TYPE_LABELS[application.credit_sub_type] || application.credit_sub_type : null} />
+                                    {application.goscontract_data?.equipment_type && (
+                                        <DataField label="Тип оборудования" value={application.goscontract_data.equipment_type} />
+                                    )}
+                                </DataSection>
+                            )}
+
+                            {/* Corporate/Tender Credit specific */}
+                            {(application.product_type === 'corporate_credit' || application.product_type === 'tender_loan') && (
+                                <DataSection title="Параметры кредита" icon={CreditCard}>
+                                    <DataField label="Тип кредита" value={application.credit_sub_type ? CREDIT_SUB_TYPE_LABELS[application.credit_sub_type] || application.credit_sub_type : null} />
+                                    <DataField label="Обеспечение/залог" value={application.pledge_description} />
+                                    <DataField label="Срок финансирования (дней)" value={application.financing_term_days} />
+                                </DataSection>
+                            )}
+
+                            {/* Tender Support specific */}
+                            {application.product_type === 'tender_support' && (
+                                <DataSection title="Параметры тендерного сопровождения" icon={Briefcase}>
+                                    <DataField label="Вариант сопровождения" value={application.tender_support_type ? TENDER_SUPPORT_TYPE_LABELS[application.tender_support_type] || application.tender_support_type : null} />
+                                    <DataField label="Тип закупки" value={application.purchase_category ? PURCHASE_CATEGORY_LABELS[application.purchase_category] || application.purchase_category : null} />
+                                    <DataField label="Закупки в отрасли" value={application.industry} />
+                                </DataSection>
+                            )}
+
+                            {/* RKO/SpecAccount specific */}
+                            {(application.product_type === 'rko' || application.product_type === 'special_account') && (
+                                <DataSection title="Параметры счёта" icon={CreditCard}>
+                                    <DataField label="Тип счёта" value={application.account_type ? ACCOUNT_TYPE_LABELS[application.account_type] || application.account_type : null} />
+                                </DataSection>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Documents Tab */}
+                <TabsContent value="documents" className="mt-6">
+                    <Card className="border-border">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-[#3CE8D1]" />
+                                Документы заявки
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             {application.documents && application.documents.length > 0 ? (
-                                <div className="space-y-2">
-                                    {application.documents.map((doc: any) => (
-                                        <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg bg-accent/30">
-                                            <div className="flex items-center gap-2">
-                                                <FileText className="h-4 w-4 text-[#4F7DF3]" />
-                                                <span className="text-sm truncate max-w-[150px]">{doc.name}</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {application.documents.map((doc) => (
+                                        <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/30 border border-border">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <FileText className="h-5 w-5 text-[#4F7DF3] shrink-0" />
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-medium truncate">{doc.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{doc.type_display}</p>
+                                                    <Badge variant="outline" className="text-xs mt-1">{doc.status_display}</Badge>
+                                                </div>
                                             </div>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => doc.file_url && window.open(doc.file_url, '_blank')}>
-                                                <Download className="h-3 w-3" />
-                                            </Button>
+                                            {doc.file_url && (
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => window.open(doc.file_url, '_blank')}>
+                                                    <Download className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-muted-foreground">Нет прикреплённых документов</p>
+                                <p className="text-sm text-muted-foreground text-center py-8">Нет прикреплённых документов</p>
                             )}
                         </CardContent>
                     </Card>
-                </div>
-            </div>
+                </TabsContent>
 
-            {/* Chat Section */}
-            <Card className="border-border mt-6">
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        Чат по заявке
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <ApplicationChat applicationId={applicationId} className="border-0" />
-                </CardContent>
-            </Card>
+                {/* Chat Tab */}
+                <TabsContent value="chat" className="mt-6">
+                    <Card className="border-border">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-[#3CE8D1]" />
+                                Чат по заявке
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <ApplicationChat applicationId={applicationId} className="border-0" />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* Dialogs */}
             <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
@@ -731,15 +876,6 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
-    )
-}
-
-function InfoRow({ label, value, mono, highlight }: { label: string; value?: string; mono?: boolean; highlight?: boolean }) {
-    return (
-        <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{label}</span>
-            <span className={cn("font-medium", mono && "font-mono text-xs", highlight && "text-[#3CE8D1]")}>{value || "—"}</span>
         </div>
     )
 }

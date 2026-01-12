@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { ApplicationChat } from "./application-chat"
-import { useApplicationMutations } from "@/hooks/use-applications"
+import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany, useCRMClients, useCRMClientMutations, type CompanyListItem } from "@/hooks/use-companies"
 import { AddClientModal } from "./add-client-modal"
 
@@ -205,6 +205,7 @@ export function AgentCalculatorView() {
 
     // API hooks for real backend integration
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
+    const { createSession, updateSubmittedBanks } = useCalculationSessionMutations()
     const { company: agentCompany, isLoading: isLoadingCompany } = useMyCompany()
 
     // CRM Clients hook - for selecting which client to create application for
@@ -287,6 +288,9 @@ export function AgentCalculatorView() {
 
     // Calculated offers result
     const [calculatedOffers, setCalculatedOffers] = useState<{ approved: typeof BANKS_DB; rejected: { bank: string; reason: string }[] }>({ approved: [], rejected: [] })
+
+    // Current calculation session ID (for linking applications to root application)
+    const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
 
     // =========================================================================
     // CLEAR FORM FUNCTIONS
@@ -681,6 +685,66 @@ export function AgentCalculatorView() {
         const selectedBanks = Array.from(selectedOffers).map(idx => calculatedOffers.approved[idx])
         let successCount = 0
         let errorCount = 0
+        const successfulBankNames: string[] = []
+
+        // First, create a CalculationSession to store the calculation results (root application)
+        let sessionId = currentSessionId
+        if (!sessionId && company) {
+            try {
+                const productType = getProductType()
+                // Build form data for session storage
+                const formData = {
+                    federalLaw,
+                    noticeNumber,
+                    lotNumber,
+                    amount: amount ?? 0,
+                    dateFrom,
+                    dateTo,
+                    bgType,
+                    hasAdvance,
+                    advancePercent,
+                    kikType,
+                    contractPrice,
+                    creditAmount,
+                    factoringType,
+                    contractorInn,
+                    financingAmount,
+                    creditType,
+                    leasingCreditType,
+                    leasingAmount,
+                    insuranceCategory,
+                    insuranceProduct,
+                    insuranceAmount,
+                }
+
+                // Build display title
+                const amountDisplay = formatNumber(amount ?? 0)
+                const title = `${productType === 'bank_guarantee' ? 'БГ' : productType === 'tender_loan' ? 'ТЗ' : productType} ${amountDisplay} ₽`
+
+                const session = await createSession({
+                    company: company.id,
+                    product_type: productType,
+                    form_data: formData,
+                    approved_banks: calculatedOffers.approved.map(b => ({
+                        name: b.name,
+                        bgRate: b.bgRate,
+                        creditRate: b.creditRate,
+                        speed: b.speed,
+                        individual: b.individual
+                    })),
+                    rejected_banks: calculatedOffers.rejected,
+                    title
+                })
+
+                if (session) {
+                    sessionId = session.id
+                    setCurrentSessionId(session.id)
+                }
+            } catch (err) {
+                console.error('Error creating calculation session:', err)
+                // Continue without session - applications will still be created
+            }
+        }
 
         for (const bank of selectedBanks) {
             try {
@@ -697,17 +761,28 @@ export function AgentCalculatorView() {
                     goscontract_data: buildGoscontractData(),
                     guarantee_type: showResults === "bg" ? bgType : undefined,
                     tender_law: lawMapping[federalLaw],
+                    calculation_session: sessionId || undefined,  // Link to root application
                 }
 
                 const result = await createApplication(payload as Parameters<typeof createApplication>[0])
                 if (result) {
                     successCount++
+                    successfulBankNames.push(bank.name)
                 } else {
                     errorCount++
                 }
             } catch (err) {
                 console.error('Error creating application:', err)
                 errorCount++
+            }
+        }
+
+        // Update submitted banks in the session
+        if (sessionId && successfulBankNames.length > 0) {
+            try {
+                await updateSubmittedBanks(sessionId, successfulBankNames)
+            } catch (err) {
+                console.error('Error updating submitted banks:', err)
             }
         }
 
@@ -719,6 +794,7 @@ export function AgentCalculatorView() {
 
         setShowResults(null)
         setSelectedOffers(new Set())
+        setCurrentSessionId(null)  // Reset session for next calculation
     }
 
     // Toggle offer selection (Exclusive logic for Individual Consideration)
@@ -2759,7 +2835,21 @@ export function AgentCalculatorView() {
                             <div><Label>Email *</Label><Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="mail@mail.com" /></div>
                             <div><Label>Комментарий</Label><Textarea value={comment} onChange={e => setComment(e.target.value)} /></div>
                             <div className="space-y-3"><h4 className="font-medium">Документы</h4>
-                                {["Паспорт руководителя *", "Бух. отчётность (2кв 2020) *", "Бух. отчётность (4кв 2019) *", "Решение о назначении руководителя *", "Устав *", "Доп. документы"].map((doc, i) => (
+                                {[
+                                    "Карточка компании *",
+                                    "Бухбаланс Ф1 и ФР Ф2 на 30.06.2025 *",
+                                    "Бухбаланс Ф1 и ФР Ф2 на 30.09.2025 *",
+                                    "Бухбаланс Ф1 и ФР Ф2 на 31.12.2023 с квитанцией ИФНС *",
+                                    "Бухбаланс Ф1 и ФР Ф2 на 31.12.2024 с квитанцией ИФНС *",
+                                    "Бухбаланс Ф1 и ФР Ф2 на 31.12.2025 с квитанцией ИФНС *",
+                                    "Реестр контрактов *",
+                                    "Паспорт руководителя (все страницы) *",
+                                    "Паспорта всех учредителей (все страницы) *",
+                                    "Устав *",
+                                    "Решение/протокол о назначении руководителя *",
+                                    "Договор аренды с актом приема-передачи / свидетельство о праве собственности *",
+                                    "Доп. документы"
+                                ].map((doc, i) => (
                                     <div key={i} className="flex items-center justify-between p-3 border rounded-lg"><span className="text-sm">{doc}</span><div className="flex items-center gap-4"><Button variant="outline" size="sm"><Upload className="h-4 w-4 mr-2" />ЗАГРУЗИТЬ</Button><span className="text-xs text-muted-foreground">Всего файлов: 0</span></div></div>
                                 ))}
                             </div>

@@ -37,10 +37,22 @@ import { useDocumentMutations } from "@/hooks/use-documents"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ApplicationChat } from "./application-chat"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ApplicationDetailViewProps {
     applicationId: string | number
     onBack?: () => void
+    onNavigateToCalculationSession?: (sessionId: number) => void
 }
 
 /**
@@ -52,9 +64,9 @@ interface ApplicationDetailViewProps {
  * - Step 3: Отправка в банк (Bank submission)
  * - Step 4: Согласование и оплата (Approval & Payment)
  */
-export function ApplicationDetailView({ applicationId, onBack }: ApplicationDetailViewProps) {
+export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalculationSession }: ApplicationDetailViewProps) {
     const { application, isLoading, error, refetch } = useApplication(applicationId)
-    const { submitApplication, updateApplication, isLoading: isSubmitting } = useApplicationMutations()
+    const { submitApplication, updateApplication, deleteApplication, isLoading: isSubmitting } = useApplicationMutations()
     const { uploadDocument, deleteDocument } = useDocumentMutations()
 
     // Step expansion state
@@ -67,7 +79,63 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
 
     // File upload state
     const [isUploading, setIsUploading] = useState(false)
+    const [uploadingDocType, setUploadingDocType] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const specificFileInputRef = useRef<HTMLInputElement>(null)
+
+    // Get required documents list based on product type
+    const getRequiredDocuments = (productType: string): { name: string; id: number; required: boolean }[] => {
+        // Required documents for БГ КИК и кредиты (with asterisk)
+        const requiredDocs = [
+            { name: "Карточка компании", id: 1, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 200, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025", id: 201, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 202, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС", id: 203, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 204, required: true },
+            { name: "Реестр контрактов", id: 50, required: true },
+            { name: "Паспорт руководителя (все страницы)", id: 21, required: true },
+            { name: "Паспорта всех учредителей (все страницы)", id: 22, required: true },
+            { name: "Устав", id: 75, required: true },
+            { name: "Решение/протокол о назначении руководителя", id: 76, required: true },
+            { name: "Договор аренды с актом или свидетельство о праве собственности", id: 81, required: true },
+        ]
+
+        // Optional documents (without asterisk)
+        const optionalDocs = [
+            { name: "Карточка 51 счета за 24 месяца", id: 80, required: false },
+            { name: "Налоговая декларация на прибыль за 24 год с квитанцией ИФНС", id: 210, required: false },
+            { name: "Налоговая декларация на прибыль за 25 год с квитанцией ИФНС", id: 211, required: false },
+            { name: "Общая ОСВ за 1 год по всем счетам в разбивке по субсчетам", id: 220, required: false },
+            { name: "ОСВ 60 за 1 год в разбивке по субсчетам и контрагентам (Excel)", id: 221, required: false },
+            { name: "ОСВ 62 за 1 год в разбивке по субсчетам и контрагентам (Excel)", id: 222, required: false },
+            { name: "Выписка в формате txt за 12 месяцев", id: 223, required: false },
+        ]
+
+        switch (productType) {
+            case 'bank_guarantee':
+            case 'contract_loan':
+            case 'corporate_credit':
+            case 'tender_loan':
+                return [
+                    ...requiredDocs,
+                    ...optionalDocs,
+                ]
+            case 'factoring':
+                return [
+                    ...requiredDocs,
+                    { name: "Реестр дебиторов", id: 10, required: true },
+                    { name: "Договоры поставки", id: 11, required: true },
+                    ...optionalDocs,
+                ]
+            default:
+                return [
+                    ...requiredDocs,
+                    ...optionalDocs,
+                ]
+        }
+    }
+
 
     const toggleStep = (step: number) => {
         setExpandedSteps(prev => ({ ...prev, [step]: !prev[step] }))
@@ -133,6 +201,87 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
             }
         }
     }, [uploadDocument, updateApplication, application, refetch])
+
+    // Handle specific document type upload
+    const handleSpecificDocUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, docTypeId: number, docTypeName: string) => {
+        const files = e.target.files
+        if (!files || files.length === 0 || !application) return
+
+        setUploadingDocType(docTypeName)
+        try {
+            const uploadedDocIds: number[] = []
+
+            for (const file of Array.from(files)) {
+                const uploadedDoc = await uploadDocument({
+                    file,
+                    document_type_id: docTypeId,
+                    name: `${docTypeName} - ${file.name}`,
+                })
+                if (uploadedDoc) {
+                    uploadedDocIds.push(uploadedDoc.id)
+                }
+            }
+
+            if (uploadedDocIds.length > 0) {
+                const existingDocIds = application.documents?.map(d => d.id) || []
+                const allDocIds = [...existingDocIds, ...uploadedDocIds]
+
+                await updateApplication(application.id, {
+                    document_ids: allDocIds
+                } as Parameters<typeof updateApplication>[1])
+
+                toast.success(`${docTypeName}: загружено`)
+                refetch()
+            } else {
+                toast.error('Не удалось загрузить документ')
+            }
+        } catch {
+            toast.error('Ошибка загрузки документа')
+        } finally {
+            setUploadingDocType(null)
+            if (e.target) {
+                e.target.value = ''
+            }
+        }
+    }, [uploadDocument, updateApplication, application, refetch])
+
+    // Check if a required document is already uploaded
+    const isDocumentUploaded = (docName: string, docId: number): boolean => {
+        if (!application?.documents) return false
+        return application.documents.some(d =>
+            d.document_type_id === docId ||
+            d.name?.toLowerCase().includes(docName.toLowerCase().substring(0, 20))
+        )
+    }
+
+    // Get uploaded document for a specific type
+    const getUploadedDocForType = (docName: string, docId: number) => {
+        if (!application?.documents) return null
+        return application.documents.find(d =>
+            d.document_type_id === docId ||
+            d.name?.toLowerCase().includes(docName.toLowerCase().substring(0, 20))
+        )
+    }
+
+    // Handle application deletion
+    const [isDeleting, setIsDeleting] = useState(false)
+    const handleDeleteApplication = async () => {
+        if (!confirm("Вы действительно хотите удалить эту заявку? Это действие нельзя отменить.")) return
+
+        setIsDeleting(true)
+        try {
+            const success = await deleteApplication(Number(applicationId))
+            if (success) {
+                toast.success("Заявка успешно удалена")
+                onBack?.()
+            }
+        } catch (err) {
+            console.error(err)
+            toast.error("Не удалось удалить заявку")
+        } finally {
+            setIsDeleting(false)
+        }
+    }
 
     // Handle submit to bank
     const handleSubmitToBank = useCallback(async () => {
@@ -375,19 +524,32 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                                 <span>Мои заявки</span>
                             </button>
                             <span>/</span>
-                            <button onClick={onBack} className="hover:text-[#3CE8D1] transition-colors">
-                                {application.product_type_display || application.product_type || 'Заявка'}
-                            </button>
+                            {application.calculation_session ? (
+                                <button
+                                    onClick={() => onNavigateToCalculationSession?.(application.calculation_session!)}
+                                    className="hover:text-[#3CE8D1] transition-colors cursor-pointer"
+                                    title="Перейти к результатам отбора банков"
+                                >
+                                    {application.product_type_display || application.product_type || 'Заявка'}
+                                </button>
+                            ) : (
+                                <span className="text-[#94a3b8]">
+                                    {application.product_type_display || application.product_type || 'Заявка'}
+                                </span>
+                            )}
                             <span>/</span>
                             <span className="text-[#3CE8D1]">Заявка #{application.id}</span>
                         </nav>
-                        {/* Title: Заявка: TENDER_NUMBER | LAW-ФЗ with date */}
+                        {/* Title: Заявка #ID */}
                         <h1 className="text-lg md:text-2xl font-bold text-white flex flex-wrap items-center gap-2 md:gap-3">
-                            <span className="truncate">Заявка: {application.tender_number || application.id}</span>
-                            <span className="hidden sm:inline">|</span>
-                            <span className="hidden sm:inline">{application.goscontract_data?.law || application.tender_law || '44'}-ФЗ</span>
+                            <span className="truncate">Заявка #{application.id}</span>
+                            {application.target_bank_name && (
+                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs md:text-sm font-medium">
+                                    {application.target_bank_name}
+                                </Badge>
+                            )}
                             <span className="text-xs md:text-sm font-normal text-[#94a3b8]">
-                                ✓ {new Date(application.created_at).toLocaleDateString('ru-RU')}
+                                от {new Date(application.created_at).toLocaleDateString('ru-RU')}
                             </span>
                         </h1>
                     </div>
@@ -397,68 +559,75 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
             {/* Main Grid - Content + Chat */}
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Left Column - Main Content */}
-                <div className="xl:col-span-3 space-y-6">
-                    {/* Product badge and Status */}
-                    <div className="flex items-center gap-4">
-                        <Badge className="bg-[#0f2042] text-[#3CE8D1] border border-[#1e3a5f] px-4 py-2">
-                            {application.product_type_display || 'Банковская гарантия'}
-                        </Badge>
-                        {getStatusBadge(application.status)}
-                    </div>
-
-                    {/* Application Info Card */}
+                <div className="xl:col-span-3 space-y-4">
+                    {/* Application Info Card - Compact BANKON24 style */}
+                    {/* Application Info Card - Refined per User Request */}
                     <Card className="bg-[#0f2042] border-[#1e3a5f]">
-                        <CardContent className="p-3 md:p-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-                                <div className="flex items-start gap-2 md:gap-3">
-                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
-                                        <Building2 className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Клиент</p>
-                                        <p className="font-medium text-white text-sm md:text-base truncate">{application.company_name}</p>
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">ИНН: {application.company_inn}</p>
-                                    </div>
+                        <CardContent className="p-4">
+                            {/* Key Information Grid */}
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-4 text-sm">
+                                {/* 1. Client */}
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Клиент</p>
+                                    <p className="font-medium text-white truncate" title={application.company_name}>
+                                        {application.company_name}
+                                    </p>
                                 </div>
-                                <div className="flex items-start gap-2 md:gap-3">
-                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
-                                        <FileText className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Продукт</p>
-                                        <p className="font-medium text-white text-sm md:text-base truncate">{application.product_type_display}</p>
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">{application.tender_law || application.goscontract_data?.law || ''}</p>
-                                    </div>
+
+                                {/* 2. INN */}
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">ИНН</p>
+                                    <p className="font-medium text-white font-mono">{application.company_inn}</p>
                                 </div>
-                                <div className="flex items-start gap-2 md:gap-3">
-                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
-                                        <Banknote className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Сумма</p>
-                                        <p className="font-medium text-white text-sm md:text-base">
-                                            {parseFloat(application.amount || '0').toLocaleString('ru-RU')} ₽
-                                        </p>
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">{application.term_months} мес.</p>
-                                    </div>
+
+                                {/* 3. Date Created */}
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Дата создания</p>
+                                    <p className="font-medium text-white">
+                                        {new Date(application.created_at).toLocaleDateString('ru-RU')}
+                                    </p>
                                 </div>
-                                <div className="flex items-start gap-2 md:gap-3">
-                                    <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10 shrink-0">
-                                        <Calendar className="h-4 w-4 md:h-5 md:w-5 text-[#3CE8D1]" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8]">Дата</p>
-                                        <p className="font-medium text-white text-sm md:text-base">
-                                            {new Date(application.created_at).toLocaleDateString('ru-RU')}
-                                        </p>
-                                        <p className="text-[10px] md:text-xs text-[#94a3b8] truncate">
-                                            {application.target_bank_name || 'Банк не выбран'}
-                                        </p>
-                                    </div>
+
+                                {/* 4. Bank */}
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Банк</p>
+                                    <p className="font-medium text-white truncate" title={application.target_bank_name || 'Не выбран'}>
+                                        {application.target_bank_name || 'Не выбран'}
+                                    </p>
+                                </div>
+
+                                {/* 5. Amount */}
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Сумма кредита</p>
+                                    <p className="font-medium text-white">
+                                        {parseFloat(application.amount || '0').toLocaleString('ru-RU')} ₽
+                                    </p>
+                                </div>
+
+                                {/* 6. Term */}
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Срок кредита</p>
+                                    <p className="font-medium text-white">
+                                        {(() => {
+                                            const data = application.goscontract_data;
+                                            if (data) {
+                                                // Try to find specific start/end dates
+                                                const start = data.credit_start_date || data.guarantee_start_date || data.contract_start_date;
+                                                const end = data.credit_end_date || data.guarantee_end_date || data.contract_end_date;
+
+                                                if (start && end) {
+                                                    const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU');
+                                                    return `${formatDate(start)} - ${formatDate(end)}`;
+                                                }
+                                            }
+                                            return `${application.term_months} мес.`;
+                                        })()}
+                                    </p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
+
 
                     {/* Company Information Tabs */}
                     <Card className="bg-[#0f2042] border-[#1e3a5f]">
@@ -1086,6 +1255,105 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                                     )}
                                 </div>
 
+                                {/* Required Documents Checklist */}
+                                <div className="mb-6">
+                                    <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                                        <FileText className="h-5 w-5 text-[#3CE8D1]" />
+                                        Обязательные документы
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {getRequiredDocuments(application.product_type || 'bank_guarantee').map((reqDoc, idx) => {
+                                            const isUploaded = isDocumentUploaded(reqDoc.name, reqDoc.id)
+                                            const uploadedDoc = getUploadedDocForType(reqDoc.name, reqDoc.id)
+                                            const isCurrentlyUploading = uploadingDocType === reqDoc.name
+
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={cn(
+                                                        "flex items-center justify-between p-3 rounded-lg border",
+                                                        isUploaded
+                                                            ? "bg-emerald-500/10 border-emerald-500/30"
+                                                            : reqDoc.required
+                                                                ? "bg-[#0f2042] border-orange-500/30"
+                                                                : "bg-[#0f2042] border-[#1e3a5f]"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                        {isUploaded ? (
+                                                            <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+                                                        ) : (
+                                                            <div className={cn(
+                                                                "h-5 w-5 rounded-full border-2 shrink-0",
+                                                                reqDoc.required ? "border-orange-400" : "border-[#94a3b8]"
+                                                            )} />
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <p className={cn(
+                                                                "font-medium text-sm truncate",
+                                                                isUploaded ? "text-emerald-400" : "text-white"
+                                                            )}>
+                                                                {reqDoc.name} {reqDoc.required && <span className="text-orange-400">*</span>}
+                                                            </p>
+                                                            {uploadedDoc && (
+                                                                <p className="text-xs text-[#94a3b8] truncate">{uploadedDoc.name}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        {isUploaded && uploadedDoc ? (
+                                                            <>
+                                                                {getDocStatusBadge(uploadedDoc.status)}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-[#94a3b8] hover:text-white"
+                                                                    asChild
+                                                                >
+                                                                    <a href={uploadedDoc.file_url} target="_blank" rel="noopener noreferrer">
+                                                                        <Eye className="h-4 w-4" />
+                                                                    </a>
+                                                                </Button>
+                                                            </>
+                                                        ) : (
+                                                            <label className="cursor-pointer">
+                                                                <input
+                                                                    type="file"
+                                                                    className="hidden"
+                                                                    onChange={(e) => handleSpecificDocUpload(e, reqDoc.id, reqDoc.name)}
+                                                                />
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    disabled={isCurrentlyUploading}
+                                                                    className="border-[#3CE8D1]/30 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                                                    asChild
+                                                                >
+                                                                    <span>
+                                                                        {isCurrentlyUploading ? (
+                                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                                        ) : (
+                                                                            <>
+                                                                                <Upload className="h-4 w-4 mr-1" />
+                                                                                Загрузить
+                                                                            </>
+                                                                        )}
+                                                                    </span>
+                                                                </Button>
+                                                            </label>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Separator */}
+                                <Separator className="my-4 bg-[#1e3a5f]" />
+
+                                <h4 className="text-white font-medium mb-4">Загруженные документы</h4>
+
                                 {/* Documents List */}
                                 {application.documents && application.documents.length > 0 ? (
                                     <div className="space-y-2">
@@ -1297,15 +1565,48 @@ export function ApplicationDetailView({ applicationId, onBack }: ApplicationDeta
                         </Button>
 
                         {application.status === 'draft' && (
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    variant="outline"
-                                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Удалить заявку
-                                </Button>
-                            </div>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        disabled={isDeleting}
+                                        className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                                    >
+                                        {isDeleting ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                        )}
+                                        Удалить заявку
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white">
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Удалить заявку?</AlertDialogTitle>
+                                        <AlertDialogDescription className="text-[#94a3b8]">
+                                            Вы действительно хотите удалить эту заявку? Это действие нельзя отменить.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel className="bg-transparent border-[#1e3a5f] text-white hover:bg-[#1e3a5f]">
+                                            Отмена
+                                        </AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                handleDeleteApplication();
+                                            }}
+                                            className="bg-red-500 hover:bg-red-600 text-white border-0"
+                                        >
+                                            {isDeleting ? (
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            ) : (
+                                                "Удалить"
+                                            )}
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         )}
                     </div>
                 </div>

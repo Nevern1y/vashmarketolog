@@ -11,7 +11,7 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from .models import Application, PartnerDecision, TicketMessage, ApplicationStatus
+from .models import Application, PartnerDecision, TicketMessage, ApplicationStatus, CalculationSession
 from .serializers import (
     ApplicationSerializer,
     ApplicationCreateSerializer,
@@ -23,6 +23,8 @@ from .serializers import (
     PartnerDecisionCreateSerializer,
     TicketMessageSerializer,
     TicketMessageCreateSerializer,
+    CalculationSessionSerializer,
+    CalculationSessionCreateSerializer,
 )
 from rest_framework.views import APIView
 from apps.users.permissions import (
@@ -761,3 +763,70 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
                 Q(created_by=user) | Q(company__owner=user)
             )
         )
+
+
+@extend_schema(tags=['Calculation Sessions'])
+@extend_schema_view(
+    list=extend_schema(description='List calculation sessions (root applications)'),
+    create=extend_schema(description='Create calculation session after bank calculation'),
+    retrieve=extend_schema(description='Get calculation session with bank offers'),
+)
+class CalculationSessionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for CalculationSession (root applications).
+    
+    This is the "Результат отбора" page - stores bank calculation results
+    and allows returning to select more banks.
+    
+    Role-based access:
+    - CLIENT: Own calculation sessions
+    - AGENT: Own calculation sessions
+    - ADMIN: All sessions
+    """
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']  # No delete
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Admin sees all
+        if user.role == 'admin' or user.is_superuser:
+            return CalculationSession.objects.all()
+        
+        # Client/Agent see own sessions
+        return CalculationSession.objects.filter(created_by=user)
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CalculationSessionCreateSerializer
+        return CalculationSessionSerializer
+
+    @extend_schema(
+        request={'application/json': {'type': 'object', 'properties': {'bank_names': {'type': 'array', 'items': {'type': 'string'}}}}},
+        responses={200: CalculationSessionSerializer}
+    )
+    @action(detail=True, methods=['post'])
+    def update_submitted(self, request, pk=None):
+        """
+        Update submitted_banks list after creating applications.
+        POST /api/calculation-sessions/{id}/update_submitted/
+        
+        Body: {"bank_names": ["Сбербанк", "ВТБ"]}
+        """
+        session = self.get_object()
+        bank_names = request.data.get('bank_names', [])
+        
+        if not isinstance(bank_names, list):
+            return Response(
+                {'error': 'bank_names должен быть списком'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Add new banks to submitted list (avoid duplicates)
+        existing = set(session.submitted_banks)
+        new_banks = existing.union(set(bank_names))
+        session.submitted_banks = list(new_banks)
+        session.save()
+        
+        return Response(CalculationSessionSerializer(session, context={'request': request}).data)
+

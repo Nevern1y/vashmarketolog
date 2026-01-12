@@ -398,15 +398,7 @@ export function ProfileSettingsView() {
                                         onChange={(e) => setProfilePhone(formatPhoneNumber(e.target.value))}
                                         disabled={!isEditingProfile}
                                         className={!isEditingProfile ? "bg-muted" : ""}
-                                        placeholder="+7 (XXX) XXX-XX-XX"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Роль</Label>
-                                    <Input
-                                        value={user?.role === "agent" ? "Агент" : user?.role === "partner" ? "Партнер" : user?.role === "client" ? "Клиент" : user?.role || ""}
-                                        disabled
-                                        className="bg-muted"
+                                        placeholder="+7(XXX)XXX-XX-XX"
                                     />
                                 </div>
                             </div>

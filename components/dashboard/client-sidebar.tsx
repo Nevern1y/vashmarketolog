@@ -153,23 +153,6 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
               </li>
             ))}
           </ul>
-
-          {/* Separator */}
-          <div className="my-4 border-t border-white/10" />
-
-          {/* Profile Settings */}
-          <button
-            onClick={() => onViewChange("profile-settings")}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
-              activeView === "profile-settings"
-                ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
-                : "text-[#94a3b8] hover:bg-[#3CE8D1]/5 hover:text-white",
-            )}
-          >
-            <Settings className="h-5 w-5" />
-            Настройки профиля
-          </button>
         </nav>
 
         {/* Footer */}

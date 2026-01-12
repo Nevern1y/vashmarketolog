@@ -225,10 +225,12 @@ class ApiClient {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
 
-      // Debug logging
-      console.error("[API ERROR] Status:", response.status);
-      console.error("[API ERROR] URL:", response.url);
-      console.error("[API ERROR] Response:", JSON.stringify(errorData, null, 2));
+      // Debug logging - skip 404s to avoid noise during polling of deleted items
+      if (response.status !== 404) {
+        console.error("[API ERROR] Status:", response.status);
+        console.error("[API ERROR] URL:", response.url);
+        console.error("[API ERROR] Response:", JSON.stringify(errorData, null, 2));
+      }
 
       // Extract user-friendly error message
       let message = 'An error occurred';

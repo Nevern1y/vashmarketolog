@@ -198,6 +198,93 @@ class ApplicationStatusDefinition(models.Model):
 
 
 
+class CalculationSession(models.Model):
+    """
+    Stores a calculation session with bank offers.
+    
+    This is the "root application" that groups multiple Application records
+    created from the same calculation. Allows users to return to the bank
+    selection page via breadcrumb navigation.
+    
+    Flow:
+    1. User fills calculator form → Calculate → CalculationSession created
+    2. User selects banks → Application records created with calculation_session FK
+    3. User opens Application detail → breadcrumb links back to CalculationSession
+    """
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='calculation_sessions',
+        verbose_name='Создал'
+    )
+    company = models.ForeignKey(
+        'companies.CompanyProfile',
+        on_delete=models.CASCADE,
+        related_name='calculation_sessions',
+        verbose_name='Компания'
+    )
+    
+    # Product type from calculator
+    product_type = models.CharField(
+        'Тип продукта',
+        max_length=30,
+        choices=ProductType.choices
+    )
+    
+    # Calculation form data (all fields from calculator form)
+    form_data = models.JSONField(
+        'Данные формы',
+        default=dict,
+        help_text='Данные формы калькулятора: сумма, сроки, закон, тип и т.д.'
+    )
+    
+    # Calculated offers (approved banks with rates)
+    approved_banks = models.JSONField(
+        'Одобренные банки',
+        default=list,
+        help_text='Список одобренных банков с тарифами: [{name, rate, speed, ...}]'
+    )
+    
+    # Rejected banks with reasons
+    rejected_banks = models.JSONField(
+        'Отклонённые банки',
+        default=list,
+        help_text='Список отклонённых банков: [{bank, reason}]'
+    )
+    
+    # Selected bank names (for tracking which banks user already submitted to)
+    submitted_banks = models.JSONField(
+        'Отправленные банки',
+        default=list,
+        help_text='Список банков, по которым созданы заявки'
+    )
+    
+    # Display title (e.g., "БГ 24 444 244 ₽ • contract_execution")
+    title = models.CharField(
+        'Заголовок',
+        max_length=200,
+        blank=True,
+        default='',
+        help_text='Отображаемый заголовок сессии калькуляции'
+    )
+    
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Сессия калькуляции'
+        verbose_name_plural = 'Сессии калькуляции'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Calc #{self.id} - {self.get_product_type_display()} - {self.title}"
+    
+    @property
+    def remaining_banks_count(self):
+        """Number of approved banks not yet submitted."""
+        submitted = set(self.submitted_banks)
+        return sum(1 for bank in self.approved_banks if bank.get('name') not in submitted)
+
 
 class Application(models.Model):
     """
@@ -221,6 +308,17 @@ class Application(models.Model):
         on_delete=models.CASCADE,
         related_name='applications',
         verbose_name='Компания'
+    )
+    
+    # Link to calculation session (root application)
+    calculation_session = models.ForeignKey(
+        CalculationSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applications',
+        verbose_name='Сессия калькуляции',
+        help_text='Ссылка на сессию калькуляции (корневую заявку)'
     )
     
     # Product details

@@ -32,6 +32,7 @@ import { AgentBanksView } from "@/components/dashboard/agent-banks-view"
 import { AgentCheckCounterpartyView } from "@/components/dashboard/agent-check-counterparty-view"
 import { AgentActsView } from "@/components/dashboard/agent-acts-view"
 import { ClientTenderSupportView } from "@/components/dashboard/client-tender-support-view"
+import { CalculationSessionView } from "@/components/dashboard/calculation-session-view"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 
@@ -57,6 +58,7 @@ export default function DashboardPage() {
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [selectedCalculationSessionId, setSelectedCalculationSessionId] = useState<number | null>(null)
 
   // Open wizard with optional pre-selected client
   const openWizard = (clientId?: number) => {
@@ -68,6 +70,16 @@ export default function DashboardPage() {
   const closeWizard = () => {
     setIsWizardOpen(false)
     setWizardClientId(null)
+  }
+
+  // Navigation to calculation session (root application)
+  const openCalculationSession = (sessionId: number) => {
+    setSelectedCalculationSessionId(sessionId)
+    closeDetail() // Close application detail when navigating to session
+  }
+
+  const closeCalculationSession = () => {
+    setSelectedCalculationSessionId(null)
   }
 
   // ========================================
@@ -122,6 +134,53 @@ export default function DashboardPage() {
     // CLIENT ROLE
     // =====================================
     case "client":
+      // Client Calculation Session View (root application)
+      if (selectedCalculationSessionId) {
+        return (
+          <div className="flex h-screen overflow-hidden">
+            <div className="hidden lg:block">
+              <ClientSidebar
+                activeView={clientView}
+                onViewChange={(view) => {
+                  setClientView(view)
+                  closeCalculationSession()
+                }}
+                onCreateApplication={() => openWizard()}
+              />
+            </div>
+
+            <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+              <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+              <div className="absolute left-0 top-0 h-full">
+                <ClientSidebar
+                  activeView={clientView}
+                  onViewChange={(view) => {
+                    setClientView(view)
+                    setIsMobileSidebarOpen(false)
+                    closeCalculationSession()
+                  }}
+                  onCreateApplication={() => {
+                    openWizard()
+                    setIsMobileSidebarOpen(false)
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+                <CalculationSessionView
+                  sessionId={selectedCalculationSessionId}
+                  onBack={closeCalculationSession}
+                />
+              </main>
+            </div>
+          </div>
+        )
+      }
+
       // Client Application Detail View
       if (showingAppDetail) {
         return (
@@ -159,7 +218,7 @@ export default function DashboardPage() {
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} />
+                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} />
               </main>
             </div>
 
@@ -208,6 +267,7 @@ export default function DashboardPage() {
               {clientView === "applications" && (
                 <MyApplicationsView
                   onOpenDetail={(id: string) => openDetail(id)}
+                  userRole="client"
                 />
               )}
               {clientView === "victories" && <MyVictoriesView />}
@@ -277,6 +337,53 @@ export default function DashboardPage() {
         )
       }
 
+      // Agent Calculation Session View (root application)
+      if (selectedCalculationSessionId) {
+        return (
+          <div className="flex h-screen overflow-hidden">
+            <div className="hidden lg:block">
+              <Sidebar
+                activeView={agentView}
+                onViewChange={(view) => {
+                  setAgentView(view)
+                  closeCalculationSession()
+                }}
+                onCreateApplication={() => openWizard()}
+              />
+            </div>
+
+            <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
+              <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+              <div className="absolute left-0 top-0 h-full">
+                <Sidebar
+                  activeView={agentView}
+                  onViewChange={(view) => {
+                    setAgentView(view)
+                    setIsMobileSidebarOpen(false)
+                    closeCalculationSession()
+                  }}
+                  onCreateApplication={() => {
+                    openWizard()
+                    setIsMobileSidebarOpen(false)
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+              <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+                <CalculationSessionView
+                  sessionId={selectedCalculationSessionId}
+                  onBack={closeCalculationSession}
+                />
+              </main>
+            </div>
+          </div>
+        )
+      }
+
       // Agent Application Detail View
       if (showingAppDetail) {
         return (
@@ -310,7 +417,7 @@ export default function DashboardPage() {
               <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
-                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} />
+                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} />
               </main>
             </div>
 
@@ -358,6 +465,7 @@ export default function DashboardPage() {
               {agentView === "applications" && (
                 <MyApplicationsView
                   onOpenDetail={(id: string) => openDetail(id)}
+                  userRole="agent"
                 />
               )}
               {agentView === "banks" && <AgentBanksView />}

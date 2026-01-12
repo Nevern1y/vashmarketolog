@@ -984,7 +984,7 @@ export function MyCompanyView() {
                           <FormLabel>Телефон</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="+7 (XXX) XXX XX XX"
+                              placeholder="+7(XXX)XXX-XX-XX"
                               value={field.value}
                               onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
                             />
@@ -1265,7 +1265,7 @@ export function MyCompanyView() {
                           <FormLabel>Телефон</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="+7 (XXX) XXX XX XX"
+                              placeholder="+7(XXX)XXX-XX-XX"
                               value={field.value}
                               onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
                             />
@@ -1481,7 +1481,7 @@ export function MyCompanyView() {
                                     <FormLabel>Телефон</FormLabel>
                                     <FormControl>
                                       <Input
-                                        placeholder="+7 (XXX) XXX XX XX"
+                                        placeholder="+7(XXX)XXX-XX-XX"
                                         value={field.value}
                                         onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
                                       />
@@ -1932,7 +1932,7 @@ export function MyCompanyView() {
                                 <FormLabel>Телефон</FormLabel>
                                 <FormControl>
                                   <Input
-                                    placeholder="+7 (XXX) XXX XX XX"
+                                    placeholder="+7(XXX)XXX-XX-XX"
                                     {...field}
                                     value={field.value}
                                     onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
@@ -2209,7 +2209,7 @@ export function MyCompanyView() {
                               <FormLabel>Телефон</FormLabel>
                               <FormControl>
                                 <Input
-                                  placeholder="+7 (XXX) XXX XX XX"
+                                  placeholder="+7(XXX)XXX-XX-XX"
                                   {...field}
                                   value={field.value}
                                   onChange={e => field.onChange(formatPhoneNumber(e.target.value))}
