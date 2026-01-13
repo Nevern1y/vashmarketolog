@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'apps.dictionaries',
     'apps.news',
     'apps.bank_conditions',
+    'apps.seo',
 ]
 
 

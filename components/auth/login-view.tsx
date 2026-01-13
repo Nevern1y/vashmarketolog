@@ -58,9 +58,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
   return (
     <Card className="rounded-xl shadow-2xl border-0">
       <CardHeader className="space-y-4 pb-6">
-        <div className="flex justify-center">
-          <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-14 w-auto" />
-        </div>
+
         <h1 className="text-center text-2xl font-semibold text-foreground">Вход в систему</h1>
       </CardHeader>
 
