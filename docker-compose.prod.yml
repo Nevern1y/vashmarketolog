@@ -104,7 +104,7 @@ services:
       context: .
       dockerfile: Dockerfile.prod
       args:
-        - NEXT_PUBLIC_API_URL=https://85.198.97.62/api
+        - NEXT_PUBLIC_API_URL=https://lk.lider-garant.ru/api
     container_name: lider_prod_frontend
     restart: always
     environment:
