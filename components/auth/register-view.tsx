@@ -165,7 +165,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           <div className="space-y-2">
             <Label htmlFor="reg-email">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Mail className="absolute left-3 top-0 bottom-0 my-auto h-4 w-4 text-muted-foreground" />
               <Input
                 id="reg-email"
                 type="email"
@@ -184,7 +184,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           <div className="space-y-2">
             <Label htmlFor="phone">Телефон</Label>
             <div className="relative">
-              <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Phone className="absolute left-3 top-0 bottom-0 my-auto h-4 w-4 text-muted-foreground" />
               <Input
                 id="phone"
                 type="tel"
@@ -200,7 +200,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           <div className="space-y-2">
             <Label htmlFor="reg-password">Пароль</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Lock className="absolute left-3 top-0 bottom-0 my-auto h-4 w-4 text-muted-foreground" />
               <Input
                 id="reg-password"
                 type={showPassword ? "text" : "password"}
@@ -216,7 +216,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-0 bottom-0 my-auto h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -227,7 +227,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           <div className="space-y-2">
             <Label htmlFor="confirm-password">Подтвердите пароль</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Lock className="absolute left-3 top-0 bottom-0 my-auto h-4 w-4 text-muted-foreground" />
               <Input
                 id="confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
@@ -243,7 +243,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-0 bottom-0 my-auto h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label={showConfirmPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

@@ -58,7 +58,9 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
   return (
     <Card className="rounded-xl shadow-2xl border-0">
       <CardHeader className="space-y-4 pb-6">
-
+        <div className="flex justify-center">
+          <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-14 w-auto" />
+        </div>
         <h1 className="text-center text-2xl font-semibold text-foreground">Вход в систему</h1>
       </CardHeader>
 
@@ -74,7 +76,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Mail className="absolute left-3 top-0 bottom-0 my-auto h-4 w-4 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
@@ -93,7 +95,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
           <div className="space-y-2">
             <Label htmlFor="password">Пароль</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Lock className="absolute left-3 top-0 bottom-0 my-auto h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
@@ -109,7 +111,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-0 bottom-0 my-auto h-6 w-6 flex items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
