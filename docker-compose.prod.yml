@@ -97,7 +97,7 @@ services:
       - "8000"
 
   # ==========================================================================
-  # Next.js Frontend (Node Server)
+  # Next.js Frontend - Personal Cabinet (Node Server)
   # ==========================================================================
   frontend:
     build:
@@ -106,6 +106,26 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=https://lk.lider-garant.ru/api
     container_name: lider_prod_frontend
+    restart: always
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+    networks:
+      - internal
+    expose:
+      - "3000"
+
+  # ==========================================================================
+  # Next.js Landing Page (Node Server)
+  # ==========================================================================
+  landing:
+    build:
+      context: ./lider-garant
+      dockerfile: Dockerfile.prod
+      args:
+        - NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
+    container_name: lider_prod_landing
     restart: always
     environment:
       - NODE_ENV=production
@@ -136,6 +156,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - landing
     networks:
       - internal
       - external

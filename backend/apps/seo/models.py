@@ -20,7 +20,36 @@ class SeoPage(models.Model):
     # Dynamic Data
     # Storing offers configuration as JSON for flexibility:
     # [{"bank_id": 1, "custom_rate": "5%"}, ...]
-    bank_offers = models.JSONField(_("Bank Offers Configuration"), default=list, blank=True, help_text=_("Configuration for the 9 offers block"))
+    bank_offers = models.JSONField(_("Bank Offers Configuration"), default=list, blank=True, help_text=_("Configuration for 9 offers block"))
+    
+    # Publication Control
+    is_published = models.BooleanField(_("Is Published"), default=True)
+    
+    # Page Type
+    page_type = models.CharField(
+        _("Page Type"),
+        max_length=50,
+        choices=[
+            ('landing', 'Landing Page'),
+            ('product', 'Product Page'),
+            ('custom', 'Custom Page'),
+        ],
+        default='product'
+    )
+    
+    # Template System
+    template_name = models.CharField(_("Template Name"), max_length=100, blank=True, help_text="Template to apply on creation (e.g., factoring, rko, leasing)")
+    
+    # Priority for catch-all routing
+    priority = models.IntegerField(_("Priority"), default=0, help_text="Higher priority shown first in catch-all routes")
+    
+    # Bank Relationships
+    banks = models.ManyToManyField(
+        'bank_conditions.Bank',
+        blank=True,
+        related_name='seo_pages',
+        verbose_name=_("Banks to Display")
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -28,6 +57,7 @@ class SeoPage(models.Model):
     class Meta:
         verbose_name = _("SEO Page")
         verbose_name_plural = _("SEO Pages")
+        ordering = ['-priority', 'slug']
 
     def __str__(self):
         return self.slug
