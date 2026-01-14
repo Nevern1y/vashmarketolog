@@ -143,6 +143,18 @@ const calculateOffers = (amount: number, law: string, days: number, productType:
         }
     })
 
+    // Сортировка по приоритету скорости: Высокая → Средняя → Низкая
+    const speedPriority: Record<string, number> = {
+        "Высокая": 0,
+        "Средняя": 1,
+        "Низкая": 2
+    }
+    approved.sort((a, b) => {
+        const priorityA = speedPriority[a.speed] ?? 3
+        const priorityB = speedPriority[b.speed] ?? 3
+        return priorityA - priorityB
+    })
+
     return { approved, rejected }
 }
 

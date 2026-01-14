@@ -320,15 +320,24 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     const files = e.target.files
     if (!files || files.length === 0) return
 
+    console.log('[Wizard] Starting file upload')
+
+    // Store scroll position
+    const dialogContent = document.querySelector('[role="dialog"]') as HTMLElement
+    const scrollParent = dialogContent?.querySelector('.overflow-y-auto') as HTMLElement
+    const scrollPosition = scrollParent ? scrollParent.scrollTop : (window.pageYOffset || 0)
+
+    console.log(`[Wizard] Saved scroll position: ${scrollPosition}`)
+
     for (const file of Array.from(files)) {
+      console.log(`[Wizard] Uploading file: ${file.name}`)
       const doc = await uploadDocument({
         name: file.name,
         file: file,
-        document_type_id: uploadDocTypeId,  // NEW: Numeric ID per Appendix B
-        product_type: selectedProduct || 'general',  // NEW: Product context
+        document_type_id: uploadDocTypeId,
+        product_type: selectedProduct || 'general',
       })
 
-      // Debug: log what we got from upload
       console.log("[Wizard] uploadDocument response:", doc)
 
       if (doc && doc.id) {
@@ -343,6 +352,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
     // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = ""
+
+    // Restore scroll position after React re-render
+    setTimeout(() => {
+      if (scrollParent) {
+        scrollParent.scrollTop = scrollPosition
+        console.log(`[Wizard] Restored scroll to: ${scrollPosition}`)
+      } else {
+        window.scrollTo(0, scrollPosition)
+      }
+    }, 100)
   }
 
   const toggleDocumentSelection = (docId: number) => {
@@ -690,8 +709,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
               Требуется аккредитация
             </h2>
             <p className="text-muted-foreground mb-6">
-              Для создания заявки необходимо заполнить профиль компании.
-              Укажите ИНН и основные данные вашей организации в разделе «Моя компания».
+              Для создания заявки заполните базовые данные компании: название, ИНН, email и телефон в разделе «Моя компания».
             </p>
             <Button
               onClick={resetAndClose}

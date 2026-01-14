@@ -95,11 +95,15 @@ export function ProfileSettingsView() {
     const [taxSystem, setTaxSystem] = useState("")
     const [vatRate, setVatRate] = useState("")
 
-    // Password change state
     const [currentPassword, setCurrentPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
     const [isSavingPassword, setIsSavingPassword] = useState(false)
+
+    // Feedback form state
+    const [feedbackTopic, setFeedbackTopic] = useState("")
+    const [feedbackMessage, setFeedbackMessage] = useState("")
+    const [isSendingFeedback, setIsSendingFeedback] = useState(false)
 
 
 
@@ -258,6 +262,41 @@ export function ProfileSettingsView() {
         } finally {
             setIsSavingProfile(false)
         }
+    }
+
+    // Handle feedback form submission via mailto
+    const handleSendFeedback = () => {
+        if (!feedbackTopic) {
+            toast.error("Выберите тему обращения")
+            return
+        }
+        if (!feedbackMessage.trim()) {
+            toast.error("Введите сообщение")
+            return
+        }
+
+        setIsSendingFeedback(true)
+
+        const topicLabels: Record<string, string> = {
+            technical: "Техническая поддержка",
+            billing: "Вопросы по оплате",
+            partnership: "Партнерство",
+            other: "Другое"
+        }
+
+        const subject = encodeURIComponent(`[${topicLabels[feedbackTopic] || feedbackTopic}] Обращение от ${user?.email || 'пользователя'}`)
+        const body = encodeURIComponent(feedbackMessage)
+        const mailtoLink = `mailto:info@lidergarant.ru?subject=${subject}&body=${body}`
+
+        window.location.href = mailtoLink
+
+        // Show success toast and reset form
+        setTimeout(() => {
+            toast.success("Email-клиент открыт для отправки сообщения")
+            setFeedbackTopic("")
+            setFeedbackMessage("")
+            setIsSendingFeedback(false)
+        }, 500)
     }
 
     // Cancel profile editing
@@ -810,7 +849,7 @@ export function ProfileSettingsView() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <Label>Тема обращения</Label>
-                                        <Select>
+                                        <Select value={feedbackTopic} onValueChange={setFeedbackTopic}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Выберите тему" />
                                             </SelectTrigger>
@@ -827,9 +866,18 @@ export function ProfileSettingsView() {
                                         <textarea
                                             className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm"
                                             placeholder="Опишите ваш вопрос..."
+                                            value={feedbackMessage}
+                                            onChange={(e) => setFeedbackMessage(e.target.value)}
                                         />
                                     </div>
-                                    <Button className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
+                                    <Button
+                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                        onClick={handleSendFeedback}
+                                        disabled={isSendingFeedback}
+                                    >
+                                        {isSendingFeedback ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : null}
                                         Отправить сообщение
                                     </Button>
                                 </div>

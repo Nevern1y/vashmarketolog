@@ -162,6 +162,11 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         const files = e.target.files
         if (!files || files.length === 0 || !application) return
 
+        // Get the main scroll container
+        const mainContainer = document.querySelector('main') as HTMLElement
+        const scrollableContainer = document.querySelector('[data-testid="application-detail"]') as HTMLElement || mainContainer
+        const scrollPosition = scrollableContainer?.scrollTop || window.pageYOffset || 0
+
         setIsUploading(true)
         try {
             const uploadedDocIds: number[] = []
@@ -188,7 +193,18 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 } as Parameters<typeof updateApplication>[1])
 
                 toast.success(`Загружено документов: ${uploadedDocIds.length}`)
-                refetch()
+
+                // Wait for refetch to complete
+                await refetch()
+
+                // Restore scroll after data is loaded
+                setTimeout(() => {
+                    if (scrollableContainer) {
+                        scrollableContainer.scrollTop = scrollPosition
+                    } else {
+                        window.scrollTo(0, scrollPosition)
+                    }
+                }, 100)
             } else {
                 toast.error('Не удалось загрузить документы')
             }
@@ -202,27 +218,42 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         }
     }, [uploadDocument, updateApplication, application, refetch])
 
-    // Handle specific document type upload
+    // Handle specific document type upload  
     const handleSpecificDocUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, docTypeId: number, docTypeName: string) => {
         const files = e.target.files
-        if (!files || files.length === 0 || !application) return
+        if (!files || files.length === 0 || !application) {
+            console.log('[Upload] No files or no application')
+            return
+        }
+
+        console.log(`[Upload] Starting upload for ${docTypeName}, docTypeId: ${docTypeId}`)
+
+        // Get the main scroll container
+        const mainContainer = document.querySelector('main') as HTMLElement
+        const scrollableContainer = document.querySelector('[data-testid="application-detail"]') as HTMLElement || mainContainer
+        const scrollPosition = scrollableContainer?.scrollTop || window.pageYOffset || 0
+
+        console.log(`[Upload] Saved scroll position: ${scrollPosition}`)
 
         setUploadingDocType(docTypeName)
         try {
             const uploadedDocIds: number[] = []
 
             for (const file of Array.from(files)) {
+                console.log(`[Upload] Uploading file: ${file.name}`)
                 const uploadedDoc = await uploadDocument({
                     file,
                     document_type_id: docTypeId,
                     name: `${docTypeName} - ${file.name}`,
                 })
+                console.log(`[Upload] Upload result:`, uploadedDoc)
                 if (uploadedDoc) {
                     uploadedDocIds.push(uploadedDoc.id)
                 }
             }
 
             if (uploadedDocIds.length > 0) {
+                console.log(`[Upload] Attaching ${uploadedDocIds.length} docs to application`)
                 const existingDocIds = application.documents?.map(d => d.id) || []
                 const allDocIds = [...existingDocIds, ...uploadedDocIds]
 
@@ -231,11 +262,25 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 } as Parameters<typeof updateApplication>[1])
 
                 toast.success(`${docTypeName}: загружено`)
-                refetch()
+
+                // Wait for refetch to complete before restoring scroll
+                await refetch()
+
+                // Restore scroll after data is loaded
+                setTimeout(() => {
+                    if (scrollableContainer) {
+                        scrollableContainer.scrollTop = scrollPosition
+                    } else {
+                        window.scrollTo(0, scrollPosition)
+                    }
+                    console.log(`[Upload] Restored scroll to: ${scrollPosition}`)
+                }, 100)
             } else {
+                console.error('[Upload] No documents were uploaded')
                 toast.error('Не удалось загрузить документ')
             }
-        } catch {
+        } catch (err) {
+            console.error('[Upload] Error:', err)
             toast.error('Ошибка загрузки документа')
         } finally {
             setUploadingDocType(null)
@@ -246,21 +291,36 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     }, [uploadDocument, updateApplication, application, refetch])
 
     // Check if a required document is already uploaded
+    // Matches by document_type_id OR by name prefix (since we upload with "{docName} - {filename}" format)
     const isDocumentUploaded = (docName: string, docId: number): boolean => {
         if (!application?.documents) return false
-        return application.documents.some(d =>
-            d.document_type_id === docId ||
-            d.name?.toLowerCase().includes(docName.toLowerCase().substring(0, 20))
-        )
+
+        const found = application.documents.some(d => {
+            // Match by exact document_type_id
+            if (d.document_type_id && d.document_type_id === docId) return true
+
+            // Fallback: match by name prefix (format: "{docName} - {filename}")
+            if (d.name && d.name.startsWith(docName + ' - ')) return true
+
+            return false
+        })
+
+        console.log(`[isDocumentUploaded] "${docName}" (id: ${docId}) => ${found}`,
+            application.documents.map(d => ({ id: d.id, name: d.name, type_id: d.document_type_id })))
+
+        return found
     }
 
     // Get uploaded document for a specific type
     const getUploadedDocForType = (docName: string, docId: number) => {
         if (!application?.documents) return null
-        return application.documents.find(d =>
-            d.document_type_id === docId ||
-            d.name?.toLowerCase().includes(docName.toLowerCase().substring(0, 20))
-        )
+
+        // First try to find by document_type_id
+        const byTypeId = application.documents.find(d => d.document_type_id && d.document_type_id === docId)
+        if (byTypeId) return byTypeId
+
+        // Fallback: find by name prefix
+        return application.documents.find(d => d.name && d.name.startsWith(docName + ' - '))
     }
 
     // Handle application deletion
@@ -309,11 +369,31 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     // Handle document delete
     const handleDeleteDocument = useCallback(async (docId: number) => {
+        // Save scroll position
+        const mainContainer = document.querySelector('main') as HTMLElement
+        const scrollableContainer = document.querySelector('[data-testid="application-detail"]') as HTMLElement || mainContainer
+        const scrollPosition = scrollableContainer?.scrollTop || window.pageYOffset || 0
+
+        console.log(`[Delete] Deleting document ${docId}, scroll: ${scrollPosition}`)
+
         try {
             await deleteDocument(docId)
             toast.success('Документ удален')
-            refetch()
-        } catch {
+
+            // Wait for refetch to complete
+            await refetch()
+
+            // Restore scroll after data reload
+            setTimeout(() => {
+                if (scrollableContainer) {
+                    scrollableContainer.scrollTop = scrollPosition
+                } else {
+                    window.scrollTo(0, scrollPosition)
+                }
+                console.log(`[Delete] Restored scroll to: ${scrollPosition}`)
+            }, 100)
+        } catch (err) {
+            console.error('[Delete] Error:', err)
             toast.error('Ошибка удаления документа')
         }
     }, [deleteDocument, refetch])
@@ -1314,32 +1394,41 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                                         <Eye className="h-4 w-4" />
                                                                     </a>
                                                                 </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault()
+                                                                        e.stopPropagation()
+                                                                        console.log('[UI] Delete clicked for doc:', uploadedDoc.id)
+                                                                        handleDeleteDocument(uploadedDoc.id)
+                                                                    }}
+                                                                    title="Удалить документ"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
                                                             </>
                                                         ) : (
-                                                            <label className="cursor-pointer">
+                                                            <label className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 border border-[#3CE8D1]/30 text-[#3CE8D1] hover:bg-[#3CE8D1]/10 transition-colors">
                                                                 <input
                                                                     type="file"
                                                                     className="hidden"
-                                                                    onChange={(e) => handleSpecificDocUpload(e, reqDoc.id, reqDoc.name)}
-                                                                />
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
                                                                     disabled={isCurrentlyUploading}
-                                                                    className="border-[#3CE8D1]/30 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
-                                                                    asChild
-                                                                >
-                                                                    <span>
-                                                                        {isCurrentlyUploading ? (
-                                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                                        ) : (
-                                                                            <>
-                                                                                <Upload className="h-4 w-4 mr-1" />
-                                                                                Загрузить
-                                                                            </>
-                                                                        )}
-                                                                    </span>
-                                                                </Button>
+                                                                    onChange={(e) => {
+                                                                        console.log('[UI] File input change triggered for:', reqDoc.name)
+                                                                        handleSpecificDocUpload(e, reqDoc.id, reqDoc.name)
+                                                                    }}
+                                                                />
+                                                                {isCurrentlyUploading ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <>
+                                                                        <Upload className="h-4 w-4 mr-1" />
+                                                                        Загрузить
+                                                                    </>
+                                                                )}
                                                             </label>
                                                         )}
                                                     </div>
@@ -1352,67 +1441,81 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 {/* Separator */}
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
-                                <h4 className="text-white font-medium mb-4">Загруженные документы</h4>
+                                <h4 className="text-white font-medium mb-4">Дополнительные документы</h4>
 
-                                {/* Documents List */}
-                                {application.documents && application.documents.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {application.documents.map((doc) => (
-                                            <div
-                                                key={doc.id}
-                                                className="flex items-center justify-between p-4 rounded-lg bg-[#0f2042] border border-[#1e3a5f]"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <FileText className="h-5 w-5 text-[#3CE8D1]" />
-                                                    <div>
-                                                        <p className="font-medium text-white">{doc.name}</p>
-                                                        <p className="text-xs text-[#94a3b8]">{doc.type_display}</p>
+                                {/* Documents List - Only show non-required documents to avoid duplicates */}
+                                {(() => {
+                                    // Get list of required document IDs
+                                    const requiredDocIds = getRequiredDocuments(application.product_type || 'bank_guarantee').map(d => d.id)
+
+                                    // Filter out documents that are in the required list
+                                    const additionalDocs = application.documents?.filter(doc =>
+                                        !requiredDocIds.includes(doc.document_type_id || 0) &&
+                                        !getRequiredDocuments(application.product_type || 'bank_guarantee').some(reqDoc =>
+                                            doc.name?.toLowerCase().includes(reqDoc.name.toLowerCase().substring(0, 20))
+                                        )
+                                    ) || []
+
+                                    return additionalDocs.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {additionalDocs.map((doc) => (
+                                                <div
+                                                    key={doc.id}
+                                                    className="flex items-center justify-between p-4 rounded-lg bg-[#0f2042] border border-[#1e3a5f]"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <FileText className="h-5 w-5 text-[#3CE8D1]" />
+                                                        <div>
+                                                            <p className="font-medium text-white">{doc.name}</p>
+                                                            <p className="text-xs text-[#94a3b8]">{doc.type_display}</p>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    {getDocStatusBadge(doc.status)}
-                                                    <div className="flex items-center gap-1">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-[#94a3b8] hover:text-white"
-                                                            asChild
-                                                        >
-                                                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                                                                <Eye className="h-4 w-4" />
-                                                            </a>
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-[#94a3b8] hover:text-white"
-                                                            asChild
-                                                        >
-                                                            <a href={doc.file_url} download>
-                                                                <Download className="h-4 w-4" />
-                                                            </a>
-                                                        </Button>
-                                                        {application.status === 'draft' && (
+                                                    <div className="flex items-center gap-3">
+                                                        {getDocStatusBadge(doc.status)}
+                                                        <div className="flex items-center gap-1">
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="h-8 w-8 text-red-400 hover:text-red-300"
-                                                                onClick={() => handleDeleteDocument(doc.id)}
+                                                                className="h-8 w-8 text-[#94a3b8] hover:text-white"
+                                                                asChild
                                                             >
-                                                                <Trash2 className="h-4 w-4" />
+                                                                <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                                                                    <Eye className="h-4 w-4" />
+                                                                </a>
                                                             </Button>
-                                                        )}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-[#94a3b8] hover:text-white"
+                                                                asChild
+                                                            >
+                                                                <a href={doc.file_url} download>
+                                                                    <Download className="h-4 w-4" />
+                                                                </a>
+                                                            </Button>
+                                                            {application.status === 'draft' && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-red-400 hover:text-red-300"
+                                                                    onClick={() => handleDeleteDocument(doc.id)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8 text-[#94a3b8]">
-                                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                        <p>Документы не загружены</p>
-                                    </div>
-                                )}
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-[#94a3b8]">
+                                            <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                            <p>Дополнительные документы не загружены</p>
+                                            <p className="text-xs mt-1">Все обязательные документы показаны выше</p>
+                                        </div>
+                                    )
+                                })()}
                             </CardContent>
                         )}
                     </Card>

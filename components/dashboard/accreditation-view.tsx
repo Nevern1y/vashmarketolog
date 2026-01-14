@@ -87,19 +87,24 @@ export function AccreditationView() {
       return Boolean(value && value.trim())
     }
 
-    // Step 1: Company Data
-    const hasCompanyBasic = company && isFilled(company.inn) && isFilled(company.name)
+    // Step 1: Company Data - SIMPLIFIED: only requires name, INN, email, phone
+    // This allows clients to create applications with minimal data
+    const hasCompanyBasic = company &&
+      isFilled(company.inn) &&
+      isFilled(company.name) &&
+      isFilled(company.contact_email) &&
+      isFilled(company.contact_phone)
     const companyStatus: AccreditationStep["status"] = hasCompanyBasic
       ? "completed"
       : company ? "in-progress" : "pending"
 
-    // Step 2: Management (Director info)
+    // Step 2: Management (Director info) - OPTIONAL for creating applications
     const hasDirector = company && isFilled(company.director_name)
     const managementStatus: AccreditationStep["status"] = hasDirector
       ? "completed"
       : hasCompanyBasic ? "in-progress" : "pending"
 
-    // Step 3: Bank Details
+    // Step 3: Bank Details - OPTIONAL for creating applications
     const hasBankDetails = company &&
       isFilled(company.bank_account) &&
       isFilled(company.bank_bic) &&
@@ -108,7 +113,7 @@ export function AccreditationView() {
       ? "completed"
       : hasDirector ? "in-progress" : "pending"
 
-    // Step 4: Documents
+    // Step 4: Documents - OPTIONAL for creating applications
     const verifiedDocs = documents.filter(d => d.status === "verified")
     const pendingDocs = documents.filter(d => d.status === "pending")
     const hasVerifiedDocs = verifiedDocs.length > 0
@@ -158,7 +163,7 @@ export function AccreditationView() {
       {
         id: "company",
         title: "Данные компании",
-        description: "Заполните информацию о компании",
+        description: "Заполните название, ИНН, email и телефон",
         icon: Building2,
         status: companyStatus,
       },

@@ -629,6 +629,31 @@ export function MyCompanyView() {
     }
   }, [isLoading, company, user, form])
 
+  // Auto-expand empty form sections with one empty entry
+  useEffect(() => {
+    if (isLoading) return
+
+    const values = form.getValues()
+
+    // Add one empty entry to each dynamic section if empty
+    if (values.activities.length === 0) {
+      activitiesArray.append(createEmptyActivity())
+    }
+    if (values.founders.length === 0) {
+      foundersArray.append(createEmptyFounder())
+    }
+    if (values.bank_accounts.length === 0) {
+      bankAccountsArray.append(createEmptyBankAccount())
+    }
+    if (values.etp_accounts.length === 0) {
+      etpAccountsArray.append(createEmptyEtpAccount())
+    }
+    if (values.contact_persons.length === 0) {
+      contactPersonsArray.append(createEmptyContactPerson())
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading])
+
 
   // Open Checko.ru verification
   const openCheckoVerification = () => {
@@ -868,46 +893,6 @@ export function MyCompanyView() {
                               </Button>
                             )}
                           </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* KPP */}
-                    <FormField
-                      control={form.control}
-                      name="kpp"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>КПП</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="9 цифр"
-                              maxLength={9}
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* OGRN */}
-                    <FormField
-                      control={form.control}
-                      name="ogrn"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>ОГРН</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="13 или 15 цифр"
-                              maxLength={15}
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                            />
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

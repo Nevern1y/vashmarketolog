@@ -21,7 +21,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +41,7 @@ import {
 
 import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
-import { useAvatar } from "@/hooks/use-avatar"
+
 
 
 interface ClientSidebarProps {
@@ -66,8 +66,7 @@ const toolsNavItems = [
 ]
 
 export function ClientSidebar({ activeView, onViewChange, onCreateApplication }: ClientSidebarProps) {
-  const { logout, user } = useAuth()
-  const { avatar, getInitials } = useAvatar()
+  const { logout } = useAuth()
   const { company, isLoading: companyLoading } = useMyCompany()
 
   const [showGuardAlert, setShowGuardAlert] = useState(false)
@@ -157,21 +156,7 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
           </ul>
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
-              <AvatarImage src={avatar || undefined} alt="Фото профиля" />
-              <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
-                {getInitials()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-xs text-[#94a3b8]">Клиент</p>
-              <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
-            </div>
-          </div>
-        </div>
+
       </aside>
 
       <AlertDialog open={showGuardAlert} onOpenChange={setShowGuardAlert}>
