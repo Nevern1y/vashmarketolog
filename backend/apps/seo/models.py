@@ -11,6 +11,9 @@ class SeoPage(models.Model):
     
     # Page Content
     h1_title = models.CharField(_("H1 Title"), max_length=255, blank=True)
+    h2_title = models.CharField(_("H2 Title"), max_length=255, blank=True, help_text=_("Secondary heading"))
+    h3_title = models.CharField(_("H3 Title"), max_length=255, blank=True, help_text=_("Tertiary heading"))
+    hero_image = models.ImageField(_("Hero Image"), upload_to='seo/hero/', blank=True, null=True, help_text=_("Main block image"))
     main_description = models.TextField(_("Main Description"), blank=True, help_text=_("Text content for the main block"))
     
     # Structured Data

@@ -22,7 +22,7 @@ class SeoPageAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Контент страницы', {
-            'fields': ('h1_title', 'main_description')
+            'fields': ('h1_title', 'h2_title', 'h3_title', 'hero_image', 'main_description')
         }),
         ('Структурированные данные', {
             'fields': ('banks', 'faq', 'popular_searches', 'bank_offers'),

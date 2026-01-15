@@ -18,9 +18,9 @@ class SeoPageSerializer(serializers.ModelSerializer):
         model = SeoPage
         fields = [
             'id', 'slug', 'meta_title', 'meta_description', 'meta_keywords',
-            'h1_title', 'main_description', 'faq', 'popular_searches',
-            'bank_offers', 'banks', 'is_published', 'page_type',
-            'template_name', 'priority', 'created_at', 'updated_at'
+            'h1_title', 'h2_title', 'h3_title', 'hero_image', 'main_description',
+            'faq', 'popular_searches', 'bank_offers', 'banks', 'is_published',
+            'page_type', 'template_name', 'priority', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'banks']
     
