@@ -12,65 +12,93 @@
 
 :root {
   /* === MAIN BACKGROUNDS - Deep Navy === */
-  --background: #0d1526;           /* Main App Background (darkest) */
-  --foreground: #ffffff;           /* Main Text (white) */
+  --background: #0d1526;
+  /* Main App Background (darkest) */
+  --foreground: #ffffff;
+  /* Main Text (white) */
 
   /* === SURFACES - Cards & Sheets === */
-  --card: #1a2744;                 /* Cards, modals, elevated surfaces */
+  --card: #1a2744;
+  /* Cards, modals, elevated surfaces */
   --card-foreground: #ffffff;
-  --popover: #1a2744;              /* Dropdowns, popovers */
+  --popover: #1a2744;
+  /* Dropdowns, popovers */
   --popover-foreground: #ffffff;
 
   /* === BRAND ACCENTS - Electric Cyan === */
-  --primary: #3CE8D1;              /* The "Glow" Color - buttons, links, active states */
-  --primary-foreground: #0a1628;   /* Dark text on cyan buttons for contrast */
-  
+  --primary: #3CE8D1;
+  /* The "Glow" Color - buttons, links, active states */
+  --primary-foreground: #0a1628;
+  /* Dark text on cyan buttons for contrast */
+
   /* === SECONDARY & MUTED === */
-  --secondary: #FF521D;            /* Orange accent for secondary actions */
+  --secondary: #FF521D;
+  /* Orange accent for secondary actions */
   --secondary-foreground: #ffffff;
-  --muted: #1a2744;                /* Muted backgrounds (same as card) */
-  --muted-foreground: #94a3b8;     /* Secondary/muted text - cool gray */
-  
+  --muted: #1a2744;
+  /* Muted backgrounds (same as card) */
+  --muted-foreground: #94a3b8;
+  /* Secondary/muted text - cool gray */
+
   /* === INTERACTIVE STATES === */
-  --accent: #243352;               /* Hover states, subtle highlights */
+  --accent: #243352;
+  /* Hover states, subtle highlights */
   --accent-foreground: #ffffff;
-  
+
   /* === DESTRUCTIVE === */
-  --destructive: #E03E9D;          /* Magenta for errors/destructive */
+  --destructive: #E03E9D;
+  /* Magenta for errors/destructive */
   --destructive-foreground: #ffffff;
-  
+
   /* === BORDERS & INPUTS === */
-  --border: #2a3a5c;               /* Subtle dark blue borders */
-  --input: #1a2744;                /* Input field background */
-  --ring: #3CE8D1;                 /* Focus ring - cyan glow */
-  
+  --border: #2a3a5c;
+  /* Subtle dark blue borders */
+  --input: #1a2744;
+  /* Input field background */
+  --ring: #3CE8D1;
+  /* Focus ring - cyan glow */
+
   /* === CHARTS === */
-  --chart-1: #3CE8D1;              /* Cyan */
-  --chart-2: #FF521D;              /* Orange */
-  --chart-3: #FFD93D;              /* Yellow */
-  --chart-4: #E03E9D;              /* Magenta */
-  --chart-5: #4F7DF3;              /* Blue */
-  
+  --chart-1: #3CE8D1;
+  /* Cyan */
+  --chart-2: #FF521D;
+  /* Orange */
+  --chart-3: #FFD93D;
+  /* Yellow */
+  --chart-4: #E03E9D;
+  /* Magenta */
+  --chart-5: #4F7DF3;
+  /* Blue */
+
   /* === RADIUS === */
   --radius: 0.75rem;
-  
+
   /* === SIDEBAR - Dark Navy Theme === */
-  --sidebar: #0a1628;              /* Sidebar background */
+  --sidebar: #0a1628;
+  /* Sidebar background */
   --sidebar-foreground: #ffffff;
-  --sidebar-primary: #3CE8D1;      /* Active item cyan */
+  --sidebar-primary: #3CE8D1;
+  /* Active item cyan */
   --sidebar-primary-foreground: #0a1628;
-  --sidebar-accent: rgba(60, 232, 209, 0.1);  /* Cyan tint for hover */
+  --sidebar-accent: rgba(60, 232, 209, 0.1);
+  /* Cyan tint for hover */
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #3CE8D1;
-  --sidebar-muted: #94a3b8;        /* Muted sidebar text */
-  
+  --sidebar-muted: #94a3b8;
+  /* Muted sidebar text */
+
   /* === STATUS COLORS (for badges) === */
-  --status-success: #3CE8D1;       /* Cyan - won, verified */
-  --status-warning: #FFD93D;       /* Yellow - pending, info_requested */
-  --status-danger: #E03E9D;        /* Magenta - rejected, lost */
-  --status-info: #4F7DF3;          /* Blue - in_review */
-  --status-alert: #FF521D;         /* Orange - attention needed */
+  --status-success: #3CE8D1;
+  /* Cyan - won, verified */
+  --status-warning: #FFD93D;
+  /* Yellow - pending, info_requested */
+  --status-danger: #E03E9D;
+  /* Magenta - rejected, lost */
+  --status-info: #4F7DF3;
+  /* Blue - in_review */
+  --status-alert: #FF521D;
+  /* Orange - attention needed */
 }
 
 /* Remove .dark variant - we're dark by default */
@@ -124,6 +152,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -135,17 +164,50 @@
    ============================================ */
 
 @media (min-width: 1152px) {
-  .mdx\:block { display: block; }
-  .mdx\:hidden { display: none; }
-  .mdx\:flex { display: flex; }
-  .mdx\:grid { display: grid; }
-  .mdx\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mdx\:col-span-1 { grid-column: span 1 / span 1; }
-  .mdx\:col-span-2 { grid-column: span 2 / span 2; }
-  .mdx\:table-cell { display: table-cell; }
-  .mdx\:p-6 { padding: 1.5rem; }
-  .mdx\:text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-  .mdx\:gap-4 { gap: 1rem; }
+  .mdx\:block {
+    display: block;
+  }
+
+  .mdx\:hidden {
+    display: none;
+  }
+
+  .mdx\:flex {
+    display: flex;
+  }
+
+  .mdx\:grid {
+    display: grid;
+  }
+
+  .mdx\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .mdx\:col-span-1 {
+    grid-column: span 1 / span 1;
+  }
+
+  .mdx\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
+  .mdx\:table-cell {
+    display: table-cell;
+  }
+
+  .mdx\:p-6 {
+    padding: 1.5rem;
+  }
+
+  .mdx\:text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .mdx\:gap-4 {
+    gap: 1rem;
+  }
 }
 
 /* ============================================
@@ -229,4 +291,246 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+
+/* ============================================
+   🍎 SAFARI LEGACY / MACBOOK 2015 FIXES
+   Target: Safari < 14.1 on Retina displays
+   ============================================ */
+
+/* 
+ * 1. FLEXBOX GAP FALLBACK
+ * Safari < 14.1 doesn't support gap in flexbox
+ * Using margin-based fallback with @supports
+ */
+@supports not (gap: 1rem) {
+
+  /* Horizontal flex - add left margin to siblings */
+  .flex:not(.flex-col):not(.flex-wrap)>*+* {
+    margin-left: 0.5rem;
+  }
+
+  /* Vertical flex - add top margin to siblings */
+  .flex-col>*+* {
+    margin-top: 0.5rem;
+  }
+
+  /* Wrapped flex - use padding on container */
+  .flex-wrap {
+    margin: -0.25rem;
+  }
+
+  .flex-wrap>* {
+    margin: 0.25rem;
+  }
+
+  /* Grid gap fallback (less common issue) */
+  .grid {
+    margin: -0.25rem;
+  }
+
+  .grid>* {
+    padding: 0.25rem;
+  }
+}
+
+/* 
+ * 2. VIEWPORT HEIGHT FIX
+ * 100vh on mobile Safari includes address bar
+ * Using -webkit-fill-available as fallback
+ */
+.h-screen {
+  height: 100vh;
+  height: -webkit-fill-available;
+  max-height: -webkit-fill-available;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* 
+ * 3. WEBKIT OVERFLOW + BORDER-RADIUS BUG FIX
+ * Old Safari clips content incorrectly when combining
+ * overflow:hidden with border-radius on parent elements
+ */
+.overflow-hidden {
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+}
+
+/* 
+ * 4. FLEX MIN-CONTENT FIX
+ * Safari < 14 has issues with min-height: min-content in flex
+ */
+.min-h-min {
+  min-height: auto;
+  min-height: -webkit-min-content;
+  min-height: min-content;
+}
+
+/* 
+ * 5. WEBKIT STICKY FIX
+ * Safari sometimes ignores position: sticky
+ */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* ============================================
+   🖥️ MACBOOK 2015 SAFETY MEDIA QUERY
+   Target: 1280-1440px @ 2x DPR (Retina 13"/15")
+   ============================================ */
+
+@media screen and (min-width: 1200px) and (max-width: 1440px) and (-webkit-min-device-pixel-ratio: 2),
+screen and (min-width: 1200px) and (max-width: 1440px) and (min-resolution: 192dpi) {
+
+  /* Reduce base font size for compact screens */
+  html {
+    font-size: 15px;
+  }
+
+  /* Compact padding on major containers */
+  .p-4 {
+    padding: 0.875rem;
+  }
+
+  .p-5 {
+    padding: 1rem;
+  }
+
+  .p-6 {
+    padding: 1.25rem;
+  }
+
+  .p-8 {
+    padding: 1.5rem;
+  }
+
+  .px-4 {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  .px-6 {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
+  .py-4 {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+  }
+
+  .py-6 {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+
+  /* Reduce gaps */
+  .gap-4 {
+    gap: 0.75rem;
+  }
+
+  .gap-5 {
+    gap: 0.875rem;
+  }
+
+  .gap-6 {
+    gap: 1rem;
+  }
+
+  .gap-8 {
+    gap: 1.25rem;
+  }
+
+  /* Sidebar width adjustment if too wide */
+  [data-sidebar="sidebar"] {
+    width: 200px;
+    min-width: 200px;
+  }
+
+  /* Reduce card padding */
+  [class*="CardContent"] {
+    padding: 1rem;
+  }
+
+  /* Compact header elements */
+  header h1,
+  .text-2xl {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+
+  .text-xl {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  /* Make 4-col grids become 3-col on MacBook screens */
+  .grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Ensure modals don't overflow viewport */
+  [role="dialog"] {
+    max-height: calc(100vh - 2rem);
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+/* ============================================
+   🔧 WEBKIT-SPECIFIC HACKS
+   Using Safari-only selectors
+   ============================================ */
+
+/* Safari-only using -webkit-touch-callout */
+@supports (-webkit-touch-callout: none) {
+
+  /* Fix for flex containers shrinking content */
+  .flex-1 {
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  /* Prevent text truncate issues */
+  .truncate {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* ============================================
+   📱 SPECIFIC COMPONENT FIXES
+   ============================================ */
+
+/* Fix chat container height calculation */
+.h-\[600px\] {
+  height: 600px;
+  max-height: calc(100vh - 200px);
+  max-height: calc(-webkit-fill-available - 200px);
+}
+
+/* Fix xl:h-[calc(100vh-200px)] for Safari */
+@media (min-width: 1280px) {
+  .xl\:h-\[calc\(100vh-200px\)\] {
+    height: calc(100vh - 200px);
+    height: calc(-webkit-fill-available - 200px);
+  }
+}
+
+/* Ensure ScrollArea works in Safari */
+[data-radix-scroll-area-viewport] {
+  -webkit-overflow-scrolling: touch;
 }

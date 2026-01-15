@@ -81,7 +81,23 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const [isUploading, setIsUploading] = useState(false)
     const [uploadingDocType, setUploadingDocType] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Simple ref for documents section to scroll to after upload
+    const documentsSectionRef = useRef<HTMLDivElement>(null)
+    // Track which doc type was just uploaded to scroll to it
+    const lastUploadedDocTypeRef = useRef<number | null>(null)
     const specificFileInputRef = useRef<HTMLInputElement>(null)
+
+    // Simple function to scroll to documents section after upload
+    const scrollToDocumentsSection = useCallback(() => {
+        // Small delay to ensure DOM has updated
+        setTimeout(() => {
+            if (documentsSectionRef.current) {
+                documentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                console.log('[scrollIntoView] Scrolled to documents section')
+            }
+        }, 100)
+    }, [])
 
     // Get required documents list based on product type
     const getRequiredDocuments = (productType: string): { name: string; id: number; required: boolean }[] => {
@@ -162,11 +178,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         const files = e.target.files
         if (!files || files.length === 0 || !application) return
 
-        // Get the main scroll container
-        const mainContainer = document.querySelector('main') as HTMLElement
-        const scrollableContainer = document.querySelector('[data-testid="application-detail"]') as HTMLElement || mainContainer
-        const scrollPosition = scrollableContainer?.scrollTop || window.pageYOffset || 0
-
         setIsUploading(true)
         try {
             const uploadedDocIds: number[] = []
@@ -194,17 +205,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
                 toast.success(`Загружено документов: ${uploadedDocIds.length}`)
 
-                // Wait for refetch to complete
+                // Wait for refetch then scroll to documents section
                 await refetch()
-
-                // Restore scroll after data is loaded
-                setTimeout(() => {
-                    if (scrollableContainer) {
-                        scrollableContainer.scrollTop = scrollPosition
-                    } else {
-                        window.scrollTo(0, scrollPosition)
-                    }
-                }, 100)
+                scrollToDocumentsSection()
             } else {
                 toast.error('Не удалось загрузить документы')
             }
@@ -216,7 +219,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 fileInputRef.current.value = ''
             }
         }
-    }, [uploadDocument, updateApplication, application, refetch])
+    }, [uploadDocument, updateApplication, application, refetch, scrollToDocumentsSection])
 
     // Handle specific document type upload  
     const handleSpecificDocUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, docTypeId: number, docTypeName: string) => {
@@ -227,13 +230,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         }
 
         console.log(`[Upload] Starting upload for ${docTypeName}, docTypeId: ${docTypeId}`)
-
-        // Get the main scroll container
-        const mainContainer = document.querySelector('main') as HTMLElement
-        const scrollableContainer = document.querySelector('[data-testid="application-detail"]') as HTMLElement || mainContainer
-        const scrollPosition = scrollableContainer?.scrollTop || window.pageYOffset || 0
-
-        console.log(`[Upload] Saved scroll position: ${scrollPosition}`)
+        lastUploadedDocTypeRef.current = docTypeId
 
         setUploadingDocType(docTypeName)
         try {
@@ -263,18 +260,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
                 toast.success(`${docTypeName}: загружено`)
 
-                // Wait for refetch to complete before restoring scroll
+                // Wait for refetch then scroll to documents section
                 await refetch()
-
-                // Restore scroll after data is loaded
-                setTimeout(() => {
-                    if (scrollableContainer) {
-                        scrollableContainer.scrollTop = scrollPosition
-                    } else {
-                        window.scrollTo(0, scrollPosition)
-                    }
-                    console.log(`[Upload] Restored scroll to: ${scrollPosition}`)
-                }, 100)
+                scrollToDocumentsSection()
             } else {
                 console.error('[Upload] No documents were uploaded')
                 toast.error('Не удалось загрузить документ')
@@ -288,7 +276,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 e.target.value = ''
             }
         }
-    }, [uploadDocument, updateApplication, application, refetch])
+    }, [uploadDocument, updateApplication, application, refetch, scrollToDocumentsSection])
 
     // Check if a required document is already uploaded
     // Matches by document_type_id OR by name prefix (since we upload with "{docName} - {filename}" format)
@@ -369,34 +357,20 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     // Handle document delete
     const handleDeleteDocument = useCallback(async (docId: number) => {
-        // Save scroll position
-        const mainContainer = document.querySelector('main') as HTMLElement
-        const scrollableContainer = document.querySelector('[data-testid="application-detail"]') as HTMLElement || mainContainer
-        const scrollPosition = scrollableContainer?.scrollTop || window.pageYOffset || 0
-
-        console.log(`[Delete] Deleting document ${docId}, scroll: ${scrollPosition}`)
+        console.log(`[Delete] Deleting document ${docId}`)
 
         try {
             await deleteDocument(docId)
             toast.success('Документ удален')
 
-            // Wait for refetch to complete
+            // Wait for refetch then scroll to documents section
             await refetch()
-
-            // Restore scroll after data reload
-            setTimeout(() => {
-                if (scrollableContainer) {
-                    scrollableContainer.scrollTop = scrollPosition
-                } else {
-                    window.scrollTo(0, scrollPosition)
-                }
-                console.log(`[Delete] Restored scroll to: ${scrollPosition}`)
-            }, 100)
+            scrollToDocumentsSection()
         } catch (err) {
             console.error('[Delete] Error:', err)
             toast.error('Ошибка удаления документа')
         }
-    }, [deleteDocument, refetch])
+    }, [deleteDocument, refetch, scrollToDocumentsSection])
 
     // Status badge helper
     const getStatusBadge = (status: string) => {
@@ -1297,7 +1271,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     </Card>
 
                     {/* Step 2: Documents */}
-                    <Card className="bg-[#0a1628] border-[#1e3a5f] overflow-hidden">
+                    <Card ref={documentsSectionRef} className="bg-[#0a1628] border-[#1e3a5f] overflow-hidden">
                         <StepHeader
                             step={2}
                             title="Загрузите документы"
@@ -1411,7 +1385,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                                 </Button>
                                                             </>
                                                         ) : (
-                                                            <label className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 border border-[#3CE8D1]/30 text-[#3CE8D1] hover:bg-[#3CE8D1]/10 transition-colors">
+                                                            <label
+                                                                className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium h-9 px-3 border border-[#3CE8D1]/30 text-[#3CE8D1] hover:bg-[#3CE8D1]/10 transition-colors"
+                                                            >
                                                                 <input
                                                                     type="file"
                                                                     className="hidden"
@@ -1724,7 +1700,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }
 
