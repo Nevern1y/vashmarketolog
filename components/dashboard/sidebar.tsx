@@ -11,28 +11,12 @@ import {
   HelpCircle,
   Search,
   FileCheck,
-  Settings,
   Landmark,
-  FileSearch,
   PhoneCall,
-  ScrollText,
-  Folder,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Menu,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
-import { useAvatar } from "@/hooks/use-avatar"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 
 interface SidebarProps {
@@ -42,8 +26,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeView, onViewChange, onCreateApplication }: SidebarProps) {
-  const { logout, user } = useAuth()
-  const { avatar, getInitials } = useAvatar()
+  const { logout } = useAuth()
 
   const handleLogout = async () => {
     await logout()
@@ -132,21 +115,6 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
         </ul>
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-white/10 p-3">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 border-2 border-[#3CE8D1]">
-            <AvatarImage src={avatar || undefined} alt="Фото профиля" />
-            <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
-              {getInitials()}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-xs text-[#94a3b8]">Агент</p>
-            <p className="text-sm font-medium">{user?.first_name || user?.email || "Пользователь"}</p>
-          </div>
-        </div>
-      </div>
     </aside>
   )
 }

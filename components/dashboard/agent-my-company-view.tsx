@@ -321,7 +321,23 @@ export function AgentMyCompanyView() {
                                                 <FormItem>
                                                     <FormLabel>ИНН *</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="10 или 12 цифр" {...field} />
+                                                        <Input
+                                                            placeholder="10 или 12 цифр"
+                                                            maxLength={12}
+                                                            inputMode="numeric"
+                                                            pattern="[0-9]*"
+                                                            value={String(field.value || "").replace(/\D/g, "").slice(0, 12)}
+                                                            onChange={(e) => {
+                                                                // Only allow digits, max 12 chars
+                                                                const rawValue = e.target.value
+                                                                const digitsOnly = rawValue.replace(/\D/g, "")
+                                                                const limited = digitsOnly.slice(0, 12)
+                                                                field.onChange(limited)
+                                                            }}
+                                                            onBlur={field.onBlur}
+                                                            name={field.name}
+                                                            ref={field.ref}
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>

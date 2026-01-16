@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -11,15 +11,11 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import {
     User,
-    Building2,
-    FileText,
     Share2,
     Copy,
     Download,
     Check,
     QrCode,
-    CreditCard,
-    Percent,
     Bell,
     Shield,
     Phone,
@@ -28,17 +24,11 @@ import {
     MessageCircle,
     ExternalLink,
     Loader2,
-    FileCheck,
-    ChevronDown,
-    ChevronUp,
-    Upload,
-    CheckCircle2,
     Camera,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
 import { authApi } from "@/lib/api"
-import { useDocumentMutations, useDocuments } from "@/hooks/use-documents"
 import { useAvatar } from "@/hooks/use-avatar"
 import { formatPhoneNumber } from "@/lib/utils"
 
@@ -61,14 +51,7 @@ const VAT_RATES = [
     { value: "20%", label: "20%" },
 ]
 
-// Agent documents for upload - documents that agent must provide
-// Using numeric document_type_id for backend API
-const AGENT_DOCUMENTS = [
-    { id: "zayavlenie", document_type_id: 8, name: "Заявление о присоединении к регламенту", acceptFormat: ".pdf,.sig", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/zayavlenie.pdf" },
-    { id: "soglasie", document_type_id: 9, name: "Согласие на обработку персональных данных", acceptFormat: ".pdf,.sig", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/soglasie.pdf" },
-    { id: "list_zapisi", document_type_id: 10, name: "Лист записи/Скан свидетельства ОГРНИП", acceptFormat: ".pdf,.jpg,.jpeg,.png", description: "Загрузите скан документа", templateUrl: null },
-    { id: "contract", document_type_id: 11, name: "Агентский договор", acceptFormat: ".pdf,.sig", description: "Скачайте, подпишите и загрузите", templateUrl: "/templates/agent-contract.pdf" },
-]
+
 
 
 
@@ -106,13 +89,6 @@ export function ProfileSettingsView() {
     const [isSendingFeedback, setIsSendingFeedback] = useState(false)
 
 
-
-    // Agent documents - fetch from backend and track uploads
-    const { documents: agentDocuments, refetch: refetchAgentDocs } = useDocuments({
-        product_type: 'agent'
-    })
-    const { uploadDocument, isLoading: isUploading } = useDocumentMutations()
-    const agentDocInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
     const avatarInputRef = useRef<HTMLInputElement>(null)
 
     // Use global avatar hook
@@ -162,36 +138,7 @@ export function ProfileSettingsView() {
         }
     }
 
-    // Check if a document type is already uploaded
-    const isAgentDocUploaded = (documentTypeId: number) => {
-        return agentDocuments.some(d => d.document_type_id === documentTypeId)
-    }
 
-    // Get uploaded document info by type
-    const getUploadedAgentDoc = (documentTypeId: number) => {
-        return agentDocuments.find(d => d.document_type_id === documentTypeId)
-    }
-
-
-
-    // Handle agent document upload - now uses real API
-    const handleAgentDocUpload = async (docId: string, documentTypeId: number, file: File, docName: string) => {
-        try {
-            const result = await uploadDocument({
-                name: file.name,
-                file: file,
-                document_type_id: documentTypeId,
-                product_type: 'agent'
-            })
-
-            if (result) {
-                toast.success(`Документ "${docName}" успешно загружен`)
-                refetchAgentDocs() // Refresh documents list
-            }
-        } catch (error) {
-            toast.error(`Ошибка загрузки документа "${docName}"`)
-        }
-    }
 
     // Generate referral link
     const referralLink = `https://vashmarketolog.ru/register?ref=${user?.id || 'AGENT123'}`
@@ -322,19 +269,13 @@ export function ProfileSettingsView() {
                     <TabsList className={`inline-flex min-w-max w-full bg-muted/50 ${isClient
                         ? 'md:grid md:grid-cols-4'
                         : isAgent
-                            ? 'md:grid md:grid-cols-7'
+                            ? 'md:grid md:grid-cols-6'
                             : 'md:grid md:grid-cols-5'
                         }`}>
                         <TabsTrigger value="profile" className="flex items-center gap-1 px-3 text-xs md:text-sm">
                             <User className="h-4 w-4" />
                             <span className="md:inline">Профиль</span>
                         </TabsTrigger>
-                        {!isClient && (
-                            <TabsTrigger value="documents" className="flex items-center gap-1 px-3 text-xs md:text-sm">
-                                <FileText className="h-4 w-4" />
-                                <span className="md:inline">Документы</span>
-                            </TabsTrigger>
-                        )}
                         <TabsTrigger value="notifications" className="flex items-center gap-1 px-3 text-xs md:text-sm">
                             <Bell className="h-4 w-4" />
                             <span className="hidden lg:inline">Уведомления</span>
@@ -552,94 +493,7 @@ export function ProfileSettingsView() {
                     </Card>
                 </TabsContent>
 
-                {/* TAB 4: DOCUMENTS (WAVE 3) */}
-                <TabsContent value="documents" className="mt-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <FileText className="h-5 w-5" />
-                                Документы
-                            </CardTitle>
-                            <CardDescription>
-                                Загрузите необходимые документы для работы на платформе
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                {AGENT_DOCUMENTS.map((doc) => {
-                                    const isUploaded = isAgentDocUploaded(doc.document_type_id)
-                                    const uploadedDoc = getUploadedAgentDoc(doc.document_type_id)
-                                    return (
-                                        <div
-                                            key={doc.id}
-                                            className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                {isUploaded ? (
-                                                    <CheckCircle2 className="h-5 w-5 text-[#3CE8D1]" />
-                                                ) : (
-                                                    <FileText className="h-5 w-5 text-muted-foreground" />
-                                                )}
-                                                <div>
-                                                    <p className="font-medium text-sm">{doc.name}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {isUploaded && uploadedDoc
-                                                            ? `${uploadedDoc.name} • ${new Date(uploadedDoc.uploaded_at).toLocaleDateString('ru-RU')}`
-                                                            : doc.description
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                {isUploaded ? (
-                                                    <span className="text-xs bg-[#3CE8D1]/10 text-[#3CE8D1] px-2 py-1 rounded">
-                                                        Загружен
-                                                    </span>
-                                                ) : (
-                                                    <>
-                                                        {doc.templateUrl && (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="gap-2 border-[#3CE8D1] text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
-                                                                asChild
-                                                            >
-                                                                <a href={doc.templateUrl} download>
-                                                                    <Download className="h-4 w-4" />
-                                                                    Скачать
-                                                                </a>
-                                                            </Button>
-                                                        )}
-                                                        <input
-                                                            type="file"
-                                                            ref={(el) => { agentDocInputRefs.current[doc.id] = el }}
-                                                            className="hidden"
-                                                            accept={doc.acceptFormat}
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0]
-                                                                if (file) handleAgentDocUpload(doc.id, doc.document_type_id, file, doc.name)
-                                                            }}
-                                                        />
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="gap-2"
-                                                            disabled={isUploading}
-                                                            onClick={() => agentDocInputRefs.current[doc.id]?.click()}
-                                                        >
-                                                            <Upload className="h-4 w-4" />
-                                                            {isUploading ? 'Загрузка...' : 'Загрузить'}
-                                                        </Button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
+                {/* TAB 4: DOCUMENTS - Moved to Banks page (agent-banks-view.tsx) */}
 
                 {/* TAB: NOTIFICATIONS (ТЗ Настройки) */}
                 <TabsContent value="notifications" className="mt-6">

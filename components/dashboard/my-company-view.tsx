@@ -80,13 +80,13 @@ const founderDocumentSchema = z.object({
 })
 
 const leaderSchema = z.object({
-  position: z.string().min(1, "Обязательное поле"),
-  full_name: z.string().min(1, "Обязательное поле"),
+  position: z.string().optional().default(""),
+  full_name: z.string().optional().default(""),
   share_percent: z.coerce.number().min(0).max(100).optional(),
   citizenship: z.string().default("РФ"),
   birth_date: z.string().optional(),
   birth_place: z.string().optional(),
-  email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
+  email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional().or(z.literal("")),
   phone: z.string().optional(),
   registration_address: z.string().optional(),
   passport: z.object({
@@ -690,8 +690,10 @@ export function MyCompanyView() {
       legal_address: f.registration_address ? { value: f.registration_address, postal_code: "" } : undefined
     }))
 
-    // Prepare leadership_data
-    const leadershipData: LeaderData[] = data.leadership.map(l => ({ ...l }))
+    // Prepare leadership_data - filter out empty entries (without full_name)
+    const leadershipData: LeaderData[] = data.leadership
+      .filter(l => l.full_name && l.full_name.trim() !== "")
+      .map(l => ({ ...l }))
 
     // Prepare legal_founders_data
     const legalFoundersData: LegalFounderData[] = data.legal_founders.map(l => ({
@@ -781,6 +783,72 @@ export function MyCompanyView() {
     }
   }
 
+  // Handle form validation errors - show toast notification
+  // Handle form validation errors - show toast notification
+  const onFormError = (errors: any) => {
+    console.log("Form validation errors:", errors)
+
+    // Map field names to tab names for better error reporting
+    const fieldToTab: Record<string, string> = {
+      inn: "Общая информация",
+      name: "Общая информация",
+      contact_email: "Общая информация",
+      contact_phone: "Общая информация",
+      kpp: "Госрегистрация",
+      ogrn: "Госрегистрация",
+      activities: "Деятельность",
+      leadership: "Руководство",
+      director_name: "Руководство",
+      director_position: "Руководство",
+      founders: "Учредители",
+      legal_founders: "Учредители",
+      bank_accounts: "Банк. реквизиты",
+      etp_accounts: "Счета ЭТП",
+      contact_persons: "Контакты"
+    }
+
+    const errorTabs = new Set<string>()
+    const errorMessages: string[] = []
+
+    const collectErrors = (obj: any, path: string = "") => {
+      for (const key in obj) {
+        if (obj[key]?.message) {
+          // Found an error message
+          errorMessages.push(obj[key].message)
+
+          // Identify which tab this error belongs to
+          // Check exact match or prefix
+          const rootField = path ? path.split('.')[0] : key
+          const tabName = fieldToTab[rootField] || fieldToTab[key]
+          if (tabName) {
+            errorTabs.add(tabName)
+          }
+        } else if (typeof obj[key] === "object" && obj[key] !== null) {
+          // Recurse
+          const newPath = path ? `${path}.${key}` : key
+          collectErrors(obj[key], newPath)
+        }
+      }
+    }
+
+    collectErrors(errors)
+
+    // Format the error message
+    const tabsList = Array.from(errorTabs).join(", ")
+    const displayErrors = errorMessages.slice(0, 3).join("; ")
+    const moreCount = errorMessages.length - 3
+
+    toast.error("Ошибка валидации", {
+      description: (
+        <div className="flex flex-col gap-1">
+          {tabsList && <span className="font-semibold">Проверьте вкладки: {tabsList}</span>}
+          <span>{displayErrors}{moreCount > 0 ? ` и ещё ${moreCount}` : ""}</span>
+        </div>
+      ),
+      duration: 5000,
+    })
+  }
+
   // Loading state
   if (isLoading) {
     return (
@@ -801,7 +869,7 @@ export function MyCompanyView() {
           <p className="text-muted-foreground">Заполните профиль компании для работы с заявками</p>
         </div>
         <Button
-          onClick={form.handleSubmit(onSubmit)}
+          onClick={form.handleSubmit(onSubmit, onFormError)}
           disabled={isSaving}
           className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
         >
@@ -820,7 +888,7 @@ export function MyCompanyView() {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-6">
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="flex flex-wrap gap-1 h-auto p-1 bg-muted/50">
               <TabsTrigger value="general" className="flex items-center gap-1 text-xs px-2 py-1.5">
@@ -876,9 +944,14 @@ export function MyCompanyView() {
                             <FormControl>
                               <Input
                                 placeholder="10 или 12 цифр"
-                                maxLength={12}
                                 {...field}
-                                onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
+                                maxLength={12}
+                                onChange={(e) => {
+                                  // Force strict 12 char limit
+                                  const value = e.target.value.replace(/\D/g, "").slice(0, 12)
+                                  e.target.value = value // Force update DOM element
+                                  field.onChange(value) // Update react-hook-form
+                                }}
                               />
                             </FormControl>
                             {field.value && (
@@ -1557,9 +1630,14 @@ export function MyCompanyView() {
                                 <FormControl>
                                   <Input
                                     placeholder="12 цифр"
-                                    maxLength={12}
                                     {...field}
-                                    onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
+                                    maxLength={12}
+                                    onChange={(e) => {
+                                      // Force strict 12 char limit
+                                      const value = e.target.value.replace(/\D/g, "").slice(0, 12)
+                                      e.target.value = value
+                                      field.onChange(value)
+                                    }}
                                   />
                                 </FormControl>
                                 <FormMessage />
