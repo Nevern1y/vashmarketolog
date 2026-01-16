@@ -123,6 +123,7 @@ export interface Application {
         // BG Date fields
         guarantee_start_date?: string; // Срок БГ с
         guarantee_end_date?: string;   // Срок БГ по
+        bg_type?: string;              // Тип БГ (для калькулятора)
         // КИК specific fields
         contract_loan_type?: string;   // Тип продукта (credit_execution / loan)
         contract_price?: string;       // Цена контракта
@@ -135,11 +136,29 @@ export interface Application {
         ignore_execution_percent?: boolean;  // Не учитывать процент выполнения
         // Factoring fields
         contractor_inn?: string;
+        factoring_type?: string;         // Тип факторинга (классический/закрытый/закупочный)
+        customer_inn?: string;           // ИНН заказчика
+        contract_type?: string;          // Тип контракта (gov/other)
+        nmc?: string;                    // НМЦ
+        shipment_volume?: string;        // Объём отгрузки
+        payment_delay?: number;          // Отсрочка платежа (дни)
+        financing_amount?: string;       // Сумма финансирования
+        financing_date?: string;         // Дата финансирования
         // VED fields
         currency?: string;
         country?: string;
         // Leasing fields
         equipment_type?: string;
+        leasing_credit_type?: string;    // Тип предмета лизинга
+        leasing_amount?: string;         // Сумма лизинга
+        leasing_end_date?: string;       // Дата окончания
+        // Insurance fields
+        insurance_category?: string;     // Категория страхования
+        insurance_product?: string;      // Страховой продукт
+        insurance_amount?: string;       // Страховая сумма
+        insurance_term_months?: number;  // Срок договора (мес.)
+        // Credit/Express fields
+        credit_type?: string;            // Тип кредита (Express)
     };
     status: 'draft' | 'pending' | 'in_review' | 'info_requested' | 'approved' | 'rejected' | 'won' | 'lost';
     status_display: string;

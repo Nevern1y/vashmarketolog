@@ -17,10 +17,34 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
+.env
+.env.*
+!.env.example
+!.env.prod.example
 
+# certbot
+certbot/conf/
+certbot/www/
+certbot/logs/
+
+# backend
+backend/media/
+backend/static/
+backend/.env
+
+.env.mcp
+.env.local
+.env.*.local
+
+# mcp config (may contain secrets)
+mcp.json
 
 # vercel
 .vercel
+
+# IDE
+.vscode/
+.idea/
 
 # typescript
 *.tsbuildinfo
@@ -48,3 +72,5 @@ coverage.xml
 
 # trash
 technicheskoezadanie
+nul
+backend/nul

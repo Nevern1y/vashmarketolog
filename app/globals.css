@@ -156,6 +156,11 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Fix scrollbar layout shift - reserve space for scrollbar always */
+  .overflow-y-auto {
+    scrollbar-gutter: stable;
+  }
 }
 
 /* ============================================

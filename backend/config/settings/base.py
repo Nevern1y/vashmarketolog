@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'channels',
     'drf_spectacular',
+    'djangorestframework_mcp',
     
     # Local apps
     'apps.users',
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     'apps.news',
     'apps.bank_conditions',
     'apps.seo',
+    'apps.notifications',
 ]
 
 

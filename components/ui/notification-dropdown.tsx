@@ -16,6 +16,10 @@ import {
     XCircle,
     HelpCircle,
     FileText,
+    FileQuestion,
+    FilePlus,
+    MessageCircle,
+    RefreshCw,
     ExternalLink,
     Check,
     Loader2,
@@ -25,6 +29,7 @@ import {
     formatCurrency,
     formatRelativeTime,
     type Notification,
+    type NotificationType,
 } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
 
@@ -33,7 +38,7 @@ interface NotificationDropdownProps {
 }
 
 // Get icon for notification type
-function getNotificationIcon(type: Notification["type"]) {
+function getNotificationIcon(type: NotificationType) {
     switch (type) {
         case "decision_approved":
             return <CheckCircle2 className="h-5 w-5 text-[#3CE8D1]" />
@@ -41,28 +46,66 @@ function getNotificationIcon(type: Notification["type"]) {
             return <XCircle className="h-5 w-5 text-red-500" />
         case "decision_info_requested":
             return <HelpCircle className="h-5 w-5 text-[#f97316]" />
+        case "status_change":
+            return <RefreshCw className="h-5 w-5 text-[#3b82f6]" />
         case "document_verified":
             return <FileText className="h-5 w-5 text-[#3CE8D1]" />
         case "document_rejected":
             return <FileText className="h-5 w-5 text-red-500" />
+        case "document_requested":
+            return <FileQuestion className="h-5 w-5 text-[#eab308]" />
+        case "chat_message":
+            return <MessageCircle className="h-5 w-5 text-[#8b5cf6]" />
+        case "new_application":
+            return <FilePlus className="h-5 w-5 text-[#3CE8D1]" />
         default:
             return <Bell className="h-5 w-5 text-muted-foreground" />
     }
 }
 
 // Get background color for notification type
-function getNotificationBg(type: Notification["type"], isRead: boolean) {
+function getNotificationBg(type: NotificationType, isRead: boolean) {
     if (isRead) return "bg-background"
 
     switch (type) {
         case "decision_approved":
+        case "document_verified":
+        case "new_application":
             return "bg-[#3CE8D1]/5"
         case "decision_rejected":
+        case "document_rejected":
             return "bg-red-500/5"
         case "decision_info_requested":
             return "bg-[#f97316]/5"
+        case "status_change":
+            return "bg-[#3b82f6]/5"
+        case "document_requested":
+            return "bg-[#eab308]/5"
+        case "chat_message":
+            return "bg-[#8b5cf6]/5"
         default:
             return "bg-muted/50"
+    }
+}
+
+// Get action link text based on notification type
+function getActionText(type: NotificationType) {
+    switch (type) {
+        case "decision_approved":
+        case "decision_rejected":
+        case "decision_info_requested":
+        case "status_change":
+        case "new_application":
+            return "Открыть заявку"
+        case "document_verified":
+        case "document_rejected":
+            return "Открыть документ"
+        case "document_requested":
+            return "Загрузить документ"
+        case "chat_message":
+            return "Открыть чат"
+        default:
+            return "Подробнее"
     }
 }
 
@@ -103,7 +146,7 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="end"
-                className="w-[380px] p-0"
+                className="w-[400px] p-0"
                 sideOffset={8}
             >
                 {/* Header */}
@@ -123,7 +166,7 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                 </div>
 
                 {/* Content */}
-                <ScrollArea className="max-h-[400px]">
+                <ScrollArea className="max-h-[450px]">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -163,10 +206,22 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                                                 </span>
                                             </div>
 
-                                            {/* Application info */}
-                                            {notification.details.companyName && (
+                                            {/* Context info based on notification type */}
+                                            {(notification.details.companyName || notification.details.documentName) && (
                                                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                    {notification.details.companyName} • {notification.details.productType}
+                                                    {notification.type === 'document_verified' || 
+                                                     notification.type === 'document_rejected' ? (
+                                                        notification.details.documentName
+                                                    ) : notification.type === 'document_requested' ? (
+                                                        notification.details.documentTypeName
+                                                    ) : (
+                                                        <>
+                                                            {notification.details.companyName}
+                                                            {notification.details.productTypeDisplay && (
+                                                                <> • {notification.details.productTypeDisplay}</>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </p>
                                             )}
 
@@ -175,7 +230,7 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                                                 {notification.message}
                                             </p>
 
-                                            {/* Amount and rate for approved */}
+                                            {/* Amount and rate for approved decisions */}
                                             {notification.type === "decision_approved" && notification.details.amount && (
                                                 <div className="flex items-center gap-3 mt-2 text-xs">
                                                     <span className="px-2 py-0.5 rounded bg-[#3CE8D1]/10 text-[#3CE8D1] font-medium">
@@ -189,17 +244,43 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                                                 </div>
                                             )}
 
-                                            {/* Partner name */}
-                                            {notification.details.partnerName && (
+                                            {/* Status badge for status_change */}
+                                            {notification.type === "status_change" && notification.details.statusDisplay && (
+                                                <div className="mt-2">
+                                                    <span className="inline-flex px-2 py-0.5 rounded bg-[#3b82f6]/10 text-[#3b82f6] text-xs font-medium">
+                                                        {notification.details.statusDisplay}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                            {/* Sender info for chat messages */}
+                                            {notification.type === "chat_message" && notification.details.senderName && (
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    От: {notification.details.senderName}
+                                                </p>
+                                            )}
+
+                                            {/* Partner name for decisions */}
+                                            {(notification.type === "decision_approved" || 
+                                              notification.type === "decision_rejected" ||
+                                              notification.type === "decision_info_requested") && 
+                                             notification.details.partnerName && (
                                                 <p className="text-xs text-muted-foreground mt-1">
                                                     От: {notification.details.partnerName}
+                                                </p>
+                                            )}
+
+                                            {/* Requester for document requests */}
+                                            {notification.type === "document_requested" && notification.details.requesterName && (
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Запросил: {notification.details.requesterName}
                                                 </p>
                                             )}
 
                                             {/* View link */}
                                             <div className="flex items-center gap-1 mt-2 text-xs text-[#3CE8D1]">
                                                 <ExternalLink className="h-3 w-3" />
-                                                <span>Открыть заявку</span>
+                                                <span>{getActionText(notification.type)}</span>
                                             </div>
                                         </div>
                                     </div>

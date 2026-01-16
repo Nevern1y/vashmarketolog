@@ -58,18 +58,13 @@ interface AdminSidebarProps {
     isMobile?: boolean
 }
 
-function AdminSidebar({ activeView, onViewChange, collapsed = false, onToggleCollapse, onClose, isMobile = false }: AdminSidebarProps) {
+function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onToggleCollapse, onClose, isMobile = false }: AdminSidebarProps) {
     const { user, logout } = useAuth()
 
     return (
-        <aside
-            className={cn(
-                "flex flex-col h-full border-r border-border bg-slate-900 transition-all duration-300",
-                isMobile ? "w-[260px]" : (collapsed ? "w-16" : "w-60")
-            )}
-        >
+        <>
             {/* Sidebar Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+            <div className="flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
                 {(!collapsed || isMobile) && (
                     <div className="flex items-center">
                         <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-10 w-auto" />
@@ -120,7 +115,7 @@ function AdminSidebar({ activeView, onViewChange, collapsed = false, onToggleCol
             </nav>
 
             {/* User Section */}
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-border shrink-0">
                 {(!collapsed || isMobile) ? (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -152,7 +147,7 @@ function AdminSidebar({ activeView, onViewChange, collapsed = false, onToggleCol
                     </Button>
                 )}
             </div>
-        </aside>
+        </>
     )
 }
 
@@ -245,18 +240,25 @@ export function AdminDashboard() {
     }
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
+        <div className="relative min-h-screen bg-background">
             {/* ============================================ */}
-            {/* DESKTOP SIDEBAR */}
+            {/* DESKTOP SIDEBAR (FIXED POSITION) */}
             {/* ============================================ */}
-            <div className="hidden lg:block">
-                <AdminSidebar
+            <aside
+                className={cn(
+                    "fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col",
+                    "h-dvh border-r border-border bg-slate-900",
+                    "transition-[width] duration-300 ease-in-out",
+                    sidebarCollapsed ? "w-16" : "w-60"
+                )}
+            >
+                <AdminSidebarContent
                     activeView={activeView}
                     onViewChange={handleViewChange}
                     collapsed={sidebarCollapsed}
                     onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
                 />
-            </div>
+            </aside>
 
             {/* ============================================ */}
             {/* MOBILE SIDEBAR DRAWER */}
@@ -270,28 +272,32 @@ export function AdminDashboard() {
                     className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                     onClick={() => setIsMobileSidebarOpen(false)}
                 />
-                {/* Sidebar */}
-                <div className="absolute left-0 top-0 h-full shadow-2xl">
-                    <AdminSidebar
+                {/* Mobile Sidebar */}
+                <aside className="absolute left-0 top-0 h-full w-[260px] flex flex-col bg-slate-900 shadow-2xl">
+                    <AdminSidebarContent
                         activeView={activeView}
                         onViewChange={handleViewChange}
                         isMobile={true}
                         onClose={() => setIsMobileSidebarOpen(false)}
                     />
-                </div>
+                </aside>
             </div>
 
             {/* ============================================ */}
-            {/* MAIN CONTENT */}
+            {/* MAIN CONTENT AREA */}
             {/* ============================================ */}
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className={cn(
+                "flex min-h-screen flex-col transition-[padding] duration-300 ease-in-out",
+                "lg:pl-60",
+                sidebarCollapsed && "lg:pl-16"
+            )}>
                 {/* Mobile Header */}
                 <AdminMobileHeader
                     onMenuClick={() => setIsMobileSidebarOpen(true)}
                     activeView={activeView}
                 />
 
-                {/* Content Area */}
+                {/* Scrollable Content Area */}
                 <main className="flex-1 overflow-y-auto bg-background">
                     <div className="p-4 lg:p-6">
                         {renderContent()}

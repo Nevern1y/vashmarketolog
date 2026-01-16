@@ -14,7 +14,10 @@ from drf_spectacular.views import (
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
-    
+
+    # MCP Server
+    path('mcp/', include('djangorestframework_mcp.urls')),
+
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
@@ -30,6 +33,7 @@ urlpatterns = [
     path('api/news/', include('apps.news.urls')),
     path('api/bank-conditions/', include('apps.bank_conditions.urls')),
     path('api/seo/', include('apps.seo.urls')),
+    path('api/notifications/', include('apps.notifications.urls')),
 ]
 
 

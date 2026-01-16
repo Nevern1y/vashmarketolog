@@ -27,7 +27,7 @@ const navItems = [
   { id: "help" as PartnerViewType, label: "Помощь", icon: HelpCircle },
 ]
 
-export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount }: PartnerSidebarProps) {
+export function PartnerSidebarContent({ activeView, onViewChange, newApplicationsCount }: PartnerSidebarProps) {
   const { logout, user } = useAuth()
 
   const handleLogout = async () => {
@@ -35,14 +35,14 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
   }
 
   return (
-    <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
+    <>
       {/* Logo */}
-      <div className="flex items-center px-5 py-6">
+      <div className="flex items-center px-5 py-6 shrink-0">
         <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />
       </div>
 
       {/* Partner Badge */}
-      <div className="mx-4 mb-4 rounded-lg bg-[#3CE8D1]/10 px-4 py-3">
+      <div className="mx-4 mb-4 rounded-lg bg-[#3CE8D1]/10 px-4 py-3 shrink-0">
         <p className="text-xs text-[#3CE8D1]">Партнер</p>
         <p className="text-sm font-semibold">Финансовая организация</p>
       </div>
@@ -75,7 +75,7 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-4 shrink-0">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border-2 border-[#3CE8D1]">
             <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-sm">
@@ -88,6 +88,6 @@ export function PartnerSidebar({ activeView, onViewChange, newApplicationsCount 
           </div>
         </div>
       </div>
-    </aside>
+    </>
   )
 }

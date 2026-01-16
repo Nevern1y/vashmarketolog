@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { PartnerViewType } from "@/lib/types"
-import { PartnerSidebar } from "@/components/dashboard/partner-sidebar"
+import { PartnerSidebarContent } from "@/components/dashboard/partner-sidebar"
 import { PartnerIncomingView } from "@/components/dashboard/partner-incoming-view"
 import { PartnerApplicationDetail } from "@/components/dashboard/partner-application-detail"
 import { PartnerBankView } from "@/components/dashboard/partner/partner-bank-view"
@@ -111,32 +111,38 @@ export function PartnerLayout() {
     }
 
     return (
-        <div className="flex h-screen overflow-hidden">
-            {/* Desktop Sidebar */}
-            <div className="hidden lg:block">
-                <PartnerSidebar
+        <div className="relative min-h-screen bg-background">
+            {/* ============================================ */}
+            {/* DESKTOP SIDEBAR (FIXED POSITION) */}
+            {/* ============================================ */}
+            <aside className="fixed inset-y-0 left-0 z-30 hidden lg:flex h-dvh w-[260px] flex-col bg-[#0a1628] text-white">
+                <PartnerSidebarContent
                     activeView={activeView}
                     onViewChange={handleViewChange}
                     newApplicationsCount={newApplicationsCount}
-
                 />
-            </div>
+            </aside>
 
-            {/* Mobile Sidebar Drawer */}
+            {/* ============================================ */}
+            {/* MOBILE SIDEBAR DRAWER */}
+            {/* ============================================ */}
             <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-                <div className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
-                <div className="absolute left-0 top-0 h-full">
-                    <PartnerSidebar
+                {/* Backdrop */}
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)} />
+                {/* Mobile Sidebar */}
+                <aside className="absolute left-0 top-0 h-full w-[260px] flex flex-col bg-[#0a1628] text-white shadow-2xl">
+                    <PartnerSidebarContent
                         activeView={activeView}
                         onViewChange={handleViewChange}
                         newApplicationsCount={newApplicationsCount}
-
                     />
-                </div>
+                </aside>
             </div>
 
-            {/* Main Content */}
-            <div className="flex flex-1 flex-col overflow-hidden">
+            {/* ============================================ */}
+            {/* MAIN CONTENT AREA */}
+            {/* ============================================ */}
+            <div className="flex min-h-screen flex-col lg:pl-[260px]">
                 <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
                 <DashboardHeader onNotificationClick={(n) => n.details.applicationId && handleOpenDetail(String(n.details.applicationId))} onNavigateToSettings={() => setActiveView("help")} />
                 <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
