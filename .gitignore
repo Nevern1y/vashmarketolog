@@ -74,3 +74,6 @@ coverage.xml
 technicheskoezadanie
 nul
 backend/nul
+
+# Auto Claude data directory
+.auto-claude/
