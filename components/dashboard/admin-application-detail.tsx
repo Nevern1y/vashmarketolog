@@ -88,6 +88,7 @@ const PRODUCT_LABELS: Record<string, string> = {
     special_account: "Спецсчёт",
     rko: "РКО",
     tender_support: "Тендерное сопровождение",
+    deposits: "Депозиты",
 }
 
 const PRODUCT_ICONS: Record<string, React.ReactNode> = {
@@ -102,6 +103,7 @@ const PRODUCT_ICONS: Record<string, React.ReactNode> = {
     special_account: <Landmark className="h-5 w-5" />,
     rko: <Landmark className="h-5 w-5" />,
     tender_support: <FileCheck className="h-5 w-5" />,
+    deposits: <Banknote className="h-5 w-5" />,
 }
 
 const GUARANTEE_TYPE_LABELS: Record<string, string> = {
@@ -416,21 +418,22 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
             {/* ============================================ */}
             {/* HEADER — Rich, informative */}
             {/* ============================================ */}
-            <div className="mb-8">
+            <div className="mb-6 md:mb-8">
                 {/* Back + Status Row */}
-                <div className="flex items-center justify-between mb-4">
-                    <Button variant="ghost" onClick={onBack} className="gap-2 text-muted-foreground hover:text-foreground -ml-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <Button variant="ghost" onClick={onBack} className="gap-2 text-muted-foreground hover:text-foreground -ml-2 self-start">
                         <ArrowLeft className="h-4 w-4" />
                         <span>Назад к списку</span>
                     </Button>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {(application.status === 'pending' || application.status === 'in_review' || application.status === 'info_requested') && (
                             <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => setShowRequestDialog(true)}
                                 disabled={isActioning}
+                                className="flex-1 sm:flex-none h-9 text-xs"
                             >
                                 <MessageSquare className="h-4 w-4 mr-1.5" />Запросить инфо
                             </Button>
@@ -443,7 +446,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                     size="sm"
                                     onClick={() => setShowRejectDialog(true)}
                                     disabled={isActioning}
-                                    className="text-rose-400 border-rose-500/30 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50"
+                                    className="flex-1 sm:flex-none h-9 text-xs text-rose-400 border-rose-500/30 hover:text-rose-400 hover:bg-rose-500/10"
                                 >
                                     <XCircle className="h-4 w-4 mr-1.5" />Отклонить
                                 </Button>
@@ -451,50 +454,40 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                     size="sm"
                                     onClick={() => setShowApproveDialog(true)}
                                     disabled={isActioning}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                                    className="flex-1 sm:flex-none h-9 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
                                 >
                                     <CheckCircle className="h-4 w-4 mr-1.5" />Одобрить
                                 </Button>
                             </>
                         )}
-                        {(application.status === 'rejected' || application.status === 'lost') && (
-                            <Button variant="outline" size="sm" onClick={handleRestore} disabled={isActioning}>
-                                <RefreshCw className="h-4 w-4 mr-1.5" />Восстановить
-                            </Button>
-                        )}
-                        {(application.status === 'approved' || application.status === 'won') && (
-                            <Button variant="outline" size="sm" onClick={handleRestore} disabled={isActioning}>
-                                <Eye className="h-4 w-4 mr-1.5" />Пересмотреть
-                            </Button>
-                        )}
                     </div>
                 </div>
 
                 {/* Main Header Card */}
-                <Card className="bg-gradient-to-r from-[#0a1628] to-[#0f1d32] border-border/40 overflow-hidden">
-                    <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
+                <Card className="bg-gradient-to-br from-[#0a1628] to-[#0f1d32] border-border/40 overflow-hidden shadow-xl">
+                    <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                             {/* Left: Product Info */}
                             <div className="flex items-start gap-4">
-                                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-[#3CE8D1]/10 text-[#3CE8D1]">
+                                <div className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-xl bg-[#3CE8D1]/10 text-[#3CE8D1] shrink-0 shadow-[0_0_15px_rgba(60,232,209,0.1)]">
                                     {PRODUCT_ICONS[application.product_type] || <FileText className="h-6 w-6" />}
                                 </div>
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h1 className="text-2xl font-bold">Заявка #{application.id}</h1>
-                                        <Badge className={cn("text-xs gap-1", statusCfg.bgColor, statusCfg.color)}>
+                                <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Заявка #{application.id}</h1>
+                                        <Badge className={cn("text-[10px] md:text-xs gap-1 py-0.5", statusCfg.bgColor, statusCfg.color)}>
                                             {statusCfg.icon}
                                             {statusCfg.label}
                                         </Badge>
                                     </div>
-                                    <p className="text-muted-foreground text-lg">{PRODUCT_LABELS[application.product_type]}</p>
-                                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                                        <Building2 className="h-4 w-4" />
-                                        <span>{application.company_name}</span>
+                                    <p className="text-muted-foreground text-base md:text-lg font-medium">{PRODUCT_LABELS[application.product_type]}</p>
+                                    <div className="flex items-center gap-2 mt-2 text-xs md:text-sm text-muted-foreground">
+                                        <Building2 className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" />
+                                        <span className="truncate">{application.company_name}</span>
                                         {application.company_inn && (
                                             <>
                                                 <span className="opacity-40">•</span>
-                                                <span className="font-mono text-xs">ИНН {application.company_inn}</span>
+                                                <span className="font-mono text-[10px] md:text-xs">ИНН {application.company_inn}</span>
                                             </>
                                         )}
                                     </div>
@@ -502,19 +495,19 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                             </div>
 
                             {/* Right: Key Metrics */}
-                            <div className="flex gap-6">
-                                <div className="text-right">
-                                    <p className="text-xs text-muted-foreground mb-0.5">Сумма</p>
-                                    <p className="text-2xl font-bold text-[#3CE8D1]">{formatCurrency(application.amount) || "—"}</p>
+                            <div className="grid grid-cols-2 md:flex md:gap-8 border-t border-white/5 pt-4 lg:border-none lg:pt-0">
+                                <div className="text-left md:text-right">
+                                    <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Сумма</p>
+                                    <p className="text-lg md:text-2xl font-bold text-[#3CE8D1]">{formatCurrency(application.amount) || "—"}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xs text-muted-foreground mb-0.5">Срок</p>
-                                    <p className="text-2xl font-bold">{application.term_months ? `${application.term_months} мес.` : "—"}</p>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Срок</p>
+                                    <p className="text-lg md:text-2xl font-bold">{application.term_months ? `${application.term_months} мес.` : "—"}</p>
                                 </div>
                                 {application.target_bank_name && (
-                                    <div className="text-right">
-                                        <p className="text-xs text-muted-foreground mb-0.5">Банк</p>
-                                        <p className="text-lg font-semibold truncate max-w-[150px]">{application.target_bank_name}</p>
+                                    <div className="text-left md:text-right col-span-2 mt-3 md:mt-0">
+                                        <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Целевой банк</p>
+                                        <p className="text-base md:text-lg font-semibold text-white/90 truncate max-w-full md:max-w-[200px]">{application.target_bank_name}</p>
                                     </div>
                                 )}
                             </div>
@@ -527,39 +520,41 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
             {/* TABS */}
             {/* ============================================ */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6 bg-[#0a1628]/50 border border-border/40 p-1 h-auto">
-                    <TabsTrigger 
-                        value="info" 
-                        className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2"
-                    >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Информация
-                    </TabsTrigger>
-                    <TabsTrigger 
-                        value="company" 
-                        className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2"
-                    >
-                        <Building2 className="h-4 w-4 mr-2" />
-                        Компания
-                    </TabsTrigger>
-                    <TabsTrigger 
-                        value="documents" 
-                        className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2"
-                    >
-                        <FileCheck className="h-4 w-4 mr-2" />
-                        Документы
-                        {documentsCount > 0 && (
-                            <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">{documentsCount}</Badge>
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger 
-                        value="chat" 
-                        className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2"
-                    >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Чат
-                    </TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                    <TabsList className="mb-4 bg-[#0a1628]/50 border border-border/40 p-1 h-auto flex w-max sm:w-full">
+                        <TabsTrigger 
+                            value="info" 
+                            className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2 text-xs md:text-sm flex-1"
+                        >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Информация
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="company" 
+                            className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2 text-xs md:text-sm flex-1"
+                        >
+                            <Building2 className="h-4 w-4 mr-2" />
+                            Компания
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="documents" 
+                            className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2 text-xs md:text-sm flex-1"
+                        >
+                            <FileCheck className="h-4 w-4 mr-2" />
+                            Документы
+                            {documentsCount > 0 && (
+                                <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{documentsCount}</Badge>
+                            )}
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="chat" 
+                            className="data-[state=active]:bg-[#3CE8D1]/10 data-[state=active]:text-[#3CE8D1] px-4 py-2 text-xs md:text-sm flex-1"
+                        >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Чат
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 {/* ============================================ */}
                 {/* TAB: Information */}

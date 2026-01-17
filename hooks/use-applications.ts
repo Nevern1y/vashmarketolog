@@ -63,7 +63,7 @@ export interface Application {
     company_name: string;
     company_inn: string;
     company_data?: CompanyDataForPartner; // Full company info for Partner/Bank
-    product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing' | 'ved' | 'contract_loan' | 'corporate_credit' | 'insurance' | 'rko' | 'special_account' | 'tender_support';
+    product_type: 'bank_guarantee' | 'tender_loan' | 'factoring' | 'leasing' | 'ved' | 'contract_loan' | 'corporate_credit' | 'insurance' | 'rko' | 'special_account' | 'tender_support' | 'deposits';
     product_type_display: string;
     amount: string;
     term_months: number;

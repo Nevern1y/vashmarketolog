@@ -13,6 +13,7 @@ import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { useApplications } from "@/hooks/use-applications"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 import { cn } from "@/lib/utils"
 import { HelpView } from "@/components/dashboard/help-view"
@@ -126,24 +127,25 @@ export function PartnerLayout() {
             {/* ============================================ */}
             {/* MOBILE SIDEBAR DRAWER */}
             {/* ============================================ */}
-            <div className={cn("fixed inset-0 z-50 lg:hidden", isMobileSidebarOpen ? "block" : "hidden")}>
-                {/* Backdrop */}
-                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileSidebarOpen(false)} />
-                {/* Mobile Sidebar */}
-                <aside className="absolute left-0 top-0 h-full w-[260px] flex flex-col bg-[#0a1628] text-white shadow-2xl">
+            <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+                <SheetContent side="left" className="p-0 border-none w-[260px] bg-[#0a1628]">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Навигация</SheetTitle>
+                        <SheetDescription>Меню разделов партнера</SheetDescription>
+                    </SheetHeader>
                     <PartnerSidebarContent
                         activeView={activeView}
                         onViewChange={handleViewChange}
                         newApplicationsCount={newApplicationsCount}
                     />
-                </aside>
-            </div>
+                </SheetContent>
+            </Sheet>
 
             {/* ============================================ */}
             {/* MAIN CONTENT AREA */}
             {/* ============================================ */}
             <div className="flex min-h-screen flex-col lg:pl-[260px]">
-                <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+                <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} onSettingsClick={() => setActiveView("help")} />
                 <DashboardHeader onNotificationClick={(n) => n.details.applicationId && handleOpenDetail(String(n.details.applicationId))} onNavigateToSettings={() => setActiveView("help")} />
                 <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
                     {renderContent()}

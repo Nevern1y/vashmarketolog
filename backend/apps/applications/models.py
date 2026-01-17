@@ -21,6 +21,7 @@ class ProductType(models.TextChoices):
     RKO = 'rko', 'РКО'
     SPECIAL_ACCOUNT = 'special_account', 'Спецсчет'
     TENDER_SUPPORT = 'tender_support', 'Тендерное сопровождение'
+    DEPOSITS = 'deposits', 'Депозиты'
 
 
 class InsuranceCategory(models.TextChoices):

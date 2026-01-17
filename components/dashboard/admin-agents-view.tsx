@@ -509,6 +509,10 @@ export function AdminAgentsView() {
             {/* Agent Detail Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
+                    <div className="sr-only">
+                        <DialogTitle>{selectedAgent ? getName(selectedAgent) : "Детали агента"}</DialogTitle>
+                        <DialogDescription>Информация об агенте и его документах</DialogDescription>
+                    </div>
                     {selectedAgent && (
                         <>
                             <DialogHeader>

@@ -102,7 +102,7 @@ const faqSections: FAQSection[] = [
         ],
     },
     {
-        id: "international",
+        id: "ved",
         title: "Международные платежи",
         icon: Globe,
         items: [

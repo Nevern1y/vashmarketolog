@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
@@ -142,6 +143,10 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
             {/* Contact Popup */}
             <Dialog open={showContactPopup} onOpenChange={setShowContactPopup}>
                 <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <div className="sr-only">
+                        <DialogTitle>Связаться с нами</DialogTitle>
+                        <DialogDescription>Способы связи с куратором и поддержкой</DialogDescription>
+                    </div>
                     <div className="p-5">
                         <DialogHeader className="mb-5">
                             <DialogTitle className="text-lg font-semibold text-white">Связаться с нами</DialogTitle>

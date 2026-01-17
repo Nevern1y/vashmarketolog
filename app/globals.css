@@ -539,3 +539,30 @@ screen and (min-width: 1200px) and (max-width: 1440px) and (min-resolution: 192d
 [data-radix-scroll-area-viewport] {
   -webkit-overflow-scrolling: touch;
 }
+
+/* ============================================
+   📱 MOBILE UTILITIES
+   ============================================ */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 768px) {
+  button, 
+  [role="button"],
+  input,
+  select {
+    min-height: 44px; /* Apple's recommended minimum */
+  }
+  
+  .h-9, .h-10 {
+    min-height: 40px; /* Slight relaxation for design consistency */
+  }
+}

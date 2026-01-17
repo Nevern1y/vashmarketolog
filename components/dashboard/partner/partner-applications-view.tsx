@@ -50,7 +50,7 @@ const PRODUCT_TABS = [
     { value: "insurance", label: "Страхование СМР", shortLabel: "Страх.", desc: "Страхование строительно-монтажных работ" },
     { value: "ved", label: "Международные платежи", shortLabel: "ВЭД", desc: "ВЭД и международные расчёты" },
     { value: "rko", label: "РКО и спецсчета", shortLabel: "РКО", desc: "Расчётно-кассовое обслуживание и специальные счета" },
-    { value: "deposit", label: "Депозиты", shortLabel: "Депозит", desc: "Депозитные продукты для бизнеса" },
+    { value: "deposits", label: "Депозиты", shortLabel: "Депозит", desc: "Депозитные продукты для бизнеса" },
 ]
 
 /**

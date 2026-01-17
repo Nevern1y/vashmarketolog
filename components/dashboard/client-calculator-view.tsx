@@ -183,16 +183,30 @@ const SpeedBadge = ({ speed }: { speed: string }) => {
     return <span className={cn("px-2 py-0.5 rounded text-xs", colors[speed] || colors["Низкая"])}>{speed}</span>
 }
 
-// RKO/Specaccount Application interface
+// RKO/Specaccount/VED Application interface
 interface RkoApplication {
     id: number
     bank: string
     createdAt: string
     status: "creating" | "sent" | "approved" | "rejected"
     tariff: string
-    type: "rko" | "specaccount"
+    type: "rko" | "specaccount" | "ved"
     messages: { sender: string; text: string; time: string }[]
+    // VED specific fields
+    amount?: number
+    currency?: string
+    country?: string
+    purpose?: string
 }
+
+// VED Banks database
+const VED_BANKS = [
+    { name: "Райффайзен", rating: "A+", sanctions: "Да", currencies: ["USD", "EUR", "CNY"], countries: ["Китай", "ОАЭ", "Турция", "Казахстан"] },
+    { name: "Газпромбанк", rating: "A", sanctions: "Частично", currencies: ["CNY", "TRY", "AED"], countries: ["Китай", "Турция", "ОАЭ", "Казахстан", "Узбекистан"] },
+    { name: "Тинькофф", rating: "B+", sanctions: "Нет", currencies: ["USD", "EUR", "CNY", "TRY", "AED"], countries: ["Китай", "ОАЭ", "Турция", "Казахстан"] },
+    { name: "Альфа-Банк", rating: "A", sanctions: "Да", currencies: ["CNY", "TRY"], countries: ["Китай", "Турция", "ОАЭ"] },
+    { name: "ВТБ", rating: "A+", sanctions: "Да", currencies: ["CNY", "AED"], countries: ["Китай", "ОАЭ", "Казахстан"] },
+]
 
 // Initial applications (empty - will be populated from API)
 const INITIAL_APPLICATIONS: RkoApplication[] = []
@@ -276,6 +290,10 @@ export function ClientCalculatorView() {
     const [email, setEmail] = useState("")
     const [comment, setComment] = useState("")
 
+    // VED (International Payments) specific
+    const [vedCurrency, setVedCurrency] = useState("")
+    const [vedCountry, setVedCountry] = useState("")
+    const [vedPurpose, setVedPurpose] = useState("")
 
     // Calculated offers result
     const [calculatedOffers, setCalculatedOffers] = useState<{ approved: typeof BANKS_DB; rejected: { bank: string; reason: string }[] }>({ approved: [], rejected: [] })
@@ -517,7 +535,7 @@ export function ClientCalculatorView() {
             case "unsecured": return validateUnsecured()
             case "insurance": return validateInsurance()
             case "leasing": return validateLeasing()
-            case "international": return validateInternational()
+            case "ved": return validateInternational()
             default: return { valid: true, errors: [] }
         }
     }
@@ -880,6 +898,72 @@ export function ClientCalculatorView() {
         toast.success(`Заявка №${app.id} удалена`)
     }
 
+    // Create VED (International Payments) application - REAL API INTEGRATION
+    const createVedApplication = async (bankName?: string) => {
+        // Check if client has a company
+        if (!company) {
+            toast.error("Сначала создайте компанию в профиле")
+            return
+        }
+
+        // Validation
+        if (!amount || amount <= 0) {
+            toast.error("Укажите сумму платежа")
+            return
+        }
+        if (!vedCurrency) {
+            toast.error("Выберите валюту")
+            return
+        }
+        if (!vedCountry) {
+            toast.error("Выберите страну назначения")
+            return
+        }
+
+        setIsSubmitting(true)
+
+        const payload = {
+            company: company.id,
+            product_type: "ved",
+            amount: String(amount),
+            term_months: 12,
+            ved_currency: vedCurrency,
+            ved_country: vedCountry,
+            ved_purpose: vedPurpose || undefined,
+            target_bank_name: bankName || "Индивидуальный подбор",
+        }
+
+        try {
+            const result = await createApplication(payload as Parameters<typeof createApplication>[0])
+            if (result) {
+                // Create local application for UI
+                const newApp: RkoApplication = {
+                    id: result.id,
+                    bank: bankName || "Индивидуальный подбор",
+                    createdAt: result.created_at || new Date().toISOString().replace("T", " ").slice(0, 19),
+                    status: "creating",
+                    tariff: "-",
+                    type: "ved",
+                    messages: [],
+                    amount: amount,
+                    currency: vedCurrency,
+                    country: vedCountry,
+                    purpose: vedPurpose,
+                }
+                setApplications(prev => [newApp, ...prev])
+                setSelectedApplication(newApp)
+                toast.success(`Заявка на международный платёж №${result.id} создана!`)
+            } else {
+                toast.error("Не удалось создать заявку")
+            }
+        } catch (err) {
+            console.error('Error creating VED application:', err)
+            toast.error("Ошибка при создании заявки")
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
     // Get status label and color
     const getStatusInfo = (status: RkoApplication["status"]) => {
         const info: Record<typeof status, { label: string; color: string }> = {
@@ -898,7 +982,7 @@ export function ClientCalculatorView() {
         { id: "factoring", label: "Факторинг", icon: HandCoins, description: "Финансирование дебиторской задолженности" },
         { id: "leasing", label: "Лизинг", icon: Building2, description: "Лизинг оборудования и транспорта" },
         { id: "insurance", label: "Страхование", icon: Landmark, description: "Страхование СМР, имущества, ответственности" },
-        { id: "international", label: "Междунар. платежи", icon: Wallet, description: "Международные платежи и ВЭД" },
+        { id: "ved", label: "Междунар. платежи", icon: Wallet, description: "Международные платежи и ВЭД" },
         { id: "rko", label: "РКО и спецсчет", icon: Building2, description: "Расчётно-кассовое обслуживание" },
     ]
 
@@ -911,7 +995,7 @@ export function ClientCalculatorView() {
         { id: "factoring", label: "Факторинг", icon: HandCoins },
         { id: "leasing", label: "Лизинг", icon: Building2 },
         { id: "insurance", label: "Страхование", icon: Landmark },
-        { id: "international", label: "Междунар. платежи", icon: Wallet },
+        { id: "ved", label: "Междунар. платежи", icon: Wallet },
         { id: "rko", label: "РКО и спецсчет", icon: Building2 },
         { id: "deposits", label: "Депозиты", icon: Calculator },
     ]
@@ -2313,82 +2397,257 @@ export function ClientCalculatorView() {
                 </TabsContent>
 
                 {/* TAB: INTERNATIONAL PAYMENTS - Premium Redesign */}
-                <TabsContent value="international" className="mt-6">
-                    <Card className="border border-[#2a3a5c]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425] shadow-2xl overflow-hidden">
-                        <CardHeader className="relative pb-6 border-b border-[#2a3a5c]/30">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#3CE8D1]/5 via-transparent to-[#3CE8D1]/5" />
-                            <div className="relative flex items-center gap-4">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3CE8D1]/20 to-[#3CE8D1]/5 border border-[#3CE8D1]/30 flex items-center justify-center">
-                                    <TrendingUp className="h-7 w-7 text-[#3CE8D1]" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
-                                        Международные платежи
-                                    </CardTitle>
-                                    <p className="text-sm text-[#94a3b8] mt-1">ВЭД и международные переводы</p>
-                                </div>
-                            </div>
-                        </CardHeader>
-
-                        <CardContent className="p-6 space-y-8">
-                            {/* Параметры платежа */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
-                                <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
-                                    <Wallet className="h-4 w-4 text-[#3CE8D1]" />
-                                    <span className="text-sm font-medium text-white">Параметры платежа</span>
-                                </div>
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Сумма платежа <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="100 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Валюта <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Select>
-                                            <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
-                                                <SelectValue placeholder="Выберите валюту" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="USD">USD — Доллар США</SelectItem>
-                                                <SelectItem value="EUR">EUR — Евро</SelectItem>
-                                                <SelectItem value="CNY">CNY — Китайский юань</SelectItem>
-                                                <SelectItem value="TRY">TRY — Турецкая лира</SelectItem>
-                                                <SelectItem value="AED">AED — Дирхам ОАЭ</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm text-[#94a3b8]">Страна назначения <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Select>
-                                        <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
-                                            <SelectValue placeholder="Выберите страну" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {COUNTRIES.map((c: string) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm text-[#94a3b8]">Цель платежа</Label>
-                                    <Textarea placeholder="Описание назначения платежа" className="min-h-[100px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
-                                </div>
+                <TabsContent value="ved" className="mt-6">
+                    {selectedApplication && selectedApplication.type === "ved" ? (
+                        /* Application Detail View with Breadcrumbs */
+                        <div className="space-y-4">
+                            {/* Breadcrumb */}
+                            <div className="flex items-center gap-2 text-sm">
+                                <Button variant="link" className="p-0 h-auto text-[#3CE8D1] font-medium" onClick={() => setSelectedApplication(null)}>
+                                    ← Международные платежи
+                                </Button>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-muted-foreground">ВЭД</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="font-medium">Заявка #{selectedApplication.id}</span>
                             </div>
 
-                            {/* Actions */}
-                            <div className="pt-6 border-t border-[#2a3a5c]/30">
-                                <div className="flex items-center gap-4">
-                                    <Button className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all">
-                                        <Upload className="h-5 w-5 mr-2" />
-                                        ОТПРАВИТЬ ЗАЯВКУ
-                                    </Button>
-                                    <Button variant="outline" className="h-12 px-6 border-[#2a3a5c]/50 text-[#94a3b8] hover:text-white hover:border-[#3CE8D1]/30 transition-all">
-                                        Очистить форму
-                                    </Button>
+                            {/* Main Content Grid */}
+                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                                {/* Left Column - Application Info */}
+                                <div className="lg:col-span-2 space-y-4">
+                                    {/* Header Card with Status */}
+                                    <Card className="border-l-4 border-l-[#3CE8D1]">
+                                        <CardContent className="p-4">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <h2 className="text-lg font-bold text-foreground">Заявка #{selectedApplication.id}</h2>
+                                                    <p className="text-sm text-muted-foreground">Международный платёж</p>
+                                                </div>
+                                                <Badge className={cn("text-white", getStatusInfo(selectedApplication.status).color)}>
+                                                    {getStatusInfo(selectedApplication.status).label}
+                                                </Badge>
+                                            </div>
+
+                                            {/* Key Info Grid */}
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div className="bg-muted/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Сумма</p>
+                                                    <p className="font-medium text-[#3CE8D1]">{formatNumber(selectedApplication.amount || 0)} {selectedApplication.currency}</p>
+                                                </div>
+                                                <div className="bg-muted/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Страна</p>
+                                                    <p className="font-medium">{selectedApplication.country}</p>
+                                                </div>
+                                                <div className="bg-muted/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Банк</p>
+                                                    <p className="font-medium">{selectedApplication.bank}</p>
+                                                </div>
+                                                <div className="bg-muted/30 rounded-lg p-3">
+                                                    <p className="text-xs text-muted-foreground mb-1">Дата создания</p>
+                                                    <p className="font-medium text-[#3CE8D1]">{selectedApplication.createdAt.split(" ")[0]}</p>
+                                                </div>
+                                                {selectedApplication.purpose && (
+                                                    <div className="bg-muted/30 rounded-lg p-3 col-span-2">
+                                                        <p className="text-xs text-muted-foreground mb-1">Цель платежа</p>
+                                                        <p className="font-medium">{selectedApplication.purpose}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Status Message Card */}
+                                    <Card className="bg-muted/20">
+                                        <CardContent className="p-4 text-center">
+                                            <CheckCircle2 className="h-10 w-10 mx-auto text-[#3CE8D1]/50 mb-2" />
+                                            <p className="text-sm font-medium text-foreground mb-1">
+                                                Заявка готова к отправке
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Менеджер свяжется с вами для уточнения деталей
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* Actions Card */}
+                                    <Card>
+                                        <CardContent className="p-4 space-y-3">
+                                            <Button
+                                                onClick={() => sendApplication(selectedApplication)}
+                                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium"
+                                            >
+                                                ОТПРАВИТЬ ЗАЯВКУ
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                                                onClick={() => deleteApplication(selectedApplication)}
+                                            >
+                                                Удалить заявку
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Right Column - Chat */}
+                                <div className="lg:col-span-3">
+                                    <ApplicationChat
+                                        applicationId={selectedApplication.id}
+                                        className="h-[500px] lg:h-[600px]"
+                                    />
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    ) : (
+                        /* Form + Banks List */
+                        <div className="space-y-6">
+                            <Card className="border border-[#2a3a5c]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425] shadow-2xl overflow-hidden">
+                                <CardHeader className="relative pb-6 border-b border-[#2a3a5c]/30">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-[#3CE8D1]/5 via-transparent to-[#3CE8D1]/5" />
+                                    <div className="relative flex items-center gap-4">
+                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3CE8D1]/20 to-[#3CE8D1]/5 border border-[#3CE8D1]/30 flex items-center justify-center">
+                                            <TrendingUp className="h-7 w-7 text-[#3CE8D1]" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+                                                Международные платежи
+                                            </CardTitle>
+                                            <p className="text-sm text-[#94a3b8] mt-1">ВЭД и международные переводы</p>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+
+                                <CardContent className="p-6 space-y-8">
+                                    {/* Параметры платежа */}
+                                    <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                                        <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
+                                            <Wallet className="h-4 w-4 text-[#3CE8D1]" />
+                                            <span className="text-sm font-medium text-white">Параметры платежа</span>
+                                        </div>
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <div className="space-y-2">
+                                                <Label className="text-sm text-[#94a3b8]">Сумма платежа <span className="text-[#3CE8D1]">*</span></Label>
+                                                <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="100 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-sm text-[#94a3b8]">Валюта <span className="text-[#3CE8D1]">*</span></Label>
+                                                <Select value={vedCurrency} onValueChange={setVedCurrency}>
+                                                    <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
+                                                        <SelectValue placeholder="Выберите валюту" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="USD">USD — Доллар США</SelectItem>
+                                                        <SelectItem value="EUR">EUR — Евро</SelectItem>
+                                                        <SelectItem value="CNY">CNY — Китайский юань</SelectItem>
+                                                        <SelectItem value="TRY">TRY — Турецкая лира</SelectItem>
+                                                        <SelectItem value="AED">AED — Дирхам ОАЭ</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm text-[#94a3b8]">Страна назначения <span className="text-[#3CE8D1]">*</span></Label>
+                                            <Select value={vedCountry} onValueChange={setVedCountry}>
+                                                <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
+                                                    <SelectValue placeholder="Выберите страну" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {COUNTRIES.map((c: string) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-sm text-[#94a3b8]">Цель платежа</Label>
+                                            <Textarea value={vedPurpose} onChange={e => setVedPurpose(e.target.value)} placeholder="Описание назначения платежа" className="min-h-[100px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="pt-6 border-t border-[#2a3a5c]/30">
+                                        <div className="flex items-center gap-4">
+                                            <Button 
+                                                onClick={() => createVedApplication()}
+                                                disabled={isSubmitting}
+                                                className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all disabled:opacity-50"
+                                            >
+                                                {isSubmitting ? (
+                                                    <>
+                                                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                                                        Отправка...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="h-5 w-5 mr-2" />
+                                                        ОТПРАВИТЬ ЗАЯВКУ
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <Button 
+                                                variant="outline" 
+                                                onClick={() => {
+                                                    setAmount(undefined)
+                                                    setVedCurrency("")
+                                                    setVedCountry("")
+                                                    setVedPurpose("")
+                                                }}
+                                                className="h-12 px-6 border-[#2a3a5c]/50 text-[#94a3b8] hover:text-white hover:border-[#3CE8D1]/30 transition-all"
+                                            >
+                                                Очистить форму
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Banks List for VED */}
+                            <Card>
+                                <CardHeader><CardTitle>Банки для международных платежей</CardTitle></CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground mb-4">Выберите банк или оставьте заявку на индивидуальный подбор. Всего: {VED_BANKS.length} банков</p>
+                                    <div className="rounded-lg border overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted/50">
+                                                <tr>
+                                                    <th className="text-left p-3">Банк</th>
+                                                    <th className="text-left p-3">Рейтинг</th>
+                                                    <th className="text-left p-3">Санкции</th>
+                                                    <th className="text-left p-3">Валюты</th>
+                                                    <th className="text-left p-3">Страны</th>
+                                                    <th className="text-left p-3"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {VED_BANKS.filter(bank => 
+                                                    (!vedCurrency || bank.currencies.includes(vedCurrency)) &&
+                                                    (!vedCountry || bank.countries.includes(vedCountry))
+                                                ).map((bank, i) => (
+                                                    <tr key={i} className="border-t">
+                                                        <td className="p-3 font-medium">{bank.name}</td>
+                                                        <td className="p-3"><Badge variant="outline">{bank.rating}</Badge></td>
+                                                        <td className="p-3"><Badge variant={bank.sanctions === "Да" ? "destructive" : bank.sanctions === "Частично" ? "secondary" : "outline"}>{bank.sanctions}</Badge></td>
+                                                        <td className="p-3 text-xs">{bank.currencies.join(", ")}</td>
+                                                        <td className="p-3 text-xs">{bank.countries.slice(0, 3).join(", ")}{bank.countries.length > 3 ? "..." : ""}</td>
+                                                        <td className="p-3">
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="outline" 
+                                                                className="text-[#3CE8D1] border-[#3CE8D1]" 
+                                                                onClick={() => createVedApplication(bank.name)}
+                                                                disabled={isSubmitting || !amount || !vedCurrency || !vedCountry}
+                                                            >
+                                                                Выбрать
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </TabsContent>
 
                 {/* TAB: DEPOSITS */}

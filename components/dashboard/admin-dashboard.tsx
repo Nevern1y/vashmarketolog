@@ -16,6 +16,7 @@ import {
     Newspaper,
     UserCheck,
     X,
+    Bell,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
@@ -27,6 +28,7 @@ import { AdminApplicationDetail } from "./admin-application-detail"
 import { AdminDocumentsView } from "./admin-documents-view"
 import { AdminNewsView } from "./admin-news-view"
 import { AdminCRMClientsView } from "./admin-crm-clients-view"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 // ============================================
 // Sidebar Navigation Items
@@ -156,29 +158,65 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
 // ============================================
 interface AdminMobileHeaderProps {
     onMenuClick: () => void
+    onSettingsClick?: () => void
     activeView: AdminView
 }
 
-function AdminMobileHeader({ onMenuClick, activeView }: AdminMobileHeaderProps) {
+function AdminMobileHeader({ onMenuClick, onSettingsClick, activeView }: AdminMobileHeaderProps) {
     const viewLabel = NAV_ITEMS.find(item => item.id === activeView)?.label || "Админ"
+    const { logout } = useAuth()
 
     return (
-        <header className="flex items-center justify-between border-b border-border bg-slate-900 px-4 py-3 lg:hidden">
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={onMenuClick}
-                className="text-white hover:bg-slate-800"
-            >
-                <Menu className="h-6 w-6" />
-            </Button>
+        <header className="flex items-center justify-between border-b border-border bg-slate-900 px-4 py-3 lg:hidden sticky top-0 z-40">
+            <div className="flex items-center gap-3">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onMenuClick}
+                    className="text-white hover:bg-slate-800"
+                >
+                    <Menu className="h-6 w-6" />
+                </Button>
 
-            <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-white">{viewLabel}</span>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-white">{viewLabel}</span>
+                </div>
             </div>
 
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3CE8D1]">
-                <span className="text-xs font-bold text-slate-900">A</span>
+            <div className="flex items-center gap-2">
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-[#94a3b8] hover:text-white"
+                    onClick={() => {}}
+                >
+                    <Bell className="h-5 w-5" />
+                </Button>
+
+                {onSettingsClick && (
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-[#94a3b8] hover:text-white"
+                        onClick={onSettingsClick}
+                        title="Статистика"
+                    >
+                        <BarChart3 className="h-5 w-5" />
+                    </Button>
+                )}
+
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => logout()}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    title="Выйти"
+                >
+                    <LogOut className="h-5 w-5" />
+                </Button>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3CE8D1]">
+                    <span className="text-xs font-bold text-slate-900">A</span>
+                </div>
             </div>
         </header>
     )
@@ -263,25 +301,20 @@ export function AdminDashboard() {
             {/* ============================================ */}
             {/* MOBILE SIDEBAR DRAWER */}
             {/* ============================================ */}
-            <div className={cn(
-                "fixed inset-0 z-50 lg:hidden",
-                isMobileSidebarOpen ? "block" : "hidden"
-            )}>
-                {/* Backdrop */}
-                <div
-                    className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                    onClick={() => setIsMobileSidebarOpen(false)}
-                />
-                {/* Mobile Sidebar */}
-                <aside className="absolute left-0 top-0 h-full w-[260px] flex flex-col bg-slate-900 shadow-2xl">
+            <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+                <SheetContent side="left" className="p-0 border-none w-[260px] bg-slate-900">
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Панель администратора</SheetTitle>
+                        <SheetDescription>Навигация по разделам управления</SheetDescription>
+                    </SheetHeader>
                     <AdminSidebarContent
                         activeView={activeView}
                         onViewChange={handleViewChange}
                         isMobile={true}
                         onClose={() => setIsMobileSidebarOpen(false)}
                     />
-                </aside>
-            </div>
+                </SheetContent>
+            </Sheet>
 
             {/* ============================================ */}
             {/* MAIN CONTENT AREA */}
@@ -294,6 +327,7 @@ export function AdminDashboard() {
                 {/* Mobile Header */}
                 <AdminMobileHeader
                     onMenuClick={() => setIsMobileSidebarOpen(true)}
+                    onSettingsClick={() => handleViewChange("statistics")}
                     activeView={activeView}
                 />
 

@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -138,7 +139,7 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
           {/* Tools Navigation */}
           <ul className="space-y-1">
             {toolsNavItems.map((item) => (
-              <li key={item.id}>
+              <li key={item.id} className={item.id === "profile-settings" ? "lg:hidden" : ""}>
                 <button
                   onClick={() => onViewChange(item.id)}
                   className={cn(
@@ -154,6 +155,8 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
               </li>
             ))}
           </ul>
+
+          {/* Logout button removed - moved to Header */}
         </nav>
 
 

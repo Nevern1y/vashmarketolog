@@ -88,7 +88,7 @@ const PRODUCT_TABS = [
     { value: "insurance", label: "Страхование СМР", shortLabel: "Страх.", prefix: "СТР" },
     { value: "ved", label: "Международные платежи", shortLabel: "ВЭД", prefix: "МП" },
     { value: "rko", label: "РКО и спецсчета", shortLabel: "РКО", prefix: "РКО" },
-    { value: "deposit", label: "Депозиты", shortLabel: "Депозит", prefix: "ДП" },
+    { value: "deposits", label: "Депозиты", shortLabel: "Депозит", prefix: "ДП" },
 ]
 
 // Product-specific labels

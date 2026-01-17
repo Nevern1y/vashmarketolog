@@ -13,6 +13,8 @@ import {
   FileCheck,
   Landmark,
   PhoneCall,
+  LogOut,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -97,7 +99,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
         {/* Tools Navigation */}
         <ul className="space-y-0.5">
           {toolsNavItems.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className={item.id === "profile-settings" ? "lg:hidden" : ""}>
               <button
                 onClick={() => onViewChange(item.id)}
                 className={cn(
@@ -113,6 +115,8 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
             </li>
           ))}
         </ul>
+
+        {/* Logout button removed - moved to Header */}
       </nav>
 
     </aside>

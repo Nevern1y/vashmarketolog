@@ -77,7 +77,7 @@ const productTypes = [
   { id: "factoring", label: "Факторинг", icon: Truck, description: "Факторинговое финансирование" },
   { id: "leasing", label: "Лизинг", icon: Building2, description: "Лизинг оборудования и транспорта" },
   { id: "insurance", label: "Страхование", icon: Shield, description: "Страхование бизнеса" },
-  { id: "international", label: "Междунар. платежи", icon: Globe, description: "Международные платежи" },
+  { id: "ved", label: "Междунар. платежи", icon: Globe, description: "Международные платежи" },
   { id: "rko", label: "РКО и спецсчёт", icon: Briefcase, description: "Расчётно-кассовое обслуживание" },
   { id: "deposits", label: "Депозиты", icon: Banknote, description: "Размещение депозитов" },
 ]
@@ -732,14 +732,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         </button>
 
         {/* Progress Bar */}
-        <div className="border-b border-border px-6 py-4 sticky top-0 bg-card">
+        <div className="border-b border-border px-4 py-3 md:px-6 md:py-4 sticky top-0 bg-card z-20">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center">
                   <div
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors",
+                      "flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-full text-xs md:text-sm font-medium transition-colors",
                       currentStep > step.id
                         ? "bg-[#3CE8D1] text-[#0a1628]"
                         : currentStep === step.id
@@ -751,7 +751,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   </div>
                   <span
                     className={cn(
-                      "mt-1 text-xs font-medium",
+                      "mt-1 text-[10px] md:text-xs font-medium hidden sm:block",
                       currentStep >= step.id ? "text-foreground" : "text-muted-foreground",
                     )}
                   >
@@ -759,7 +759,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={cn("mx-3 h-0.5 flex-1", currentStep > step.id ? "bg-[#3CE8D1]" : "bg-border")} />
+                  <div className={cn("mx-1 md:mx-3 h-0.5 flex-1", currentStep > step.id ? "bg-[#3CE8D1]" : "bg-border")} />
                 )}
               </div>
             ))}
@@ -768,22 +768,22 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
         {/* Error Display */}
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-lg bg-[#E03E9D]/10 text-[#E03E9D] flex items-center gap-2">
-            <AlertCircle className="h-4 w-4" />
+          <div className="mx-6 mt-4 p-3 rounded-lg bg-[#E03E9D]/10 text-[#E03E9D] flex items-center gap-2 text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
           </div>
         )}
 
         {/* Step Content */}
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {/* Step 1: Product Selection */}
           {currentStep === 1 && (
             <div className="space-y-6">
               {/* Agent Client Selector with Info Panel */}
               {isAgent && (
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Client Dropdown - 2 columns */}
-                  <div className="col-span-2 space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Client Dropdown - Full width on mobile, 2/3 on desktop */}
+                  <div className="md:col-span-2 space-y-2">
                     <Label className="text-base font-semibold">Выберите клиента *</Label>
                     {clientsLoading ? (
                       <div className="flex items-center gap-2 text-muted-foreground py-2">
@@ -811,18 +811,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                           )}
                           {/* Add new client option */}
                           <div className="border-t mt-1 pt-1">
-                            <div className="border-t mt-1 pt-1">
-                              <button
-                                className="w-full text-left px-3 py-2 text-sm text-[#3CE8D1] hover:bg-accent rounded-sm flex items-center gap-2"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  setIsAddClientOpen(true)
-                                }}
-                              >
-                                <Plus className="h-4 w-4" />
-                                Добавить нового клиента
-                              </button>
-                            </div>
+                            <button
+                              className="w-full text-left px-3 py-2 text-sm text-[#3CE8D1] hover:bg-accent rounded-sm flex items-center gap-2"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setIsAddClientOpen(true)
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                              Добавить нового клиента
+                            </button>
                           </div>
                         </SelectContent>
                       </Select>
@@ -834,26 +832,26 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     )}
                   </div>
 
-                  {/* Client Info Panel - 1 column */}
+                  {/* Client Info Panel - Full width on mobile, 1/3 on desktop */}
                   <div className="space-y-2">
                     <Label className="text-base font-semibold">Информация о клиенте</Label>
                     {selectedCompany ? (
                       <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 text-sm">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">ИНН:</span>
-                          <span className="font-mono font-medium">{selectedCompany.inn || "—"}</span>
+                          <span className="font-mono font-medium truncate">{selectedCompany.inn || "—"}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">КПП:</span>
-                          <span className="font-mono">{selectedCompany.kpp || "—"}</span>
+                          <span className="font-mono truncate">{selectedCompany.kpp || "—"}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">Регион:</span>
-                          <span>{selectedCompany.region || "—"}</span>
+                          <span className="truncate text-right">{selectedCompany.region || "—"}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between gap-2">
                           <span className="text-muted-foreground">Контакт:</span>
-                          <span>{selectedCompany.contact_person || "—"}</span>
+                          <span className="truncate text-right">{selectedCompany.contact_person || "—"}</span>
                         </div>
                       </div>
                     ) : (
@@ -865,7 +863,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
                   {/* Accreditation Warning - Full width */}
                   {selectedCompany && !(selectedCompany as any).is_accredited && (
-                    <div className="col-span-3 mt-2">
+                    <div className="md:col-span-3 mt-2">
                       <div className="rounded-lg border border-[#f97316] bg-[#f97316]/10 p-3 flex items-start gap-3">
                         <AlertCircle className="h-5 w-5 text-[#f97316] flex-shrink-0 mt-0.5" />
                         <div>
@@ -881,26 +879,28 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
               )}
 
               <h2 className="text-lg font-semibold">Выберите тип продукта</h2>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {productTypes.map((product) => (
                   <button
                     key={product.id}
                     onClick={() => setSelectedProduct(product.id)}
                     className={cn(
-                      "flex flex-col items-center rounded-xl border-2 p-4 text-center transition-all hover:border-[#3CE8D1]/50 min-h-[120px]",
+                      "flex flex-row md:flex-col items-center gap-4 md:gap-0 rounded-xl border-2 p-3 md:p-4 text-left md:text-center transition-all hover:border-[#3CE8D1]/50 min-h-[80px] md:min-h-[120px]",
                       selectedProduct === product.id ? "border-[#3CE8D1] bg-[#3CE8D1]/5" : "border-border",
                     )}
                   >
                     <div
                       className={cn(
-                        "mb-3 flex h-12 w-12 items-center justify-center rounded-full",
+                        "flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full shrink-0 md:mb-3",
                         selectedProduct === product.id ? "bg-[#3CE8D1] text-[#0a1628]" : "bg-accent text-muted-foreground",
                       )}
                     >
-                      <product.icon className="h-6 w-6" />
+                      <product.icon className="h-5 w-5 md:h-6 md:w-6" />
                     </div>
-                    <span className="text-sm font-medium">{product.label}</span>
-                    <span className="mt-1 text-xs text-muted-foreground">{product.description}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{product.label}</span>
+                      <span className="mt-1 text-xs text-muted-foreground md:block hidden">{product.description}</span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -911,7 +911,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
           {currentStep === 2 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold">Основные параметры</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Client Display - Read-only for Agents (selected on Step 1) */}
                 {isAgent && (
                   <div className="space-y-2">
@@ -1036,7 +1036,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
                   <div className="space-y-2">
                     <Label>Федеральный закон *</Label>
-                    <div className="flex flex-wrap gap-4">
+                    <div className="flex flex-wrap gap-x-6 gap-y-3">
                       {[
                         { id: "44_fz", label: "44-ФЗ" },
                         { id: "223_fz", label: "223-ФЗ" },
@@ -1065,7 +1065,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     <Hash className="h-4 w-4" />
                     Данные закупки
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>№ извещения</Label>
                       <Input
@@ -1109,7 +1109,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   </div>
                   <div className="space-y-2">
                     <Label>Срок гарантии</Label>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
                       <div className="space-y-1">
                         <span className="text-xs text-muted-foreground">с</span>
                         <Input
@@ -1144,7 +1144,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
                   {/* Section 4: Advance & Template */}
                   <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                       <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
@@ -1158,7 +1158,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                         </Label>
                       </div>
                       {hasPrepayment && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 ml-7 sm:ml-0">
                           <Input
                             type="number"
                             placeholder="30"
@@ -1846,173 +1846,172 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
           )}
 
           {/* Step 3: Bank Selection (WAVE 1 - NEW) */}
-          {
-            currentStep === 3 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold">Выберите банк</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Выберите один или несколько банков для отправки заявки
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-[#3CE8D1]">
-                      Доступно: {approvedBanks.length} банков
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Отказов: {rejectedBanks.length}
-                    </p>
-                  </div>
+          {currentStep === 3 && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Выберите банк</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Выберите один или несколько банков для отправки заявки
+                  </p>
                 </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-sm font-medium text-[#3CE8D1]">
+                    Доступно: {approvedBanks.length} банков
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Отказов: {rejectedBanks.length}
+                  </p>
+                </div>
+              </div>
 
-                {/* Approved Banks Table */}
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="bg-muted/30 px-4 py-2 border-b border-border">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      Доступные предложения
-                    </h3>
-                  </div>
-                  <div className="divide-y divide-border">
-                    {approvedBanks.map((bank) => {
-                      const speedInfo = getSpeedLabel(bank.speed)
-                      const isSelected = selectedBankIds.includes(bank.id)
-                      return (
-                        <div
-                          key={bank.id}
-                          className={cn(
-                            "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors",
-                            isSelected ? "bg-[#3CE8D1]/10" : "hover:bg-muted/50"
-                          )}
-                          onClick={() => toggleBankSelection(bank.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleBankSelection(bank.id)}
-                              className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                            />
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 text-white text-xs font-bold">
-                              {bank.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-medium">{bank.name}</p>
-                              <p className="text-xs text-muted-foreground">ID: {bank.id}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-6">
-                            <div className="text-right">
-                              <p className="text-sm font-semibold text-[#3CE8D1]">{bank.rate}%</p>
-                              <p className="text-xs text-muted-foreground">Ставка</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium">{bank.commission.toLocaleString()} ₽</p>
-                              <p className="text-xs text-muted-foreground">Комиссия</p>
-                            </div>
-                            <div className="text-right w-24">
-                              <p className={cn("text-sm font-medium", speedInfo.color)}>{speedInfo.label}</p>
-                              <p className="text-xs text-muted-foreground">Скорость</p>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-
-                    {/* Lider-Garant Special Row - Always at bottom */}
-                    {liderGarant && (
+              {/* Approved Banks Table */}
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="bg-muted/30 px-4 py-2 border-b border-border">
+                  <h3 className="text-sm font-medium flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Доступные предложения
+                  </h3>
+                </div>
+                <div className="divide-y divide-border">
+                  {approvedBanks.map((bank) => {
+                    const speedInfo = getSpeedLabel(bank.speed)
+                    const isSelected = selectedBankIds.includes(bank.id)
+                    return (
                       <div
+                        key={bank.id}
                         className={cn(
-                          "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors border-t-2 border-[#3CE8D1]/30",
-                          selectedBankIds.includes(liderGarant.id) ? "bg-[#3CE8D1]/20" : "hover:bg-[#3CE8D1]/5"
+                          "flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer transition-colors gap-3",
+                          isSelected ? "bg-[#3CE8D1]/10" : "hover:bg-muted/50"
                         )}
-                        onClick={() => toggleBankSelection(liderGarant.id)}
+                        onClick={() => toggleBankSelection(bank.id)}
                       >
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={selectedBankIds.includes(liderGarant.id)}
-                            onChange={() => toggleBankSelection(liderGarant.id)}
-                            className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                            checked={isSelected}
+                            onChange={() => toggleBankSelection(bank.id)}
+                            className="h-4 w-4 rounded border-border accent-[#3CE8D1] shrink-0"
                           />
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]">
-                            <Star className="h-5 w-5" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-700 to-slate-900 text-white text-xs font-bold shrink-0">
+                            {bank.name.slice(0, 2).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="font-semibold text-[#3CE8D1]">{liderGarant.name}</p>
-                            <p className="text-xs text-muted-foreground">Индивидуальные условия</p>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{bank.name}</p>
+                            <p className="text-[10px] text-muted-foreground">ID: {bank.id}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-3 py-1 rounded-full bg-[#3CE8D1]/20 text-[#3CE8D1] text-xs font-medium">
-                            Персональное предложение
-                          </span>
+                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 ml-7 sm:ml-0">
+                          <div className="text-left sm:text-right">
+                            <p className="text-sm font-semibold text-[#3CE8D1]">{bank.rate}%</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">Ставка</p>
+                          </div>
+                          <div className="text-left sm:text-right">
+                            <p className="text-sm font-medium whitespace-nowrap">{bank.commission.toLocaleString()} ₽</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">Комиссия</p>
+                          </div>
+                          <div className="text-left sm:text-right sm:w-20">
+                            <p className={cn("text-sm font-medium", speedInfo.color)}>{speedInfo.label}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">Скорость</p>
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    )
+                  })}
 
-                {/* Rejected Banks Collapsible */}
-                {rejectedBanks.length > 0 && (
-                  <Collapsible open={showRejectedBanks} onOpenChange={setShowRejectedBanks}>
-                    <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <XCircle className="h-4 w-4 text-red-500" />
-                        <span className="text-sm font-medium">Показать {rejectedBanks.length} отказов</span>
-                      </div>
-                      {showRejectedBanks ? (
-                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  {/* Lider-Garant Special Row - Always at bottom */}
+                  {liderGarant && (
+                    <div
+                      className={cn(
+                        "flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer transition-colors border-t-2 border-[#3CE8D1]/30 gap-3",
+                        selectedBankIds.includes(liderGarant.id) ? "bg-[#3CE8D1]/20" : "hover:bg-[#3CE8D1]/5"
                       )}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <div className="mt-2 rounded-lg border border-red-200/30 overflow-hidden">
-                        <div className="divide-y divide-border">
-                          {rejectedBanks.map((bank) => (
-                            <div key={bank.id} className="px-4 py-3 bg-red-500/5">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 text-xs font-bold">
-                                    {bank.name.slice(0, 2).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-muted-foreground">{bank.name}</p>
-                                    <p className="text-xs text-red-500">{bank.rejectReason}</p>
-                                  </div>
+                      onClick={() => toggleBankSelection(liderGarant.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedBankIds.includes(liderGarant.id)}
+                          onChange={() => toggleBankSelection(liderGarant.id)}
+                          className="h-4 w-4 rounded border-border accent-[#3CE8D1] shrink-0"
+                        />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shrink-0">
+                          <Star className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-[#3CE8D1]">{liderGarant.name}</p>
+                          <p className="text-xs text-muted-foreground">Индивидуальные условия</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-7 sm:ml-0">
+                        <span className="px-3 py-1 rounded-full bg-[#3CE8D1]/20 text-[#3CE8D1] text-[10px] font-medium">
+                          Персональное предложение
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Rejected Banks Collapsible */}
+              {rejectedBanks.length > 0 && (
+                <Collapsible open={showRejectedBanks} onOpenChange={setShowRejectedBanks}>
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-4 py-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-red-500" />
+                      <span className="text-sm font-medium">Показать {rejectedBanks.length} отказов</span>
+                    </div>
+                    {showRejectedBanks ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="mt-2 rounded-lg border border-red-200/30 overflow-hidden">
+                      <div className="divide-y divide-border">
+                        {rejectedBanks.map((bank) => (
+                          <div key={bank.id} className="px-4 py-3 bg-red-500/5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600 text-xs font-bold shrink-0">
+                                  {bank.name.slice(0, 2).toUpperCase()}
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {bank.rate}% / {bank.commission.toLocaleString()} ₽
+                                <div className="min-w-0">
+                                  <p className="font-medium text-muted-foreground truncate">{bank.name}</p>
+                                  <p className="text-[10px] text-red-500 leading-tight">{bank.rejectReason}</p>
                                 </div>
                               </div>
+                              <div className="text-xs text-muted-foreground ml-13 sm:ml-0">
+                                {bank.rate}% / {bank.commission.toLocaleString()} ₽
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                )}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
 
-                {/* Selection Summary */}
-                {selectedBankIds.length > 0 && (
-                  <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-4">
-                    <p className="text-sm font-medium text-[#3CE8D1]">
-                      Выбрано банков: {selectedBankIds.length}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')}
-                    </p>
-                  </div>
-                )}
+              {/* Selection Summary */}
+              {selectedBankIds.length > 0 && (
+                <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-4">
+                  <p className="text-sm font-medium text-[#3CE8D1]">
+                    Выбрано банков: {selectedBankIds.length}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                    {selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')}
+                  </p>
+                </div>
+              )}
 
-                {/* Disclaimer */}
-                <p className="text-xs text-muted-foreground">
-                  Приведённые расчеты стоимости являются предварительными и не являются публичной офертой.
-                </p>
-              </div>
-            )
+              {/* Disclaimer */}
+              <p className="text-[10px] text-muted-foreground">
+                Приведённые расчеты стоимости являются предварительными и не являются публичной офертой.
+              </p>
+            </div>
+          )
           }
 
           {/* Step 4: Documents */}
@@ -2042,7 +2041,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       <SelectItem value="0">Дополнительный документ</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground">
                     Показаны типы документов для: {selectedProduct === 'bank_guarantee' ? 'Банковские гарантии' :
                       selectedProduct === 'contract_loan' ? 'Кредиты на исполнение' : 'Общие документы'}
                   </p>
@@ -2051,18 +2050,18 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
                 {/* Dropzone */}
                 <div
-                  className="rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
+                  className="rounded-xl border-2 border-dashed border-border p-4 md:p-8 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {uploading ? (
-                    <Loader2 className="mx-auto h-10 w-10 text-[#3CE8D1] animate-spin" />
+                    <Loader2 className="mx-auto h-8 w-8 md:h-10 md:w-10 text-[#3CE8D1] animate-spin" />
                   ) : (
-                    <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                    <Upload className="mx-auto h-8 w-8 md:h-10 md:w-10 text-muted-foreground" />
                   )}
                   <p className="mt-3 text-sm font-medium">
-                    {uploading ? "Загрузка..." : "Перетащите файлы сюда или выберите на компьютере"}
+                    {uploading ? "Загрузка..." : "Нажмите для загрузки или перетащите файлы"}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">PDF, JPG, PNG, XLSX до 10 МБ</p>
+                  <p className="mt-1 text-[10px] md:text-xs text-muted-foreground uppercase">PDF, JPG, PNG, XLSX до 10 МБ</p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -2079,7 +2078,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     <p className="text-sm font-medium text-[#3CE8D1]">
                       Загружено ({uploadedDocIds.length}):
                     </p>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       Документы будут прикреплены к заявке
                     </div>
                   </div>
@@ -2094,47 +2093,47 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Проверьте данные заявки</h2>
                 <div className="rounded-lg bg-muted/50 p-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Продукт:</span>
-                    <span className="text-sm font-medium">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">Продукт:</span>
+                    <span className="text-sm font-medium text-right">
                       {productTypes.find((p) => p.id === selectedProduct)?.label || "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Компания:</span>
-                    <span className="text-sm font-medium">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">Компания:</span>
+                    <span className="text-sm font-medium text-right truncate">
                       {selectedCompany?.name || selectedCompany?.short_name || "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">ИНН:</span>
-                    <span className="text-sm font-medium">{selectedCompany?.inn || "—"}</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">ИНН:</span>
+                    <span className="text-sm font-medium font-mono">{selectedCompany?.inn || "—"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Выбранные банки:</span>
-                    <span className="text-sm font-medium text-[#3CE8D1]">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">Банки:</span>
+                    <span className="text-sm font-medium text-[#3CE8D1] text-right line-clamp-2">
                       {selectedBankIds.length > 0
                         ? selectedBankIds.map(id => MOCK_BANK_OFFERS.find(b => b.id === id)?.name).join(', ')
                         : "Не выбраны"
                       }
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Сумма:</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">Сумма:</span>
                     <span className="text-sm font-medium">{amount || "—"} ₽</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Срок:</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">Срок:</span>
                     <span className="text-sm font-medium">{term || "—"} мес.</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Документы:</span>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-sm text-muted-foreground shrink-0">Документы:</span>
                     <span className="text-sm font-medium">
                       {selectedDocumentIds.length + uploadedDocIds.length} шт.
                     </span>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground text-center">
                   После отправки заявка будет направлена менеджеру для проверки.
                 </p>
               </div>
@@ -2143,12 +2142,12 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         </div >
 
         {/* Footer Navigation */}
-        < div className="flex items-center justify-between border-t border-border px-6 py-4 sticky bottom-0 bg-card" >
+        < div className="flex items-center justify-between border-t border-border px-4 md:px-6 py-3 md:py-4 sticky bottom-0 bg-card z-20" >
           <Button
             variant="outline"
             onClick={handleBack}
             disabled={currentStep === 1 || submitting}
-            className="border-border bg-transparent"
+            className="border-border bg-transparent h-9 md:h-10 px-3 md:px-4 text-xs md:text-sm"
           >
             Назад
           </Button>
@@ -2161,19 +2160,19 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                   (currentStep === 2 && (!amount || !term || (isAgent && !selectedCompanyId) || (!isAgent && !myCompany?.id))) ||
                   (currentStep === 3 && selectedBankIds.length === 0)
                 }
-                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] h-9 md:h-10 px-4 md:px-6 text-xs md:text-sm font-semibold"
               >
                 Далее
               </Button>
             ) : (
               <Button
                 onClick={handleSubmit}
-                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] h-9 md:h-10 px-4 md:px-6 text-xs md:text-sm font-bold"
                 disabled={submitting}
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-3 w-3 md:h-4 md:w-4 animate-spin" />
                     Отправка...
                   </>
                 ) : (

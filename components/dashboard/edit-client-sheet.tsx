@@ -594,46 +594,48 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                         {/* Scrollable Content Area with Tabs */}
                         <div className="flex-1 overflow-y-auto px-4 py-4">
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
                                     <Tabs defaultValue="identity" className="w-full">
-                                        <TabsList className="grid w-full grid-cols-3 md:grid-cols-9 bg-muted/50 mb-4">
-                                            <TabsTrigger value="identity" className="flex items-center gap-1 text-xs">
-                                                <Building2 className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Орг-ция</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="addresses" className="flex items-center gap-1 text-xs">
-                                                <MapPin className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Адреса</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="management" className="flex items-center gap-1 text-xs">
-                                                <Users className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Рук-во</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="signatory" className="flex items-center gap-1 text-xs">
-                                                <FileSignature className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Подпис.</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="founders" className="flex items-center gap-1 text-xs">
-                                                <Users className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Учред.</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="banks" className="flex items-center gap-1 text-xs">
-                                                <Landmark className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Банки</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="activities" className="flex items-center gap-1 text-xs">
-                                                <Briefcase className="h-3 w-3" />
-                                                <span className="hidden sm:inline">ОКВЭД</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="etp" className="flex items-center gap-1 text-xs">
-                                                <Globe className="h-3 w-3" />
-                                                <span className="hidden sm:inline">ЭТП</span>
-                                            </TabsTrigger>
-                                            <TabsTrigger value="contacts" className="flex items-center gap-1 text-xs">
-                                                <Contact className="h-3 w-3" />
-                                                <span className="hidden sm:inline">Контакты</span>
-                                            </TabsTrigger>
-                                        </TabsList>
+                                        <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
+                                            <TabsList className="flex w-max md:w-full md:grid md:grid-cols-9 bg-muted/50 mb-2">
+                                                <TabsTrigger value="identity" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Building2 className="h-3 w-3" />
+                                                    <span>Орг-ция</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="addresses" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <MapPin className="h-3 w-3" />
+                                                    <span>Адреса</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="management" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Users className="h-3 w-3" />
+                                                    <span>Рук-во</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="signatory" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <FileSignature className="h-3 w-3" />
+                                                    <span>Подпис.</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="founders" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Users className="h-3 w-3" />
+                                                    <span>Учред.</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="banks" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Landmark className="h-3 w-3" />
+                                                    <span>Банки</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="activities" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Briefcase className="h-3 w-3" />
+                                                    <span>ОКВЭД</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="etp" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Globe className="h-3 w-3" />
+                                                    <span>ЭТП</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="contacts" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <Contact className="h-3 w-3" />
+                                                    <span>Контакты</span>
+                                                </TabsTrigger>
+                                            </TabsList>
+                                        </div>
 
                                         {/* TAB 1: CORE IDENTITY */}
                                         <TabsContent value="identity">

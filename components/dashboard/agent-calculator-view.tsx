@@ -540,7 +540,7 @@ export function AgentCalculatorView() {
             case "unsecured": return validateUnsecured()
             case "insurance": return validateInsurance()
             case "leasing": return validateLeasing()
-            case "international": return validateInternational()
+            case "ved": return validateInternational()
             default: return { valid: true, errors: [] }
         }
     }
@@ -937,7 +937,7 @@ export function AgentCalculatorView() {
         { id: "factoring", label: "Факторинг", icon: HandCoins, description: "Финансирование дебиторской задолженности" },
         { id: "leasing", label: "Лизинг", icon: Building2, description: "Лизинг оборудования и транспорта" },
         { id: "insurance", label: "Страхование", icon: Landmark, description: "Страхование СМР, имущества, ответственности" },
-        { id: "international", label: "Междунар. платежи", icon: Wallet, description: "Международные платежи и ВЭД" },
+        { id: "ved", label: "Междунар. платежи", icon: Wallet, description: "Международные платежи и ВЭД" },
         { id: "rko", label: "РКО и спецсчет", icon: Building2, description: "Расчётно-кассовое обслуживание" },
     ]
 
@@ -950,7 +950,7 @@ export function AgentCalculatorView() {
         { id: "factoring", label: "Факторинг", icon: HandCoins },
         { id: "leasing", label: "Лизинг", icon: Building2 },
         { id: "insurance", label: "Страхование", icon: Landmark },
-        { id: "international", label: "Междунар. платежи", icon: Wallet },
+        { id: "ved", label: "Междунар. платежи", icon: Wallet },
         { id: "rko", label: "РКО и спецсчет", icon: Building2 },
         { id: "deposits", label: "Депозиты", icon: Calculator },
     ]
@@ -2463,7 +2463,7 @@ export function AgentCalculatorView() {
                 </TabsContent>
 
                 {/* TAB: INTERNATIONAL PAYMENTS - Premium Redesign */}
-                <TabsContent value="international" className="mt-6">
+                <TabsContent value="ved" className="mt-6">
                     <Card className="border border-[#2a3a5c]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425] shadow-2xl overflow-hidden">
                         <CardHeader className="relative pb-6 border-b border-[#2a3a5c]/30">
                             <div className="absolute inset-0 bg-gradient-to-r from-[#3CE8D1]/5 via-transparent to-[#3CE8D1]/5" />

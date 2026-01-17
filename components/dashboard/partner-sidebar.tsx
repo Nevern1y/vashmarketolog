@@ -72,6 +72,8 @@ export function PartnerSidebarContent({ activeView, onViewChange, newApplication
             </li>
           ))}
         </ul>
+
+        {/* Logout button removed - moved to Header */}
       </nav>
 
       {/* Footer */}
