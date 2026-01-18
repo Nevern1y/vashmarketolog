@@ -181,3 +181,25 @@ class CanMakeDecision(BasePermission):
     def has_object_permission(self, request, view, obj):
         # Check if partner is assigned to this application
         return obj.assigned_partner == request.user
+
+
+class IsSeoManagerOrAdmin(BasePermission):
+    """
+    Permission for SEO managers or Admins only.
+    Used for SEO admin panel access and SEO API write operations.
+    
+    Grants access to:
+    - Users with role='admin'
+    - Users with role='seo'
+    - Django superusers
+    """
+    message = 'Доступ разрешён только для SEO-менеджеров и администраторов.'
+
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        
+        return (
+            request.user.role in ['admin', 'seo'] or 
+            request.user.is_superuser
+        )

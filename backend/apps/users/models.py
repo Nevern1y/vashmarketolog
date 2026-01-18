@@ -14,6 +14,7 @@ class UserRole(models.TextChoices):
     AGENT = 'agent', 'Агент'
     PARTNER = 'partner', 'Партнёр (Банк)'
     ADMIN = 'admin', 'Администратор'
+    SEO = 'seo', 'SEO-менеджер'
 
 
 class UserManager(BaseUserManager):
@@ -196,6 +197,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def is_admin(self):
         return self.role == UserRole.ADMIN or self.is_superuser
+
+    @property
+    def is_seo(self):
+        return self.role == UserRole.SEO
+
+    @property
+    def can_access_seo_admin(self):
+        """Check if user can access SEO admin panel."""
+        return self.is_admin or self.is_seo
 
     def generate_invite_token(self):
         """Generate a unique invite token for partner registration."""

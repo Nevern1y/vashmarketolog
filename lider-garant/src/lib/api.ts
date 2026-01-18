@@ -33,7 +33,7 @@ export interface User {
     email: string;
     phone: string;
     avatar?: string;
-    role: 'client' | 'agent' | 'partner' | 'admin';
+    role: 'client' | 'agent' | 'partner' | 'admin' | 'seo';
     first_name: string;
     last_name: string;
     full_name?: string;

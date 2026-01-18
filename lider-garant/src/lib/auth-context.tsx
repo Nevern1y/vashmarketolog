@@ -196,6 +196,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return 'partner-dashboard';
             case 'admin':
                 return 'admin-dashboard';
+            case 'seo':
+                return 'seo-dashboard';
             default:
                 return 'auth';
         }
@@ -261,5 +263,7 @@ export function useRequireAuth(allowedRoles?: User['role'][]) {
         isAgent: user?.role === 'agent',
         isPartner: user?.role === 'partner',
         isAdmin: user?.role === 'admin',
+        isSeo: user?.role === 'seo',
+        canAccessSeoAdmin: user?.role === 'admin' || user?.role === 'seo',
     };
 }

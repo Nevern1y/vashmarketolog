@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import SeoPage
 from .serializers import SeoPageSerializer
+from apps.users.permissions import IsSeoManagerOrAdmin
 
 
 class SeoPageViewSet(viewsets.ModelViewSet):
@@ -12,24 +13,49 @@ class SeoPageViewSet(viewsets.ModelViewSet):
     - Получение по slug
     - Catch-all routing для несуществующих страниц
     - Фильтрация по типу страницы
+    
+    Permissions:
+    - GET (list, retrieve, by_type, by_template): AllowAny (публичные SEO страницы)
+    - POST, PUT, PATCH, DELETE: IsSeoManagerOrAdmin (только admin или seo роли)
     """
     
     queryset = SeoPage.objects.filter(is_published=True)
     serializer_class = SeoPageSerializer
     lookup_field = 'slug'
     lookup_value_regex = '.*'
-    permission_classes = [permissions.AllowAny]  # Public read for SEO
     pagination_class = None  # Disable pagination for admin dashboard simplicity
+    
+    def get_permissions(self):
+        """
+        Dynamic permissions based on action:
+        - Read operations: AllowAny (public SEO pages for website)
+        - Write operations: IsSeoManagerOrAdmin (admin or seo role required)
+        """
+        if self.action in ['list', 'retrieve', 'by_type', 'by_template']:
+            return [permissions.AllowAny()]
+        # create, update, partial_update, destroy require SEO manager or admin
+        return [IsSeoManagerOrAdmin()]
     
     def get_queryset(self):
         """
         Улучшенный queryset с поддержкой приоритетов.
         
+        For SEO managers and admins: show all pages (including drafts)
+        For public: show only published pages
+        
         Priority logic:
         1. Exact slug match first
         2. If no exact match, return highest priority page
         """
-        queryset = super().get_queryset()
+        # Check if user is authenticated and has SEO/admin access
+        user = self.request.user
+        if user.is_authenticated and (user.role in ['admin', 'seo'] or user.is_superuser):
+            # SEO managers and admins see all pages including drafts
+            base_queryset = SeoPage.objects.all()
+        else:
+            # Public users see only published pages
+            base_queryset = SeoPage.objects.filter(is_published=True)
+        
         slug = self.kwargs.get('slug')
         
         if slug:
@@ -37,17 +63,17 @@ class SeoPageViewSet(viewsets.ModelViewSet):
             clean_slug = slug.lstrip('/')
             
             # Ищем точное совпадение
-            exact_match = queryset.filter(slug=clean_slug).first()
+            exact_match = base_queryset.filter(slug=clean_slug).first()
             if exact_match:
                 # Фильтруем только этот объект
                 return SeoPage.objects.filter(id=exact_match.id)
             
             # Если точного совпадения нет, возвращаем страницу с наивысшим приоритетом
-            priority_page = queryset.order_by('-priority').first()
+            priority_page = base_queryset.order_by('-priority').first()
             if priority_page:
                 return SeoPage.objects.filter(id=priority_page.id)
         
-        return queryset.order_by('-priority', 'slug')
+        return base_queryset.order_by('-priority', 'slug')
     
     @action(detail=False, methods=['get'])
     def by_type(self, request):

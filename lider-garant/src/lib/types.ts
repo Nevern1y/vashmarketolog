@@ -49,6 +49,7 @@ export type AppMode =
     | "client-dashboard"
     | "agent-crm"
     | "partner-dashboard"
+    | "seo-dashboard"
 
 // Document status for client documents
 export type DocumentStatus = "verified" | "rejected" | "pending"
