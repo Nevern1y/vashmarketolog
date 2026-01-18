@@ -695,7 +695,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                             <Tabs defaultValue="general" className="w-full">
                                 {/* Horizontal scroll tabs on mobile */}
                                 <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
-                                    <TabsList className="inline-flex min-w-max w-full md:grid md:grid-cols-4 bg-[#0a1628] mb-4 gap-1">
+                                    <TabsList className="inline-flex min-w-max md:min-w-0 w-full h-auto md:grid md:grid-cols-4 bg-[#0a1628] mb-4 gap-1">
                                         <TabsTrigger value="general" className="text-xs md:text-sm data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-black whitespace-nowrap">
                                             Общие
                                         </TabsTrigger>

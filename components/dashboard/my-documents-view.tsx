@@ -278,7 +278,6 @@ export function MyDocumentsView() {
                   <SelectValue placeholder="Выберите тип" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
-                  <SelectItem value="0">Дополнительный документ</SelectItem>
                   {documentTypeOptions.map((opt) => (
                     <SelectItem key={opt.id} value={String(opt.id)}>
                       {opt.name}

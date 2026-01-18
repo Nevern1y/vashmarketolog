@@ -17,7 +17,7 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
         // File input
         'file:text-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium',
         // Focus state - CYAN GLOW
-        'focus:border-[#3CE8D1] focus:ring-2 focus:ring-[#3CE8D1]/30 focus:outline-none',
+        'focus:border-[#3CE8D1] focus:ring-2 focus:ring-[#3CE8D1]/50 focus:outline-none transition-all duration-200',
         // Selection
         'selection:bg-primary selection:text-primary-foreground',
         // Transitions

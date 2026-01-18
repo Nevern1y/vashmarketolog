@@ -43,7 +43,7 @@ function AuthLoading() {
 
 export default function AuthPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a1628] p-4">
+    <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0a1628] p-4">
       <Suspense fallback={<AuthLoading />}>
         <AuthContent />
       </Suspense>

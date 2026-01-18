@@ -251,8 +251,8 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                 <CardContent className="p-3 md:p-4">
                     <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94a3b8]" />
+                            <div className="relative flex items-center">
+                                <Search className="absolute left-3 h-4 w-4 text-[#94a3b8]" />
                                 <Input
                                     placeholder="Поиск по названию, ИНН или номеру"
                                     value={searchQuery}

@@ -288,11 +288,11 @@ export function ContractConditionsView() {
                     {expandedSections.bankGuarantee && (
                         <div className="p-4 pt-0 space-y-4">
                             <div className="h-[1px] bg-border mb-4" />
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="space-y-3">
                                 {CONTRACT_CONDITIONS.bankGuarantee.partners.map((partner, idx) => (
-                                    <div key={idx} className="p-3 bg-muted/30 rounded-lg border text-sm">
-                                        <div className="font-semibold mb-2 text-[#3CE8D1]">{partner.partner}</div>
-                                        <div className="space-y-2">
+                                    <div key={idx} className="flex flex-col md:flex-row gap-4 p-4 bg-muted/30 rounded-lg border text-sm items-start md:items-center">
+                                        <div className="font-semibold text-[#3CE8D1] min-w-[200px]">{partner.partner}</div>
+                                        <div className="flex-1 space-y-2">
                                             {partner.conditions.map((cond, cIdx) => (
                                                 <div key={cIdx} className="relative pl-3 border-l-2 border-[#3CE8D1]/30">
                                                     <p>{cond.rate}</p>
@@ -334,11 +334,11 @@ export function ContractConditionsView() {
                     {expandedSections.tenderLoan && (
                         <div className="p-4 pt-0 space-y-4">
                             <div className="h-[1px] bg-border mb-4" />
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="space-y-3">
                                 {CONTRACT_CONDITIONS.tenderLoan.partners.map((partner, idx) => (
-                                    <div key={idx} className="p-3 bg-muted/30 rounded-lg border text-sm">
-                                        <div className="font-semibold mb-2 text-[#3CE8D1]">{partner.partner}</div>
-                                        <div className="space-y-2">
+                                    <div key={idx} className="flex flex-col md:flex-row gap-4 p-4 bg-muted/30 rounded-lg border text-sm items-start md:items-center">
+                                        <div className="font-semibold text-[#3CE8D1] min-w-[200px]">{partner.partner}</div>
+                                        <div className="flex-1 space-y-2">
                                             {partner.conditions.map((cond, cIdx) => (
                                                 <div key={cIdx} className="relative pl-3 border-l-2 border-[#3CE8D1]/30">
                                                     <p>{cond.rate}</p>
@@ -373,11 +373,11 @@ export function ContractConditionsView() {
                     {expandedSections.stateContractCredit && (
                         <div className="p-4 pt-0 space-y-4">
                             <div className="h-[1px] bg-border mb-4" />
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="space-y-3">
                                 {CONTRACT_CONDITIONS.stateContractCredit.partners.map((partner, idx) => (
-                                    <div key={idx} className="p-3 bg-muted/30 rounded-lg border text-sm">
-                                        <div className="font-semibold mb-2 text-[#3CE8D1]">{partner.partner}</div>
-                                        <div className="space-y-2">
+                                    <div key={idx} className="flex flex-col md:flex-row gap-4 p-4 bg-muted/30 rounded-lg border text-sm items-start md:items-center">
+                                        <div className="font-semibold text-[#3CE8D1] min-w-[200px]">{partner.partner}</div>
+                                        <div className="flex-1 space-y-2">
                                             {partner.conditions.map((cond, cIdx) => (
                                                 <div key={cIdx} className="relative pl-3 border-l-2 border-[#3CE8D1]/30">
                                                     <p>{cond.rate}</p>
@@ -414,11 +414,11 @@ export function ContractConditionsView() {
                     {expandedSections.settlementAccount && (
                         <div className="p-4 pt-0 space-y-4">
                             <div className="h-[1px] bg-border mb-4" />
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <div className="space-y-3">
                                 {CONTRACT_CONDITIONS.settlementAccount.partners.map((partner, idx) => (
-                                    <div key={idx} className="p-3 bg-muted/30 rounded-lg border text-sm">
-                                        <div className="font-semibold mb-2 text-[#3CE8D1]">{partner.partner}</div>
-                                        <div className="space-y-2">
+                                    <div key={idx} className="flex flex-col md:flex-row gap-4 p-4 bg-muted/30 rounded-lg border text-sm items-start md:items-center">
+                                        <div className="font-semibold text-[#3CE8D1] min-w-[200px]">{partner.partner}</div>
+                                        <div className="flex-1 space-y-2">
                                             {partner.conditions.map((cond, cIdx) => (
                                                 <div key={cIdx} className="relative pl-3 border-l-2 border-[#3CE8D1]/30">
                                                     <p>{cond.rate}</p>

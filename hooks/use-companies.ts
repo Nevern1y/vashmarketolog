@@ -15,13 +15,14 @@ import { useAuth } from '@/lib/auth-context';
 // =============================================================================
 // Founder data structure (Phase 2 Ready - Postman API 1.1)
 // Reference: client[founders][n][...] - API_1.1.postman_collection lines 1603-1697
+// All fields optional for MVP - user fills when ready
 // =============================================================================
 export interface FounderDocument {
-    series: string;      // Серия паспорта
-    number: string;      // Номер паспорта
-    issued_at: string;   // Дата выдачи (YYYY-MM-DD)
-    authority_name: string; // Наименование подразделения
-    authority_code: string; // Код подразделения (XXX-XXX)
+    series?: string;      // Серия паспорта
+    number?: string;      // Номер паспорта
+    issued_at?: string;   // Дата выдачи (YYYY-MM-DD)
+    authority_name?: string; // Наименование подразделения
+    authority_code?: string; // Код подразделения (XXX-XXX)
 }
 
 export interface FounderAddress {
@@ -30,14 +31,14 @@ export interface FounderAddress {
 }
 
 export interface FounderData {
-    full_name: string;           // ФИО учредителя
-    inn: string;                 // ИНН учредителя
-    share_relative: number;      // Доля в капитале (%)
-    document: FounderDocument;   // Паспортные данные
-    birth_place: string;         // Место рождения
-    birth_date: string;          // Дата рождения (YYYY-MM-DD)
-    gender: 1 | 2;               // 1 = муж, 2 = жен
-    citizen: string;             // Гражданство
+    full_name?: string;           // ФИО учредителя
+    inn?: string;                 // ИНН учредителя
+    share_relative?: number;      // Доля в капитале (%)
+    document?: FounderDocument;   // Паспортные данные
+    birth_place?: string;         // Место рождения
+    birth_date?: string;          // Дата рождения (YYYY-MM-DD)
+    gender?: 1 | 2;               // 1 = муж, 2 = жен
+    citizen?: string;             // Гражданство
     legal_address?: FounderAddress;  // Адрес регистрации
     actual_address?: FounderAddress; // Фактический адрес
     is_resident?: boolean;       // Резидент РФ
@@ -46,11 +47,12 @@ export interface FounderData {
 // =============================================================================
 // Bank account data structure (Phase 2 Ready - Postman API 1.1)
 // Reference: client[checking_accounts][n][...] - lines 1699-1708
+// All fields optional for MVP - user fills when ready
 // =============================================================================
 export interface BankAccountData {
-    bank_name: string;   // Наименование банка
-    bank_bik: string;    // БИК банка
-    account: string;     // Расчётный счёт
+    bank_name?: string;   // Наименование банка
+    bank_bik?: string;    // БИК банка
+    account?: string;     // Расчётный счёт
 }
 
 // =============================================================================

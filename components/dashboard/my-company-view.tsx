@@ -71,12 +71,13 @@ const LATIN_REGEX = /^[\u0000-\u007F]*$/
 const LATIN_ERROR = "Только латинские символы"
 
 // ----------- Section 4: Management (Director & Additional) -----------
+// All fields optional - user fills when ready
 const founderDocumentSchema = z.object({
-  series: z.string().max(5, "Максимум 5 символов"),
-  number: z.string().max(6, "Максимум 6 символов"),
-  issued_at: z.string().optional(),
-  authority_name: z.string().optional(),
-  authority_code: z.string().max(7, "Формат: XXX-XXX").optional(),
+  series: z.string().max(5, "Максимум 5 символов").optional().or(z.literal("")),
+  number: z.string().max(6, "Максимум 6 символов").optional().or(z.literal("")),
+  issued_at: z.string().optional().or(z.literal("")),
+  authority_name: z.string().optional().or(z.literal("")),
+  authority_code: z.string().max(7, "Формат: XXX-XXX").optional().or(z.literal("")),
 })
 
 const leaderSchema = z.object({
@@ -100,18 +101,19 @@ const leaderSchema = z.object({
 })
 
 // ----------- Section 5: Individual Founders -----------
+// All fields optional - user fills founders when ready
 const founderSchema = z.object({
-  full_name: z.string().min(1, "Обязательное поле"),
-  inn: z.string().max(12, "Максимум 12 цифр"),
-  share_relative: z.coerce.number().min(0).max(100, "Доля 0-100%"),
-  document: founderDocumentSchema,
-  birth_place: z.string().optional(),
-  birth_date: z.string().optional(),
+  full_name: z.string().optional().or(z.literal("")),
+  inn: z.string().max(12, "Максимум 12 цифр").optional().or(z.literal("")),
+  share_relative: z.coerce.number().min(0).max(100, "Доля 0-100%").optional(),
+  document: founderDocumentSchema.optional(),
+  birth_place: z.string().optional().or(z.literal("")),
+  birth_date: z.string().optional().or(z.literal("")),
   gender: z.coerce.number().min(1).max(2).optional(),
   citizen: z.string().default("РФ"),
-  registration_address: z.string().optional(),
+  registration_address: z.string().optional().or(z.literal("")),
   is_resident: z.boolean().default(true),
-  actual_address: z.string().optional(), // Added for consistency
+  actual_address: z.string().optional().or(z.literal("")),
 })
 
 // ----------- Section 5: Legal Entity Founders -----------
@@ -132,11 +134,13 @@ const legalFounderSchema = z.object({
 })
 
 // ----------- Section 6: Bank Accounts -----------
+// All fields optional - user fills bank details when ready
+// Validation only triggers if user starts filling (non-empty values)
 const bankAccountSchema = z.object({
-  bank_name: z.string().min(1, "Обязательное поле"),
-  bank_bik: z.string().length(9, "БИК должен быть 9 цифр"),
-  account: z.string().length(20, "Счёт должен быть 20 цифр"),
-  corr_account: z.string().optional(),
+  bank_name: z.string().optional().or(z.literal("")),
+  bank_bik: z.string().max(9, "БИК должен быть максимум 9 цифр").optional().or(z.literal("")),
+  account: z.string().max(20, "Счёт должен быть максимум 20 цифр").optional().or(z.literal("")),
+  corr_account: z.string().optional().or(z.literal("")),
 })
 
 // ----------- Section 7: ETP Accounts -----------
@@ -521,9 +525,9 @@ export function MyCompanyView() {
           birth_date: f.birth_date || "",
           gender: f.gender || 1,
           citizen: f.citizen || "РФ",
-          registration_address: "", // Mapping missing in types, assume empty or check if backend sends it
-          is_resident: true, // Default
-          actual_address: "",
+          registration_address: f.legal_address?.value || "", // Map legal_address.value back to registration_address
+          is_resident: f.is_resident ?? true,
+          actual_address: f.actual_address?.value || "",
         }))
 
       const mappedLegalFounders = (company.legal_founders_data || []).map((f: LegalFounderData) => ({
@@ -616,15 +620,18 @@ export function MyCompanyView() {
 
   // Pre-fill from User if Company is null (New Registration)
   useEffect(() => {
+    // Run if not loading, company is null (new profile), and user exists
     if (!isLoading && !company && user) {
       const currentValues = form.getValues()
-      // Only autofill if fields are empty
+      
+      // Auto-fill Email
       if (!currentValues.contact_email && user.email) {
-        form.setValue("contact_email", user.email)
+        form.setValue("contact_email", user.email, { shouldDirty: true })
       }
+      
+      // Auto-fill Phone
       if (!currentValues.contact_phone && user.phone) {
-        // Apply phone formatting if needed, or just set raw
-        form.setValue("contact_phone", formatPhoneNumber(user.phone))
+        form.setValue("contact_phone", formatPhoneNumber(user.phone), { shouldDirty: true })
       }
     }
   }, [isLoading, company, user, form])
@@ -633,26 +640,31 @@ export function MyCompanyView() {
   useEffect(() => {
     if (isLoading) return
 
-    const values = form.getValues()
+    // Allow a small delay to ensure form state is ready
+    const timer = setTimeout(() => {
+      const values = form.getValues()
 
-    // Add one empty entry to each dynamic section if empty
-    if (values.activities.length === 0) {
-      activitiesArray.append(createEmptyActivity())
-    }
-    if (values.founders.length === 0) {
-      foundersArray.append(createEmptyFounder())
-    }
-    if (values.bank_accounts.length === 0) {
-      bankAccountsArray.append(createEmptyBankAccount())
-    }
-    if (values.etp_accounts.length === 0) {
-      etpAccountsArray.append(createEmptyEtpAccount())
-    }
-    if (values.contact_persons.length === 0) {
-      contactPersonsArray.append(createEmptyContactPerson())
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading])
+      // Add one empty entry to each dynamic section if empty
+      // We check if the field array is empty to avoid duplicates
+      if (activitiesArray.fields.length === 0) {
+        activitiesArray.append(createEmptyActivity())
+      }
+      if (foundersArray.fields.length === 0) {
+        foundersArray.append(createEmptyFounder())
+      }
+      if (bankAccountsArray.fields.length === 0) {
+        bankAccountsArray.append(createEmptyBankAccount())
+      }
+      if (etpAccountsArray.fields.length === 0) {
+        etpAccountsArray.append(createEmptyEtpAccount())
+      }
+      if (contactPersonsArray.fields.length === 0) {
+        contactPersonsArray.append(createEmptyContactPerson())
+      }
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [isLoading, company]) // Added company to dependency to re-check when company data loads
 
 
   // Open Checko.ru verification
@@ -670,25 +682,28 @@ export function MyCompanyView() {
       ? data.legal_address
       : data.actual_address
 
-    // Prepare founders_data for backend
-    const foundersData: FounderData[] = data.founders.map(f => ({
-      full_name: f.full_name,
-      inn: f.inn,
-      share_relative: f.share_relative,
-      document: {
-        series: f.document.series,
-        number: f.document.number,
-        issued_at: f.document.issued_at || "",
-        authority_name: f.document.authority_name || "",
-        authority_code: f.document.authority_code || "",
-      },
-      birth_place: f.birth_place || "",
-      birth_date: f.birth_date || "",
-      gender: (f.gender || 1) as 1 | 2,
-      citizen: f.citizen || "РФ",
-      is_resident: f.is_resident,
-      legal_address: f.registration_address ? { value: f.registration_address, postal_code: "" } : undefined
-    }))
+    // Prepare founders_data for backend - filter out empty entries
+    const foundersData: FounderData[] = data.founders
+      .filter(f => f.full_name && f.full_name.trim() !== "") // Only include founders with a name
+      .map(f => ({
+        full_name: f.full_name || "",
+        inn: f.inn || "",
+        share_relative: f.share_relative || 0,
+        document: f.document ? {
+          series: f.document.series || "",
+          number: f.document.number || "",
+          issued_at: f.document.issued_at || "",
+          authority_name: f.document.authority_name || "",
+          authority_code: f.document.authority_code || "",
+        } : undefined,
+        birth_place: f.birth_place || "",
+        birth_date: f.birth_date || "",
+        gender: (f.gender || 1) as 1 | 2,
+        citizen: f.citizen || "РФ",
+        is_resident: f.is_resident,
+        legal_address: { value: f.registration_address || "", postal_code: "" },
+        actual_address: f.actual_address ? { value: f.actual_address, postal_code: "" } : undefined,
+      }))
 
     // Prepare leadership_data - filter out empty entries (without full_name)
     const leadershipData: LeaderData[] = data.leadership
@@ -701,12 +716,14 @@ export function MyCompanyView() {
       website: l.website ? (l.website.match(/^https?:\/\//) ? l.website : `https://${l.website}`) : undefined
     }))
 
-    // Prepare bank_accounts_data for backend
-    const bankAccountsData: BankAccountData[] = data.bank_accounts.map(b => ({
-      bank_name: b.bank_name,
-      bank_bik: b.bank_bik,
-      account: b.account,
-    }))
+    // Prepare bank_accounts_data for backend - filter out empty entries
+    const bankAccountsData: BankAccountData[] = data.bank_accounts
+      .filter(b => b.bank_name && b.bank_name.trim() !== "") // Only include accounts with a bank name
+      .map(b => ({
+        bank_name: b.bank_name || "",
+        bank_bik: b.bank_bik || "",
+        account: b.account || "",
+      }))
 
     const payload = {
       // Section 1: General Info
@@ -734,18 +751,18 @@ export function MyCompanyView() {
       registration_authority: data.registrar_name || undefined,
       okved: data.okved || undefined,
       // Section 4: Management / Director
-      director_name: data.director_name || undefined,
-      director_position: data.director_position || undefined,
-      director_birth_date: data.director_birth_date || undefined,
-      director_birth_place: data.director_birth_place || undefined,
-      director_email: data.director_email || undefined,
-      director_phone: data.director_phone || undefined,
-      director_registration_address: data.director_registration_address || undefined,
-      passport_series: data.passport_series || undefined,
-      passport_number: data.passport_number || undefined,
-      passport_date: data.passport_date || undefined,
-      passport_code: data.passport_code || undefined,
-      passport_issued_by: data.passport_issued_by || undefined,
+      director_name: data.director_name ?? "",
+      director_position: data.director_position ?? "",
+      director_birth_date: data.director_birth_date ?? "",
+      director_birth_place: data.director_birth_place ?? "",
+      director_email: data.director_email ?? "",
+      director_phone: data.director_phone ?? "",
+      director_registration_address: data.director_registration_address ?? "",
+      passport_series: data.passport_series ?? "",
+      passport_number: data.passport_number ?? "",
+      passport_date: data.passport_date ?? "",
+      passport_code: data.passport_code ?? "",
+      passport_issued_by: data.passport_issued_by ?? "",
       leadership_data: leadershipData.length > 0 ? leadershipData : undefined,
       // Section 3: Activities
       activities_data: data.activities.length > 0 ? data.activities : undefined,

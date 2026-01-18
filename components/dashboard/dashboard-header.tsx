@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
 import { useAvatar } from "@/hooks/use-avatar"
 import { type Notification } from "@/hooks/use-notifications"
+import { SupportMessageModal } from "./support-message-modal"
 
 interface DashboardHeaderProps {
     onNotificationClick?: (notification: Notification) => void
@@ -39,6 +40,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
     const { avatar, getInitials } = useAvatar()
     const { company, isLoading: companyLoading } = useMyCompany()
     const [showContactPopup, setShowContactPopup] = useState(false)
+    const [showSupportModal, setShowSupportModal] = useState(false)
 
     // Role label for display
     const roleLabel = user?.role === "client" ? "Клиент" :
@@ -82,6 +84,16 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
 
                 {/* Right: Notifications + Account */}
                 <div className="flex items-center gap-4">
+                    {/* Support Message Button */}
+                    <button
+                        type="button"
+                        onClick={() => setShowSupportModal(true)}
+                        className="text-[#94a3b8] hover:text-white transition-colors"
+                        title="Написать в поддержку"
+                    >
+                        <MessageCircle className="h-5 w-5" />
+                    </button>
+
                     {/* Notification Dropdown */}
                     <NotificationDropdown onNotificationClick={onNotificationClick} />
 
@@ -140,9 +152,12 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                 </div>
             </header>
 
+            {/* Support Message Modal */}
+            <SupportMessageModal isOpen={showSupportModal} onClose={() => setShowSupportModal(false)} />
+
             {/* Contact Popup */}
             <Dialog open={showContactPopup} onOpenChange={setShowContactPopup}>
-                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[90vh] overflow-y-auto">
                     <div className="sr-only">
                         <DialogTitle>Связаться с нами</DialogTitle>
                         <DialogDescription>Способы связи с куратором и поддержкой</DialogDescription>
@@ -201,6 +216,10 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                             {/* Chat */}
                             <button
                                 type="button"
+                                onClick={() => {
+                                    setShowContactPopup(false)
+                                    setShowSupportModal(true)
+                                }}
                                 className="flex w-full items-center gap-3 p-3.5 rounded-lg bg-[#0d1829] hover:bg-[#162033] transition-colors"
                             >
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f97316]">
@@ -208,7 +227,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                                 </div>
                                 <div className="text-left">
                                     <p className="text-[10px] text-[#94a3b8] uppercase tracking-wide mb-0.5">Чат</p>
-                                    <p className="text-sm font-medium text-white">Написать в чат</p>
+                                    <p className="text-sm font-medium text-white">Написать в поддержку</p>
                                 </div>
                             </button>
                         </div>

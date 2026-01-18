@@ -94,7 +94,9 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
       router.push("/")
     } catch (err) {
       // Error is already handled by useAuth and displayed via authError
-      console.error("Registration failed:", err)
+      // Log with more details for debugging
+      const apiError = err as { message?: string; status?: number };
+      console.error("Registration failed:", apiError.message || 'Unknown error', apiError);
     }
   }
 

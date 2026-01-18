@@ -5,3 +5,7 @@ class CompaniesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.companies'
     verbose_name = 'Companies'
+
+    def ready(self):
+        """Import signals to connect them when Django starts."""
+        import apps.companies.signals  # noqa: F401

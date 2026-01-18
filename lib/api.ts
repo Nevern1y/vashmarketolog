@@ -233,7 +233,10 @@ class ApiClient {
       }
 
       // Extract user-friendly error message
-      let message = 'An error occurred';
+      // Default to status-based message if errorData is empty
+      let message = Object.keys(errorData).length === 0
+        ? `Server error (${response.status})`
+        : 'An error occurred';
 
       if (errorData.detail) {
         message = errorData.detail;

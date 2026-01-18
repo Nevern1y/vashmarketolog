@@ -2037,8 +2037,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                           {docType.name}
                         </SelectItem>
                       ))}
-                      {/* Always show "Additional Document" option */}
-                      <SelectItem value="0">Дополнительный документ</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-[10px] text-muted-foreground">
