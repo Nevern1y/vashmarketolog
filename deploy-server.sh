@@ -141,10 +141,12 @@ if [ -f "$CERT_PATH/fullchain.pem" ] && [ -f "$CERT_PATH/privkey.pem" ]; then
     EXPIRY=$(openssl x509 -enddate -noout -in "$CERT_PATH/fullchain.pem" 2>/dev/null | cut -d= -f2)
     echo "Срок действия сертификата: $EXPIRY"
     
-    # Create symlinks for nginx
+    # Copy certificates for nginx (not symlinks - Docker can't follow host symlinks)
     mkdir -p "$PROJECT_DIR/nginx/ssl"
-    ln -sf "$CERT_PATH/fullchain.pem" "$PROJECT_DIR/nginx/ssl/fullchain.pem"
-    ln -sf "$CERT_PATH/privkey.pem" "$PROJECT_DIR/nginx/ssl/privkey.pem"
+    cp -f "$CERT_PATH/fullchain.pem" "$PROJECT_DIR/nginx/ssl/fullchain.pem"
+    cp -f "$CERT_PATH/privkey.pem" "$PROJECT_DIR/nginx/ssl/privkey.pem"
+    chmod 644 "$PROJECT_DIR/nginx/ssl/fullchain.pem"
+    chmod 600 "$PROJECT_DIR/nginx/ssl/privkey.pem"
     
     USE_SSL=true
 else
@@ -189,9 +191,11 @@ else
     if [ -f "$CERT_PATH/fullchain.pem" ]; then
         echo -e "${GREEN}✓ SSL сертификаты успешно получены!${NC}"
         
-        # Create symlinks for nginx
-        ln -sf "$CERT_PATH/fullchain.pem" "$PROJECT_DIR/nginx/ssl/fullchain.pem"
-        ln -sf "$CERT_PATH/privkey.pem" "$PROJECT_DIR/nginx/ssl/privkey.pem"
+        # Copy certificates for nginx (not symlinks - Docker can't follow host symlinks)
+        cp -f "$CERT_PATH/fullchain.pem" "$PROJECT_DIR/nginx/ssl/fullchain.pem"
+        cp -f "$CERT_PATH/privkey.pem" "$PROJECT_DIR/nginx/ssl/privkey.pem"
+        chmod 644 "$PROJECT_DIR/nginx/ssl/fullchain.pem"
+        chmod 600 "$PROJECT_DIR/nginx/ssl/privkey.pem"
         
         USE_SSL=true
     else
