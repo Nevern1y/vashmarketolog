@@ -41,27 +41,23 @@ import {
     Building2,
     Search,
     ChevronRight,
-    Shield,
     ChevronDown,
     ChevronUp,
     User,
     CreditCard,
     MapPin,
-    Landmark,
     Download,
-    ExternalLink,
     Mail,
     Phone,
     Eye,
     Filter,
     Trash2,
-    Plus,
     Send,
-    Bell,
 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
-import { useDocumentRequests, useUserDocuments } from "@/hooks/use-document-requests"
+import { useDocumentRequests } from "@/hooks/use-document-requests"
+
 import {
     Collapsible,
     CollapsibleContent,
@@ -82,12 +78,7 @@ import {
 // TYPES
 // =============================================================================
 
-const REQUIRED_DOCS = [
-    { id: 4, name: 'Устав организации' },
-    { id: 5, name: 'Свидетельство ИНН' },
-    { id: 6, name: 'Свидетельство ОГРН' },
-    { id: 7, name: 'Решение/Протокол' },
-]
+
 
 interface AgentDocument {
     id: number
@@ -98,14 +89,6 @@ interface AgentDocument {
     file_url: string | null
 }
 
-interface Founder {
-    full_name?: string
-    inn?: string
-    share_relative?: number
-    birth_date?: string
-    birth_place?: string
-    citizen?: string
-}
 
 interface Agent {
     id: number
@@ -120,45 +103,24 @@ interface Agent {
     company_name: string | null
     company_short_name: string | null
     company_inn: string | null
-    company_ogrn: string | null
-    company_kpp: string | null
     company_legal_form: string | null
     is_resident: boolean
+
     legal_address: string | null
-    legal_address_postal_code: string | null
+
     actual_address: string | null
-    actual_address_postal_code: string | null
-    okato: string | null
-    oktmo: string | null
-    okpo: string | null
-    okfs: string | null
-    okved: string | null
-    registration_date: string | null
-    registration_authority: string | null
-    authorized_capital_declared: string | null
-    authorized_capital_paid: string | null
     company_website: string | null
     company_email: string | null
     company_phone: string | null
     director_name: string | null
     director_position: string | null
-    director_birth_date: string | null
-    director_birth_place: string | null
     director_email: string | null
     director_phone: string | null
-    passport_series: string | null
-    passport_number: string | null
-    passport_issued_by: string | null
-    passport_date: string | null
-    passport_code: string | null
-    signatory_basis: string | null
-    tax_system: string | null
-    vat_rate: string | null
     bank_bik: string | null
     bank_name: string | null
     bank_account: string | null
     bank_corr_account: string | null
-    founders_data: Founder[]
+
     documents: AgentDocument[]
 }
 
@@ -187,16 +149,16 @@ export function AdminAgentsView() {
     const [isRequestDocOpen, setIsRequestDocOpen] = useState(false)
     const [requestDocName, setRequestDocName] = useState('')
     const [requestDocComment, setRequestDocComment] = useState('')
-    const { createRequest, isLoading: isRequestLoading } = useDocumentRequests()
+    const { createRequest } = useDocumentRequests()
+
 
     // Collapsible sections
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({
         company: true,
-        registration: false,
         director: false,
         bank: false,
-        founders: false,
     })
+
 
     // Load all agents
     useEffect(() => {
@@ -577,43 +539,22 @@ export function AdminAgentsView() {
                                                 <InfoRow label="Полное наименование" value={selectedAgent.company_name} />
                                                 <InfoRow label="Краткое наименование" value={selectedAgent.company_short_name} />
                                                 <InfoRow label="ИНН" value={selectedAgent.company_inn} highlight />
-                                                <InfoRow label="ОГРН" value={selectedAgent.company_ogrn} highlight />
-                                                <InfoRow label="КПП" value={selectedAgent.company_kpp} />
+
                                                 <InfoRow label="ОПФ" value={selectedAgent.company_legal_form} />
                                                 <InfoRow label="Сайт" value={selectedAgent.company_website} />
                                                 <InfoRow label="Email компании" value={selectedAgent.company_email} />
+                                                <InfoRow label="Телефон компании" value={selectedAgent.company_phone} />
+
                                             </div>
                                             <div className="mt-3 pt-3 border-t border-border/50">
                                                 <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
                                                     <MapPin className="h-3 w-3" />Адреса
                                                 </h4>
                                                 <div className="grid grid-cols-1 gap-2">
-                                                    <InfoRow label="Юридический адрес" value={selectedAgent.legal_address} />
-                                                    <InfoRow label="Фактический адрес" value={selectedAgent.actual_address} />
-                                                </div>
-                                            </div>
-                                        </CollapsibleContent>
-                                    </Collapsible>
+                                                 <InfoRow label="Юридический адрес" value={selectedAgent.legal_address} />
+                                                <InfoRow label="Фактический адрес" value={selectedAgent.actual_address} />
 
-                                    {/* Registration */}
-                                    <Collapsible open={openSections.registration} onOpenChange={() => toggleSection('registration')}>
-                                        <CollapsibleTrigger asChild>
-                                            <div className="flex items-center justify-between p-3 rounded-lg bg-accent/30 cursor-pointer hover:bg-accent/50">
-                                                <div className="flex items-center gap-2">
-                                                    <Landmark className="h-4 w-4 text-[#4F7DF3]" />
-                                                    <span className="font-semibold text-sm">Государственная регистрация</span>
                                                 </div>
-                                                {openSections.registration ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                            </div>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent className="pt-3 px-1">
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                                <InfoRow label="ОКАТО" value={selectedAgent.okato} />
-                                                <InfoRow label="ОКТМО" value={selectedAgent.oktmo} />
-                                                <InfoRow label="ОКПО" value={selectedAgent.okpo} />
-                                                <InfoRow label="ОКФС" value={selectedAgent.okfs} />
-                                                <InfoRow label="Дата регистрации" value={formatDate(selectedAgent.registration_date)} />
-                                                <InfoRow label="ОКВЭД" value={selectedAgent.okved} />
                                             </div>
                                         </CollapsibleContent>
                                     </Collapsible>
@@ -635,9 +576,11 @@ export function AdminAgentsView() {
                                                 <InfoRow label="Должность" value={selectedAgent.director_position} />
                                                 <InfoRow label="Email" value={selectedAgent.director_email} />
                                                 <InfoRow label="Телефон" value={selectedAgent.director_phone} />
+                                                <InfoRow label="Контактный телефон" value={selectedAgent.company_phone} />
                                             </div>
                                         </CollapsibleContent>
                                     </Collapsible>
+
 
                                     {/* Bank */}
                                     <Collapsible open={openSections.bank} onOpenChange={() => toggleSection('bank')}>

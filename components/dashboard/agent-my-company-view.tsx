@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -169,7 +170,57 @@ export function AgentMyCompanyView() {
         name: "contact_persons",
     })
 
+    const mapLeadershipToManagement = useCallback((leadership: any[] = []) => {
+        return leadership.map((leader) => {
+            const passport = leader?.passport || {}
+            const nameParts = leader?.full_name || [leader?.last_name, leader?.first_name, leader?.middle_name].filter(Boolean).join(" ")
+            const series = passport.series || ""
+            const number = passport.number || ""
+            const seriesNumber = [series, number].filter(Boolean).join(" ")
+            const citizenship = leader?.citizenship === "РФ" ? "RF" : leader?.citizenship || "RF"
+
+            return {
+                position: leader?.position || "",
+                full_name: nameParts || "",
+                share_percent: leader?.share_percent ?? 0,
+                citizenship,
+                birth_date: leader?.birth_date || "",
+                birth_place: leader?.birth_place || "",
+                email: leader?.email || "",
+                phone: leader?.phone || "",
+                document_type: passport.document_type || "passport_rf",
+                passport_series_number: seriesNumber,
+                passport_date: passport.issued_date || "",
+                passport_issued_by: passport.issued_by || "",
+                passport_code: passport.department_code || "",
+                registration_address: leader?.registration_address || passport.registration_address || "",
+            }
+        })
+    }, [])
+
+    const mapBankAccountsToForm = useCallback((accounts: any[] = []) => {
+        return accounts.map((account) => ({
+            account_number: account?.account || account?.account_number || "",
+            bik: account?.bank_bik || account?.bank_bic || account?.bik || "",
+            bank_name: account?.bank_name || "",
+            corr_account: account?.corr_account || account?.bank_corr_account || "",
+        }))
+    }, [])
+
+    const mapContactPersonsToForm = useCallback((contacts: any[] = []) => {
+        return contacts.map((person) => {
+            const fullName = person?.full_name || [person?.last_name, person?.first_name, person?.middle_name].filter(Boolean).join(" ")
+            return {
+                position: person?.position || "",
+                full_name: fullName || "",
+                email: person?.email || "",
+                phone: person?.phone || "",
+            }
+        })
+    }, [])
+
     // Load company data when available
+
     useEffect(() => {
         // First try to load from localStorage
         const savedData = localStorage.getItem('agent_company_data')
@@ -184,6 +235,10 @@ export function AgentMyCompanyView() {
 
         if (company) {
             const companyData = company as any
+            const leadershipData = companyData.leadership_data || []
+            const bankAccountsData = companyData.bank_accounts_data || []
+            const contactPersonsData = companyData.contact_persons_data || []
+
             form.reset({
                 inn: company.inn || "",
                 full_name: company.name || "",
@@ -196,16 +251,16 @@ export function AgentMyCompanyView() {
                 website: company.website || "",
                 email: company.contact_email || "",
                 phone: company.contact_phone || "",
-                // Prefer localStorage data for arrays (more reliable)
-                management: localData?.management || companyData.management || [],
-                bank_accounts: localData?.bank_accounts || companyData.bank_accounts || [],
-                contact_persons: localData?.contact_persons || companyData.contact_persons || [],
+                management: localData?.management || mapLeadershipToManagement(leadershipData),
+                bank_accounts: localData?.bank_accounts || mapBankAccountsToForm(bankAccountsData),
+                contact_persons: localData?.contact_persons || mapContactPersonsToForm(contactPersonsData),
             })
         } else if (localData) {
             // No company from API but have localStorage data
             form.reset(localData)
         }
-    }, [company, form])
+    }, [company, form, mapLeadershipToManagement, mapBankAccountsToForm, mapContactPersonsToForm])
+
 
 
     // Handle form submission
@@ -213,6 +268,55 @@ export function AgentMyCompanyView() {
         try {
             // Save to localStorage for persistence
             localStorage.setItem('agent_company_data', JSON.stringify(data))
+
+            const directorCandidate = data.management.find((manager) =>
+                (manager.position || "").toLowerCase().includes("директор")
+            )
+            const primaryManager = directorCandidate || data.management?.[0]
+            const primaryBank = data.bank_accounts?.[0]
+            const formattedManagement = data.management.map((manager) => {
+                const seriesNumber = (manager.passport_series_number || "").trim()
+                const [series, number] = seriesNumber.split(/\s+/)
+                return {
+                    position: manager.position || "",
+                    full_name: manager.full_name || "",
+                    share_percent: manager.share_percent ?? 0,
+                    citizenship: manager.citizenship || "RF",
+                    birth_date: manager.birth_date || "",
+                    birth_place: manager.birth_place || "",
+                    email: manager.email || "",
+                    phone: manager.phone || "",
+                    registration_address: manager.registration_address || "",
+                    passport: {
+                        document_type: manager.document_type || "passport_rf",
+                        series: series || "",
+                        number: number || "",
+                        issued_date: manager.passport_date || "",
+                        issued_by: manager.passport_issued_by || "",
+                        department_code: manager.passport_code || "",
+                        registration_address: manager.registration_address || "",
+                    }
+                }
+            })
+
+            const formattedBankAccounts = data.bank_accounts.map((account) => ({
+                account: account.account_number || "",
+                bank_bik: account.bik || "",
+                bank_name: account.bank_name || "",
+                corr_account: account.corr_account || "",
+            }))
+
+            const formattedContactPersons = data.contact_persons.map((person) => {
+                const nameParts = (person.full_name || "").trim().split(" ")
+                return {
+                    position: person.position || "",
+                    last_name: nameParts[0] || "",
+                    first_name: nameParts[1] || "",
+                    middle_name: nameParts.slice(2).join(" ") || "",
+                    email: person.email || "",
+                    phone: person.phone || "",
+                }
+            })
 
             const payload = {
                 inn: data.inn,
@@ -226,24 +330,33 @@ export function AgentMyCompanyView() {
                 website: data.website ? (data.website.match(/^https?:\/\//) ? data.website : `https://${data.website}`) : "",
                 contact_email: data.email,
                 contact_phone: data.phone,
-                // Dynamic arrays
-                management: data.management,
-                bank_accounts: data.bank_accounts,
-                contact_persons: data.contact_persons,
+                leadership_data: formattedManagement,
+                bank_accounts_data: formattedBankAccounts,
+                contact_persons_data: formattedContactPersons,
+                director_name: primaryManager?.full_name || company?.director_name || "",
+                director_position: primaryManager?.position || company?.director_position || "",
+                director_email: primaryManager?.email || company?.director_email || "",
+                director_phone: primaryManager?.phone || company?.director_phone || "",
+                bank_name: primaryBank?.bank_name || company?.bank_name || "",
+                bank_bic: primaryBank?.bik || company?.bank_bic || "",
+                bank_account: primaryBank?.account_number || company?.bank_account || "",
+                bank_corr_account: primaryBank?.corr_account || company?.bank_corr_account || "",
             }
 
-            if (company?.id) {
-                await updateCompany(payload as any)
-                toast.success("Данные компании сохранены")
+            const result = company?.id
+                ? await updateCompany(payload as any)
+                : await createCompany(payload as any)
+
+            if (result) {
+                toast.success(company?.id ? "Данные компании сохранены" : "Компания создана")
             } else {
-                await createCompany(payload as any)
-                toast.success("Компания создана")
+                toast.error("Не удалось сохранить данные компании")
             }
         } catch (err: any) {
-            // Even if API fails, data is saved to localStorage
-            toast.success("Данные сохранены локально")
+            toast.error(err?.message || "Ошибка сохранения данных компании")
         }
     }
+
 
     // Loading state
     if (isLoading) {

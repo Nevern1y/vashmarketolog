@@ -160,11 +160,15 @@ export function AdminDocumentsView() {
     const getFileUrl = (doc: DocumentListItem): string => {
         if (doc.file_url) return doc.file_url
         if (doc.file) {
-            if (doc.file.startsWith('http')) return doc.file
-            return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${doc.file}`
+            if (doc.file.startsWith("http")) return doc.file
+            const origin = typeof window !== "undefined"
+                ? window.location.origin
+                : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:8000")
+            return `${origin}${doc.file}`
         }
-        return '#'
+        return "#"
     }
+
 
     // Format date
     const formatDate = (dateStr: string) => {

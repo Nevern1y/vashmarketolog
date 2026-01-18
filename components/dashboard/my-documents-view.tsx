@@ -180,14 +180,15 @@ export function MyDocumentsView() {
 
   // Get file URL for viewing/downloading
   const getFileUrl = (doc: DocumentListItem): string => {
-    // Use file_url if available, otherwise construct from file path
     if (doc.file_url) return doc.file_url
     if (doc.file) {
-      // If file is a relative path, prepend the API base URL
-      if (doc.file.startsWith('http')) return doc.file
-      return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${doc.file}`
+      if (doc.file.startsWith("http")) return doc.file
+      const origin = typeof window !== "undefined"
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:8000")
+      return `${origin}${doc.file}`
     }
-    return '#'
+    return "#"
   }
 
   // Format date
