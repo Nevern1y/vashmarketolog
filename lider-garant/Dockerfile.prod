@@ -1,0 +1,60 @@
+# Dockerfile for Landing Page Production
+# Multi-stage build for optimal image size
+
+# =============================================================================
+# Stage 1: Builder
+# =============================================================================
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build environment
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ARG NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# Build Next.js application
+RUN npm run build
+
+# =============================================================================
+# Stage 2: Production Runner
+# =============================================================================
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    mkdir -p /var/cache/.next && \
+    chown -R nextjs:nodejs /app /var/cache
+
+USER nextjs
+
+# Copy built files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+
+# Start Next.js server
+CMD ["node", "server.js"]

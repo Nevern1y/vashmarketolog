@@ -1,0 +1,29 @@
+# Dockerfile for Landing Page Development
+# Optimized for hot-reloading and fast development
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Development environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=http://localhost:8000/api
+ENV WATCHPACK_POLLING=true
+
+# Expose development port
+EXPOSE 3000
+
+# Health check for dev
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 0
+
+# Start development server with hot-reloading
+CMD ["npm", "run", "dev"]
