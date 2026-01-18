@@ -35,11 +35,39 @@ echo ""
 # =============================================================================
 echo -e "${YELLOW}Шаг 1: Проверка и установка зависимостей...${NC}"
 apt update -qq
-apt install -y git docker.io docker-compose-plugin curl
+
+# Install git and curl
+apt install -y git curl
+
+# Check if Docker is already installed (from official Docker repo or Ubuntu)
+if command -v docker &> /dev/null; then
+    echo "Docker уже установлен: $(docker --version)"
+else
+    echo "Установка Docker..."
+    # Try docker.io first (Ubuntu), if fails - install from official Docker repo
+    apt install -y docker.io docker-compose-plugin 2>/dev/null || {
+        echo "Установка Docker из официального репозитория..."
+        curl -fsSL https://get.docker.com | sh
+    }
+fi
+
+# Check if docker compose plugin is available
+if docker compose version &> /dev/null; then
+    echo "Docker Compose уже установлен: $(docker compose version --short)"
+else
+    echo "Установка Docker Compose plugin..."
+    apt install -y docker-compose-plugin 2>/dev/null || {
+        # Install compose plugin manually
+        DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+        mkdir -p $DOCKER_CONFIG/cli-plugins
+        curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+        chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+    }
+fi
 
 # Ensure Docker is running
-systemctl enable docker
-systemctl start docker
+systemctl enable docker 2>/dev/null || true
+systemctl start docker 2>/dev/null || true
 
 echo -e "${GREEN}✓ Зависимости установлены${NC}"
 echo ""
