@@ -36,33 +36,28 @@ echo ""
 echo -e "${YELLOW}Шаг 1: Проверка и установка зависимостей...${NC}"
 apt update -qq
 
-# Install git and curl
+# Install git and curl only (avoid Docker package conflicts)
 apt install -y git curl
 
-# Check if Docker is already installed (from official Docker repo or Ubuntu)
+# Check if Docker is already installed
 if command -v docker &> /dev/null; then
     echo "Docker уже установлен: $(docker --version)"
 else
-    echo "Установка Docker..."
-    # Try docker.io first (Ubuntu), if fails - install from official Docker repo
-    apt install -y docker.io docker-compose-plugin 2>/dev/null || {
-        echo "Установка Docker из официального репозитория..."
-        curl -fsSL https://get.docker.com | sh
-    }
+    echo "Установка Docker из официального репозитория..."
+    curl -fsSL https://get.docker.com | sh
 fi
 
 # Check if docker compose plugin is available
-if docker compose version &> /dev/null; then
-    echo "Docker Compose уже установлен: $(docker compose version --short)"
+if docker compose version &> /dev/null 2>&1; then
+    echo "Docker Compose уже установлен: $(docker compose version --short 2>/dev/null || echo 'OK')"
 else
     echo "Установка Docker Compose plugin..."
-    apt install -y docker-compose-plugin 2>/dev/null || {
-        # Install compose plugin manually
-        DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-        mkdir -p $DOCKER_CONFIG/cli-plugins
-        curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
-        chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
-    }
+    # Install compose plugin manually (avoid apt containerd conflict)
+    DOCKER_CONFIG=${DOCKER_CONFIG:-/usr/local/lib/docker}
+    mkdir -p $DOCKER_CONFIG/cli-plugins
+    curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+    chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+    echo "Docker Compose установлен: $(docker compose version --short 2>/dev/null || echo 'OK')"
 fi
 
 # Ensure Docker is running
