@@ -18,10 +18,22 @@ def create_admin_users(apps, schema_editor):
     User = apps.get_model('users', 'User')
     
     # Admin user - full access everywhere
-    admin_email = 'administrator-lider-garant.com'
-    if not User.objects.filter(email=admin_email).exists():
+    old_admin_email = 'administrator-lider-garant.com'
+    new_admin_email = 'administrator-lider-garant@admin.com'
+    
+    # Check for new email first
+    if User.objects.filter(email=new_admin_email).exists():
+        print(f'Admin user already exists: {new_admin_email}')
+    # Check for old email and update if found
+    elif User.objects.filter(email=old_admin_email).exists():
+        user = User.objects.get(email=old_admin_email)
+        user.email = new_admin_email
+        user.save()
+        print(f'Updated admin email from {old_admin_email} to {new_admin_email}')
+    else:
+        # Create new if neither exists
         User.objects.create(
-            email=admin_email,
+            email=new_admin_email,
             password=make_password('administrator$lider$garant'),
             role='admin',
             is_active=True,
@@ -30,9 +42,7 @@ def create_admin_users(apps, schema_editor):
             first_name='Administrator',
             last_name='Lider Garant',
         )
-        print(f'Created admin user: {admin_email}')
-    else:
-        print(f'Admin user already exists: {admin_email}')
+        print(f'Created admin user: {new_admin_email}')
     
     # SEO Manager user - only SEO admin access
     seo_email = 'SEOadmin-lider-garant.com'
@@ -59,6 +69,7 @@ def remove_admin_users(apps, schema_editor):
     User = apps.get_model('users', 'User')
     
     User.objects.filter(email='administrator-lider-garant.com').delete()
+    User.objects.filter(email='administrator-lider-garant@admin.com').delete()
     User.objects.filter(email='SEOadmin-lider-garant.com').delete()
     print('Removed admin and SEO manager users')
 
