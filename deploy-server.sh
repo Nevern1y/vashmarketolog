@@ -233,6 +233,86 @@ echo -e "${GREEN}✓ Контейнеры остановлены (данные �
 echo ""
 
 # =============================================================================
+# Шаг 5.5: CLEAN DEPLOY - Полная очистка (сохраняя базу данных)
+# =============================================================================
+echo -e "${YELLOW}Шаг 5.5: Полная очистка для сброса браузерного кэша...${NC}"
+
+# Сохраняем важные файлы перед очисткой
+echo "Сохраняем базу данных и сертификаты..."
+
+# Backup .env file
+BACKUP_DIR="/tmp/lider_backup_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
+if [ -f "$PROJECT_DIR/.env" ]; then
+    cp "$PROJECT_DIR/.env" "$BACKUP_DIR/.env"
+    echo "  ✓ .env сохранен"
+fi
+
+# Backup SSL certificates
+if [ -d "$PROJECT_DIR/certbot" ]; then
+    cp -r "$PROJECT_DIR/certbot" "$BACKUP_DIR/certbot"
+    echo "  ✓ SSL сертификаты сохранены"
+fi
+
+if [ -d "$PROJECT_DIR/nginx/ssl" ]; then
+    mkdir -p "$BACKUP_DIR/nginx"
+    cp -r "$PROJECT_DIR/nginx/ssl" "$BACKUP_DIR/nginx/ssl"
+    echo "  ✓ Nginx SSL сохранен"
+fi
+
+# Получаем имя volume с базой данных (сохраняем его!)
+DB_VOLUME=$(docker volume ls --format '{{.Name}}' | grep -E 'postgres_data|db_data|lider.*postgres' | head -1)
+if [ -n "$DB_VOLUME" ]; then
+    echo -e "  ${GREEN}✓ База данных будет сохранена в volume: $DB_VOLUME${NC}"
+else
+    echo -e "  ${YELLOW}⚠ Volume с базой данных не найден (возможно, первый запуск)${NC}"
+fi
+
+# Удаляем все Docker images проекта (принудительная пересборка)
+echo "Удаляем Docker images проекта..."
+docker images --format '{{.Repository}}:{{.Tag}}' | grep -E 'lider|vashmarketolog|landing|cabinet|backend' | xargs -r docker rmi -f 2>/dev/null || true
+
+# Удаляем все неиспользуемые images и build cache
+echo "Очищаем Docker build cache..."
+docker builder prune -af 2>/dev/null || true
+docker image prune -af 2>/dev/null || true
+
+# Полностью удаляем директорию проекта (кроме volume с БД который хранится отдельно Docker'ом)
+echo "Удаляем файлы проекта..."
+rm -rf "$PROJECT_DIR"
+
+# Воссоздаем директорию и клонируем репозиторий заново
+echo "Клонируем свежий репозиторий..."
+git clone "$REPO_URL" "$PROJECT_DIR"
+cd "$PROJECT_DIR"
+
+# Восстанавливаем сохраненные файлы
+echo "Восстанавливаем конфигурацию..."
+
+if [ -f "$BACKUP_DIR/.env" ]; then
+    cp "$BACKUP_DIR/.env" "$PROJECT_DIR/.env"
+    echo "  ✓ .env восстановлен"
+fi
+
+if [ -d "$BACKUP_DIR/certbot" ]; then
+    cp -r "$BACKUP_DIR/certbot" "$PROJECT_DIR/certbot"
+    echo "  ✓ SSL сертификаты восстановлены"
+fi
+
+if [ -d "$BACKUP_DIR/nginx/ssl" ]; then
+    mkdir -p "$PROJECT_DIR/nginx"
+    cp -r "$BACKUP_DIR/nginx/ssl" "$PROJECT_DIR/nginx/ssl"
+    echo "  ✓ Nginx SSL восстановлен"
+fi
+
+# Удаляем временный backup
+rm -rf "$BACKUP_DIR"
+
+echo -e "${GREEN}✓ Чистая установка подготовлена (база данных сохранена в Docker volume)${NC}"
+echo ""
+
+# =============================================================================
 # Шаг 6: Сборка и запуск
 # =============================================================================
 echo -e "${YELLOW}Шаг 6: Сборка и запуск контейнеров...${NC}"

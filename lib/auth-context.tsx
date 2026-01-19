@@ -8,12 +8,19 @@
  * - On mount, checks localStorage for tokens
  * - If token exists, attempts to fetch user data
  * - isLoading starts TRUE to prevent premature redirect
+ * 
+ * AUTO-LOGOUT: Logs out user after 1 hour of inactivity.
+ * Activity is detected via mouse movements, keyboard events, and clicks.
  */
 "use client"
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { authApi, tokenStorage, type User, type RegisterPayload, type ApiError } from '@/lib/api';
 import type { AppMode } from '@/lib/types';
+
+// Auto-logout after 1 hour of inactivity (in milliseconds)
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+const ACTIVITY_CHECK_INTERVAL_MS = 60 * 1000;  // Check every minute
 
 interface AuthContextType {
     user: User | null;
@@ -39,6 +46,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Prevent double initialization in React StrictMode
     const initialized = useRef(false);
+    
+    // Track last user activity for auto-logout
+    const lastActivityRef = useRef<number>(Date.now());
 
     // Hydration: Check auth status on mount
     useEffect(() => {
@@ -178,6 +188,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('[AUTH] Logged out');
         }
     }, []);
+
+    // AUTO-LOGOUT: Track user activity and logout after inactivity timeout
+    useEffect(() => {
+        // Only track activity when user is authenticated
+        if (!user) return;
+        
+        // Reset activity timestamp on user actions
+        const handleActivity = () => {
+            lastActivityRef.current = Date.now();
+        };
+
+        // Check for inactivity periodically
+        const checkInactivity = () => {
+            const now = Date.now();
+            const timeSinceLastActivity = now - lastActivityRef.current;
+            
+            if (timeSinceLastActivity > INACTIVITY_TIMEOUT_MS) {
+                console.log('[AUTH] User inactive for 1 hour, logging out...');
+                logout();
+            }
+        };
+
+        // Set up activity listeners
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+        window.addEventListener('click', handleActivity);
+        window.addEventListener('scroll', handleActivity);
+        window.addEventListener('touchstart', handleActivity);
+
+        // Check inactivity every minute
+        const intervalId = setInterval(checkInactivity, ACTIVITY_CHECK_INTERVAL_MS);
+
+        // Cleanup on unmount or when user changes
+        return () => {
+            window.removeEventListener('mousemove', handleActivity);
+            window.removeEventListener('keydown', handleActivity);
+            window.removeEventListener('click', handleActivity);
+            window.removeEventListener('scroll', handleActivity);
+            window.removeEventListener('touchstart', handleActivity);
+            clearInterval(intervalId);
+        };
+    }, [user, logout]);
 
     const clearError = useCallback(() => {
         setError(null);

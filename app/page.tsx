@@ -171,8 +171,8 @@ export default function DashboardPage() {
             </Sheet>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <MobileHeader 
-                onMenuClick={() => setIsMobileSidebarOpen(true)} 
+              <MobileHeader
+                onMenuClick={() => setIsMobileSidebarOpen(true)}
                 onSettingsClick={() => setAgentView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
@@ -180,6 +180,10 @@ export default function DashboardPage() {
                 <CalculationSessionView
                   sessionId={selectedCalculationSessionId}
                   onBack={closeCalculationSession}
+                  onNavigateToApplications={() => {
+                    closeCalculationSession()
+                    setAgentView("applications")
+                  }}
                 />
               </main>
             </div>
@@ -222,8 +226,8 @@ export default function DashboardPage() {
             </Sheet>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <MobileHeader 
-                onMenuClick={() => setIsMobileSidebarOpen(true)} 
+              <MobileHeader
+                onMenuClick={() => setIsMobileSidebarOpen(true)}
                 onSettingsClick={() => setAgentView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
@@ -272,8 +276,8 @@ export default function DashboardPage() {
           </Sheet>
 
           <div className="flex flex-1 flex-col overflow-hidden">
-            <MobileHeader 
-              onMenuClick={() => setIsMobileSidebarOpen(true)} 
+            <MobileHeader
+              onMenuClick={() => setIsMobileSidebarOpen(true)}
               onSettingsClick={() => setAgentView("profile-settings")}
             />
             <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
@@ -362,8 +366,8 @@ export default function DashboardPage() {
             </Sheet>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <MobileHeader 
-                onMenuClick={() => setIsMobileSidebarOpen(true)} 
+              <MobileHeader
+                onMenuClick={() => setIsMobileSidebarOpen(true)}
                 onSettingsClick={() => setClientView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
@@ -371,6 +375,10 @@ export default function DashboardPage() {
                 <CalculationSessionView
                   sessionId={selectedCalculationSessionId}
                   onBack={closeCalculationSession}
+                  onNavigateToApplications={() => {
+                    closeCalculationSession()
+                    setClientView("applications")
+                  }}
                 />
               </main>
             </div>
@@ -413,8 +421,8 @@ export default function DashboardPage() {
             </Sheet>
 
             <div className="flex flex-1 flex-col overflow-hidden">
-              <MobileHeader 
-                onMenuClick={() => setIsMobileSidebarOpen(true)} 
+              <MobileHeader
+                onMenuClick={() => setIsMobileSidebarOpen(true)}
                 onSettingsClick={() => setClientView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
@@ -463,8 +471,8 @@ export default function DashboardPage() {
           </Sheet>
 
           <div className="flex flex-1 flex-col overflow-hidden">
-            <MobileHeader 
-              onMenuClick={() => setIsMobileSidebarOpen(true)} 
+            <MobileHeader
+              onMenuClick={() => setIsMobileSidebarOpen(true)}
               onSettingsClick={() => setClientView("profile-settings")}
             />
             <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />

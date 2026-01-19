@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -94,11 +94,11 @@ interface Bank {
 
 // Bank database with conditions
 const BANKS_DB: Bank[] = [
-    { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
+    { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
     { name: "ВТБ", minAmount: 500000, maxAmount: 300000000, bgRate: 2.8, creditRate: 14.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)"] },
+    { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"] },
     { name: "Промсвязьбанк", minAmount: 100000, maxAmount: 400000000, bgRate: 2.7, creditRate: 15.5, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Совкомбанк", minAmount: 200000, maxAmount: 150000000, bgRate: 3.2, creditRate: 17, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ"] },
+    { name: "Совкомбанк", minAmount: 200000, maxAmount: 150000000, bgRate: 3.2, creditRate: 17, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
     { name: "Газпромбанк", minAmount: 1000000, maxAmount: 1000000000, bgRate: 2.3, creditRate: 13, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "Тинькофф", minAmount: 50000, maxAmount: 50000000, bgRate: 4.0, creditRate: 18, speed: "Высокая", laws: ["КБГ (Коммерческие)"] },
     { name: "Открытие", minAmount: 500000, maxAmount: 200000000, bgRate: 2.9, creditRate: 15, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ"] },
@@ -250,6 +250,7 @@ export function AgentCalculatorView() {
     const [bgType, setBgType] = useState("")
     const [dateFrom, setDateFrom] = useState("")
     const [dateTo, setDateTo] = useState("")
+    const [termDays, setTermDays] = useState<number | undefined>(undefined)
     const [hasAdvance, setHasAdvance] = useState(false)
     const [advancePercent, setAdvancePercent] = useState<number | undefined>(undefined)
     const [hasCustomerTemplate, setHasCustomerTemplate] = useState(false)
@@ -305,6 +306,20 @@ export function AgentCalculatorView() {
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
 
     // =========================================================================
+    // AUTO-CALCULATE DATE TO FROM DATE FROM + TERM DAYS
+    // =========================================================================
+
+    // When dateFrom or termDays change, automatically calculate dateTo
+    React.useEffect(() => {
+        if (dateFrom && termDays && termDays > 0) {
+            const startDate = new Date(dateFrom)
+            startDate.setDate(startDate.getDate() + termDays)
+            const calculatedDateTo = startDate.toISOString().split('T')[0]
+            setDateTo(calculatedDateTo)
+        }
+    }, [dateFrom, termDays])
+
+    // =========================================================================
     // CLEAR FORM FUNCTIONS
     // =========================================================================
 
@@ -316,6 +331,7 @@ export function AgentCalculatorView() {
         setAmount(undefined)
         setDateFrom("")
         setDateTo("")
+        setTermDays(undefined)
         setHasAdvance(false)
         setAdvancePercent(undefined)
         setHasCustomerTemplate(false)
@@ -1714,9 +1730,9 @@ export function AgentCalculatorView() {
                                     <Calendar className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Сроки гарантии</span>
                                 </div>
-                                <div className="grid gap-4 md:grid-cols-3">
+                                <div className="grid gap-4 md:grid-cols-4">
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Дата начала</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Дата начала <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="date"
                                             value={dateFrom}
@@ -1725,7 +1741,22 @@ export function AgentCalculatorView() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Дата окончания</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
+                                        <Input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={termDays ?? ''}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, '')
+                                                setTermDays(val ? parseInt(val) : undefined)
+                                            }}
+                                            placeholder="88"
+                                            className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
+                                        />
+                                        <p className="text-xs text-[#94a3b8]">Введите срок, дата окончания рассчитается автоматически</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-sm text-[#94a3b8]">Дата окончания (авто)</Label>
                                         <Input
                                             type="date"
                                             value={dateTo}
@@ -1734,7 +1765,7 @@ export function AgentCalculatorView() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Итого дней</Label>
                                         <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
                                             <span className="text-lg font-bold text-[#3CE8D1]">
                                                 {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
@@ -1825,7 +1856,7 @@ export function AgentCalculatorView() {
                                     <Button
                                         onClick={() => handleCalculateWithValidation("bg")}
                                         disabled={isSubmitting || !getValidation("bg").valid}
-                                        className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:opacity-50 disabled:shadow-none transition-all"
+                                        className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:from-[#1e3a5f] disabled:to-[#1a2942] disabled:text-[#94a3b8] disabled:shadow-none disabled:cursor-not-allowed transition-all"
                                     >
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ

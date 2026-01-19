@@ -33,12 +33,14 @@ interface CalculationSessionViewProps {
     sessionId: number
     onBack: () => void
     onOpenApplicationDetail?: (applicationId: string) => void
+    onNavigateToApplications?: () => void
 }
 
 export function CalculationSessionView({
     sessionId,
     onBack,
-    onOpenApplicationDetail
+    onOpenApplicationDetail,
+    onNavigateToApplications
 }: CalculationSessionViewProps) {
     const { session, isLoading, error, refetch: refetchSession } = useCalculationSession(sessionId)
     const { createApplication } = useApplicationMutations()
@@ -206,6 +208,13 @@ export function CalculationSessionView({
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
             setSelectedBanks([])
+
+            // Navigate to applications page after successful creation
+            if (onNavigateToApplications) {
+                setTimeout(() => {
+                    onNavigateToApplications()
+                }, 500) // Small delay to show toast
+            }
         } else {
             toast.error("Не удалось создать заявки")
         }

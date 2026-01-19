@@ -17,6 +17,9 @@ import {
     UserCheck,
     X,
     Bell,
+    Settings,
+    Lock,
+    User,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
@@ -29,12 +32,21 @@ import { AdminDocumentsView } from "./admin-documents-view"
 import { AdminNewsView } from "./admin-news-view"
 import { AdminCRMClientsView } from "./admin-crm-clients-view"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ProfileSettingsView } from "./profile-settings-view"
 
 // ============================================
 // Sidebar Navigation Items
 // ============================================
 
-type AdminView = "applications" | "agents" | "clients" | "documents" | "partners" | "statistics" | "news"
+type AdminView = "applications" | "agents" | "clients" | "documents" | "partners" | "statistics" | "news" | "profile-settings"
 
 const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "applications", label: "Заявки", icon: FileText },
@@ -46,7 +58,7 @@ const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "statistics", label: "Статистика", icon: BarChart3 },
 ]
 
-const ADMIN_VIEWS: AdminView[] = ["applications", "agents", "clients", "documents", "partners", "statistics", "news"]
+const ADMIN_VIEWS: AdminView[] = ["applications", "agents", "clients", "documents", "partners", "statistics", "news", "profile-settings"]
 
 // ============================================
 // Admin Sidebar Component (reusable for desktop & mobile)
@@ -159,12 +171,13 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
 interface AdminMobileHeaderProps {
     onMenuClick: () => void
     onSettingsClick?: () => void
+    onProfileClick?: () => void
     activeView: AdminView
 }
 
-function AdminMobileHeader({ onMenuClick, onSettingsClick, activeView }: AdminMobileHeaderProps) {
-    const viewLabel = NAV_ITEMS.find(item => item.id === activeView)?.label || "Админ"
-    const { logout } = useAuth()
+function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activeView }: AdminMobileHeaderProps) {
+    const viewLabel = NAV_ITEMS.find(item => item.id === activeView)?.label || (activeView === "profile-settings" ? "Настройки" : "Админ")
+    const { user, logout } = useAuth()
 
     return (
         <header className="flex items-center justify-between border-b border-border bg-slate-900 px-4 py-3 lg:hidden sticky top-0 z-40">
@@ -188,7 +201,7 @@ function AdminMobileHeader({ onMenuClick, onSettingsClick, activeView }: AdminMo
                     size="icon"
                     variant="ghost"
                     className="text-[#94a3b8] hover:text-white"
-                    onClick={() => {}}
+                    onClick={() => { }}
                 >
                     <Bell className="h-5 w-5" />
                 </Button>
@@ -205,18 +218,33 @@ function AdminMobileHeader({ onMenuClick, onSettingsClick, activeView }: AdminMo
                     </Button>
                 )}
 
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => logout()}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                    title="Выйти"
-                >
-                    <LogOut className="h-5 w-5" />
-                </Button>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3CE8D1]">
-                    <span className="text-xs font-bold text-slate-900">A</span>
-                </div>
+                {/* User Menu Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="p-0">
+                            <Avatar className="h-8 w-8 bg-[#3CE8D1]">
+                                <AvatarFallback className="bg-[#3CE8D1] text-slate-900 text-xs font-bold">
+                                    {user?.email?.charAt(0).toUpperCase() || "A"}
+                                </AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={onProfileClick}>
+                            <User className="h-4 w-4 mr-2" />
+                            Настройки аккаунта
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={onProfileClick}>
+                            <Lock className="h-4 w-4 mr-2" />
+                            Сменить пароль
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => logout()} className="text-red-400 focus:text-red-400">
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Выйти
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </header>
     )
@@ -232,6 +260,7 @@ export function AdminDashboard() {
     const { appId: selectedAppId, openDetail: setSelectedAppId, closeDetail: handleBackFromDetail } = usePersistedAppDetail()
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+    const { user, logout } = useAuth()
 
     // Handlers
     const handleSelectApplication = (appId: string) => {
@@ -272,6 +301,8 @@ export function AdminDashboard() {
                 return <PartnersTab />
             case "statistics":
                 return <AdminStatisticsView />
+            case "profile-settings":
+                return <ProfileSettingsView />
             default:
                 return <AdminApplicationsView onSelectApplication={handleSelectApplication} />
         }
@@ -328,8 +359,68 @@ export function AdminDashboard() {
                 <AdminMobileHeader
                     onMenuClick={() => setIsMobileSidebarOpen(true)}
                     onSettingsClick={() => handleViewChange("statistics")}
+                    onProfileClick={() => handleViewChange("profile-settings")}
                     activeView={activeView}
                 />
+
+                {/* Desktop Header */}
+                <header className="hidden lg:flex items-center justify-between border-b border-border bg-slate-900/50 backdrop-blur-sm px-6 py-3 sticky top-0 z-40">
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-lg font-semibold text-white">
+                            {NAV_ITEMS.find(item => item.id === activeView)?.label || (activeView === "profile-settings" ? "Настройки аккаунта" : "Админ")}
+                        </h1>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-[#94a3b8] hover:text-white"
+                            onClick={() => { }}
+                        >
+                            <Bell className="h-5 w-5" />
+                        </Button>
+
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-[#94a3b8] hover:text-white"
+                            onClick={() => handleViewChange("statistics")}
+                            title="Статистика"
+                        >
+                            <BarChart3 className="h-5 w-5" />
+                        </Button>
+
+                        {/* User Menu Dropdown */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="flex items-center gap-2 px-2">
+                                    <Avatar className="h-8 w-8 bg-[#3CE8D1]">
+                                        <AvatarFallback className="bg-[#3CE8D1] text-slate-900 text-xs font-bold">
+                                            {user?.email?.charAt(0).toUpperCase() || "A"}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-sm text-white hidden xl:inline">{user?.email}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onClick={() => handleViewChange("profile-settings")}>
+                                    <User className="h-4 w-4 mr-2" />
+                                    Настройки аккаунта
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleViewChange("profile-settings")}>
+                                    <Lock className="h-4 w-4 mr-2" />
+                                    Сменить пароль
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => logout()} className="text-red-400 focus:text-red-400">
+                                    <LogOut className="h-4 w-4 mr-2" />
+                                    Выйти
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </header>
 
                 {/* Scrollable Content Area */}
                 <main className="flex-1 overflow-y-auto bg-background">

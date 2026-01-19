@@ -300,7 +300,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 {/* Info */}
                                                                 <div className="flex-1 min-w-0">
                                                                     <p className={cn(
-                                                                        "text-sm font-medium truncate",
+                                                                        "text-sm font-medium break-all",
                                                                         isOwn ? "text-[#0a1628]" : "text-foreground"
                                                                     )}>
                                                                         {fileInfo.fileName}

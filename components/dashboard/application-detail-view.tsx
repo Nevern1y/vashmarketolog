@@ -25,7 +25,8 @@ import {
     User,
     CreditCard,
     Hash,
-    Landmark
+    Landmark,
+    Plus
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -80,6 +81,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     // File upload state
     const [isUploading, setIsUploading] = useState(false)
     const [uploadingDocType, setUploadingDocType] = useState<string | null>(null)
+    const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Simple ref for documents section to scroll to after upload
@@ -106,10 +108,10 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             { name: "Карточка компании", id: 1, required: true },
             { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 200, required: true },
             { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025", id: 201, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 202, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС", id: 203, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 204, required: true },
-            { name: "Реестр контрактов", id: 50, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 202, required: false },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС", id: 203, required: false },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 204, required: false },
+            { name: "Реестр контрактов", id: 50, required: false },
             { name: "Паспорт руководителя (все страницы)", id: 21, required: true },
             { name: "Паспорта всех учредителей (все страницы)", id: 22, required: true },
             { name: "Устав", id: 75, required: true },
@@ -178,6 +180,10 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         const files = e.target.files
         if (!files || files.length === 0 || !application) return
 
+        // Save scroll position before upload
+        const mainContent = document.querySelector('main')
+        const scrollPos = mainContent?.scrollTop || 0
+
         setIsUploading(true)
         try {
             const uploadedDocIds: number[] = []
@@ -205,9 +211,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
                 toast.success(`Загружено документов: ${uploadedDocIds.length}`)
 
-                // Wait for refetch then scroll to documents section
+                // Refetch to update the document list
                 await refetch()
-                scrollToDocumentsSection()
+
+                // Restore scroll position after refetch
+                requestAnimationFrame(() => {
+                    if (mainContent) mainContent.scrollTop = scrollPos
+                })
             } else {
                 toast.error('Не удалось загрузить документы')
             }
@@ -219,7 +229,72 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 fileInputRef.current.value = ''
             }
         }
-    }, [uploadDocument, updateApplication, application, refetch, scrollToDocumentsSection])
+    }, [uploadDocument, updateApplication, application, refetch])
+
+    // Handle drag-and-drop file upload
+    const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+
+        const files = e.dataTransfer.files
+        if (!files || files.length === 0 || !application) return
+
+        // Save scroll position before upload
+        const mainContent = document.querySelector('main')
+        const scrollPos = mainContent?.scrollTop || 0
+
+        setIsUploading(true)
+        try {
+            const uploadedDocIds: number[] = []
+
+            for (const file of Array.from(files)) {
+                const uploadedDoc = await uploadDocument({
+                    file,
+                    document_type_id: 0,
+                    name: file.name,
+                })
+                if (uploadedDoc) {
+                    uploadedDocIds.push(uploadedDoc.id)
+                }
+            }
+
+            if (uploadedDocIds.length > 0) {
+                const existingDocIds = application.documents?.map(d => d.id) || []
+                const allDocIds = [...existingDocIds, ...uploadedDocIds]
+
+                await updateApplication(application.id, {
+                    document_ids: allDocIds
+                } as Parameters<typeof updateApplication>[1])
+
+                toast.success(`Загружено документов: ${uploadedDocIds.length}`)
+                await refetch()
+
+                // Restore scroll position after refetch
+                requestAnimationFrame(() => {
+                    if (mainContent) mainContent.scrollTop = scrollPos
+                })
+            } else {
+                toast.error('Не удалось загрузить документы')
+            }
+        } catch {
+            toast.error('Ошибка загрузки документов')
+        } finally {
+            setIsUploading(false)
+        }
+    }, [uploadDocument, updateApplication, application, refetch])
+
+    const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(true)
+    }, [])
+
+    const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setIsDragging(false)
+    }, [])
 
     // Handle specific document type upload  
     const handleSpecificDocUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, docTypeId: number, docTypeName: string) => {
@@ -228,6 +303,10 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             console.log('[Upload] No files or no application')
             return
         }
+
+        // Save scroll position before upload
+        const mainContent = document.querySelector('main')
+        const scrollPos = mainContent?.scrollTop || 0
 
         console.log(`[Upload] Starting upload for ${docTypeName}, docTypeId: ${docTypeId}`)
         lastUploadedDocTypeRef.current = docTypeId
@@ -260,9 +339,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
                 toast.success(`${docTypeName}: загружено`)
 
-                // Wait for refetch then scroll to documents section
+                // Refetch to update the document list
                 await refetch()
-                scrollToDocumentsSection()
+
+                // Restore scroll position after refetch
+                requestAnimationFrame(() => {
+                    if (mainContent) mainContent.scrollTop = scrollPos
+                })
             } else {
                 console.error('[Upload] No documents were uploaded')
                 toast.error('Не удалось загрузить документ')
@@ -276,7 +359,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 e.target.value = ''
             }
         }
-    }, [uploadDocument, updateApplication, application, refetch, scrollToDocumentsSection])
+    }, [uploadDocument, updateApplication, application, refetch])
 
     // Check if a required document is already uploaded
     // Matches by document_type_id OR by name prefix (since we upload with "{docName} - {filename}" format)
@@ -363,14 +446,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             await deleteDocument(docId)
             toast.success('Документ удален')
 
-            // Wait for refetch then scroll to documents section
+            // Refetch to update the document list (no scroll to keep position)
             await refetch()
-            scrollToDocumentsSection()
         } catch (err) {
             console.error('[Delete] Error:', err)
             toast.error('Ошибка удаления документа')
         }
-    }, [deleteDocument, refetch, scrollToDocumentsSection])
+    }, [deleteDocument, refetch])
 
     // Status badge helper
     const getStatusBadge = (status: string) => {
@@ -581,10 +663,10 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                             {application.calculation_session ? (
                                 <button
                                     onClick={() => onNavigateToCalculationSession?.(application.calculation_session!)}
-                                    className="hover:text-[#3CE8D1] transition-colors cursor-pointer"
+                                    className="hover:text-[#3CE8D1] transition-colors cursor-pointer font-mono"
                                     title="Перейти к результатам отбора банков"
                                 >
-                                    {application.product_type_display || application.product_type || 'Заявка'}
+                                    #{application.calculation_session}
                                 </button>
                             ) : (
                                 <span className="text-[#94a3b8]">
@@ -1286,10 +1368,18 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                             <CardContent className="p-6 pt-0">
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
-                                {/* Upload Area */}
+                                {/* Upload Area with Drag-and-Drop */}
                                 <div
-                                    className="border-2 border-dashed border-[#1e3a5f] rounded-lg p-8 text-center mb-6 hover:border-[#3CE8D1]/50 transition-colors cursor-pointer"
+                                    className={cn(
+                                        "border-2 border-dashed rounded-lg p-8 text-center mb-6 transition-all cursor-pointer",
+                                        isDragging
+                                            ? "border-[#3CE8D1] bg-[#3CE8D1]/10 scale-[1.02]"
+                                            : "border-[#1e3a5f] hover:border-[#3CE8D1]/50"
+                                    )}
                                     onClick={() => fileInputRef.current?.click()}
+                                    onDrop={handleDrop}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
                                 >
                                     <input
                                         ref={fileInputRef}
@@ -1300,11 +1390,17 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                     />
                                     {isUploading ? (
                                         <Loader2 className="h-10 w-10 mx-auto text-[#3CE8D1] animate-spin" />
+                                    ) : isDragging ? (
+                                        <>
+                                            <Upload className="h-10 w-10 mx-auto text-[#3CE8D1] mb-4 animate-bounce" />
+                                            <p className="text-[#3CE8D1] font-medium mb-1">Отпустите файлы для загрузки</p>
+                                            <p className="text-sm text-[#94a3b8]">Перетащите сюда один или несколько файлов</p>
+                                        </>
                                     ) : (
                                         <>
                                             <Upload className="h-10 w-10 mx-auto text-[#3CE8D1] mb-4" />
-                                            <p className="text-white font-medium mb-1">Перетащите файлы сюда</p>
-                                            <p className="text-sm text-[#94a3b8]">или нажмите для выбора</p>
+                                            <p className="text-white font-medium mb-1">Загрузить документы</p>
+                                            <p className="text-sm text-[#94a3b8]">Перетащите файлы сюда или нажмите для выбора</p>
                                         </>
                                     )}
                                 </div>
@@ -1492,6 +1588,40 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         </div>
                                     )
                                 })()}
+
+                                {/* "Other Document" Upload Slot with Drag-and-Drop */}
+                                <div
+                                    className="mt-6 pt-4 border-t border-[#1e3a5f]"
+                                    onDrop={handleDrop}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                >
+                                    <h4 className="text-white font-medium mb-4 flex items-center gap-2">
+                                        <Plus className="h-5 w-5 text-[#3CE8D1]" />
+                                        Другой документ
+                                    </h4>
+                                    <input
+                                        type="file"
+                                        id="other-doc-upload"
+                                        multiple
+                                        className="hidden"
+                                        onChange={(e) => handleFileUpload(e)}
+                                    />
+                                    <label
+                                        htmlFor="other-doc-upload"
+                                        className={cn(
+                                            "flex items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed cursor-pointer transition-all",
+                                            isDragging
+                                                ? "border-[#3CE8D1] bg-[#3CE8D1]/10"
+                                                : "border-[#1e3a5f] hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5"
+                                        )}
+                                    >
+                                        <Upload className={cn("h-5 w-5 text-[#3CE8D1]", isDragging && "animate-bounce")} />
+                                        <span className={cn(isDragging ? "text-[#3CE8D1]" : "text-[#94a3b8]")}>
+                                            {isDragging ? "Отпустите файлы" : "Перетащите файлы сюда или нажмите для выбора"}
+                                        </span>
+                                    </label>
+                                </div>
                             </CardContent>
                         )}
                     </Card>

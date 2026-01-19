@@ -449,7 +449,7 @@ export function useApplication(id: number | string | null, pollingInterval: numb
 
     // Manual refetch
     const refetch = useCallback(() => {
-        fetchApplication(true);
+        fetchApplication(false);
     }, [fetchApplication]);
 
     return {
