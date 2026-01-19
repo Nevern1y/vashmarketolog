@@ -278,6 +278,9 @@ echo "Очищаем Docker build cache..."
 docker builder prune -af 2>/dev/null || true
 docker image prune -af 2>/dev/null || true
 
+# Переходим в безопасное место перед удалением (чтобы не потерять текущую директорию)
+cd /root
+
 # Полностью удаляем директорию проекта (кроме volume с БД который хранится отдельно Docker'ом)
 echo "Удаляем файлы проекта..."
 rm -rf "$PROJECT_DIR"

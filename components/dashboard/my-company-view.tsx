@@ -623,12 +623,12 @@ export function MyCompanyView() {
     // Run if not loading, company is null (new profile), and user exists
     if (!isLoading && !company && user) {
       const currentValues = form.getValues()
-      
+
       // Auto-fill Email
       if (!currentValues.contact_email && user.email) {
         form.setValue("contact_email", user.email, { shouldDirty: true })
       }
-      
+
       // Auto-fill Phone
       if (!currentValues.contact_phone && user.phone) {
         form.setValue("contact_phone", formatPhoneNumber(user.phone), { shouldDirty: true })
@@ -751,18 +751,18 @@ export function MyCompanyView() {
       registration_authority: data.registrar_name || undefined,
       okved: data.okved || undefined,
       // Section 4: Management / Director
-      director_name: data.director_name ?? "",
-      director_position: data.director_position ?? "",
-      director_birth_date: data.director_birth_date ?? "",
-      director_birth_place: data.director_birth_place ?? "",
-      director_email: data.director_email ?? "",
-      director_phone: data.director_phone ?? "",
-      director_registration_address: data.director_registration_address ?? "",
-      passport_series: data.passport_series ?? "",
-      passport_number: data.passport_number ?? "",
-      passport_date: data.passport_date ?? "",
-      passport_code: data.passport_code ?? "",
-      passport_issued_by: data.passport_issued_by ?? "",
+      director_name: data.director_name || undefined,
+      director_position: data.director_position || undefined,
+      director_birth_date: data.director_birth_date || undefined,
+      director_birth_place: data.director_birth_place || undefined,
+      director_email: data.director_email || undefined,
+      director_phone: data.director_phone || undefined,
+      director_registration_address: data.director_registration_address || undefined,
+      passport_series: data.passport_series || undefined,
+      passport_number: data.passport_number || undefined,
+      passport_date: data.passport_date || undefined,
+      passport_code: data.passport_code || undefined,
+      passport_issued_by: data.passport_issued_by || undefined,
       leadership_data: leadershipData.length > 0 ? leadershipData : undefined,
       // Section 3: Activities
       activities_data: data.activities.length > 0 ? data.activities : undefined,
