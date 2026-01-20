@@ -1198,7 +1198,7 @@ export function MyCompanyView() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {activitiesArray.fields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground [@media(max-height:820px)]:py-4">
                       <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Деятельность не добавлена</p>
                     </div>
@@ -1599,7 +1599,7 @@ export function MyCompanyView() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {foundersArray.fields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground [@media(max-height:820px)]:py-4">
                       <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Учредители не добавлены</p>
                       <p className="text-sm">Нажмите «Добавить учредителя» для заполнения</p>
@@ -1885,7 +1885,7 @@ export function MyCompanyView() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {legalFoundersArray.fields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground [@media(max-height:820px)]:py-4">
                       <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Юридические лица не добавлены</p>
                     </div>
@@ -2199,7 +2199,7 @@ export function MyCompanyView() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {etpAccountsArray.fields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground [@media(max-height:820px)]:py-4">
                       <Globe className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Счета ЭТП не добавлены</p>
                     </div>
@@ -2255,7 +2255,7 @@ export function MyCompanyView() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {contactPersonsArray.fields.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-8 text-muted-foreground [@media(max-height:820px)]:py-4">
                       <Contact className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>Контактные лица не добавлены</p>
                     </div>

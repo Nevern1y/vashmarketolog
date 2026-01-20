@@ -10,6 +10,7 @@
  */
 
 import { useCalculationSession, useApplicationMutations, useCalculationSessionMutations, type CalculationSession } from "@/hooks/use-applications"
+import { useDocuments, formatDocumentType, getDocumentStatusColor } from "@/hooks/use-documents"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,7 +46,9 @@ export function CalculationSessionView({
     const { session, isLoading, error, refetch: refetchSession } = useCalculationSession(sessionId)
     const { createApplication } = useApplicationMutations()
     const { updateSubmittedBanks } = useCalculationSessionMutations()
+    const { documents: companyDocuments, isLoading: documentsLoading } = useDocuments({ company: session?.company })
     const [selectedBanks, setSelectedBanks] = useState<string[]>([])
+    const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
 
     const handleBankToggle = useCallback((bankName: string) => {
@@ -179,6 +182,7 @@ export function CalculationSessionView({
                     guarantee_type: session.product_type === "bank_guarantee" ? (formData.bgType as string) : undefined,
                     tender_law: lawMapping[formData.federalLaw as string] || "44_fz",
                     calculation_session: session.id,
+                    document_ids: selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
                 }
 
                 const result = await createApplication(payload as any)
@@ -208,6 +212,7 @@ export function CalculationSessionView({
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
             setSelectedBanks([])
+            setSelectedDocumentIds([])
 
             // Navigate to applications page after successful creation
             if (onNavigateToApplications) {
@@ -265,6 +270,17 @@ export function CalculationSessionView({
     const submittedBanks = session.approved_banks.filter(
         bank => session.submitted_banks.includes(bank.name)
     )
+
+    const filteredDocuments = session?.company
+        ? companyDocuments.filter(doc => doc.company === session.company || doc.company === null)
+        : []
+    const toggleDocumentSelection = (docId: number) => {
+        setSelectedDocumentIds(prev =>
+            prev.includes(docId)
+                ? prev.filter(id => id !== docId)
+                : [...prev, docId]
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -421,6 +437,48 @@ export function CalculationSessionView({
                     </CardContent>
                 </Card>
             )}
+
+            <Card className="bg-[#0f2042] border-[#1e3a5f]">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-white">Документы компании</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {documentsLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Загрузка документов...
+                        </div>
+                    ) : filteredDocuments.length > 0 ? (
+                        <div className="rounded-lg border border-[#1e3a5f] overflow-hidden">
+                            <div className="max-h-[240px] overflow-y-auto divide-y divide-[#1e3a5f]">
+                                {filteredDocuments.map((doc) => (
+                                    <label key={doc.id} className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#1e3a5f]/40">
+                                        <Checkbox
+                                            checked={selectedDocumentIds.includes(doc.id)}
+                                            onCheckedChange={() => toggleDocumentSelection(doc.id)}
+                                            className="border-[#3CE8D1] data-[state=checked]:bg-[#3CE8D1] data-[state=checked]:text-[#0f2042]"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-white truncate">{formatDocumentType(doc)}</p>
+                                            <p className="text-xs text-[#94a3b8] truncate">{doc.name}</p>
+                                        </div>
+                                        <span className={cn("text-[10px] uppercase px-2 py-1 rounded-full border", getDocumentStatusColor(doc.status))}>
+                                            {doc.status_display || doc.status}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-[#94a3b8]">Документы компании пока не загружены.</p>
+                    )}
+                    {selectedDocumentIds.length > 0 && (
+                        <p className="text-xs text-[#3CE8D1] mt-2">
+                            Выбрано документов: {selectedDocumentIds.length}
+                        </p>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Already Submitted Banks */}
             {submittedBanks.length > 0 && (

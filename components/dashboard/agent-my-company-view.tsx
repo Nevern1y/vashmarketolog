@@ -674,7 +674,7 @@ export function AgentMyCompanyView() {
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     {managementArray.fields.length === 0 ? (
-                                        <p className="text-center text-muted-foreground py-8">
+                                        <p className="text-center text-muted-foreground py-8 [@media(max-height:820px)]:py-4">
                                             Нет записей. Нажмите "Добавить" чтобы добавить руководителя.
                                         </p>
                                     ) : (
@@ -921,7 +921,7 @@ export function AgentMyCompanyView() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {bankAccountsArray.fields.length === 0 ? (
-                                        <p className="text-center text-muted-foreground py-8">
+                                        <p className="text-center text-muted-foreground py-8 [@media(max-height:820px)]:py-4">
                                             Нет банковских реквизитов. Нажмите "Добавить".
                                         </p>
                                     ) : (
@@ -1039,7 +1039,7 @@ export function AgentMyCompanyView() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     {contactPersonsArray.fields.length === 0 ? (
-                                        <p className="text-center text-muted-foreground py-8">
+                                        <p className="text-center text-muted-foreground py-8 [@media(max-height:820px)]:py-4">
                                             Нет контактных лиц. Нажмите "Добавить".
                                         </p>
                                     ) : (

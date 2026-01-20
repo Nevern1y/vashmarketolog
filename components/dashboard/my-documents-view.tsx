@@ -516,7 +516,7 @@ export function MyDocumentsView() {
                 <TableSkeleton />
               ) : filteredDocuments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8 [@media(max-height:820px)]:py-4">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <FileText className="h-8 w-8" />
                       <p>Документы не найдены</p>

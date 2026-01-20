@@ -117,7 +117,7 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-[95vw] sm:max-w-[700px] md:max-w-[750px] lg:max-w-[800px] xl:max-w-[850px] max-h-[85vh] overflow-y-auto top-[50%] translate-y-[-50%]">
+            <DialogContent className="w-[95vw] max-w-[640px] sm:max-w-[680px] md:max-w-[720px] max-h-[85vh] overflow-y-auto">
                 <div className="sr-only">
                     <DialogTitle>Добавление нового клиента</DialogTitle>
                     <DialogDescription>Форма создания новой карточки клиента</DialogDescription>

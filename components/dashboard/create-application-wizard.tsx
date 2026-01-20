@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +10,7 @@ import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, Ale
 import { useAuth } from "@/lib/auth-context"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
-import { useVerifiedDocuments, useDocumentMutations } from "@/hooks/use-documents"
+import { useDocuments, useDocumentMutations, formatDocumentType, getDocumentStatusColor } from "@/hooks/use-documents"
 import { useApplicationMutations } from "@/hooks/use-applications"
 import { toast } from "sonner"
 import { AddClientModal } from "./add-client-modal"
@@ -82,6 +82,16 @@ const productTypes = [
   { id: "deposits", label: "Депозиты", icon: Banknote, description: "Размещение депозитов" },
 ]
 
+const INSURANCE_COMPANIES = [
+  "ЭНЕРГОГАРАНТ",
+  "АльфаСтрахование",
+  "СОГАЗ",
+  "Ингосстрах",
+  "РЕСО",
+  "БСД",
+  "Пари",
+]
+
 // Target banks for routing
 const targetBanks = [
   { id: "sberbank", label: "Сбербанк" },
@@ -125,9 +135,7 @@ const creditSubTypes = [
 // Import document types from shared module (Appendix B numeric IDs)
 import {
   getAgentUploadableTypes,
-  getDocumentTypesForProduct,
-  getDocumentTypeName,
-  type DocumentTypeOption
+  getDocumentTypeName
 } from "@/lib/document-types"
 
 export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: CreateApplicationWizardProps) {
@@ -171,6 +179,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const [advancePercent, setAdvancePercent] = useState("")  // % аванса
   const [guaranteeDateFrom, setGuaranteeDateFrom] = useState("")  // Срок БГ с
   const [guaranteeDateTo, setGuaranteeDateTo] = useState("")  // Срок БГ по
+  const [guaranteeTermDays, setGuaranteeTermDays] = useState("")  // Срок БГ (дней)
   const [lotNumber, setLotNumber] = useState("")  // Номер лота
 
   // NEW: Credit-specific fields (Phase 2)
@@ -190,7 +199,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const [ignoreExecutionPercent, setIgnoreExecutionPercent] = useState(false)  // Не учитывать % выполнения
 
   // Product-specific fields (Pre-deploy audit)
-  const [contractorInn, setContractorInn] = useState("")    // Factoring
   const [vedCountry, setVedCountry] = useState("")          // VED
   const [vedCurrency, setVedCurrency] = useState("")        // VED: Currency (USD/EUR/CNY)
   const [equipmentType, setEquipmentType] = useState("")    // Leasing
@@ -219,6 +227,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const [industry, setIndustry] = useState("")              // Отрасль
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const lastGuaranteeUpdateRef = useRef<"days" | "dates" | null>(null)
 
   // Document type for upload - now uses numeric ID (Appendix B)
   const [uploadDocTypeId, setUploadDocTypeId] = useState<number>(0)  // 0 = "Дополнительный документ"
@@ -230,7 +239,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   // API Hooks
   const { clients, isLoading: clientsLoading, refetch: refetchClients } = useCRMClients()
   const { company: myCompany, isLoading: companyLoading } = useMyCompany()
-  const { documents: verifiedDocs, isLoading: docsLoading } = useVerifiedDocuments()
+  const parsedCompanyId = selectedCompanyId ? parseInt(selectedCompanyId, 10) : undefined
+  const activeCompanyId = isAgent
+    ? (parsedCompanyId && !Number.isNaN(parsedCompanyId) ? parsedCompanyId : undefined)
+    : myCompany?.id
+  const { documents: companyDocuments, isLoading: docsLoading } = useDocuments({ company: activeCompanyId })
   const { uploadDocument, isLoading: uploading } = useDocumentMutations()
   const { createApplication, submitApplication, isLoading: submitting, error } = useApplicationMutations()
   const { createClient } = useCRMClientMutations()
@@ -238,6 +251,85 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   // State for Add Client Modal
   const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const initialClientSet = useRef(false)
+
+  const normalizedProduct = selectedProduct === "kik"
+    ? "contract_loan"
+    : selectedProduct === "credit"
+      ? "corporate_credit"
+      : selectedProduct || ""
+
+  const filteredCompanyDocuments = activeCompanyId
+    ? companyDocuments.filter((doc) => (doc.company ? doc.company === activeCompanyId : true))
+    : []
+
+  useEffect(() => {
+    if (activeCompanyId) {
+      setSelectedDocumentIds([])
+      setUploadedDocIds([])
+    }
+  }, [activeCompanyId])
+
+  useEffect(() => {
+    if (lastGuaranteeUpdateRef.current === "days") {
+      lastGuaranteeUpdateRef.current = null
+      return
+    }
+
+    if (!guaranteeDateFrom || !guaranteeDateTo) {
+      if (guaranteeTermDays) {
+        lastGuaranteeUpdateRef.current = "dates"
+        setGuaranteeTermDays("")
+      }
+      return
+    }
+
+    const start = new Date(guaranteeDateFrom)
+    const end = new Date(guaranteeDateTo)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return
+
+    const diffDays = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000))
+    const diffValue = String(diffDays)
+    if (diffValue !== guaranteeTermDays) {
+      lastGuaranteeUpdateRef.current = "dates"
+      setGuaranteeTermDays(diffValue)
+    }
+  }, [guaranteeDateFrom, guaranteeDateTo, guaranteeTermDays])
+
+  useEffect(() => {
+    if (lastGuaranteeUpdateRef.current === "dates") {
+      lastGuaranteeUpdateRef.current = null
+      return
+    }
+
+    if (!guaranteeDateFrom) return
+    const days = parseInt(guaranteeTermDays, 10)
+    if (!days || days <= 0) return
+
+    const start = new Date(guaranteeDateFrom)
+    if (Number.isNaN(start.getTime())) return
+    start.setDate(start.getDate() + days)
+    const nextDateTo = start.toISOString().split("T")[0]
+    if (nextDateTo !== guaranteeDateTo) {
+      lastGuaranteeUpdateRef.current = "days"
+      setGuaranteeDateTo(nextDateTo)
+    }
+  }, [guaranteeTermDays, guaranteeDateFrom, guaranteeDateTo])
+
+  useEffect(() => {
+    if (normalizedProduct !== "bank_guarantee") return
+    if (!guaranteeDateFrom || !guaranteeDateTo) return
+
+    const start = new Date(guaranteeDateFrom)
+    const end = new Date(guaranteeDateTo)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return
+
+    const diffDays = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000))
+    const months = Math.max(1, Math.ceil(diffDays / 30))
+    const nextTerm = String(months)
+    if (nextTerm !== term) {
+      setTerm(nextTerm)
+    }
+  }, [normalizedProduct, guaranteeDateFrom, guaranteeDateTo, term])
 
   // Effect to set initial client when wizard opens with a pre-selected client
   if (isOpen && initialClientId && !initialClientSet.current) {
@@ -335,14 +427,15 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         name: file.name,
         file: file,
         document_type_id: uploadDocTypeId,
-        product_type: selectedProduct || 'general',
+        product_type: normalizedProduct || 'general',
+        company: activeCompanyId,
       })
 
       console.log("[Wizard] uploadDocument response:", doc)
 
       if (doc && doc.id) {
         setUploadedDocIds(prev => [...prev, doc.id])
-        const typeName = getDocumentTypeName(uploadDocTypeId, selectedProduct || 'general')
+        const typeName = getDocumentTypeName(uploadDocTypeId, normalizedProduct || 'general')
         toast.success(`Документ "${file.name}" загружен (${typeName})`)
       } else {
         console.error("[Wizard] Upload failed or no ID returned:", doc)
@@ -373,8 +466,36 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   }
 
   const handleSubmit = async () => {
-    if (!selectedProduct || !amount || !term) {
-      toast.error("Заполните все обязательные поля")
+    const missingFields: string[] = []
+    if (!selectedProduct) missingFields.push("Продукт")
+    if (!amount) missingFields.push("Сумма")
+    if (!term && normalizedProduct !== "bank_guarantee") missingFields.push("Срок (мес.)")
+    if (isAgent && !selectedCompanyId) missingFields.push("Компания")
+    if (!isAgent && !myCompany?.id) missingFields.push("Компания")
+
+    if (normalizedProduct === "bank_guarantee") {
+      if (!guaranteeType) missingFields.push("Тип банковской гарантии")
+      if (!tenderLaw) missingFields.push("Федеральный закон")
+      if (!guaranteeDateFrom) missingFields.push("Срок БГ с")
+      if (!guaranteeDateTo) missingFields.push("Срок БГ по")
+    }
+
+    if (normalizedProduct === "ved") {
+      if (!vedCurrency) missingFields.push("Валюта")
+      if (!vedCountry || vedCountry.trim().length < 2) missingFields.push("Страна платежа")
+    }
+
+    if (normalizedProduct === "leasing") {
+      if (!equipmentType || equipmentType.trim().length < 2) missingFields.push("Предмет лизинга")
+    }
+
+    if (normalizedProduct === "insurance") {
+      if (!insuranceCategory) missingFields.push("Вид страхования")
+      if (!insuranceProduct) missingFields.push("Страховой продукт")
+    }
+
+    if (missingFields.length > 0) {
+      toast.error(`Заполните: ${missingFields.join(", ")}`)
       return
     }
 
@@ -419,28 +540,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     }
 
     // === VALIDATION: Product-specific fields ===
-    if (selectedProduct === "factoring") {
-      // Validate contractor INN (debtor) - user-entered field
-      const debitorInnClean = contractorInn.replace(/\D/g, "")
-      if (debitorInnClean.length !== 10 && debitorInnClean.length !== 12) {
-        toast.error("ИНН Контрагента (Дебитора) должен содержать 10 или 12 цифр")
-        return
-      }
-    }
-
-    if (selectedProduct === "ved") {
-      if (!vedCountry || vedCountry.trim().length < 2) {
-        toast.error("Укажите страну контрагента для ВЭД")
-        return
-      }
-    }
-
-    if (selectedProduct === "leasing") {
-      if (!equipmentType || equipmentType.trim().length < 2) {
-        toast.error("Укажите предмет лизинга")
-        return
-      }
-    }
 
     // Combine selected and uploaded docs, filter out any falsy values
     const allDocIds = [...selectedDocumentIds, ...uploadedDocIds].filter(id => id && typeof id === 'number')
@@ -452,6 +551,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
     // Get target bank label for display
     const targetBankLabel = targetBanks.find(b => b.id === targetBank)?.label || targetBank
+
+    const payloadProductType = normalizedProduct || selectedProduct || "bank_guarantee"
 
     // Build payload - only include document_ids if there are any
     const payload: {
@@ -469,7 +570,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       document_ids?: number[]
     } = {
       company: companyId,
-      product_type: selectedProduct,
+      product_type: payloadProductType,
       amount: amount.replace(/\s/g, ""),
       term_months: parseInt(term),
       notes: notes,
@@ -477,13 +578,13 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     }
 
     // Add BG specific fields if BG product
-    if (selectedProduct === "bank_guarantee") {
+    if (payloadProductType === "bank_guarantee") {
       if (guaranteeType) payload.guarantee_type = guaranteeType
       if (tenderLaw) payload.tender_law = tenderLaw
     }
 
     // Add credit-specific fields
-    if (selectedProduct === "contract_loan" || selectedProduct === "corporate_credit") {
+    if (payloadProductType === "contract_loan" || payloadProductType === "corporate_credit") {
       if (creditSubType) payload.credit_sub_type = creditSubType
       if (termDays) payload.financing_term_days = parseInt(termDays)
       if (pledgeDescription) payload.pledge_description = pledgeDescription
@@ -495,7 +596,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     }
 
     // Build goscontract_data for Bank Guarantee
-    if (selectedProduct === "bank_guarantee") {
+    if (payloadProductType === "bank_guarantee") {
       ; (payload as any).goscontract_data = {
         // Tender info
         purchase_number: purchaseNumber || "",
@@ -518,7 +619,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     }
 
     // Build goscontract_data for Contract Loan (КИК) - per ТЗ section 2
-    if (selectedProduct === "contract_loan") {
+    if (payloadProductType === "contract_loan") {
       ; (payload as any).goscontract_data = {
         // Product type
         contract_loan_type: contractLoanType || "",
@@ -552,22 +653,18 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     }
 
     // Build goscontract_data for Factoring
-    if (selectedProduct === "factoring") {
-      ; (payload as any).goscontract_data = {
-        contractor_inn: contractorInn || "",
-      }
-    }
-
     // Build goscontract_data for VED
-    if (selectedProduct === "ved") {
+    if (payloadProductType === "ved") {
+      ; (payload as any).ved_currency = vedCurrency
+      ; (payload as any).ved_country = vedCountry
       ; (payload as any).goscontract_data = {
-        currency: "RUB",  // Hardcoded for Russia
+        currency: vedCurrency || "",
         country: vedCountry || "",
       }
     }
 
     // Build goscontract_data for Leasing
-    if (selectedProduct === "leasing") {
+    if (payloadProductType === "leasing") {
       ; (payload as any).goscontract_data = {
         equipment_type: equipmentType || "",
       }
@@ -636,7 +733,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setTermDays("")
     setPledgeDescription("")
     // Reset product-specific fields
-    setContractorInn("")
     setVedCountry("")
     setVedCurrency("")  // VED currency reset
     setEquipmentType("")
@@ -647,6 +743,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     setAdvancePercent("")
     setGuaranteeDateFrom("")
     setGuaranteeDateTo("")
+    setGuaranteeTermDays("")
     setLotNumber("")
     // Reset new product fields (ТЗ spec)
     setInsuranceCategory("")
@@ -694,7 +791,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   if (clientHasNoCompany) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="relative w-full max-w-md rounded-xl bg-card shadow-2xl border border-border p-8">
+        <div className="relative w-full max-w-md rounded-xl bg-card shadow-2xl border border-border p-8 [@media(max-height:820px)]:p-5">
           {/* Close Button */}
           <button onClick={resetAndClose} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground z-10">
             <X className="h-5 w-5" />
@@ -725,14 +822,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-2xl rounded-xl bg-card shadow-2xl max-h-[90vh] overflow-y-auto border border-border">
+      <div className="relative w-full max-w-2xl rounded-xl bg-card shadow-2xl max-h-[90vh] overflow-y-auto border border-border [@media(max-height:820px)]:max-h-[85vh]">
         {/* Close Button */}
         <button onClick={resetAndClose} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground z-10">
           <X className="h-5 w-5" />
         </button>
 
         {/* Progress Bar */}
-        <div className="border-b border-border px-4 py-3 md:px-6 md:py-4 sticky top-0 bg-card z-20">
+        <div className="border-b border-border px-4 py-3 md:px-6 md:py-4 sticky top-0 bg-card z-20 [@media(max-height:820px)]:py-2">
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.id} className="flex flex-1 items-center">
@@ -775,10 +872,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         )}
 
         {/* Step Content */}
-        <div className="p-4 md:p-6">
+        <div className="p-4 md:p-6 [@media(max-height:820px)]:p-4">
           {/* Step 1: Product Selection */}
           {currentStep === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-6 [@media(max-height:820px)]:space-y-4">
               {/* Agent Client Selector with Info Panel */}
               {isAgent && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -885,7 +982,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     key={product.id}
                     onClick={() => setSelectedProduct(product.id)}
                     className={cn(
-                      "flex flex-row md:flex-col items-center gap-4 md:gap-0 rounded-xl border-2 p-3 md:p-4 text-left md:text-center transition-all hover:border-[#3CE8D1]/50 min-h-[80px] md:min-h-[120px]",
+                      "flex flex-row md:flex-col items-center gap-4 md:gap-0 rounded-xl border-2 p-3 md:p-4 text-left md:text-center transition-all hover:border-[#3CE8D1]/50 min-h-[80px] md:min-h-[120px] [@media(max-height:820px)]:min-h-[70px]",
                       selectedProduct === product.id ? "border-[#3CE8D1] bg-[#3CE8D1]/5" : "border-border",
                     )}
                   >
@@ -1036,26 +1133,26 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
                   <div className="space-y-2">
                     <Label>Федеральный закон *</Label>
-                    <div className="flex flex-wrap gap-x-6 gap-y-3">
+                    <div className="flex flex-wrap gap-3">
                       {[
                         { id: "44_fz", label: "44-ФЗ" },
                         { id: "223_fz", label: "223-ФЗ" },
                         { id: "615_pp", label: "615 ПП" },
                         { id: "kbg", label: "КБГ" },
                       ].map((law) => (
-                        <div key={law.id} className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            id={`law-${law.id}`}
-                            name="tenderLaw"
-                            checked={tenderLaw === law.id}
-                            onChange={() => setTenderLaw(law.id)}
-                            className="h-4 w-4 accent-[#3CE8D1]"
-                          />
-                          <Label htmlFor={`law-${law.id}`} className="cursor-pointer text-sm">
-                            {law.label}
-                          </Label>
-                        </div>
+                        <button
+                          key={law.id}
+                          type="button"
+                          onClick={() => setTenderLaw(law.id)}
+                          className={cn(
+                            "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                            tenderLaw === law.id
+                              ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                              : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
+                          )}
+                        >
+                          {law.label}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -1129,14 +1226,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                       <div className="space-y-1">
                         <span className="text-xs text-muted-foreground">дней</span>
                         <Input
-                          type="text"
-                          readOnly
-                          className="bg-muted"
-                          value={
-                            guaranteeDateFrom && guaranteeDateTo
-                              ? Math.max(0, Math.ceil((new Date(guaranteeDateTo).getTime() - new Date(guaranteeDateFrom).getTime()) / (1000 * 60 * 60 * 24)))
-                              : ""
-                          }
+                          type="number"
+                          placeholder="88"
+                          value={guaranteeTermDays}
+                          onChange={(e) => setGuaranteeTermDays(e.target.value.replace(/\D/g, ""))}
                         />
                       </div>
                     </div>
@@ -1217,7 +1310,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
               {/* CONTRACT LOAN (КИК): Per ТЗ section 2 */}
               {
-                selectedProduct === "contract_loan" && (
+                normalizedProduct === "contract_loan" && (
                   <div className="space-y-4 mt-6 pt-4 border-t border-border">
                     {/* Product Type */}
                     <div className="space-y-2">
@@ -1451,7 +1544,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
               {/* CORPORATE CREDIT: No tender, has sub-type */}
               {
-                selectedProduct === "corporate_credit" && (
+                normalizedProduct === "corporate_credit" && (
                   <div className="space-y-4 mt-6 pt-4 border-t border-border">
                     <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                       <Banknote className="h-4 w-4" />
@@ -1491,31 +1584,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                         value={pledgeDescription}
                         onChange={(e) => setPledgeDescription(e.target.value)}
                       />
-                    </div>
-                  </div>
-                )
-              }
-
-              {/* FACTORING: ИНН контрагента */}
-              {
-                selectedProduct === "factoring" && (
-                  <div className="space-y-4 mt-6 pt-4 border-t border-border">
-                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      Параметры факторинга
-                    </h3>
-                    <div className="space-y-2">
-                      <Label>ИНН Контрагента (Дебитора) *</Label>
-                      <Input
-                        type="text"
-                        placeholder="10 или 12 цифр"
-                        value={contractorInn}
-                        onChange={(e) => setContractorInn(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                        maxLength={12}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        ИНН компании-должника, чью задолженность вы хотите продать
-                      </p>
                     </div>
                   </div>
                 )
@@ -1637,6 +1705,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                           <SelectValue placeholder="Выберите вид страхования" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="smr">Строительно-монтажные риски</SelectItem>
+                          <SelectItem value="contract">Контракта</SelectItem>
                           <SelectItem value="personnel">Персонал</SelectItem>
                           <SelectItem value="transport">Транспорт</SelectItem>
                           <SelectItem value="property">Имущество</SelectItem>
@@ -1658,6 +1728,37 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                             <SelectItem value="critical_illness">Страхование критических заболеваний</SelectItem>
                             <SelectItem value="accidents">Страхование несчастных случаев</SelectItem>
                             <SelectItem value="travel">Комплексное страхование в поездках</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {insuranceCategory === "smr" && (
+                      <div className="space-y-2">
+                        <Label>Страховой продукт *</Label>
+                        <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите продукт" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="smr_full">СМР полный пакет</SelectItem>
+                            <SelectItem value="smr_basic">СМР базовый</SelectItem>
+                            <SelectItem value="smr_risks">Страхование строительных рисков</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {insuranceCategory === "contract" && (
+                      <div className="space-y-2">
+                        <Label>Страховой продукт *</Label>
+                        <Select value={insuranceProduct} onValueChange={setInsuranceProduct}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите продукт" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="contract_execution">Страхование исполнения контракта</SelectItem>
+                            <SelectItem value="contract_liability">Страхование ответственности по контракту</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -1734,6 +1835,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                           value={term}
                           onChange={(e) => setTerm(e.target.value)}
                         />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Страховые компании</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {INSURANCE_COMPANIES.map((company) => (
+                          <span key={company} className="text-xs px-2.5 py-1 rounded-full bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30">
+                            {company}
+                          </span>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -2032,7 +2143,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px]">
                       {/* Show product-specific document types */}
-                      {getAgentUploadableTypes(selectedProduct || 'general').map((docType) => (
+                      {getAgentUploadableTypes(normalizedProduct || 'general').map((docType) => (
                         <SelectItem key={docType.id} value={String(docType.id)}>
                           {docType.name}
                         </SelectItem>
@@ -2040,10 +2151,49 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     </SelectContent>
                   </Select>
                   <p className="text-[10px] text-muted-foreground">
-                    Показаны типы документов для: {selectedProduct === 'bank_guarantee' ? 'Банковские гарантии' :
-                      selectedProduct === 'contract_loan' ? 'Кредиты на исполнение' : 'Общие документы'}
+                    Показаны типы документов для: {normalizedProduct === 'bank_guarantee' ? 'Банковские гарантии' :
+                      normalizedProduct === 'contract_loan' ? 'Кредиты на исполнение' : 'Общие документы'}
                   </p>
                 </div>
+
+                {activeCompanyId && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Документы компании</p>
+                      {docsLoading && (
+                        <span className="text-xs text-muted-foreground">Загрузка...</span>
+                      )}
+                    </div>
+                    {filteredCompanyDocuments.length > 0 ? (
+                      <div className="rounded-lg border border-border overflow-hidden">
+                        <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
+                          {filteredCompanyDocuments.map((doc) => (
+                            <label
+                              key={doc.id}
+                              className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedDocumentIds.includes(doc.id)}
+                                onChange={() => toggleDocumentSelection(doc.id)}
+                                className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate">{formatDocumentType(doc)}</p>
+                                <p className="text-xs text-muted-foreground truncate">{doc.name}</p>
+                              </div>
+                              <span className={cn("text-[10px] uppercase px-2 py-1 rounded-full border", getDocumentStatusColor(doc.status))}>
+                                {doc.status_display || doc.status}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Документы компании пока не загружены.</p>
+                    )}
+                  </div>
+                )}
 
 
                 {/* Dropzone */}
@@ -2057,7 +2207,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                     <Upload className="mx-auto h-8 w-8 md:h-10 md:w-10 text-muted-foreground" />
                   )}
                   <p className="mt-3 text-sm font-medium">
-                    {uploading ? "Загрузка..." : "Нажмите для загрузки или перетащите файлы"}
+                    {uploading ? "Загрузка..." : "Нажмите для загрузки"}
                   </p>
                   <p className="mt-1 text-[10px] md:text-xs text-muted-foreground uppercase">PDF, JPG, PNG, XLSX до 10 МБ</p>
                   <input

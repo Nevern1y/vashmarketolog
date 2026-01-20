@@ -46,6 +46,8 @@ export interface DocumentListItem {
     status_display: string;
     uploaded_at: string;
     owner_email?: string;
+    company?: number | null;
+    company_name?: string | null;
 }
 
 export interface UploadDocumentPayload {
@@ -64,7 +66,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Hook for listing documents
-export function useDocuments(params?: { document_type_id?: number; product_type?: string; status?: string }) {
+export function useDocuments(params?: { document_type_id?: number; product_type?: string; status?: string; company?: number }) {
     const [documents, setDocuments] = useState<DocumentListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,9 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
             }
             if (params?.product_type) queryParams.product_type = params.product_type;
             if (params?.status) queryParams.status = params.status;
+            if (params?.company !== undefined) {
+                queryParams.company = String(params.company);
+            }
 
             const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
             setDocuments(response.results);
@@ -89,7 +94,7 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
         } finally {
             setIsLoading(false);
         }
-    }, [params?.document_type_id, params?.product_type, params?.status]);
+    }, [params?.document_type_id, params?.product_type, params?.status, params?.company]);
 
     useEffect(() => {
         fetchDocuments();

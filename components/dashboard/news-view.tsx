@@ -66,6 +66,7 @@ function NewsCard({ news, onClick }: { news: NewsItem; onClick: () => void }) {
             {imageUrl ? (
                 <div className="h-48 bg-slate-800 overflow-hidden">
                     <img
+                        key={imageUrl}
                         src={imageUrl}
                         alt={news.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
@@ -128,6 +129,7 @@ function FeaturedNewsCard({ news, onClick }: { news: NewsItem; onClick: () => vo
             {/* Background */}
             {imageUrl ? (
                 <img
+                    key={imageUrl}
                     src={imageUrl}
                     alt={news.title}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform"
@@ -208,6 +210,7 @@ function NewsDetailModal({
                 {imageUrl && (
                     <div className="rounded-lg overflow-hidden mb-4">
                         <img
+                            key={imageUrl}
                             src={imageUrl}
                             alt={displayNews.title}
                             className="w-full h-64 object-cover"
@@ -325,7 +328,7 @@ export function NewsView() {
     const isLoading = categoriesLoading || featuredLoading || newsLoading
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen [@media(max-height:820px)]:min-h-0">
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">

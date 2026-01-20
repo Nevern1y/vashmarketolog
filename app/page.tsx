@@ -176,7 +176,7 @@ export default function DashboardPage() {
                 onSettingsClick={() => setAgentView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
-              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
                 <CalculationSessionView
                   sessionId={selectedCalculationSessionId}
                   onBack={closeCalculationSession}
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                 onSettingsClick={() => setAgentView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
-              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
                 <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} />
               </main>
             </div>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
               onSettingsClick={() => setAgentView("profile-settings")}
             />
             <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
-            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
               {agentView === "company" && <AgentMyCompanyView />}
               {agentView === "accreditation" && <AgentAccreditationView />}
               {agentView === "applications" && (
@@ -371,7 +371,7 @@ export default function DashboardPage() {
                 onSettingsClick={() => setClientView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
-              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
                 <CalculationSessionView
                   sessionId={selectedCalculationSessionId}
                   onBack={closeCalculationSession}
@@ -426,7 +426,7 @@ export default function DashboardPage() {
                 onSettingsClick={() => setClientView("profile-settings")}
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
-              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+              <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
                 <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} />
               </main>
             </div>
@@ -476,7 +476,7 @@ export default function DashboardPage() {
               onSettingsClick={() => setClientView("profile-settings")}
             />
             <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
-            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
+            <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
               {clientView === "accreditation" && <AccreditationView />}
               {clientView === "company" && <MyCompanyView />}
               {clientView === "documents" && <MyDocumentsView />}

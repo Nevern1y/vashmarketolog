@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,7 +65,16 @@ const LEASING_TYPES = [
 const FACTORING_TYPES = ["Классический факторинг", "Закрытый факторинг", "Закупочный факторинг"]
 
 // Insurance categories and products per ТЗ + employer requirements
-const INSURANCE_CATEGORIES = ["Персонал", "Транспорт", "Имущество", "Ответственность", "Строительно-монтажные риски", "Контракта"]
+const INSURANCE_CATEGORIES = ["Строительно-монтажные риски", "Контракта", "Персонал", "Транспорт", "Имущество", "Ответственность"]
+const INSURANCE_COMPANIES = [
+    "ЭНЕРГОГАРАНТ",
+    "АльфаСтрахование",
+    "СОГАЗ",
+    "Ингосстрах",
+    "РЕСО",
+    "БСД",
+    "Пари",
+]
 const INSURANCE_PRODUCTS: Record<string, string[]> = {
     "Персонал": ["ДМС", "Страхование критических заболеваний", "Страхование несчастных случаев", "Комплексное страхование в поездках"],
     "Транспорт": ["ОСАГО юридических лиц", "Комплексное страхование автопарков", "Страхование специальной техники", "Страхование ответственности перевозчика"],
@@ -95,7 +105,7 @@ interface Bank {
 const BANKS_DB: Bank[] = [
     { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "ВТБ", minAmount: 500000, maxAmount: 300000000, bgRate: 2.8, creditRate: 14.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)"] },
+    { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"] },
     { name: "Промсвязьбанк", minAmount: 100000, maxAmount: 400000000, bgRate: 2.7, creditRate: 15.5, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
     { name: "Совкомбанк", minAmount: 200000, maxAmount: 150000000, bgRate: 3.2, creditRate: 17, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "Газпромбанк", minAmount: 1000000, maxAmount: 1000000000, bgRate: 2.3, creditRate: 13, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
@@ -220,6 +230,7 @@ export function ClientCalculatorView() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showResults, setShowResults] = useState<string | null>(null)
     const [selectedOffers, setSelectedOffers] = useState<Set<number>>(new Set())
+    const router = useRouter()
 
     // API hooks for real backend integration
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
@@ -243,6 +254,7 @@ export function ClientCalculatorView() {
     const [bgType, setBgType] = useState("")
     const [dateFrom, setDateFrom] = useState("")
     const [dateTo, setDateTo] = useState("")
+    const [termDays, setTermDays] = useState<number | undefined>(undefined)
     const [hasAdvance, setHasAdvance] = useState(false)
     const [advancePercent, setAdvancePercent] = useState<number | undefined>(undefined)
     const [hasCustomerTemplate, setHasCustomerTemplate] = useState(false)
@@ -259,7 +271,6 @@ export function ClientCalculatorView() {
     // Factoring specific
     const [contractType, setContractType] = useState("gov")
     const [factoringType, setFactoringType] = useState("")
-    const [contractorInn, setContractorInn] = useState("")
     const [financingAmount, setFinancingAmount] = useState<number | undefined>(undefined)
     const [financingDate, setFinancingDate] = useState("")
     const [nmc, setNmc] = useState<number | undefined>(undefined)
@@ -290,6 +301,26 @@ export function ClientCalculatorView() {
     const [email, setEmail] = useState("")
     const [comment, setComment] = useState("")
 
+    useEffect(() => {
+        if (dateFrom && termDays && termDays > 0) {
+            const startDate = new Date(dateFrom)
+            startDate.setDate(startDate.getDate() + termDays)
+            const calculatedDateTo = startDate.toISOString().split('T')[0]
+            setDateTo(calculatedDateTo)
+        }
+    }, [dateFrom, termDays])
+
+    useEffect(() => {
+        if (!dateFrom || !dateTo) return
+        const startDate = new Date(dateFrom)
+        const endDate = new Date(dateTo)
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return
+        const diffDays = Math.max(0, Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000))
+        if (diffDays > 0 && diffDays !== termDays) {
+            setTermDays(diffDays)
+        }
+    }, [dateFrom, dateTo, termDays])
+
     // VED (International Payments) specific
     const [vedCurrency, setVedCurrency] = useState("")
     const [vedCountry, setVedCountry] = useState("")
@@ -313,6 +344,7 @@ export function ClientCalculatorView() {
         setAmount(undefined)
         setDateFrom("")
         setDateTo("")
+        setTermDays(undefined)
         setHasAdvance(false)
         setAdvancePercent(undefined)
         setHasCustomerTemplate(false)
@@ -327,6 +359,7 @@ export function ClientCalculatorView() {
         setContractPrice(undefined)
         setDateFrom("")
         setDateTo("")
+        setTermDays(undefined)
         setHasAdvance(false)
         setAdvancePercent(undefined)
         setCreditAmount(undefined)
@@ -341,10 +374,10 @@ export function ClientCalculatorView() {
         setAmount(undefined)
         setDateFrom("")
         setDateTo("")
+        setTermDays(undefined)
     }
 
     const clearFactoringForm = () => {
-        setContractorInn("")
         setFactoringType("")
         setFinancingAmount(undefined)
         setFinancingDate("")
@@ -499,6 +532,8 @@ export function ClientCalculatorView() {
     const validateInternational = (): { valid: boolean; errors: string[] } => {
         const errors: string[] = []
         if (!amount || amount <= 0) errors.push("Сумма платежа")
+        if (!vedCurrency) errors.push("Валюта")
+        if (!vedCountry) errors.push("Страна назначения")
         return { valid: errors.length === 0, errors }
     }
 
@@ -662,7 +697,6 @@ export function ClientCalculatorView() {
             if (showResults === "factoring") {
                 return {
                     ...baseData,
-                    contractor_inn: contractorInn || undefined,
                     factoring_type: factoringType || undefined,
                     financing_amount: financingAmount?.toString() || undefined,
                     financing_date: financingDate || undefined,
@@ -720,7 +754,6 @@ export function ClientCalculatorView() {
                     contractPrice,
                     creditAmount,
                     factoringType,
-                    contractorInn,
                     financingAmount,
                     creditType,
                     leasingCreditType,
@@ -728,6 +761,9 @@ export function ClientCalculatorView() {
                     insuranceCategory,
                     insuranceProduct,
                     insuranceAmount,
+                    vedCurrency,
+                    vedCountry,
+                    vedPurpose,
                 }
 
                 // Build display title
@@ -801,6 +837,9 @@ export function ClientCalculatorView() {
 
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+            setTimeout(() => {
+                router.push("/?view=applications")
+            }, 400)
         } else {
             toast.error("Не удалось создать заявки")
         }
@@ -931,6 +970,11 @@ export function ClientCalculatorView() {
             ved_country: vedCountry,
             ved_purpose: vedPurpose || undefined,
             target_bank_name: bankName || "Индивидуальный подбор",
+            goscontract_data: {
+                currency: vedCurrency,
+                country: vedCountry,
+                purpose: vedPurpose || undefined,
+            },
         }
 
         try {
@@ -953,6 +997,9 @@ export function ClientCalculatorView() {
                 setApplications(prev => [newApp, ...prev])
                 setSelectedApplication(newApp)
                 toast.success(`Заявка на международный платёж №${result.id} создана!`)
+                setTimeout(() => {
+                    router.push("/?view=applications")
+                }, 400)
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1583,7 +1630,7 @@ export function ClientCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Section 1: Тип гарантии */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -1624,7 +1671,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Section 3: Данные закупки */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Search className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Данные закупки</span>
@@ -1655,7 +1702,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Section 4: Сроки */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Calendar className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Сроки гарантии</span>
@@ -1681,17 +1728,22 @@ export function ClientCalculatorView() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
-                                            </span>
-                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="88"
+                                            value={termDays ?? ""}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                setTermDays(val ? parseInt(val) : undefined)
+                                            }}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
+                                        />
                                     </div>
                                 </div>
                             </div>
 
                             {/* Section 5: Дополнительные опции */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-4">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-4 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-3">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Settings className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Дополнительные параметры</span>
@@ -1726,7 +1778,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Section 6: Опыт работы */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <TrendingUp className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Опыт исполнения контрактов</span>
@@ -1803,7 +1855,7 @@ export function ClientCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Тип продукта */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -1822,7 +1874,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Данные контракта */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <FileText className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Данные контракта</span>
@@ -1874,7 +1926,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Параметры кредита */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <CreditCard className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры кредита</span>
@@ -1916,7 +1968,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Опыт и выполнение */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <TrendingUp className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Опыт и выполнение</span>
@@ -1983,7 +2035,7 @@ export function ClientCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Тип кредита */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -2001,7 +2053,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Параметры кредита */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Wallet className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры кредита</span>
@@ -2021,11 +2073,16 @@ export function ClientCalculatorView() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
-                                            </span>
-                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="90"
+                                            value={termDays ?? ""}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                setTermDays(val ? parseInt(val) : undefined)
+                                            }}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -2070,21 +2127,20 @@ export function ClientCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Контрагент */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1.5 h-6 rounded-full bg-[#3CE8D1]" />
                                     <Label className="text-base font-semibold text-white">Контрагент</Label>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm text-[#94a3b8]">ИНН контрагента (дебитора) <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input maxLength={12} value={contractorInn} onChange={e => setContractorInn(e.target.value)} placeholder="Введите ИНН контрагента" className="h-11 bg-[#1a2942]/50 border-[#2a3a5c]/50 focus:border-[#3CE8D1]/50" />
-                                </div>
+                                <p className="text-sm text-[#94a3b8]">
+                                    Данные по дебитору будут уточнены менеджером после отправки заявки.
+                                </p>
                             </div>
 
                             {/* Параметры финансирования */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Wallet className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры финансирования</span>
@@ -2138,7 +2194,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Данные контракта */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <FileText className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Данные контракта</span>
@@ -2184,7 +2240,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Объём и условия */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <TrendingUp className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Объём и условия</span>
@@ -2245,9 +2301,9 @@ export function ClientCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Параметры лизинга */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <CreditCard className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры лизинга</span>
@@ -2308,7 +2364,7 @@ export function ClientCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Вид страхования */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -2335,7 +2391,7 @@ export function ClientCalculatorView() {
                             </div>
 
                             {/* Параметры страхования */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Settings className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры страхования</span>
@@ -2371,6 +2427,17 @@ export function ClientCalculatorView() {
                                             )}
                                         </SelectContent>
                                     </Select>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm text-[#94a3b8]">Страховые компании</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {INSURANCE_COMPANIES.map((company) => (
+                                        <span key={company} className="text-xs px-2.5 py-1 rounded-full bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30">
+                                            {company}
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
 
@@ -2518,9 +2585,9 @@ export function ClientCalculatorView() {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="p-6 space-y-8">
+                                <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                                     {/* Параметры платежа */}
-                                    <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                                    <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                         <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                             <Wallet className="h-4 w-4 text-[#3CE8D1]" />
                                             <span className="text-sm font-medium text-white">Параметры платежа</span>

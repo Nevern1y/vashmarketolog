@@ -301,13 +301,13 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 <div className="flex-1 min-w-0">
                                                                     <p className={cn(
                                                                         "text-sm font-medium break-all",
-                                                                        isOwn ? "text-[#0a1628]" : "text-foreground"
+                                                                        isOwn ? "text-[#0a1628]" : "text-slate-100"
                                                                     )}>
                                                                         {fileInfo.fileName}
                                                                     </p>
                                                                     <p className={cn(
                                                                         "text-xs uppercase",
-                                                                        isOwn ? "text-[#0a1628]/70" : "text-muted-foreground"
+                                                                        isOwn ? "text-[#0a1628]/70" : "text-slate-300"
                                                                     )}>
                                                                         {fileInfo.ext || 'файл'}
                                                                     </p>
@@ -316,7 +316,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 {/* Download Icon */}
                                                                 <Download className={cn(
                                                                     "h-4 w-4 flex-shrink-0",
-                                                                    isOwn ? "text-[#0a1628]/70" : "text-muted-foreground"
+                                                                    isOwn ? "text-[#0a1628]/70" : "text-slate-300"
                                                                 )} />
                                                             </a>
                                                         )}

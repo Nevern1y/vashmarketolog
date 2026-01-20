@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,7 +66,16 @@ const LEASING_TYPES = [
 const FACTORING_TYPES = ["Классический факторинг", "Закрытый факторинг", "Закупочный факторинг"]
 
 // Insurance categories and products per ТЗ + employer requirements
-const INSURANCE_CATEGORIES = ["Персонал", "Транспорт", "Имущество", "Ответственность", "Строительно-монтажные риски", "Контракта"]
+const INSURANCE_CATEGORIES = ["Строительно-монтажные риски", "Контракта", "Персонал", "Транспорт", "Имущество", "Ответственность"]
+const INSURANCE_COMPANIES = [
+    "ЭНЕРГОГАРАНТ",
+    "АльфаСтрахование",
+    "СОГАЗ",
+    "Ингосстрах",
+    "РЕСО",
+    "БСД",
+    "Пари",
+]
 const INSURANCE_PRODUCTS: Record<string, string[]> = {
     "Персонал": ["ДМС", "Страхование критических заболеваний", "Страхование несчастных случаев", "Комплексное страхование в поездках"],
     "Транспорт": ["ОСАГО юридических лиц", "Комплексное страхование автопарков", "Страхование специальной техники", "Страхование ответственности перевозчика"],
@@ -94,11 +104,11 @@ interface Bank {
 
 // Bank database with conditions
 const BANKS_DB: Bank[] = [
-    { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
+    { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "ВТБ", minAmount: 500000, maxAmount: 300000000, bgRate: 2.8, creditRate: 14.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
     { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"] },
     { name: "Промсвязьбанк", minAmount: 100000, maxAmount: 400000000, bgRate: 2.7, creditRate: 15.5, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Совкомбанк", minAmount: 200000, maxAmount: 150000000, bgRate: 3.2, creditRate: 17, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
+    { name: "Совкомбанк", minAmount: 200000, maxAmount: 150000000, bgRate: 3.2, creditRate: 17, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "Газпромбанк", minAmount: 1000000, maxAmount: 1000000000, bgRate: 2.3, creditRate: 13, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
     { name: "Тинькофф", minAmount: 50000, maxAmount: 50000000, bgRate: 4.0, creditRate: 18, speed: "Высокая", laws: ["КБГ (Коммерческие)"] },
     { name: "Открытие", minAmount: 500000, maxAmount: 200000000, bgRate: 2.9, creditRate: 15, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ"] },
@@ -212,7 +222,7 @@ export function AgentCalculatorView() {
     const [showResults, setShowResults] = useState<string | null>(null)
     const [selectedOffers, setSelectedOffers] = useState<Set<number>>(new Set())
     const [isAddClientOpen, setIsAddClientOpen] = useState(false)
-    const [counterpartyQuery, setCounterpartyQuery] = useState("")
+    const router = useRouter()
     const { createClient } = useCRMClientMutations()
 
     // API hooks for real backend integration
@@ -267,7 +277,6 @@ export function AgentCalculatorView() {
     // Factoring specific
     const [contractType, setContractType] = useState("gov")
     const [factoringType, setFactoringType] = useState("")
-    const [contractorInn, setContractorInn] = useState("")
     const [financingAmount, setFinancingAmount] = useState<number | undefined>(undefined)
     const [financingDate, setFinancingDate] = useState("")
     const [nmc, setNmc] = useState<number | undefined>(undefined)
@@ -288,6 +297,11 @@ export function AgentCalculatorView() {
     const [insuranceProduct, setInsuranceProduct] = useState("")
     const [insuranceAmount, setInsuranceAmount] = useState<number | undefined>(undefined)
     const [insuranceTerm, setInsuranceTerm] = useState<number | undefined>(undefined)
+
+    // VED specific
+    const [vedCurrency, setVedCurrency] = useState("")
+    const [vedCountry, setVedCountry] = useState("")
+    const [vedPurpose, setVedPurpose] = useState("")
 
     // RKO specific
     const [rkoType, setRkoType] = useState<"rko" | "specaccount">("rko")
@@ -318,6 +332,17 @@ export function AgentCalculatorView() {
             setDateTo(calculatedDateTo)
         }
     }, [dateFrom, termDays])
+
+    React.useEffect(() => {
+        if (!dateFrom || !dateTo) return
+        const startDate = new Date(dateFrom)
+        const endDate = new Date(dateTo)
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return
+        const diffDays = Math.max(0, Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000))
+        if (diffDays > 0 && diffDays !== termDays) {
+            setTermDays(diffDays)
+        }
+    }, [dateFrom, dateTo, termDays])
 
     // =========================================================================
     // CLEAR FORM FUNCTIONS
@@ -365,7 +390,6 @@ export function AgentCalculatorView() {
     }
 
     const clearFactoringForm = () => {
-        setContractorInn("")
         setFactoringType("")
         setFinancingAmount(undefined)
         setFinancingDate("")
@@ -391,6 +415,13 @@ export function AgentCalculatorView() {
         setInsuranceProduct("")
         setInsuranceAmount(undefined)
         setInsuranceTerm(undefined)
+    }
+
+    const clearVedForm = () => {
+        setAmount(undefined)
+        setVedCurrency("")
+        setVedCountry("")
+        setVedPurpose("")
     }
 
     // =========================================================================
@@ -520,6 +551,8 @@ export function AgentCalculatorView() {
     const validateInternational = (): { valid: boolean; errors: string[] } => {
         const errors: string[] = []
         if (!amount || amount <= 0) errors.push("Сумма платежа")
+        if (!vedCurrency) errors.push("Валюта")
+        if (!vedCountry) errors.push("Страна назначения")
         return { valid: errors.length === 0, errors }
     }
 
@@ -642,6 +675,7 @@ export function AgentCalculatorView() {
                 case "factoring": return "factoring"
                 case "leasing": return "leasing"
                 case "insurance": return "insurance"
+                case "ved": return "ved"
                 default: return "bank_guarantee"
             }
         }
@@ -698,7 +732,6 @@ export function AgentCalculatorView() {
             if (showResults === "factoring") {
                 return {
                     ...baseData,
-                    contractor_inn: contractorInn || undefined,
                     factoring_type: factoringType || undefined,
                     financing_amount: financingAmount?.toString() || undefined,
                     financing_date: financingDate || undefined,
@@ -724,6 +757,14 @@ export function AgentCalculatorView() {
                     insurance_product: insuranceProduct || undefined,
                     insurance_amount: insuranceAmount?.toString() || undefined,
                     insurance_term_months: insuranceTerm || undefined,
+                }
+            }
+
+            if (showResults === "ved") {
+                return {
+                    currency: vedCurrency || undefined,
+                    country: vedCountry || undefined,
+                    purpose: vedPurpose || undefined,
                 }
             }
 
@@ -756,7 +797,6 @@ export function AgentCalculatorView() {
                     contractPrice,
                     creditAmount,
                     factoringType,
-                    contractorInn,
                     financingAmount,
                     creditType,
                     leasingCreditType,
@@ -764,6 +804,9 @@ export function AgentCalculatorView() {
                     insuranceCategory,
                     insuranceProduct,
                     insuranceAmount,
+                    vedCurrency,
+                    vedCountry,
+                    vedPurpose,
                 }
 
                 // Build display title
@@ -813,6 +856,11 @@ export function AgentCalculatorView() {
                     calculation_session: sessionId || undefined,  // Link to root application
                 }
 
+                if (showResults === "ved") {
+                    ;(payload as any).ved_currency = vedCurrency
+                    ;(payload as any).ved_country = vedCountry
+                }
+
                 const result = await createApplication(payload as Parameters<typeof createApplication>[0])
                 if (result) {
                     successCount++
@@ -837,6 +885,9 @@ export function AgentCalculatorView() {
 
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+            setTimeout(() => {
+                router.push("/?view=applications")
+            }, 400)
         } else {
             toast.error("Не удалось создать заявки")
         }
@@ -918,6 +969,61 @@ export function AgentCalculatorView() {
         } catch (err) {
             console.error('Error creating RKO application:', err)
             toast.error("Ошибка при создании заявки")
+        }
+    }
+
+    const createVedApplication = async (bankName?: string) => {
+        if (!company) {
+            toast.error("Сначала выберите клиента")
+            return
+        }
+
+        if (!amount || amount <= 0) {
+            toast.error("Укажите сумму платежа")
+            return
+        }
+        if (!vedCurrency) {
+            toast.error("Выберите валюту")
+            return
+        }
+        if (!vedCountry) {
+            toast.error("Выберите страну назначения")
+            return
+        }
+
+        setIsSubmitting(true)
+
+        const payload = {
+            company: company.id,
+            product_type: "ved",
+            amount: String(amount),
+            term_months: 12,
+            ved_currency: vedCurrency,
+            ved_country: vedCountry,
+            ved_purpose: vedPurpose || undefined,
+            target_bank_name: bankName || "Индивидуальный подбор",
+            goscontract_data: {
+                currency: vedCurrency,
+                country: vedCountry,
+                purpose: vedPurpose || undefined,
+            },
+        }
+
+        try {
+            const result = await createApplication(payload as Parameters<typeof createApplication>[0])
+            if (result) {
+                toast.success(`Заявка на международный платёж №${result.id} создана!`)
+                setTimeout(() => {
+                    router.push("/?view=applications")
+                }, 400)
+            } else {
+                toast.error("Не удалось создать заявку")
+            }
+        } catch (err) {
+            console.error("Error creating VED application:", err)
+            toast.error("Ошибка при создании заявки")
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -1414,43 +1520,6 @@ export function AgentCalculatorView() {
                     </CardContent>
                 </Card>
 
-                {/* Counterparty Check - Agent Tool */}
-                <Card className="border border-[#3CE8D1]/30 bg-gradient-to-br from-[#0f1d32] to-[#0a1425]">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-white flex items-center gap-2">
-                            <Search className="h-5 w-5 text-[#3CE8D1]" />
-                            Проверка контрагента
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <Input
-                                    placeholder="Введите ИНН, ОГРН или название компании"
-                                    className="bg-[#1a2942]/50 border-[#2a3a5c]/50"
-                                    value={counterpartyQuery}
-                                    onChange={(e) => setCounterpartyQuery(e.target.value)}
-                                />
-                            </div>
-                            <Button
-                                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
-                                onClick={() => {
-                                    if (counterpartyQuery) {
-                                        window.open(`https://checko.ru/search?query=${encodeURIComponent(counterpartyQuery)}`, "_blank");
-                                    } else {
-                                        toast.error("Введите данные для проверки");
-                                    }
-                                }}
-                            >
-                                Проверить
-                            </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Быстрая проверка надежности контрагента через сервис Checko.ru
-                        </p>
-                    </CardContent>
-                </Card>
-
                 {/* Product Cards Grid - Professional dark theme */}
                 <div className={cn(
                     "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
@@ -1653,7 +1722,7 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Section 1: Тип гарантии */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -1694,7 +1763,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Section 3: Данные закупки */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Search className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Данные закупки</span>
@@ -1725,7 +1794,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Section 4: Сроки */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Calendar className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Сроки гарантии</span>
@@ -1776,7 +1845,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Section 5: Дополнительные опции */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-4">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-4 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-3">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Settings className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Дополнительные параметры</span>
@@ -1811,7 +1880,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Section 6: Опыт работы */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <TrendingUp className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Опыт исполнения контрактов</span>
@@ -1888,7 +1957,7 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Тип продукта */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -1907,7 +1976,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Данные контракта */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <FileText className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Данные контракта</span>
@@ -1959,7 +2028,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Параметры кредита */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <CreditCard className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры кредита</span>
@@ -2013,7 +2082,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Опыт и выполнение */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <TrendingUp className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Опыт и выполнение</span>
@@ -2080,7 +2149,7 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Тип кредита */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -2098,7 +2167,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Параметры кредита */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Wallet className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры кредита</span>
@@ -2167,21 +2236,9 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
-                            {/* Контрагент */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-6 rounded-full bg-[#3CE8D1]" />
-                                    <Label className="text-base font-semibold text-white">Контрагент</Label>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-sm text-[#94a3b8]">ИНН контрагента (дебитора) <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Input maxLength={12} value={contractorInn} onChange={e => setContractorInn(e.target.value)} placeholder="Введите ИНН контрагента" className="h-11 bg-[#1a2942]/50 border-[#2a3a5c]/50 focus:border-[#3CE8D1]/50" />
-                                </div>
-                            </div>
-
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Параметры финансирования */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <Wallet className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Параметры финансирования</span>
@@ -2235,7 +2292,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Данные контракта */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <FileText className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Данные контракта</span>
@@ -2281,7 +2338,7 @@ export function AgentCalculatorView() {
                             </div>
 
                             {/* Объём и условия */}
-                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
+                            <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-4">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
                                     <TrendingUp className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Объём и условия</span>
@@ -2342,7 +2399,7 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Параметры лизинга */}
                             <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
@@ -2405,7 +2462,7 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Вид страхования */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
@@ -2471,6 +2528,17 @@ export function AgentCalculatorView() {
                                 </div>
                             </div>
 
+                            <div className="space-y-2">
+                                <Label className="text-sm text-[#94a3b8]">Страховые компании</Label>
+                                <div className="flex flex-wrap gap-2">
+                                    {INSURANCE_COMPANIES.map((company) => (
+                                        <span key={company} className="text-xs px-2.5 py-1 rounded-full bg-[#3CE8D1]/10 text-[#3CE8D1] border border-[#3CE8D1]/30">
+                                            {company}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 {!getValidation("insurance").valid && (
@@ -2511,7 +2579,7 @@ export function AgentCalculatorView() {
                             </div>
                         </CardHeader>
 
-                        <CardContent className="p-6 space-y-8">
+                        <CardContent className="p-6 space-y-8 [@media(max-height:820px)]:p-4 [@media(max-height:820px)]:space-y-5">
                             {/* Параметры платежа */}
                             <div className="p-5 rounded-2xl bg-[#1a2942]/30 border border-[#2a3a5c]/30 space-y-5">
                                 <div className="flex items-center gap-2 pb-3 border-b border-[#2a3a5c]/30">
@@ -2525,7 +2593,7 @@ export function AgentCalculatorView() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Валюта <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Select>
+                                        <Select value={vedCurrency} onValueChange={setVedCurrency}>
                                             <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
                                                 <SelectValue placeholder="Выберите валюту" />
                                             </SelectTrigger>
@@ -2541,7 +2609,7 @@ export function AgentCalculatorView() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Страна назначения <span className="text-[#3CE8D1]">*</span></Label>
-                                    <Select>
+                                    <Select value={vedCountry} onValueChange={setVedCountry}>
                                         <SelectTrigger className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50">
                                             <SelectValue placeholder="Выберите страну" />
                                         </SelectTrigger>
@@ -2552,18 +2620,26 @@ export function AgentCalculatorView() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm text-[#94a3b8]">Цель платежа</Label>
-                                    <Textarea placeholder="Описание назначения платежа" className="min-h-[100px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                    <Textarea value={vedPurpose} onChange={(e) => setVedPurpose(e.target.value)} placeholder="Описание назначения платежа" className="min-h-[100px] bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                 </div>
                             </div>
 
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 <div className="flex items-center gap-4">
-                                    <Button className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all">
+                                    <Button
+                                        onClick={() => createVedApplication()}
+                                        disabled={isSubmitting || !amount || !vedCurrency || !vedCountry}
+                                        className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all disabled:opacity-50"
+                                    >
                                         <Upload className="h-5 w-5 mr-2" />
                                         ОТПРАВИТЬ ЗАЯВКУ
                                     </Button>
-                                    <Button variant="outline" className="h-12 px-6 border-[#2a3a5c]/50 text-[#94a3b8] hover:text-white hover:border-[#3CE8D1]/30 transition-all">
+                                    <Button
+                                        variant="outline"
+                                        onClick={clearVedForm}
+                                        className="h-12 px-6 border-[#2a3a5c]/50 text-[#94a3b8] hover:text-white hover:border-[#3CE8D1]/30 transition-all"
+                                    >
                                         Очистить форму
                                     </Button>
                                 </div>

@@ -94,7 +94,7 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
 
   return (
     <>
-      <aside className="flex h-screen w-[260px] flex-col bg-[#0a1628] text-white">
+      <aside className="flex h-[100dvh] min-h-screen w-[260px] flex-col bg-[#0a1628] text-white overflow-y-auto">
         {/* Logo */}
         <div className="flex items-center px-5 py-6">
           <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />

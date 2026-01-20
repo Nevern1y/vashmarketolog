@@ -35,6 +35,7 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useApplication, useApplicationMutations, type Application } from "@/hooks/use-applications"
 import { useDocumentMutations } from "@/hooks/use-documents"
+import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { ApplicationChat } from "./application-chat"
@@ -69,6 +70,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const { application, isLoading, error, refetch } = useApplication(applicationId)
     const { submitApplication, updateApplication, deleteApplication, isLoading: isSubmitting } = useApplicationMutations()
     const { uploadDocument, deleteDocument } = useDocumentMutations()
+    const { user } = useAuth()
 
     // Step expansion state
     const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({
@@ -175,6 +177,32 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         return Math.round((approvedCount / app.documents.length) * 100)
     }
 
+    const getMissingSubmitFields = (app: Application): string[] => {
+        const missing: string[] = []
+        if (!app.company_name) missing.push("Компания")
+        if (!app.amount) missing.push("Сумма")
+
+        if (app.product_type === "bank_guarantee") {
+            if (!app.guarantee_type) missing.push("Тип гарантии")
+            if (!app.tender_law && !app.goscontract_data?.law) missing.push("Федеральный закон")
+            if (!app.goscontract_data?.guarantee_start_date) missing.push("Срок БГ с")
+            if (!app.goscontract_data?.guarantee_end_date) missing.push("Срок БГ по")
+        }
+
+        if (app.product_type === "contract_loan") {
+            if (!app.goscontract_data?.contract_loan_type) missing.push("Тип КИК")
+            if (!app.goscontract_data?.contract_price) missing.push("Цена контракта")
+            if (!app.goscontract_data?.credit_amount) missing.push("Сумма кредита")
+        }
+
+        if (app.product_type === "ved") {
+            if (!app.ved_currency) missing.push("Валюта")
+            if (!app.ved_country) missing.push("Страна")
+        }
+
+        return missing
+    }
+
     // Handle file upload - uploads to library AND attaches to application
     const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files
@@ -193,6 +221,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     file,
                     document_type_id: 0,
                     name: file.name,
+                    product_type: application.product_type,
+                    company: application.company,
                 })
                 if (uploadedDoc) {
                     uploadedDocIds.push(uploadedDoc.id)
@@ -253,6 +283,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     file,
                     document_type_id: 0,
                     name: file.name,
+                    product_type: application.product_type,
+                    company: application.company,
                 })
                 if (uploadedDoc) {
                     uploadedDocIds.push(uploadedDoc.id)
@@ -321,6 +353,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     file,
                     document_type_id: docTypeId,
                     name: `${docTypeName} - ${file.name}`,
+                    product_type: application.product_type,
+                    company: application.company,
                 })
                 console.log(`[Upload] Upload result:`, uploadedDoc)
                 if (uploadedDoc) {
@@ -637,7 +671,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const formProgress = calculateFormProgress(application)
     const docProgress = calculateDocumentProgress(application)
     const isSubmitted = application.status !== 'draft' && application.status !== 'pending'
-    const canSubmit = formProgress === 100 && application.status === 'draft'
+    const missingSubmitFields = getMissingSubmitFields(application)
+    const canSubmit = application.status === 'draft' && formProgress === 100 && missingSubmitFields.length === 0
+    const showCalculationSessionLink = application.calculation_session && user?.role !== 'client'
 
     return (
         <div className="space-y-4 md:space-y-6 pb-8">
@@ -660,7 +696,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 <span>Мои заявки</span>
                             </button>
                             <span>/</span>
-                            {application.calculation_session ? (
+                            {showCalculationSessionLink ? (
                                 <button
                                     onClick={() => onNavigateToCalculationSession?.(application.calculation_session!)}
                                     className="hover:text-[#3CE8D1] transition-colors cursor-pointer font-mono"
@@ -1371,7 +1407,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 {/* Upload Area with Drag-and-Drop */}
                                 <div
                                     className={cn(
-                                        "border-2 border-dashed rounded-lg p-8 text-center mb-6 transition-all cursor-pointer",
+                                        "border-2 border-dashed rounded-lg p-8 text-center mb-6 transition-all cursor-pointer [@media(max-height:820px)]:p-5",
                                         isDragging
                                             ? "border-[#3CE8D1] bg-[#3CE8D1]/10 scale-[1.02]"
                                             : "border-[#1e3a5f] hover:border-[#3CE8D1]/50"
@@ -1394,13 +1430,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         <>
                                             <Upload className="h-10 w-10 mx-auto text-[#3CE8D1] mb-4 animate-bounce" />
                                             <p className="text-[#3CE8D1] font-medium mb-1">Отпустите файлы для загрузки</p>
-                                            <p className="text-sm text-[#94a3b8]">Перетащите сюда один или несколько файлов</p>
+                                            <p className="text-sm text-[#94a3b8]">Нажмите для выбора файлов</p>
                                         </>
                                     ) : (
                                         <>
                                             <Upload className="h-10 w-10 mx-auto text-[#3CE8D1] mb-4" />
                                             <p className="text-white font-medium mb-1">Загрузить документы</p>
-                                            <p className="text-sm text-[#94a3b8]">Перетащите файлы сюда или нажмите для выбора</p>
+                                            <p className="text-sm text-[#94a3b8]">Нажмите для выбора файлов</p>
                                         </>
                                     )}
                                 </div>
@@ -1581,7 +1617,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-8 text-[#94a3b8]">
+                                        <div className="text-center py-8 text-[#94a3b8] [@media(max-height:820px)]:py-4">
                                             <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
                                             <p>Дополнительные документы не загружены</p>
                                             <p className="text-xs mt-1">Все обязательные документы показаны выше</p>
@@ -1618,7 +1654,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                     >
                                         <Upload className={cn("h-5 w-5 text-[#3CE8D1]", isDragging && "animate-bounce")} />
                                         <span className={cn(isDragging ? "text-[#3CE8D1]" : "text-[#94a3b8]")}>
-                                            {isDragging ? "Отпустите файлы" : "Перетащите файлы сюда или нажмите для выбора"}
+                                            {isDragging ? "Отпустите файлы для загрузки" : "Нажмите для выбора файлов"}
                                         </span>
                                     </label>
                                 </div>
@@ -1643,7 +1679,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
                                 {isSubmitted ? (
-                                    <div className="text-center py-8">
+                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <CheckCircle className="h-16 w-16 mx-auto text-emerald-400 mb-4" />
                                         <h3 className="text-xl font-semibold text-white mb-2">
                                             Заявка отправлена
@@ -1658,7 +1694,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         )}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8">
+                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <div className="max-w-md mx-auto">
                                             <Send className="h-16 w-16 mx-auto text-[#3CE8D1] mb-4" />
                                             <h3 className="text-xl font-semibold text-white mb-2">
@@ -1682,7 +1718,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                             </Button>
                                             {!canSubmit && (
                                                 <p className="text-sm text-orange-400 mt-4">
-                                                    Заполните все обязательные поля перед отправкой
+                                                    {missingSubmitFields.length > 0
+                                                        ? `Заполните: ${missingSubmitFields.join(", ")}`
+                                                        : "Заполните все обязательные поля перед отправкой"}
                                                 </p>
                                             )}
                                         </div>
@@ -1709,7 +1747,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
                                 {application.status === 'approved' || application.status === 'won' ? (
-                                    <div className="text-center py-8">
+                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <CheckCircle className="h-20 w-20 mx-auto text-emerald-400 mb-4" />
                                         <h3 className="text-2xl font-bold text-white mb-2">
                                             🎉 Заявка одобрена!
@@ -1738,7 +1776,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         )}
                                     </div>
                                 ) : application.status === 'rejected' ? (
-                                    <div className="text-center py-8">
+                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <XCircle className="h-20 w-20 mx-auto text-red-400 mb-4" />
                                         <h3 className="text-2xl font-bold text-white mb-2">
                                             Заявка отклонена
@@ -1748,7 +1786,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="text-center py-8">
+                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <Clock className="h-16 w-16 mx-auto text-[#94a3b8] mb-4" />
                                         <h3 className="text-xl font-semibold text-white mb-2">
                                             Ожидание решения банка
