@@ -30,6 +30,9 @@ export interface SeoPageData {
     updated_at?: string;
 }
 
+const shouldSkipSeoFetch = () =>
+    process.env.SKIP_SEO_FETCH === '1' || process.env.SKIP_SEO_FETCH === 'true';
+
 // API Base URL for server-side fetching
 const getApiBaseUrl = () => {
     // Server-side: use internal URL if available
@@ -46,6 +49,9 @@ const getApiBaseUrl = () => {
  * @returns SeoPageData or null if not found
  */
 export async function getSeoPage(slug: string): Promise<SeoPageData | null> {
+    if (shouldSkipSeoFetch()) {
+        return null;
+    }
     try {
         const response = await fetch(`${getApiBaseUrl()}/seo/pages/${encodeURIComponent(slug)}/`, {
             next: { revalidate: 60 }, // Cache for 60 seconds
@@ -74,6 +80,9 @@ export async function getSeoPage(slug: string): Promise<SeoPageData | null> {
  * @returns Array of SeoPageData
  */
 export async function getAllSeoPages(): Promise<SeoPageData[]> {
+    if (shouldSkipSeoFetch()) {
+        return [];
+    }
     try {
         const response = await fetch(`${getApiBaseUrl()}/seo/pages/`, {
             next: { revalidate: 300 }, // Cache for 5 minutes
