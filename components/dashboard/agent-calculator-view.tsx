@@ -327,6 +327,7 @@ export function AgentCalculatorView() {
     React.useEffect(() => {
         if (dateFrom && termDays && termDays > 0) {
             const startDate = new Date(dateFrom)
+            if (Number.isNaN(startDate.getTime())) return
             startDate.setDate(startDate.getDate() + termDays)
             const calculatedDateTo = startDate.toISOString().split('T')[0]
             setDateTo(calculatedDateTo)
@@ -1615,14 +1616,23 @@ export function AgentCalculatorView() {
                             {/* Federal Law */}
                             <div className="space-y-3">
                                 <Label className="text-sm font-medium">Федеральный закон *</Label>
-                                <RadioGroup value={federalLaw} onValueChange={setFederalLaw} className="flex flex-wrap gap-6">
+                                <div className="flex flex-wrap gap-3">
                                     {[["44", "44-ФЗ"], ["223", "223-ФЗ"], ["615", "615 ПП"]].map(([val, label]) => (
-                                        <div key={val} className="flex items-center gap-2">
-                                            <RadioGroupItem value={val} id={`tz-${val}`} />
-                                            <Label htmlFor={`tz-${val}`} className="cursor-pointer">{label}</Label>
-                                        </div>
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setFederalLaw(val)}
+                                            className={cn(
+                                                "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                                                federalLaw === val
+                                                    ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
+                                            )}
+                                        >
+                                            {label}
+                                        </button>
                                     ))}
-                                </RadioGroup>
+                                </div>
                             </div>
 
                             {/* Notice and Lot Numbers */}
@@ -1799,7 +1809,7 @@ export function AgentCalculatorView() {
                                     <Calendar className="h-4 w-4 text-[#3CE8D1]" />
                                     <span className="text-sm font-medium text-white">Сроки гарантии</span>
                                 </div>
-                                <div className="grid gap-4 md:grid-cols-4">
+                                <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Дата начала <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
@@ -1832,14 +1842,6 @@ export function AgentCalculatorView() {
                                             onChange={e => setDateTo(e.target.value)}
                                             className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
                                         />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Итого дней</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
-                                            </span>
-                                        </div>
                                     </div>
                                 </div>
                             </div>

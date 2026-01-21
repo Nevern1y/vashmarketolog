@@ -46,7 +46,7 @@ export function CalculationSessionView({
     const { session, isLoading, error, refetch: refetchSession } = useCalculationSession(sessionId)
     const { createApplication } = useApplicationMutations()
     const { updateSubmittedBanks } = useCalculationSessionMutations()
-    const { documents: companyDocuments, isLoading: documentsLoading } = useDocuments({ company: session?.company })
+    const { documents: companyDocuments, isLoading: documentsLoading } = useDocuments({ company: session?.company, includeUnassigned: true })
     const [selectedBanks, setSelectedBanks] = useState<string[]>([])
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
@@ -272,7 +272,7 @@ export function CalculationSessionView({
     )
 
     const filteredDocuments = session?.company
-        ? companyDocuments.filter(doc => doc.company === session.company || doc.company === null)
+        ? companyDocuments.filter(doc => doc.company === session.company || doc.company == null)
         : []
     const toggleDocumentSelection = (docId: number) => {
         setSelectedDocumentIds(prev =>

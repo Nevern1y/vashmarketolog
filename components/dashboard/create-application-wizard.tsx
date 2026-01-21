@@ -243,7 +243,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const activeCompanyId = isAgent
     ? (parsedCompanyId && !Number.isNaN(parsedCompanyId) ? parsedCompanyId : undefined)
     : myCompany?.id
-  const { documents: companyDocuments, isLoading: docsLoading } = useDocuments({ company: activeCompanyId })
+  const { documents: companyDocuments, isLoading: docsLoading } = useDocuments({ company: activeCompanyId, includeUnassigned: true })
   const { uploadDocument, isLoading: uploading } = useDocumentMutations()
   const { createApplication, submitApplication, isLoading: submitting, error } = useApplicationMutations()
   const { createClient } = useCRMClientMutations()
@@ -259,7 +259,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       : selectedProduct || ""
 
   const filteredCompanyDocuments = activeCompanyId
-    ? companyDocuments.filter((doc) => (doc.company ? doc.company === activeCompanyId : true))
+    ? companyDocuments.filter((doc) => doc.company === activeCompanyId || doc.company == null)
     : []
 
   useEffect(() => {

@@ -66,7 +66,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Hook for listing documents
-export function useDocuments(params?: { document_type_id?: number; product_type?: string; status?: string; company?: number }) {
+export function useDocuments(params?: { document_type_id?: number; product_type?: string; status?: string; company?: number; includeUnassigned?: boolean }) {
     const [documents, setDocuments] = useState<DocumentListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,6 +75,12 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
         setIsLoading(true);
         setError(null);
 
+        if (params?.includeUnassigned && params?.company === undefined) {
+            setDocuments([]);
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const queryParams: Record<string, string> = {};
             if (params?.document_type_id !== undefined) {
@@ -82,19 +88,28 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
             }
             if (params?.product_type) queryParams.product_type = params.product_type;
             if (params?.status) queryParams.status = params.status;
-            if (params?.company !== undefined) {
+            const shouldFilterByCompany = params?.company !== undefined && !params?.includeUnassigned;
+            if (shouldFilterByCompany) {
                 queryParams.company = String(params.company);
             }
 
             const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
-            setDocuments(response.results);
+            const results = response.results;
+            if (params?.company !== undefined && params?.includeUnassigned) {
+                const filtered = results.filter(
+                    (doc) => doc.company === params.company || doc.company === null
+                );
+                setDocuments(filtered);
+            } else {
+                setDocuments(results);
+            }
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError.message || 'Ошибка загрузки документов');
         } finally {
             setIsLoading(false);
         }
-    }, [params?.document_type_id, params?.product_type, params?.status, params?.company]);
+    }, [params?.document_type_id, params?.product_type, params?.status, params?.company, params?.includeUnassigned]);
 
     useEffect(() => {
         fetchDocuments();

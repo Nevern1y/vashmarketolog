@@ -19,7 +19,7 @@ export default function SeoDashboardPage() {
             } else if (user.role !== 'admin' && user.role !== 'seo') {
                 // Authenticated but no access - show error and redirect
                 toast.error("Доступ запрещён", {
-                    description: "Требуется роль SEO-менеджера или администратора."
+                    description: "Требуется роль администратора."
                 })
                 router.push("/")
             }
@@ -43,7 +43,7 @@ export default function SeoDashboardPage() {
             <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-[#1d194c] text-white">
                 <ShieldX className="h-16 w-16 text-red-400" />
                 <h1 className="text-2xl font-bold">Доступ запрещён</h1>
-                <p className="text-slate-400">Требуется роль SEO-менеджера или администратора</p>
+                <p className="text-slate-400">Требуется роль администратора</p>
             </div>
         )
     }

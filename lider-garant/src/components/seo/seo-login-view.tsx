@@ -29,7 +29,7 @@ export function SeoLoginView() {
                 router.push("/seo-manager/dashboard")
             } else {
                 // User is logged in but doesn't have access
-                setAccessError("У вас нет доступа к SEO-панели. Требуется роль SEO-менеджера или администратора.")
+                setAccessError("У вас нет доступа к админ-панели. Требуется роль администратора.")
             }
         }
     }, [user, router])
@@ -81,10 +81,10 @@ export function SeoLoginView() {
                     </div>
                     <div className="space-y-2">
                         <CardTitle className="text-3xl font-bold tracking-tight text-white">
-                            SEO Manager
+                            Админка сайта
                         </CardTitle>
                         <CardDescription className="text-slate-400">
-                            Вход в панель управления Лидер Гарант
+                            Вход в админ-панель Лидер Гарант
                         </CardDescription>
                     </div>
                 </CardHeader>

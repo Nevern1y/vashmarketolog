@@ -304,6 +304,7 @@ export function ClientCalculatorView() {
     useEffect(() => {
         if (dateFrom && termDays && termDays > 0) {
             const startDate = new Date(dateFrom)
+            if (Number.isNaN(startDate.getTime())) return
             startDate.setDate(startDate.getDate() + termDays)
             const calculatedDateTo = startDate.toISOString().split('T')[0]
             setDateTo(calculatedDateTo)
@@ -1523,14 +1524,23 @@ export function ClientCalculatorView() {
                             {/* Federal Law */}
                             <div className="space-y-3">
                                 <Label className="text-sm font-medium">Федеральный закон *</Label>
-                                <RadioGroup value={federalLaw} onValueChange={setFederalLaw} className="flex flex-wrap gap-6">
+                                <div className="flex flex-wrap gap-3">
                                     {[["44", "44-ФЗ"], ["223", "223-ФЗ"], ["615", "615 ПП"]].map(([val, label]) => (
-                                        <div key={val} className="flex items-center gap-2">
-                                            <RadioGroupItem value={val} id={`tz-${val}`} />
-                                            <Label htmlFor={`tz-${val}`} className="cursor-pointer">{label}</Label>
-                                        </div>
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setFederalLaw(val)}
+                                            className={cn(
+                                                "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                                                federalLaw === val
+                                                    ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
+                                            )}
+                                        >
+                                            {label}
+                                        </button>
                                     ))}
-                                </RadioGroup>
+                                </div>
                             </div>
 
                             {/* Notice and Lot Numbers */}

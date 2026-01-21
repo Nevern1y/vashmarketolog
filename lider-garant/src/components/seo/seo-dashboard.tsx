@@ -125,7 +125,7 @@ export function SeoDashboard() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3ce8d1]/10 border border-[#3ce8d1]/20">
                         <Globe className="h-5 w-5 text-[#3ce8d1]" />
                     </div>
-                    SEO Manager
+                    Админка сайта
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -144,7 +144,7 @@ export function SeoDashboard() {
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-white">Страницы</h1>
                         <p className="text-slate-400 mt-1">
-                            Управление посадочными страницами для SEO
+                            Управление страницами и контентом
                         </p>
                     </div>
                     <Button onClick={handleCreate} className="bg-[#3ce8d1] text-[#1d194c] font-bold hover:bg-[#3ce8d1]/90 shadow-[0_0_15px_rgba(60,232,209,0.3)] border-none">

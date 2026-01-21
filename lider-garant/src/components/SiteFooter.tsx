@@ -203,11 +203,6 @@ export default function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/seo-manager/login" className="nav-link link-gradient">
-                  SEO
-                </Link>
-              </li>
-              <li>
                 <Link href="/partneram" className="nav-link link-gradient">
                   Партнерам
                 </Link>
