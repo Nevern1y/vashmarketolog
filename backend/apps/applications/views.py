@@ -104,13 +104,10 @@ class ClientStatsView(APIView):
                 has_bank = bool(company.bank_account and company.bank_account.strip() and 
                                company.bank_bic and company.bank_bic.strip())
                 
-                # Check for verified documents
-                has_verified_docs = Document.objects.filter(
-                    owner=user, 
-                    status='verified'
-                ).exists()
-                
-                if has_basic_info and has_director and has_bank and has_verified_docs:
+                # Check for any uploaded documents (verification disabled)
+                has_documents = Document.objects.filter(owner=user).exists()
+
+                if has_basic_info and has_director and has_bank and has_documents:
                     accreditation_status = 'active'
                 elif has_basic_info:
                     accreditation_status = 'pending'
@@ -829,4 +826,99 @@ class CalculationSessionViewSet(viewsets.ModelViewSet):
         session.save()
         
         return Response(CalculationSessionSerializer(session, context={'request': request}).data)
+
+
+# =============================================================================
+# PUBLIC LEAD API (No authentication required)
+# =============================================================================
+
+from rest_framework.permissions import AllowAny
+from .models import Lead
+from .serializers import LeadSerializer, LeadCreateSerializer
+
+
+@extend_schema(tags=['Public Leads'])
+class PublicLeadCreateView(APIView):
+    """
+    Public API for creating leads from website.
+    POST /api/leads/
+    
+    No authentication required - accepts form submissions from public site.
+    Creates Lead record for admin follow-up.
+    
+    Used by:
+    - GuaranteeCalculator on public website
+    - TopApplicationForm on public website
+    - Landing pages
+    """
+    permission_classes = [AllowAny]
+    
+    @extend_schema(
+        request=LeadCreateSerializer,
+        responses={201: LeadSerializer, 400: {'type': 'object'}}
+    )
+    def post(self, request):
+        """Create a new lead from public website form."""
+        serializer = LeadCreateSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            lead = serializer.save()
+            
+            # Return created lead data
+            return Response(
+                LeadSerializer(lead).data,
+                status=status.HTTP_201_CREATED
+            )
+        
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@extend_schema(tags=['Admin Leads'])
+class LeadViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing leads (Admin only).
+    
+    Endpoints:
+    - GET /api/admin/leads/ - list all leads
+    - GET /api/admin/leads/{id}/ - get lead details
+    - PATCH /api/admin/leads/{id}/ - update lead (status, notes, assignment)
+    - DELETE /api/admin/leads/{id}/ - delete lead
+    - POST /api/admin/leads/{id}/convert/ - convert lead to application
+    """
+    queryset = Lead.objects.all()
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_serializer_class(self):
+        return LeadSerializer
+    
+    @extend_schema(
+        request=None,
+        responses={200: LeadSerializer, 400: {'type': 'object'}}
+    )
+    @action(detail=True, methods=['post'])
+    def convert(self, request, pk=None):
+        """
+        Convert lead to application.
+        POST /api/admin/leads/{id}/convert/
+        
+        Creates Application from Lead data and links them.
+        """
+        lead = self.get_object()
+        
+        if lead.converted_application:
+            return Response(
+                {'error': 'Лид уже конвертирован в заявку'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # TODO: Create Application from Lead
+        # For now, just mark as converted
+        from .models import LeadStatus
+        lead.status = LeadStatus.CONVERTED
+        lead.save()
+        
+        return Response(LeadSerializer(lead).data)
 

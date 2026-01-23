@@ -28,17 +28,7 @@ import {
     Landmark,
     Plus
 } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useApplication, useApplicationMutations, type Application } from "@/hooks/use-applications"
-import { useDocumentMutations } from "@/hooks/use-documents"
-import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
-import { ApplicationChat } from "./application-chat"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -50,6 +40,17 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useApplication, useApplicationMutations, type Application } from "@/hooks/use-applications"
+import { useDocumentMutations, type DocumentListItem, type PaginatedResponse } from "@/hooks/use-documents"
+import { useAuth } from "@/lib/auth-context"
+import { cn } from "@/lib/utils"
+import api from "@/lib/api"
+import { ApplicationChat } from "./application-chat"
 
 interface ApplicationDetailViewProps {
     applicationId: string | number
@@ -69,7 +70,7 @@ interface ApplicationDetailViewProps {
 export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalculationSession }: ApplicationDetailViewProps) {
     const { application, isLoading, error, refetch } = useApplication(applicationId)
     const { submitApplication, updateApplication, deleteApplication, isLoading: isSubmitting } = useApplicationMutations()
-    const { uploadDocument, deleteDocument } = useDocumentMutations()
+    const { uploadDocument, deleteDocument, getLastError: getDocumentError } = useDocumentMutations()
     const { user } = useAuth()
 
     // Step expansion state
@@ -90,7 +91,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const documentsSectionRef = useRef<HTMLDivElement>(null)
     // Track which doc type was just uploaded to scroll to it
     const lastUploadedDocTypeRef = useRef<number | null>(null)
-    const specificFileInputRef = useRef<HTMLInputElement>(null)
 
     // Simple function to scroll to documents section after upload
     const scrollToDocumentsSection = useCallback(() => {
@@ -173,8 +173,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     const calculateDocumentProgress = (app: Application): number => {
         if (!app.documents || app.documents.length === 0) return 0
-        const approvedCount = app.documents.filter(d => d.status === 'approved').length
-        return Math.round((approvedCount / app.documents.length) * 100)
+        return 100
     }
 
     const getMissingSubmitFields = (app: Application): string[] => {
@@ -259,7 +258,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 fileInputRef.current.value = ''
             }
         }
-    }, [uploadDocument, updateApplication, application, refetch])
+    }, [uploadDocument, updateApplication, application, refetch, getDocumentError])
 
     // Handle drag-and-drop file upload
     const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
@@ -362,10 +361,32 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 }
             }
 
+            if (uploadedDocIds.length === 0) {
+                try {
+                    const queryParams: Record<string, string> = {
+                        document_type_id: String(docTypeId),
+                    }
+                    if (application.product_type) queryParams.product_type = application.product_type
+                    if (application.company) queryParams.company = String(application.company)
+
+                    const response = await api.get<PaginatedResponse<DocumentListItem> | DocumentListItem[]>('/documents/', queryParams)
+                    const allDocs = Array.isArray(response) ? response : response.results
+                    const matchedDocs = allDocs.filter((doc) =>
+                        doc.name && doc.name.startsWith(`${docTypeName} - `)
+                    )
+
+                    if (matchedDocs.length > 0) {
+                        uploadedDocIds.push(...matchedDocs.map((doc) => doc.id))
+                    }
+                } catch (fallbackError) {
+                    console.error('[Upload] Fallback lookup failed:', fallbackError)
+                }
+            }
+
             if (uploadedDocIds.length > 0) {
                 console.log(`[Upload] Attaching ${uploadedDocIds.length} docs to application`)
                 const existingDocIds = application.documents?.map(d => d.id) || []
-                const allDocIds = [...existingDocIds, ...uploadedDocIds]
+                const allDocIds = Array.from(new Set([...existingDocIds, ...uploadedDocIds]))
 
                 await updateApplication(application.id, {
                     document_ids: allDocIds
@@ -381,8 +402,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     if (mainContent) mainContent.scrollTop = scrollPos
                 })
             } else {
-                console.error('[Upload] No documents were uploaded')
-                toast.error('Не удалось загрузить документ')
+                const errorMessage = getDocumentError?.() || 'Не удалось загрузить документ'
+                console.warn('[Upload] No documents were uploaded', {
+                    error: errorMessage,
+                    docTypeId,
+                    docTypeName,
+                })
+                toast.error(errorMessage)
             }
         } catch (err) {
             console.error('[Upload] Error:', err)
@@ -452,6 +478,15 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const handleSubmitToBank = useCallback(async () => {
         if (!application) return
 
+        // Check missing required fields first
+        const missingFields = getMissingSubmitFields(application)
+        if (missingFields.length > 0) {
+            toast.error('Заполните обязательные поля', {
+                description: missingFields.join(', ')
+            })
+            return
+        }
+
         // Check if documents are attached
         if (!application.documents || application.documents.length === 0) {
             toast.error('Необходимо прикрепить документы', {
@@ -515,43 +550,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         )
     }
 
-    // Document status badge
-    const getDocStatusBadge = (status: string) => {
-        const styles: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
-            pending: {
-                bg: "bg-yellow-500/20",
-                text: "text-yellow-400",
-                icon: <Clock className="h-3 w-3" />,
-                label: "На проверке"
-            },
-            uploaded: {
-                bg: "bg-blue-500/20",
-                text: "text-blue-400",
-                icon: <Upload className="h-3 w-3" />,
-                label: "Загружен"
-            },
-            approved: {
-                bg: "bg-emerald-500/20",
-                text: "text-emerald-400",
-                icon: <CheckCircle className="h-3 w-3" />,
-                label: "Одобрен"
-            },
-            rejected: {
-                bg: "bg-red-500/20",
-                text: "text-red-400",
-                icon: <XCircle className="h-3 w-3" />,
-                label: "Отклонен"
-            },
-        }
-        const style = styles[status] || styles.pending
-        return (
-            <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs", style.bg, style.text)}>
-                {style.icon}
-                {style.label}
-            </span>
-        )
-    }
-
     // Circular progress component
     const CircularProgress = ({ progress, size = 60, color = "#3CE8D1" }: { progress: number; size?: number; color?: string }) => {
         const strokeWidth = 4
@@ -566,7 +564,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                         cx={size / 2}
                         cy={size / 2}
                         r={radius}
-                        stroke="#1e3a5f"
+                        stroke="var(--border)"
                         strokeWidth={strokeWidth}
                         fill="none"
                     />
@@ -673,7 +671,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const isSubmitted = application.status !== 'draft' && application.status !== 'pending'
     const missingSubmitFields = getMissingSubmitFields(application)
     const canSubmit = application.status === 'draft' && formProgress === 100 && missingSubmitFields.length === 0
-    const showCalculationSessionLink = application.calculation_session && user?.role !== 'client'
+    // Show calculation session number for all users if session exists
+    const showCalculationSessionLink = Boolean(application.calculation_session)
 
     return (
         <div className="space-y-4 md:space-y-6 pb-8">
@@ -729,9 +728,10 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             </div>
 
             {/* Main Grid - Content + Chat */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column - Main Content */}
-                <div className="xl:col-span-3 space-y-4">
+                <div className="lg:col-span-2 space-y-4">
+
                     {/* Application Info Card - Compact BANKON24 style */}
                     {/* Application Info Card - Refined per User Request */}
                     <Card className="bg-[#0f2042] border-[#1e3a5f]">
@@ -1489,7 +1489,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                     <div className="flex items-center gap-2 shrink-0">
                                                         {isUploaded && uploadedDoc ? (
                                                             <>
-                                                                {getDocStatusBadge(uploadedDoc.status)}
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -1579,7 +1578,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        {getDocStatusBadge(doc.status)}
                                                         <div className="flex items-center gap-1">
                                                             <Button
                                                                 variant="ghost"
@@ -1706,7 +1704,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                             </p>
                                             <Button
                                                 onClick={handleSubmitToBank}
-                                                disabled={!canSubmit || isSubmitting}
+                                                disabled={application.status !== 'draft' || isSubmitting}
                                                 className="bg-[#3CE8D1] hover:bg-[#2fd5bf] text-black font-semibold px-8"
                                             >
                                                 {isSubmitting ? (
@@ -1716,13 +1714,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                 )}
                                                 ОТПРАВИТЬ ЗАЯВКУ
                                             </Button>
-                                            {!canSubmit && (
-                                                <p className="text-sm text-orange-400 mt-4">
-                                                    {missingSubmitFields.length > 0
-                                                        ? `Заполните: ${missingSubmitFields.join(", ")}`
-                                                        : "Заполните все обязательные поля перед отправкой"}
-                                                </p>
-                                            )}
+
                                         </div>
                                     </div>
                                 )}
@@ -1859,14 +1851,15 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 </div>
 
                 {/* Right Column - Chat Panel */}
-                <div className="xl:col-span-1">
+                <div className="lg:col-span-1">
                     <div className="sticky top-6">
                         <ApplicationChat
                             applicationId={applicationId}
-                            className="h-[600px] xl:h-[calc(100vh-200px)]"
+                            className="h-[600px] lg:h-[calc(100vh-200px)]"
                         />
                     </div>
                 </div>
+
             </div>
         </div >
     )

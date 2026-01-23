@@ -4,7 +4,7 @@ API Serializers for Document Library.
 BREAKING CHANGE: Updated to use numeric document_type_id per Appendix B.
 """
 from rest_framework import serializers
-from .models import Document, DocumentStatus, DocumentTypeDefinition, DocumentSource, DocumentRequest, DocumentRequestStatus
+from .models import Document, DocumentTypeDefinition, DocumentSource, DocumentRequest, DocumentRequestStatus
 
 
 class DocumentTypeDefinitionSerializer(serializers.ModelSerializer):
@@ -56,9 +56,6 @@ class DocumentSerializer(serializers.ModelSerializer):
             'source_display',    # NEW: Who uploads
             'status',
             'status_display',
-            'rejection_reason',
-            'verified_at',
-            'verified_by',
             'uploaded_at',
             'updated_at',
         ]
@@ -69,9 +66,6 @@ class DocumentSerializer(serializers.ModelSerializer):
             'owner_email', 
             'status', 
             'status_display',
-            'rejection_reason',
-            'verified_at', 
-            'verified_by',
             'uploaded_at', 
             'updated_at',
             'type_display',
@@ -101,6 +95,9 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
     Serializer for uploading new documents.
     Now accepts numeric document_type_id per Appendix B.
     """
+    document_type_id = serializers.IntegerField(required=False, default=0)
+    product_type = serializers.CharField(required=False, allow_blank=True, default='')
+
     class Meta:
         model = Document
         fields = [
@@ -110,8 +107,9 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             'document_type_id',  # NEW: Numeric ID (17, 21, 68, etc.)
             'product_type',      # NEW: Product context (bank_guarantee, contract_loan)
             'company',
+            'status',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'status']
 
     def validate_file(self, value):
         """Validate file size and type."""
@@ -121,7 +119,7 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Размер файла не должен превышать 10 МБ.')
         
         # Allowed extensions
-        allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar', 'sig']
+        allowed_extensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar', 'sig', 'txt']
         ext = value.name.split('.')[-1].lower()
         if ext not in allowed_extensions:
             raise serializers.ValidationError(
@@ -130,41 +128,11 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
         
         return value
     
-    def validate_document_type_id(self, value):
-        """Validate that document_type_id is a valid integer."""
-        if value is None:
-            return 0  # Default to "Дополнительный документ"
-        if not isinstance(value, int) or value < 0:
-            raise serializers.ValidationError('ID типа документа должен быть неотрицательным целым числом.')
-        return value
-    
     def validate(self, attrs):
         """
-        Validate that document_type_id exists in reference table for given product_type.
-        If product_type is not specified, skip this validation (allow any ID).
+        No validation against reference table for now.
         """
-        document_type_id = attrs.get('document_type_id', 0)
-        product_type = attrs.get('product_type', '')
-        
-        # If both specified, verify the combination exists in reference table
-        if product_type and document_type_id != 0:
-            exists = DocumentTypeDefinition.objects.filter(
-                document_type_id=document_type_id,
-                product_type=product_type,
-                is_active=True
-            ).exists()
-            
-            if not exists:
-                # Warning but don't block - might be uploading before reference data populated
-                # In production, you might want to raise an error here
-                pass
-        
         return attrs
-
-    def create(self, validated_data):
-        """Set owner from request user."""
-        validated_data['owner'] = self.context['request'].user
-        return super().create(validated_data)
 
 
 class DocumentListSerializer(serializers.ModelSerializer):
@@ -209,32 +177,6 @@ class DocumentListSerializer(serializers.ModelSerializer):
     def get_type_display(self, obj):
         """Get document type name from reference table."""
         return obj.type_display
-
-
-class DocumentVerifySerializer(serializers.Serializer):
-    """
-    Serializer for document verification (Admin only).
-    """
-    status = serializers.ChoiceField(
-        choices=[
-            ('verified', 'Проверен'),
-            ('rejected', 'Отклонён'),
-            ('not_allowed', 'Не допущен'),  # NEW status per ТЗ
-        ]
-    )
-    rejection_reason = serializers.CharField(
-        required=False,
-        allow_blank=True,
-        max_length=1000
-    )
-
-    def validate(self, attrs):
-        """Require rejection reason if status is rejected or not_allowed."""
-        if attrs['status'] in ('rejected', 'not_allowed') and not attrs.get('rejection_reason'):
-            raise serializers.ValidationError({
-                'rejection_reason': 'Укажите причину отклонения.'
-            })
-        return attrs
 
 
 class DocumentSelectSerializer(serializers.Serializer):

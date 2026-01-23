@@ -31,8 +31,6 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import {
-    CheckCircle,
-    XCircle,
     Clock,
     Loader2,
     Users,
@@ -140,9 +138,7 @@ export function AdminAgentsView() {
 
     // Modal state
     const [activeTab, setActiveTab] = useState('info')
-    const [docAction, setDocAction] = useState<{ doc: AgentDocument, action: 'approve' | 'reject' } | null>(null)
     const [deleteDoc, setDeleteDoc] = useState<AgentDocument | null>(null)
-    const [rejectComment, setRejectComment] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     // Document request state
@@ -237,47 +233,6 @@ export function AdminAgentsView() {
         setIsModalOpen(true)
     }
 
-    // Document actions
-    const handleDocumentAction = async () => {
-        if (!docAction || !selectedAgent) return
-
-        setIsSubmitting(true)
-        try {
-            const newStatus = docAction.action === 'approve' ? 'verified' : 'rejected'
-
-            // API call to approve/reject document
-            await api.post(`/documents/${docAction.doc.id}/verify/`, {
-                status: newStatus,
-                rejection_reason: docAction.action === 'reject' ? rejectComment : ''
-            })
-
-            toast.success(docAction.action === 'approve' ? 'Документ одобрен' : 'Документ отклонён')
-
-            // Update selectedAgent documents locally for immediate UI update
-            const updateDocs = (docs: AgentDocument[]) =>
-                docs.map(d => d.id === docAction.doc.id ? { ...d, status: newStatus } : d)
-
-            setSelectedAgent(prev => prev ? {
-                ...prev,
-                documents: updateDocs(prev.documents)
-            } : null)
-
-            // Also update the agents list
-            setAgents(prev => prev.map(a =>
-                a.id === selectedAgent.id
-                    ? { ...a, documents: updateDocs(a.documents) }
-                    : a
-            ))
-
-            setDocAction(null)
-            setRejectComment('')
-        } catch (err) {
-            toast.error('Ошибка при обработке документа')
-        } finally {
-            setIsSubmitting(false)
-        }
-    }
-
     // Delete document
     const handleDeleteDocument = async () => {
         if (!deleteDoc || !selectedAgent) return
@@ -331,10 +286,6 @@ export function AdminAgentsView() {
     }
 
     // Get pending documents count for badge
-    const getPendingDocsCount = (agent: Agent) => {
-        return agent.documents?.filter(d => d.status === 'pending').length || 0
-    }
-
     // Agent status counts
     const statusCounts = useMemo(() => ({
         all: agents.length,
@@ -609,11 +560,6 @@ export function AdminAgentsView() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
                                             <h3 className="font-semibold">Документы</h3>
-                                            {getPendingDocsCount(selectedAgent) > 0 && (
-                                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-xs text-white">
-                                                    {getPendingDocsCount(selectedAgent)}
-                                                </span>
-                                            )}
                                         </div>
                                         <Button
                                             size="sm"
@@ -631,27 +577,11 @@ export function AdminAgentsView() {
                                             {selectedAgent.documents.map((doc) => (
                                                 <div
                                                     key={doc.id}
-                                                    className={cn(
-                                                        "flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3",
-                                                        doc.status === 'verified' && "border-emerald-500/30 bg-emerald-500/5",
-                                                        doc.status === 'rejected' && "border-rose-500/30 bg-rose-500/5",
-                                                        doc.status === 'pending' && "border-amber-500/30 bg-amber-500/5"
-                                                    )}
+                                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <div className={cn(
-                                                            "w-10 h-10 rounded-lg flex items-center justify-center",
-                                                            doc.status === 'verified' && "bg-emerald-500/20",
-                                                            doc.status === 'rejected' && "bg-rose-500/20",
-                                                            doc.status === 'pending' && "bg-amber-500/20"
-                                                        )}>
-                                                            {doc.status === 'verified' ? (
-                                                                <CheckCircle className="h-5 w-5 text-emerald-500" />
-                                                            ) : doc.status === 'rejected' ? (
-                                                                <XCircle className="h-5 w-5 text-rose-500" />
-                                                            ) : (
-                                                                <Clock className="h-5 w-5 text-amber-500" />
-                                                            )}
+                                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                                            <FileText className="h-5 w-5 text-muted-foreground" />
                                                         </div>
                                                         <div>
                                                             <p className="font-medium">{doc.name}</p>
@@ -672,26 +602,6 @@ export function AdminAgentsView() {
                                                                     <a href={doc.file_url} download>
                                                                         <Download className="h-4 w-4" />
                                                                     </a>
-                                                                </Button>
-                                                            </>
-                                                        )}
-                                                        {doc.status === 'pending' && (
-                                                            <>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
-                                                                    onClick={() => setDocAction({ doc, action: 'approve' })}
-                                                                >
-                                                                    <CheckCircle className="h-4 w-4" />
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                                                                    onClick={() => setDocAction({ doc, action: 'reject' })}
-                                                                >
-                                                                    <XCircle className="h-4 w-4" />
                                                                 </Button>
                                                             </>
                                                         )}
@@ -728,42 +638,6 @@ export function AdminAgentsView() {
                     )}
                 </DialogContent>
             </Dialog>
-
-            {/* Document Action Dialog */}
-            <AlertDialog open={!!docAction} onOpenChange={() => setDocAction(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            {docAction?.action === 'approve' ? 'Подтвердить документ?' : 'Отклонить документ?'}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                            {docAction?.action === 'reject' ? (
-                                <div className="space-y-3">
-                                    <p>Укажите причину отклонения:</p>
-                                    <Textarea
-                                        value={rejectComment}
-                                        onChange={(e) => setRejectComment(e.target.value)}
-                                        placeholder="Причина отклонения..."
-                                    />
-                                </div>
-                            ) : (
-                                <p>Документ "{docAction?.doc.name}" будет отмечен как проверенный.</p>
-                            )}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isSubmitting}>Отмена</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={handleDocumentAction}
-                            disabled={isSubmitting || (docAction?.action === 'reject' && !rejectComment.trim())}
-                            className={docAction?.action === 'approve' ? 'bg-emerald-500' : 'bg-rose-500'}
-                        >
-                            {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                            {docAction?.action === 'approve' ? 'Подтвердить' : 'Отклонить'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
 
             {/* Delete Document Dialog */}
             <AlertDialog open={!!deleteDoc} onOpenChange={() => setDeleteDoc(null)}>

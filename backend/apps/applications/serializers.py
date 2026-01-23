@@ -2,7 +2,7 @@
 API Serializers for Applications.
 """
 from rest_framework import serializers
-from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, CalculationSession
+from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, CalculationSession, Lead, LeadSource, LeadStatus
 
 
 class CalculationSessionSerializer(serializers.ModelSerializer):
@@ -106,10 +106,11 @@ class ApplicationDocumentSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True)
     file_url = serializers.SerializerMethodField()
-    document_type = serializers.CharField(read_only=True)
-    type_display = serializers.CharField(source='get_document_type_display', read_only=True)
+    document_type_id = serializers.IntegerField(read_only=True)
+    type_display = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+
 
     def get_file_url(self, obj):
         if obj.file:
@@ -345,12 +346,24 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        """Only drafts can be updated."""
+        """
+        Only drafts can be fully updated.
+        Non-drafts allow updating ONLY documents and notes.
+        """
         if self.instance and not self.instance.is_editable:
-            raise serializers.ValidationError(
-                'Можно редактировать только черновики.'
-            )
+            # Check if any restricted fields are being updated
+            restricted_fields = [
+                field for field in attrs.keys() 
+                if field not in ['document_ids', 'notes']
+            ]
+            
+            if restricted_fields:
+                raise serializers.ValidationError(
+                    f'Заявка отправлена. Редактирование полей {", ".join(restricted_fields)} запрещено.'
+                )
+                
         return attrs
+
 
     def update(self, instance, validated_data):
         """Update application and documents."""
@@ -641,3 +654,86 @@ class TicketMessageCreateSerializer(serializers.ModelSerializer):
         # Normalize content
         attrs['content'] = content
         return attrs
+
+
+# =============================================================================
+# LEAD SERIALIZERS (Public API - no authentication required)
+# =============================================================================
+
+class LeadSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Lead model.
+    Used by admin to view and manage leads.
+    """
+    product_type_display = serializers.CharField(source='get_product_type_display', read_only=True)
+    guarantee_type_display = serializers.CharField(source='get_guarantee_type_display', read_only=True)
+    source_display = serializers.CharField(source='get_source_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    assigned_to_email = serializers.EmailField(source='assigned_to.email', read_only=True)
+    
+    class Meta:
+        model = Lead
+        fields = [
+            'id',
+            'full_name',
+            'phone',
+            'email',
+            'product_type',
+            'product_type_display',
+            'guarantee_type',
+            'guarantee_type_display',
+            'amount',
+            'term_months',
+            'source',
+            'source_display',
+            'utm_source',
+            'utm_medium',
+            'utm_campaign',
+            'status',
+            'status_display',
+            'assigned_to',
+            'assigned_to_email',
+            'notes',
+            'converted_application',
+            'created_at',
+            'updated_at',
+            'contacted_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class LeadCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating leads from public website.
+    No authentication required - used by GuaranteeCalculator.
+    
+    Minimal validation to accept as many leads as possible.
+    """
+    class Meta:
+        model = Lead
+        fields = [
+            'full_name',
+            'phone',
+            'email',
+            'product_type',
+            'guarantee_type',
+            'amount',
+            'term_months',
+            'source',
+            'utm_source',
+            'utm_medium',
+            'utm_campaign',
+        ]
+    
+    def validate_phone(self, value):
+        """Basic phone validation - strip spaces and check length."""
+        cleaned = ''.join(c for c in value if c.isdigit() or c == '+')
+        if len(cleaned) < 10:
+            raise serializers.ValidationError('Некорректный номер телефона')
+        return cleaned
+    
+    def validate_full_name(self, value):
+        """Ensure name is not empty."""
+        if not value or len(value.strip()) < 2:
+            raise serializers.ValidationError('Укажите ФИО')
+        return value.strip()

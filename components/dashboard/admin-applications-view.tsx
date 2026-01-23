@@ -68,14 +68,14 @@ interface AdminApplicationsViewProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-    draft: { label: "Черновик", color: "text-gray-500", bgColor: "bg-gray-500/10" },
-    pending: { label: "Новая", color: "text-amber-500", bgColor: "bg-amber-500/10" },
-    in_review: { label: "В работе", color: "text-blue-500", bgColor: "bg-blue-500/10" },
-    info_requested: { label: "Запрос", color: "text-orange-500", bgColor: "bg-orange-500/10" },
-    approved: { label: "Одобрено", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
-    rejected: { label: "Отклонено", color: "text-rose-500", bgColor: "bg-rose-500/10" },
-    won: { label: "Выигран", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
-    lost: { label: "Проигран", color: "text-rose-500", bgColor: "bg-rose-500/10" },
+    draft: { label: "Создание заявки", color: "text-gray-500", bgColor: "bg-gray-500/10" },
+    pending: { label: "Отправка на скоринг", color: "text-[#3CE8D1]", bgColor: "bg-[#3CE8D1]/10" },
+    in_review: { label: "На рассмотрении в банке", color: "text-blue-500", bgColor: "bg-blue-500/10" },
+    info_requested: { label: "Возвращение на доработку", color: "text-orange-500", bgColor: "bg-orange-500/10" },
+    approved: { label: "Одобрен", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
+    rejected: { label: "Отказано", color: "text-rose-500", bgColor: "bg-rose-500/10" },
+    won: { label: "Выдан", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
+    lost: { label: "Не выдан", color: "text-rose-500", bgColor: "bg-rose-500/10" },
 }
 
 const PRODUCT_TABS = [
@@ -712,16 +712,16 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                             <SelectTrigger className="w-full sm:w-[160px]">
                                 <SelectValue placeholder="Статус" />
                             </SelectTrigger>
-                            <SelectContent>
+<SelectContent>
                                 <SelectItem value="all">Все статусы</SelectItem>
-                                <SelectItem value="draft">Черновик</SelectItem>
-                                <SelectItem value="pending">Новая</SelectItem>
-                                <SelectItem value="in_review">В работе</SelectItem>
-                                <SelectItem value="info_requested">Запрос инфо</SelectItem>
-                                <SelectItem value="approved">Одобрено</SelectItem>
-                                <SelectItem value="rejected">Отклонено</SelectItem>
-                                <SelectItem value="won">Выигран</SelectItem>
-                                <SelectItem value="lost">Проигран</SelectItem>
+                                <SelectItem value="draft">Создание заявки</SelectItem>
+                                <SelectItem value="pending">Отправка на скоринг</SelectItem>
+                                <SelectItem value="in_review">На рассмотрении в банке</SelectItem>
+                                <SelectItem value="info_requested">На доработке</SelectItem>
+                                <SelectItem value="approved">Одобрен</SelectItem>
+                                <SelectItem value="rejected">Отказано</SelectItem>
+                                <SelectItem value="won">Выдан</SelectItem>
+                                <SelectItem value="lost">Не выдан</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -120,9 +121,9 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
           </div>
 
           <div className="flex justify-end">
-            <button type="button" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+            <Link href="/forgot-password" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
               Забыли пароль?
-            </button>
+            </Link>
           </div>
 
           <Button

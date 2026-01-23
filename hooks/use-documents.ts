@@ -7,7 +7,7 @@
  */
 "use client"
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api, { type ApiError } from '@/lib/api';
 import { getDocumentTypeName } from '@/lib/document-types';
 
@@ -25,11 +25,8 @@ export interface Document {
     product_type: string;         // NEW: Product context
     type_display: string;
     source_display?: string;      // NEW: Who uploads ("Агент", "Банк", "Автоматически")
-    status: 'pending' | 'verified' | 'rejected' | 'not_allowed';
+    status: string;
     status_display: string;
-    rejection_reason: string;
-    verified_at: string | null;
-    verified_by: number | null;
     uploaded_at: string;
     updated_at: string;
 }
@@ -55,7 +52,7 @@ export interface UploadDocumentPayload {
     file: File;
     document_type_id: number;    // NEW: Numeric ID
     product_type?: string;        // NEW: Product context (optional)
-    company?: number;
+    company?: number | null;
 }
 
 export interface PaginatedResponse<T> {
@@ -123,7 +120,7 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
     };
 }
 
-// Hook for verified documents (for application attachment)
+// Hook for documents (for application attachment)
 export function useVerifiedDocuments(productType?: string) {
     const [documents, setDocuments] = useState<DocumentListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -140,14 +137,7 @@ export function useVerifiedDocuments(productType?: string) {
             }
 
             const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
-            const allDocs = response.results;
-
-            // Filter to include only verified and pending (exclude rejected)
-            const availableDocs = allDocs.filter(
-                doc => doc.status === 'verified' || doc.status === 'pending'
-            );
-
-            setDocuments(availableDocs);
+            setDocuments(response.results);
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError.message || 'Ошибка загрузки документов');
@@ -204,15 +194,25 @@ export function useDocument(id: number | null) {
 }
 
 // Hook for document mutations
-export function useDocumentMutations() {
+export function useDocumentMutations(): {
+    isLoading: boolean;
+    error: string | null;
+    uploadProgress: number;
+    uploadDocument: (payload: UploadDocumentPayload) => Promise<Document | null>;
+    deleteDocument: (id: number) => Promise<boolean>;
+    clearError: () => void;
+    getLastError: () => string | null;
+} {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const lastErrorRef = useRef<string | null>(null);
 
     const uploadDocument = useCallback(async (payload: UploadDocumentPayload): Promise<Document | null> => {
         setIsLoading(true);
         setError(null);
         setUploadProgress(0);
+        lastErrorRef.current = null;
 
         try {
             const formData = new FormData();
@@ -226,6 +226,13 @@ export function useDocumentMutations() {
                 formData.append('company', payload.company.toString());
             }
 
+            console.log('[useDocumentMutations] Uploading payload:', {
+                name: payload.name,
+                document_type_id: payload.document_type_id,
+                product_type: payload.product_type,
+                company: payload.company
+            });
+
             const response = await api.uploadWithProgress<Document>(
                 '/documents/',
                 formData,
@@ -233,9 +240,22 @@ export function useDocumentMutations() {
             );
 
             return response;
-        } catch (err) {
+        } catch (err: any) {
+            console.error('[useDocumentMutations] Full error object:', err);
             const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка загрузки документа');
+            console.error('[useDocumentMutations] Upload error details:', apiError.errors || apiError);
+            
+            // Format error message from field errors
+            let message = apiError.message || 'Ошибка загрузки документа';
+            if (apiError.errors && typeof apiError.errors === 'object') {
+                const fieldErrors = Object.entries(apiError.errors)
+                    .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                    .join('; ');
+                if (fieldErrors) message = `${message} (${fieldErrors})`;
+            }
+            
+            setError(message);
+            lastErrorRef.current = message;
             return null;
         } finally {
             setIsLoading(false);
@@ -245,37 +265,17 @@ export function useDocumentMutations() {
     const deleteDocument = useCallback(async (id: number): Promise<boolean> => {
         setIsLoading(true);
         setError(null);
+        lastErrorRef.current = null;
 
         try {
             await api.delete(`/documents/${id}/`);
             return true;
         } catch (err) {
             const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка удаления документа');
+            const message = apiError.message || 'Ошибка удаления документа';
+            setError(message);
+            lastErrorRef.current = message;
             return false;
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const verifyDocument = useCallback(async (
-        id: number,
-        status: 'verified' | 'rejected' | 'not_allowed',
-        rejectionReason?: string
-    ): Promise<Document | null> => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await api.post<Document>(`/documents/${id}/verify/`, {
-                status,
-                rejection_reason: rejectionReason || '',
-            });
-            return response;
-        } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка верификации документа');
-            return null;
         } finally {
             setIsLoading(false);
         }
@@ -287,8 +287,11 @@ export function useDocumentMutations() {
         uploadProgress,
         uploadDocument,
         deleteDocument,
-        verifyDocument,
-        clearError: () => setError(null),
+        clearError: () => {
+            setError(null);
+            lastErrorRef.current = null;
+        },
+        getLastError: () => lastErrorRef.current,
     };
 }
 
@@ -307,22 +310,4 @@ export function formatDocumentType(doc: DocumentListItem | Document): string {
     }
     // Fall back to client-side resolution
     return getDocumentTypeName(doc.document_type_id, doc.product_type || 'general');
-}
-
-/**
- * Get status badge color class.
- */
-export function getDocumentStatusColor(status: string): string {
-    switch (status) {
-        case 'verified':
-            return 'bg-green-500/20 text-green-400 border-green-500/30';
-        case 'pending':
-            return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-        case 'rejected':
-            return 'bg-red-500/20 text-red-400 border-red-500/30';
-        case 'not_allowed':
-            return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-        default:
-            return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
 }

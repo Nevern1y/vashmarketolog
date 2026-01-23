@@ -7,7 +7,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
-from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from .models import Document, DocumentRequest, DocumentRequestStatus
@@ -15,12 +14,11 @@ from .serializers import (
     DocumentSerializer,
     DocumentUploadSerializer,
     DocumentListSerializer,
-    DocumentVerifySerializer,
     DocumentRequestSerializer,
     DocumentRequestCreateSerializer,
     DocumentRequestFulfillSerializer,
 )
-from apps.users.permissions import IsAdmin, IsOwner, IsOwnerOrAdmin
+from apps.users.permissions import IsAdmin
 
 
 @extend_schema(tags=['Documents'])
@@ -40,7 +38,8 @@ class DocumentViewSet(viewsets.ModelViewSet):
     - ADMIN: Full access to all documents
     """
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
 
     def get_queryset(self):
         user = self.request.user
@@ -69,9 +68,10 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return DocumentUploadSerializer
-        if self.action == 'list':
+        if self.action in ['list', 'by_type', 'verified', 'by_user']:
             return DocumentListSerializer
         return DocumentSerializer
+
 
     def perform_create(self, serializer):
         """Set owner to current user on upload."""
@@ -94,33 +94,6 @@ class DocumentViewSet(viewsets.ModelViewSet):
         
         return super().destroy(request, *args, **kwargs)
 
-    @extend_schema(
-        request=DocumentVerifySerializer,
-        responses={200: DocumentSerializer}
-    )
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin], parser_classes=[JSONParser])
-    def verify(self, request, pk=None):
-        """
-        Verify or reject document (Admin only).
-        POST /api/documents/{id}/verify/
-        """
-        document = self.get_object()
-        serializer = DocumentVerifySerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        document.status = serializer.validated_data['status']
-        document.verified_at = timezone.now()
-        document.verified_by = request.user
-        
-        if serializer.validated_data['status'] == 'rejected':
-            document.rejection_reason = serializer.validated_data.get('rejection_reason', '')
-        else:
-            document.rejection_reason = ''
-        
-        document.save()
-        
-        return Response(DocumentSerializer(document, context={'request': request}).data)
-
     @extend_schema(responses={200: DocumentListSerializer(many=True)})
     @action(detail=False, methods=['get'])
     def by_type(self, request):
@@ -141,10 +114,11 @@ class DocumentViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def verified(self, request):
         """
-        Get only verified documents (for application attachment).
+        Get documents for application attachment.
+        Verification is disabled, so return all documents.
         GET /api/documents/verified/
         """
-        queryset = self.get_queryset().filter(status='verified')
+        queryset = self.get_queryset()
         serializer = DocumentListSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -167,18 +141,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
         queryset = Document.objects.filter(owner_id=user_id)
         serializer = DocumentListSerializer(queryset, many=True, context={'request': request})
         
-        # Add stats
-        stats = {
-            'total': queryset.count(),
-            'pending': queryset.filter(status='pending').count(),
-            'verified': queryset.filter(status='verified').count(),
-            'rejected': queryset.filter(status='rejected').count(),
-        }
-        
         return Response({
             'documents': serializer.data,
-            'stats': stats
+            'stats': {
+                'total': queryset.count(),
+            }
         })
+
 
 
 @extend_schema(tags=['Document Requests'])

@@ -5,7 +5,15 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers as nested_routers
 
-from .views import ApplicationViewSet, PartnerDecisionViewSet, ClientStatsView, TicketMessageViewSet, CalculationSessionViewSet
+from .views import (
+    ApplicationViewSet, 
+    PartnerDecisionViewSet, 
+    ClientStatsView, 
+    TicketMessageViewSet, 
+    CalculationSessionViewSet,
+    PublicLeadCreateView,
+    LeadViewSet,
+)
 
 # Main applications router
 router = DefaultRouter()
@@ -24,9 +32,16 @@ messages_router.register(r'messages', TicketMessageViewSet, basename='applicatio
 decisions_router = DefaultRouter()
 decisions_router.register(r'', PartnerDecisionViewSet, basename='decision')
 
+# Admin leads router
+leads_router = DefaultRouter()
+leads_router.register(r'', LeadViewSet, basename='lead')
+
 app_name = 'applications'
 
 urlpatterns = [
+    # PUBLIC: Lead creation (no auth required)
+    path('leads/', PublicLeadCreateView.as_view(), name='lead-create'),
+    
     # Client stats endpoint
     path('stats/client/', ClientStatsView.as_view(), name='client-stats'),
     
@@ -35,6 +50,9 @@ urlpatterns = [
     
     # Partner decisions (separate endpoint for viewing all)
     path('decisions/', include(decisions_router.urls)),
+    
+    # Admin leads management
+    path('admin/leads/', include(leads_router.urls)),
     
     # Standard CRUD + custom actions (MUST BE BEFORE nested routes to allow POST)
     path('', include(router.urls)),

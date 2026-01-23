@@ -67,7 +67,7 @@ class NewsCreateUpdateSerializer(serializers.ModelSerializer):
             'id', 'title', 'slug', 'summary', 'content', 'category_id',
             'image', 'is_featured', 'is_published', 'published_at',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'slug']  # slug is auto-generated from title
 
     def create(self, validated_data):
         # Set author to current user

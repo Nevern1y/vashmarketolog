@@ -22,14 +22,13 @@ class DocumentAdmin(admin.ModelAdmin):
         'document_type_id',
         'product_type',
         'type_display',
-        'status',
         'owner',
         'company',
         'uploaded_at',
     ]
-    list_filter = ['product_type', 'status', 'uploaded_at']
+    list_filter = ['product_type', 'uploaded_at']
     search_fields = ['name', 'owner__email', 'company__name']
-    readonly_fields = ['uploaded_at', 'updated_at', 'verified_at', 'verified_by', 'type_display']
+    readonly_fields = ['uploaded_at', 'updated_at', 'type_display']
     
     fieldsets = (
         ('Документ', {
@@ -37,9 +36,6 @@ class DocumentAdmin(admin.ModelAdmin):
         }),
         ('Владелец', {
             'fields': ('owner', 'company')
-        }),
-        ('Статус', {
-            'fields': ('status', 'rejection_reason', 'verified_at', 'verified_by')
         }),
         ('Даты', {
             'fields': ('uploaded_at', 'updated_at')

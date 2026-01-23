@@ -3,13 +3,12 @@
 import { useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   Search,
@@ -18,9 +17,6 @@ import {
   Download,
   Trash2,
   Eye,
-  CheckCircle2,
-  XCircle,
-  Clock,
   FileText,
   Filter,
   Loader2,
@@ -40,12 +36,9 @@ import {
 // Get document type options for filter (using general types for library)
 const documentTypeOptions = GENERAL_DOCUMENT_TYPES.slice(0, 20)
 
-type DocumentStatus = "pending" | "verified" | "rejected"
-
 export function MyDocumentsView() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterType, setFilterType] = useState("all")
-  const [filterStatus, setFilterStatus] = useState<DocumentStatus | "all">("all")
   const [isUploadOpen, setIsUploadOpen] = useState(false)
 
   // Upload form state
@@ -67,45 +60,12 @@ export function MyDocumentsView() {
     const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase())
     // NEW: Compare numeric IDs as strings for filter value
     const matchesType = filterType === "all" || String(doc.document_type_id) === filterType
-    const matchesStatus = filterStatus === "all" || doc.status === filterStatus
-    return matchesSearch && matchesType && matchesStatus
+    return matchesSearch && matchesType
   })
-
-  // Status badge
-  const getStatusBadge = (status: DocumentStatus) => {
-    switch (status) {
-      case "verified":
-        return (
-          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] hover:bg-[#3CE8D1]/20 gap-1">
-            <CheckCircle2 className="h-3 w-3" />
-            Подтвержден
-          </Badge>
-        )
-      case "rejected":
-        return (
-          <Badge variant="destructive" className="gap-1">
-            <XCircle className="h-3 w-3" />
-            Отклонен
-          </Badge>
-        )
-      case "pending":
-        return (
-          <Badge variant="secondary" className="gap-1">
-            <Clock className="h-3 w-3" />
-            На проверке
-          </Badge>
-        )
-      default:
-        return <Badge variant="secondary">{status}</Badge>
-    }
-  }
 
   // Stats
   const stats = {
     total: documents.length,
-    verified: documents.filter((d) => d.status === "verified").length,
-    rejected: documents.filter((d) => d.status === "rejected").length,
-    pending: documents.filter((d) => d.status === "pending").length,
   }
 
   // Handle file input click
@@ -207,7 +167,6 @@ export function MyDocumentsView() {
         <TableRow key={i}>
           <TableCell><Skeleton className="h-10 w-48" /></TableCell>
           <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-          <TableCell><Skeleton className="h-6 w-24" /></TableCell>
           <TableCell><Skeleton className="h-4 w-20" /></TableCell>
           <TableCell><Skeleton className="h-8 w-8" /></TableCell>
         </TableRow>
@@ -385,7 +344,7 @@ export function MyDocumentsView() {
       </Dialog>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-1">
         <Card className="shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -399,57 +358,6 @@ export function MyDocumentsView() {
                   <p className="text-2xl font-bold">{stats.total}</p>
                 )}
                 <p className="text-sm text-muted-foreground">Всего</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
-                <CheckCircle2 className="h-6 w-6 text-[#3CE8D1]" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats.verified}</p>
-                )}
-                <p className="text-sm text-muted-foreground">Подтверждено</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-destructive/10">
-                <XCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats.rejected}</p>
-                )}
-                <p className="text-sm text-muted-foreground">Отклонено</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="shadow-sm">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#f97316]/10">
-                <Clock className="h-6 w-6 text-[#f97316]" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{stats.pending}</p>
-                )}
-                <p className="text-sm text-muted-foreground">На проверке</p>
               </div>
             </div>
           </CardContent>
@@ -486,17 +394,6 @@ export function MyDocumentsView() {
                 </SelectContent>
               </Select>
 
-              <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as DocumentStatus | "all")}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="verified">Подтвержден</SelectItem>
-                  <SelectItem value="rejected">Отклонен</SelectItem>
-                  <SelectItem value="pending">На проверке</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
         </CardHeader>
@@ -506,7 +403,6 @@ export function MyDocumentsView() {
               <TableRow>
                 <TableHead>Название</TableHead>
                 <TableHead>Тип</TableHead>
-                <TableHead>Статус</TableHead>
                 <TableHead>Дата загрузки</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -516,7 +412,7 @@ export function MyDocumentsView() {
                 <TableSkeleton />
               ) : filteredDocuments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 [@media(max-height:820px)]:py-4">
+                  <TableCell colSpan={4} className="text-center py-8 [@media(max-height:820px)]:py-4">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <FileText className="h-8 w-8" />
                       <p>Документы не найдены</p>
@@ -544,9 +440,6 @@ export function MyDocumentsView() {
                       {formatDocumentType(doc)}
                     </TableCell>
 
-                    <TableCell>
-                      {getStatusBadge(doc.status as DocumentStatus)}
-                    </TableCell>
                     <TableCell>{formatDate(doc.uploaded_at)}</TableCell>
                     <TableCell>
                       <DropdownMenu>

@@ -1208,7 +1208,6 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-medium truncate">{doc.name}</p>
                                                     <p className="text-xs text-muted-foreground mt-0.5">{doc.type_display}</p>
-                                                    <Badge variant="outline" className="text-xs mt-2">{doc.status_display}</Badge>
                                                 </div>
                                             </div>
                                             {doc.file_url && (

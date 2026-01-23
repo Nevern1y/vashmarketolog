@@ -11,7 +11,7 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
         // Base styles - VISIBLE BACKGROUND for better UX
         'h-10 w-full min-w-0 rounded-md px-3 py-2 text-base md:text-sm',
         // Background & Border - HIGHLY VISIBLE
-        'bg-[#0d1526] border-2 border-[#3a4a6c] text-white',
+        'bg-input border-2 border-[#3a4a6c] text-white',
         // Placeholder
         'placeholder:text-[#6b7a94]',
         // File input
@@ -23,7 +23,7 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
         // Transitions
         'transition-all duration-200',
         // Disabled state
-        'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#1a2744]',
+        'disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-input',
         // Invalid state
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20',
         className,

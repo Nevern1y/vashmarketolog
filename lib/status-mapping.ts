@@ -40,43 +40,47 @@ export interface StatusConfig {
  * Maps Django status to visual configuration
  * Reference: PDF "Приложение А. Статусная модель"
  * 
+ * Customer-requested labels (2026-01):
+ * - Создание заявки, Отправка на скоринг, На рассмотрении в банке, 
+ * - Возвращение на доработку, Отказано, Одобрен, Выдан
+ * 
  * 🎨 DARK THEME COLORS:
  * - Use bright neon text colors for visibility
  * - Use 10-20% opacity backgrounds for glow effect
  * - Colors: Cyan (#3CE8D1), Yellow (#FFD93D), Magenta (#E03E9D), Orange (#FF521D)
  */
 export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
-    // Step 1: Draft / Анкета
+    // Step 1: Draft / Создание заявки
     draft: {
         step: 0,
-        label: 'Черновик',
-        stepLabel: 'Анкета',
+        label: 'Создание заявки',
+        stepLabel: 'Создание',
         color: 'text-slate-400',
         bgColor: 'bg-slate-700/50',
         isNegative: false,
     },
 
-    // Step 2: Review / Прескоринг + Проверка документов
+    // Step 2: Review / Прескоринг + На рассмотрении
     pending: {
         step: 1,
-        label: 'На рассмотрении',
-        stepLabel: 'Прескоринг',
+        label: 'Отправка на скоринг',
+        stepLabel: 'Скоринг',
         color: 'text-[#3CE8D1]',
         bgColor: 'bg-[#3CE8D1]/10',
         isNegative: false,
     },
     in_review: {
         step: 1,
-        label: 'В работе',
-        stepLabel: 'Проверка документов',
+        label: 'На рассмотрении в банке',
+        stepLabel: 'На рассмотрении',
         color: 'text-[#4F7DF3]',
         bgColor: 'bg-[#4F7DF3]/10',
         isNegative: false,
     },
     info_requested: {
         step: 1,
-        label: 'Дозаполнение',
-        stepLabel: 'Запрос информации',
+        label: 'Возвращение на доработку',
+        stepLabel: 'На доработке',
         color: 'text-[#FFD93D]',
         bgColor: 'bg-[#FFD93D]/10',
         isNegative: false,
@@ -85,46 +89,46 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
     // Step 3: Decision / Решение
     approved: {
         step: 2,
-        label: 'Одобрено',
-        stepLabel: 'Одобрено',
+        label: 'Одобрен',
+        stepLabel: 'Одобрен',
         color: 'text-[#3CE8D1]',
         bgColor: 'bg-[#3CE8D1]/15',
         isNegative: false,
     },
     rejected: {
         step: 2,
-        label: 'Отклонено',
-        stepLabel: 'Отклонено',
+        label: 'Отказано',
+        stepLabel: 'Отказано',
         color: 'text-[#E03E9D]',
         bgColor: 'bg-[#E03E9D]/10',
         isNegative: true,
     },
 
-    // Step 4: Done / Выпущена
+    // Step 4: Done / Выдан
     won: {
         step: 3,
-        label: 'Выигран',
-        stepLabel: 'Выпущена',
+        label: 'Выдан',
+        stepLabel: 'Выдан',
         color: 'text-[#3CE8D1]',
         bgColor: 'bg-[#3CE8D1]/20',
         isNegative: false,
     },
     lost: {
         step: 3,
-        label: 'Проигран',
-        stepLabel: 'Проигран',
+        label: 'Не выдан',
+        stepLabel: 'Не выдан',
         color: 'text-[#FF521D]',
         bgColor: 'bg-[#FF521D]/10',
         isNegative: true,
     },
 };
 
-// Stepper labels (fixed 4 steps)
+// Stepper labels (fixed 4 steps) - Customer-requested labels
 export const STEPPER_LABELS = [
-    'Черновик',      // Step 0
-    'На проверке',   // Step 1
+    'Создание',      // Step 0
+    'Рассмотрение',  // Step 1
     'Решение',       // Step 2
-    'Выпущена',      // Step 3
+    'Выдан',         // Step 3
 ] as const;
 
 /**
@@ -191,59 +195,6 @@ export function getDocumentTypeLabel(productDocumentId: number | undefined, fall
         return DOCUMENT_TYPE_LABELS[productDocumentId];
     }
     return fallbackName;
-}
-
-
-// ============================================
-// DOCUMENT STATUS MAPPING
-// Reference: Django DocumentStatus model
-// 🎨 Updated for Dark Theme
-// ============================================
-
-export type DjangoDocumentStatus = 'pending' | 'verified' | 'rejected';
-
-export interface DocStatusConfig {
-    label: string;
-    color: string;
-    bgColor: string;
-    iconType: 'clock' | 'check' | 'x';
-}
-
-export const DOC_STATUS_CONFIG: Record<DjangoDocumentStatus, DocStatusConfig> = {
-    pending: {
-        label: 'На проверке',
-        color: 'text-[#FFD93D]',
-        bgColor: 'bg-[#FFD93D]/10',
-        iconType: 'clock',
-    },
-    verified: {
-        label: 'Принят',
-        color: 'text-[#3CE8D1]',
-        bgColor: 'bg-[#3CE8D1]/10',
-        iconType: 'check',
-    },
-    rejected: {
-        label: 'Отклонён',
-        color: 'text-[#E03E9D]',
-        bgColor: 'bg-[#E03E9D]/10',
-        iconType: 'x',
-    },
-};
-
-/**
- * Get document status configuration
- */
-export function getDocStatusConfig(status: string): DocStatusConfig {
-    const config = DOC_STATUS_CONFIG[status as DjangoDocumentStatus];
-    if (config) return config;
-
-    // Fallback
-    return {
-        label: status,
-        color: 'text-slate-400',
-        bgColor: 'bg-slate-700/50',
-        iconType: 'clock',
-    };
 }
 
 

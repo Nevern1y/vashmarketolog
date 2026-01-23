@@ -22,6 +22,12 @@ from .views import (
     MyAgentsView,
     # Client invitation registration
     InvitedClientRegisterView,
+    # Email verification
+    SendVerificationEmailView,
+    VerifyEmailView,
+    # Password reset
+    PasswordResetRequestView,
+    PasswordResetConfirmView,
 )
 
 app_name = 'users'
@@ -37,6 +43,14 @@ urlpatterns = [
     # User profile endpoints
     path('me/', MeView.as_view(), name='me'),
     path('password/change/', PasswordChangeView.as_view(), name='password_change'),
+    
+    # Email verification
+    path('email/send-verification/', SendVerificationEmailView.as_view(), name='send_verification_email'),
+    path('email/verify/<str:token>/', VerifyEmailView.as_view(), name='verify_email'),
+    
+    # Password reset
+    path('password/reset/', PasswordResetRequestView.as_view(), name='password_reset_request'),
+    path('password/reset/confirm/<str:token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     
     # Partner invite endpoints
     path('accept-invite/<uuid:token>/', PartnerAcceptInviteView.as_view(), name='accept_invite'),

@@ -114,12 +114,10 @@ export function AccreditationView() {
       : hasDirector ? "in-progress" : "pending"
 
     // Step 4: Documents - OPTIONAL for creating applications
-    const verifiedDocs = documents.filter(d => d.status === "verified")
-    const pendingDocs = documents.filter(d => d.status === "pending")
-    const hasVerifiedDocs = verifiedDocs.length > 0
-    const documentsStatus: AccreditationStep["status"] = hasVerifiedDocs
+    const hasDocuments = documents.length > 0
+    const documentsStatus: AccreditationStep["status"] = hasDocuments
       ? "completed"
-      : (hasBankDetails && documents.length > 0) ? "in-progress" : "pending"
+      : hasBankDetails ? "in-progress" : "pending"
 
     // Build document list for in-progress bank/documents step
     // UPDATED: Using numeric IDs per Приложение Б
@@ -134,21 +132,21 @@ export function AccreditationView() {
       {
         name: "Паспорт (все страницы)",
         docTypeId: ACCREDITATION_DOC_IDS.PASSPORT,
-        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.PASSPORT && (d.status === "verified" || d.status === "pending"))
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.PASSPORT)
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Устав компании",
         docTypeId: ACCREDITATION_DOC_IDS.STATUTE,
-        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.STATUTE && (d.status === "verified" || d.status === "pending"))
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.STATUTE)
           ? "uploaded" as const
           : "pending" as const
       },
       {
         name: "Бухгалтерский баланс Ф1",
         docTypeId: ACCREDITATION_DOC_IDS.BALANCE_SHEET,
-        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.BALANCE_SHEET && (d.status === "verified" || d.status === "pending"))
+        status: documents.some(d => d.document_type_id === ACCREDITATION_DOC_IDS.BALANCE_SHEET)
           ? "uploaded" as const
           : "pending" as const
       },
@@ -156,7 +154,7 @@ export function AccreditationView() {
 
 
     // Step 5: Verification (requires all previous + admin approval)
-    const allPreviousComplete = hasCompanyBasic && hasDirector && hasBankDetails && hasVerifiedDocs
+    const allPreviousComplete = hasCompanyBasic && hasDirector && hasBankDetails && hasDocuments
     const verificationStatus: AccreditationStep["status"] = "pending" // Always pending until admin verifies
 
     return [

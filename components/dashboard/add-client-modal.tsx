@@ -117,18 +117,14 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent className="w-[95vw] max-w-[640px] sm:max-w-[680px] md:max-w-[720px] max-h-[85vh] overflow-y-auto">
-                <div className="sr-only">
-                    <DialogTitle>Добавление нового клиента</DialogTitle>
-                    <DialogDescription>Форма создания новой карточки клиента</DialogDescription>
-                </div>
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#3CE8D1]/10">
                             <Building2 className="h-5 w-5 text-[#3CE8D1]" />
                         </div>
                         <div>
-                            <DialogTitle className="text-lg">ДОБАВЛЕНИЕ НОВОГО КЛИЕНТА</DialogTitle>
+                            <DialogTitle>ДОБАВЛЕНИЕ НОВОГО КЛИЕНТА</DialogTitle>
                             <DialogDescription>
                                 Заполните данные для добавления клиента в CRM
                             </DialogDescription>

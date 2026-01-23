@@ -12,7 +12,6 @@ import {
     LogOut,
     ChevronLeft,
     Menu,
-    FileCheck,
     Newspaper,
     UserCheck,
     X,
@@ -20,6 +19,7 @@ import {
     Settings,
     Lock,
     User,
+    PhoneIncoming,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
@@ -28,9 +28,9 @@ import { AdminApplicationsView } from "./admin-applications-view"
 import { AdminAgentsView } from "./admin-agents-view"
 import { AdminStatisticsView } from "./admin-statistics-view"
 import { AdminApplicationDetail } from "./admin-application-detail"
-import { AdminDocumentsView } from "./admin-documents-view"
 import { AdminNewsView } from "./admin-news-view"
 import { AdminCRMClientsView } from "./admin-crm-clients-view"
+import { AdminLeadsView } from "./admin-leads-view"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import {
     DropdownMenu,
@@ -46,19 +46,19 @@ import { ProfileSettingsView } from "./profile-settings-view"
 // Sidebar Navigation Items
 // ============================================
 
-type AdminView = "applications" | "agents" | "clients" | "documents" | "partners" | "statistics" | "news" | "profile-settings"
+type AdminView = "applications" | "leads" | "agents" | "clients" | "partners" | "statistics" | "news" | "profile-settings"
 
 const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "applications", label: "Заявки", icon: FileText },
+    { id: "leads", label: "Лиды с сайта", icon: PhoneIncoming },
     { id: "agents", label: "Агенты", icon: Users },
     { id: "clients", label: "Клиенты", icon: UserCheck },
-    { id: "documents", label: "Документы", icon: FileCheck },
     { id: "news", label: "Новости", icon: Newspaper },
     { id: "partners", label: "Партнёры", icon: Building2 },
     { id: "statistics", label: "Статистика", icon: BarChart3 },
 ]
 
-const ADMIN_VIEWS: AdminView[] = ["applications", "agents", "clients", "documents", "partners", "statistics", "news", "profile-settings"]
+const ADMIN_VIEWS: AdminView[] = ["applications", "leads", "agents", "clients", "partners", "statistics", "news", "profile-settings"]
 
 // ============================================
 // Admin Sidebar Component (reusable for desktop & mobile)
@@ -289,12 +289,12 @@ export function AdminDashboard() {
         switch (activeView) {
             case "applications":
                 return <AdminApplicationsView onSelectApplication={handleSelectApplication} />
+            case "leads":
+                return <AdminLeadsView />
             case "agents":
                 return <AdminAgentsView />
             case "clients":
                 return <AdminCRMClientsView />
-            case "documents":
-                return <AdminDocumentsView />
             case "news":
                 return <AdminNewsView />
             case "partners":

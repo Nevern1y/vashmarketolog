@@ -168,7 +168,7 @@ export function AdminAccreditationView() {
             REQUIRED_DOCS.forEach(d => { init[d.id.toString()] = false })
             // Mark verified documents
             selected.documents?.forEach(doc => {
-                if (doc.status === 'verified' && doc.document_type_id) {
+                if (doc.document_type_id) {
                     init[doc.document_type_id.toString()] = true
                 }
             })

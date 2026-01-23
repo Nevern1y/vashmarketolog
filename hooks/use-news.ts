@@ -234,8 +234,23 @@ export function useNewsMutations() {
             return response
         } catch (err: any) {
             console.error('Error creating news:', err)
-            setError(err.message || 'Ошибка создания новости')
-            toast.error('Ошибка создания новости')
+            // Extract detailed error message from API response
+            let errorMsg = 'Ошибка создания новости'
+            if (err.errors) {
+                const fieldErrors: string[] = []
+                for (const [field, errors] of Object.entries(err.errors)) {
+                    if (Array.isArray(errors) && errors.length > 0) {
+                        fieldErrors.push(`${field}: ${errors[0]}`)
+                    }
+                }
+                if (fieldErrors.length > 0) {
+                    errorMsg = fieldErrors.join('; ')
+                }
+            } else if (err.message) {
+                errorMsg = err.message
+            }
+            setError(errorMsg)
+            toast.error('Ошибка создания новости', { description: errorMsg })
             return null
         } finally {
             setIsLoading(false)
@@ -332,8 +347,23 @@ export function useCategoryMutations() {
             return response
         } catch (err: any) {
             console.error('Error creating category:', err)
-            setError(err.message || 'Ошибка создания категории')
-            toast.error('Ошибка создания категории')
+            // Extract detailed error message from API response
+            let errorMsg = 'Ошибка создания категории'
+            if (err.errors) {
+                const fieldErrors: string[] = []
+                for (const [field, errors] of Object.entries(err.errors)) {
+                    if (Array.isArray(errors) && errors.length > 0) {
+                        fieldErrors.push(`${field}: ${errors[0]}`)
+                    }
+                }
+                if (fieldErrors.length > 0) {
+                    errorMsg = fieldErrors.join('; ')
+                }
+            } else if (err.message) {
+                errorMsg = err.message
+            }
+            setError(errorMsg)
+            toast.error('Ошибка создания категории', { description: errorMsg })
             return null
         } finally {
             setIsLoading(false)

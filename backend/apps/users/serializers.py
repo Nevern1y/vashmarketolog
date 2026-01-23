@@ -315,8 +315,7 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
     Shows agents pending review with their FULL company info.
     Includes comprehensive company data for thorough accreditation review (ТЗ Аккредитация).
     
-    IMPORTANT: Agent accreditation requires thorough verification to prevent fraud.
-    All company registration data, director passport, and documents must be verified.
+    IMPORTANT: Agent accreditation reviews company data and uploaded documents.
     """
     # Basic company info
     company_name = serializers.SerializerMethodField()

@@ -139,24 +139,12 @@ class Document(models.Model):
         help_text='Контекст продукта (bank_guarantee, contract_loan, etc.)'
     )
     
-    # Verification status
+    # Document status (auto-verified on upload - no admin verification needed)
     status = models.CharField(
         'Статус',
         max_length=20,
         choices=DocumentStatus.choices,
-        default=DocumentStatus.PENDING
-    )
-    rejection_reason = models.TextField('Причина отклонения', blank=True, default='')
-    
-    # Verification audit trail
-    verified_at = models.DateTimeField('Дата проверки', null=True, blank=True)
-    verified_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='verified_documents',
-        verbose_name='Проверил'
+        default=DocumentStatus.VERIFIED
     )
     
     # Timestamps
@@ -181,18 +169,6 @@ class Document(models.Model):
             return self.file.name.split('.')[-1].lower()
         return ''
 
-    @property
-    def is_verified(self):
-        return self.status == DocumentStatus.VERIFIED
-
-    @property
-    def is_rejected(self):
-        return self.status == DocumentStatus.REJECTED
-
-    @property
-    def is_pending(self):
-        return self.status == DocumentStatus.PENDING
-    
     def get_type_definition(self):
         """
         Get the DocumentTypeDefinition for this document.

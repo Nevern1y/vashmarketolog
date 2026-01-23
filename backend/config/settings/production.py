@@ -17,6 +17,35 @@ ALLOWED_HOSTS = os.getenv(
 ).split(',')
 
 # =============================================================================
+# EMAIL CONFIGURATION
+# =============================================================================
+# Email backend - use SMTP for production
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend'
+)
+
+# SMTP server settings
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.yandex.ru')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '465'))
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'True').lower() == 'true'
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False').lower() == 'true'
+
+# SMTP authentication
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+
+# Default sender
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+
+# Email subject prefix for admin notifications
+EMAIL_SUBJECT_PREFIX = '[Лидер Гарант] '
+
+# Timeout for email sending (seconds)
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '30'))
+
+# =============================================================================
 # HTTPS / SSL ENFORCEMENT
 # =============================================================================
 # These should be True when behind an HTTPS reverse proxy (Nginx with SSL)

@@ -42,13 +42,10 @@ import {
     CreditCard,
     Trash2,
     Eye,
-    CheckCircle2,
-    Clock,
-    XCircle,
 } from "lucide-react"
 import { toast } from "sonner"
 import { useBankConditions, type BankCondition, type IndividualReviewCondition } from "@/hooks/use-bank-conditions"
-import { useDocuments, useDocumentMutations, type DocumentListItem, formatDocumentType, getDocumentStatusColor } from "@/hooks/use-documents"
+import { useDocuments, useDocumentMutations, type DocumentListItem, formatDocumentType } from "@/hooks/use-documents"
 import {
     Accordion,
     AccordionContent,
@@ -248,34 +245,6 @@ export function AgentDocumentsView({ initialTab = "bank_conditions", hideTabs = 
             })
         } catch {
             return dateStr
-        }
-    }
-
-    // Get status badge
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "verified":
-                return (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Подтвержден
-                    </Badge>
-                )
-            case "rejected":
-                return (
-                    <Badge variant="destructive" className="gap-1">
-                        <XCircle className="h-3 w-3" />
-                        Отклонен
-                    </Badge>
-                )
-            case "pending":
-            default:
-                return (
-                    <Badge className="bg-amber-500/10 text-amber-500 gap-1">
-                        <Clock className="h-3 w-3" />
-                        На проверке
-                    </Badge>
-                )
         }
     }
 
@@ -736,7 +705,6 @@ export function AgentDocumentsView({ initialTab = "bank_conditions", hideTabs = 
                                             <TableRow>
                                                 <TableHead>Название</TableHead>
                                                 <TableHead>Тип</TableHead>
-                                                <TableHead>Статус</TableHead>
                                                 <TableHead>Дата загрузки</TableHead>
                                                 <TableHead className="text-right">Действия</TableHead>
                                             </TableRow>
@@ -752,9 +720,6 @@ export function AgentDocumentsView({ initialTab = "bank_conditions", hideTabs = 
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {formatDocumentType(doc)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {getStatusBadge(doc.status)}
                                                     </TableCell>
                                                     <TableCell className="text-muted-foreground">
                                                         {formatDate(doc.uploaded_at)}

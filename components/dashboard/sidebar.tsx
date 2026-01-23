@@ -9,12 +9,9 @@ import {
   Newspaper,
   Plus,
   HelpCircle,
-  Search,
   FileCheck,
   Landmark,
   PhoneCall,
-  LogOut,
-  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -45,7 +42,6 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
     { id: "calculator" as ViewType, label: "Калькулятор", icon: Calculator },
     { id: "banks" as ViewType, label: "Банки", icon: Landmark },
     { id: "acts" as ViewType, label: "Акты", icon: FileCheck },
-    { id: "check_counterparty" as ViewType, label: "Проверка контрагента", icon: Search },
   ]
 
   const toolsNavItems = [

@@ -10,6 +10,7 @@
 #   - All code from YOUR repository (no external submodules)
 #   - Real SSL certificates via Let's Encrypt
 #   - Database preserved between deploys (Docker volume)
+#   - Optional DB reset with RESET_DB=true
 #   - Safe container management (no data loss)
 #
 # =============================================================================
@@ -20,6 +21,7 @@ REPO_URL="https://github.com/Nevern1y/vashmarketolog"
 PROJECT_DIR="/opt/vashmarketolog"
 DOMAINS="lider-garant.ru www.lider-garant.ru lk.lider-garant.ru"
 EMAIL="admin@lider-garant.ru"  # For Let's Encrypt notifications
+RESET_DB="${RESET_DB:-false}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -29,6 +31,11 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}=== ДЕПЛОЙ LIDER GARANT на сервер 85.198.97.62 ===${NC}"
 echo ""
+
+if [ "$RESET_DB" = "true" ]; then
+    echo -e "${RED}!!! RESET_DB=true: база данных будет удалена !!!${NC}"
+    echo ""
+fi
 
 # =============================================================================
 # Шаг 1: Установка зависимостей
@@ -228,17 +235,18 @@ cd "$PROJECT_DIR"
 docker compose -f docker-compose.prod.yml down 2>/dev/null || true
 
 # Note: We do NOT use "docker compose down -v" - that would delete the database!
+# If you need to wipe DB, use RESET_DB=true (see Step 5.5)
 
-echo -e "${GREEN}✓ Контейнеры остановлены (данные сохранены)${NC}"
+echo -e "${GREEN}✓ Контейнеры остановлены${NC}"
 echo ""
 
 # =============================================================================
-# Шаг 5.5: CLEAN DEPLOY - Полная очистка (сохраняя базу данных)
+# Шаг 5.5: CLEAN DEPLOY - Полная очистка (БД по умолчанию сохраняется)
 # =============================================================================
 echo -e "${YELLOW}Шаг 5.5: Полная очистка для сброса браузерного кэша...${NC}"
 
 # Сохраняем важные файлы перед очисткой
-echo "Сохраняем базу данных и сертификаты..."
+echo "Сохраняем конфигурацию и сертификаты..."
 
 # Backup .env file
 BACKUP_DIR="/tmp/lider_backup_$(date +%Y%m%d_%H%M%S)"
@@ -264,9 +272,23 @@ fi
 # Получаем имя volume с базой данных (сохраняем его!)
 DB_VOLUME=$(docker volume ls --format '{{.Name}}' | grep -E 'postgres_data|db_data|lider.*postgres' | head -1)
 if [ -n "$DB_VOLUME" ]; then
-    echo -e "  ${GREEN}✓ База данных будет сохранена в volume: $DB_VOLUME${NC}"
+    if [ "$RESET_DB" = "true" ]; then
+        echo -e "  ${YELLOW}⚠ База данных будет удалена (volume: $DB_VOLUME)${NC}"
+    else
+        echo -e "  ${GREEN}✓ База данных будет сохранена в volume: $DB_VOLUME${NC}"
+    fi
 else
     echo -e "  ${YELLOW}⚠ Volume с базой данных не найден (возможно, первый запуск)${NC}"
+fi
+
+if [ "$RESET_DB" = "true" ]; then
+    echo -e "${YELLOW}Удаляем volume базы данных...${NC}"
+    if [ -n "$DB_VOLUME" ]; then
+        docker volume rm "$DB_VOLUME" 2>/dev/null || true
+        echo -e "${GREEN}✓ Volume базы данных удален${NC}"
+    else
+        echo -e "${YELLOW}⚠ Volume с базой данных не найден, удаление пропущено${NC}"
+    fi
 fi
 
 # Удаляем все Docker images проекта (принудительная пересборка)
@@ -312,7 +334,11 @@ fi
 # Удаляем временный backup
 rm -rf "$BACKUP_DIR"
 
-echo -e "${GREEN}✓ Чистая установка подготовлена (база данных сохранена в Docker volume)${NC}"
+if [ "$RESET_DB" = "true" ]; then
+    echo -e "${GREEN}✓ Чистая установка подготовлена (база данных удалена)${NC}"
+else
+    echo -e "${GREEN}✓ Чистая установка подготовлена (база данных сохранена в Docker volume)${NC}"
+fi
 echo ""
 
 # =============================================================================
@@ -324,6 +350,20 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 echo -e "${GREEN}✓ Контейнеры запущены${NC}"
 echo ""
+
+# =============================================================================
+# Шаг 6.5: Инициализация новой базы данных (если RESET_DB=true)
+# =============================================================================
+if [ "$RESET_DB" = "true" ]; then
+    echo -e "${YELLOW}Шаг 6.5: Инициализация базы данных...${NC}"
+    echo "Ожидание готовности базы данных..."
+    sleep 15
+    docker compose -f docker-compose.prod.yml exec -T backend python manage.py migrate --noinput
+    docker compose -f docker-compose.prod.yml exec -T backend python scripts/migrate_landing_to_seo.py
+    docker compose -f docker-compose.prod.yml exec -T backend python manage.py shell -c "exec(open('scripts/seed_test_data.py').read())"
+    echo -e "${GREEN}✓ Миграции выполнены, админ и SEO данные созданы${NC}"
+    echo ""
+fi
 
 # =============================================================================
 # Шаг 7: Ожидание готовности сервисов
@@ -372,7 +412,7 @@ echo "  Статус:   docker compose -f docker-compose.prod.yml ps"
 echo "  Рестарт:  docker compose -f docker-compose.prod.yml restart"
 echo ""
 echo "База данных:"
-echo "  Volume 'postgres_data' сохраняется между деплоями"
+echo "  Volume 'postgres_data' сохраняется между деплоями (RESET_DB=true удаляет volume)"
 echo "  Для backup: docker exec lider_prod_db pg_dump -U postgres lider_garant > backup.sql"
 echo ""
 

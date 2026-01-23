@@ -188,36 +188,6 @@ export function useUserDocuments() {
         }
     }, [])
 
-    // Verify document (admin only)
-    const verifyDocument = useCallback(async (docId: number, status: 'verified' | 'rejected' | 'not_allowed', rejectionReason?: string): Promise<boolean> => {
-        setIsLoading(true)
-        try {
-            await api.post(`/documents/${docId}/verify/`, {
-                status,
-                rejection_reason: rejectionReason || ''
-            })
-            // Update local state
-            setDocuments(prev => prev.map(d =>
-                d.id === docId
-                    ? { ...d, status, status_display: status === 'verified' ? 'Проверен' : status === 'rejected' ? 'Отклонён' : 'Не допущен' }
-                    : d
-            ))
-            // Update stats
-            setStats(prev => ({
-                ...prev,
-                pending: Math.max(0, prev.pending - 1),
-                verified: status === 'verified' ? prev.verified + 1 : prev.verified,
-                rejected: status === 'rejected' || status === 'not_allowed' ? prev.rejected + 1 : prev.rejected,
-            }))
-            return true
-        } catch (err: any) {
-            setError(err.message || 'Ошибка проверки документа')
-            return false
-        } finally {
-            setIsLoading(false)
-        }
-    }, [])
-
     // Delete document (admin only)
     const deleteDocument = useCallback(async (docId: number): Promise<boolean> => {
         setIsLoading(true)
@@ -240,7 +210,6 @@ export function useUserDocuments() {
         isLoading,
         error,
         fetchUserDocuments,
-        verifyDocument,
         deleteDocument,
     }
 }

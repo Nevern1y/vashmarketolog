@@ -10,7 +10,7 @@ function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
         // Base styles
         'flex field-sizing-content min-h-20 w-full rounded-md px-3 py-2 text-base md:text-sm',
         // Background & Border - HIGHLY VISIBLE
-        'bg-[#0d1526] border-2 border-[#3a4a6c] text-white',
+        'bg-input border-2 border-[#3a4a6c] text-white',
         // Placeholder
         'placeholder:text-[#6b7a94]',
         // Focus state - CYAN GLOW
@@ -18,7 +18,7 @@ function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
         // Transitions
         'transition-all duration-200',
         // Disabled & Invalid states
-        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#1a2744]',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-input',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20',
         className,
       )}

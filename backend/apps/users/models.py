@@ -160,6 +160,37 @@ class User(AbstractBaseUser, PermissionsMixin):
     date_joined = models.DateTimeField('Дата регистрации', default=timezone.now)
     updated_at = models.DateTimeField('Дата обновления', auto_now=True)
 
+    # Email verification
+    email_verified = models.BooleanField(
+        'Email подтверждён',
+        default=False,
+        help_text='Подтверждён ли email пользователя'
+    )
+    email_verification_token = models.CharField(
+        'Токен верификации email',
+        max_length=64,
+        blank=True,
+        null=True
+    )
+    email_verification_sent_at = models.DateTimeField(
+        'Дата отправки верификации',
+        null=True,
+        blank=True
+    )
+
+    # Password reset
+    password_reset_token = models.CharField(
+        'Токен сброса пароля',
+        max_length=64,
+        blank=True,
+        null=True
+    )
+    password_reset_sent_at = models.DateTimeField(
+        'Дата отправки сброса пароля',
+        null=True,
+        blank=True
+    )
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'

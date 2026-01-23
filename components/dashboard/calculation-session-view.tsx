@@ -10,7 +10,7 @@
  */
 
 import { useCalculationSession, useApplicationMutations, useCalculationSessionMutations, type CalculationSession } from "@/hooks/use-applications"
-import { useDocuments, formatDocumentType, getDocumentStatusColor } from "@/hooks/use-documents"
+import { useDocuments, formatDocumentType } from "@/hooks/use-documents"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -462,9 +462,6 @@ export function CalculationSessionView({
                                             <p className="text-sm font-medium text-white truncate">{formatDocumentType(doc)}</p>
                                             <p className="text-xs text-[#94a3b8] truncate">{doc.name}</p>
                                         </div>
-                                        <span className={cn("text-[10px] uppercase px-2 py-1 rounded-full border", getDocumentStatusColor(doc.status))}>
-                                            {doc.status_display || doc.status}
-                                        </span>
                                     </label>
                                 ))}
                             </div>

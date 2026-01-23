@@ -50,9 +50,6 @@ export type AppMode =
   | "agent-crm"
   | "partner-dashboard"
 
-// Document status for client documents
-export type DocumentStatus = "verified" | "rejected" | "pending"
-
 // Application status
 export type ApplicationStatus = "draft" | "pending" | "in-review" | "approved" | "rejected" | "won" | "lost"
 
@@ -80,10 +77,8 @@ export interface Document {
   id: string
   name: string
   type: string
-  status: DocumentStatus
   uploadedAt: string
   fileUrl?: string
-  rejectionReason?: string
 }
 
 // Partner application for Partner Dashboard

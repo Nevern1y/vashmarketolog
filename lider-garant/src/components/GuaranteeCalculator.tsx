@@ -5,9 +5,20 @@ import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
+import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import FadeIn from "@/components/FadeIn";
+
+// API URL for lead submission
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://lk.lider-garant.ru/api";
+
+// Map frontend guarantee types to backend enum values
+const guaranteeTypeMapping: Record<string, string> = {
+  tender: "application_security",
+  contract: "contract_execution",
+  warranty: "warranty_obligations",
+  advance: "advance_return",
+};
 
 const guaranteeTypes = [
   { value: "tender", label: "Участие в тендере" },
@@ -24,6 +35,7 @@ export default function GuaranteeCalculator() {
   const [fullname, setFullname] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneKey, setPhoneKey] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatNumber = (num: number) => {
     return num.toLocaleString("ru-RU");
@@ -48,16 +60,78 @@ export default function GuaranteeCalculator() {
     setMonths(Math.min(Math.max(value, 1), 120));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ guaranteeType, amount, months, discount, fullname, phone });
-
-    // Reset form
-    setFullname("");
-    setPhone("");
-    setPhoneKey((k) => k + 1);
-
-    toast.success("Заявка отправлена");
+    
+    // Validation
+    if (!fullname.trim() || fullname.trim().length < 2) {
+      toast.error("Пожалуйста, укажите ФИО");
+      return;
+    }
+    
+    if (!phone || phone.replace(/\D/g, "").length < 10) {
+      toast.error("Пожалуйста, укажите корректный номер телефона");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare lead data for API
+      const leadData = {
+        full_name: fullname.trim(),
+        phone: phone.replace(/\D/g, ""), // Strip non-digits
+        product_type: "bank_guarantee",
+        guarantee_type: guaranteeTypeMapping[guaranteeType] || "application_security",
+        amount: amount,
+        term_months: months,
+        source: "website_calculator",
+        // UTM parameters from URL if present
+        utm_source: typeof window !== "undefined" 
+          ? new URLSearchParams(window.location.search).get("utm_source") || ""
+          : "",
+        utm_medium: typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("utm_medium") || ""
+          : "",
+        utm_campaign: typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("utm_campaign") || ""
+          : "",
+      };
+      
+      const response = await fetch(`${API_URL}/applications/leads/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(leadData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.phone?.[0] 
+          || errorData.full_name?.[0] 
+          || errorData.detail 
+          || "Ошибка при отправке заявки";
+        throw new Error(errorMessage);
+      }
+      
+      // Success - reset form
+      setFullname("");
+      setPhone("");
+      setPhoneKey((k) => k + 1);
+      
+      toast.success("Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.");
+      
+    } catch (error) {
+      console.error("Lead submission error:", error);
+      toast.error(
+        error instanceof Error 
+          ? error.message 
+          : "Произошла ошибка при отправке. Попробуйте позже."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -322,8 +396,16 @@ export default function GuaranteeCalculator() {
                   type="submit"
                   className="w-full h-11 md:h-14 bg-primary btn-three text-sm md:text-base"
                   size="lg"
+                  disabled={isSubmitting}
                 >
-                  Отправить
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Отправка...
+                    </>
+                  ) : (
+                    "Отправить"
+                  )}
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center">

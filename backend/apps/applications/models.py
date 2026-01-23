@@ -107,15 +107,20 @@ class CreditSubType(models.TextChoices):
 
 
 class ApplicationStatus(models.TextChoices):
-    """Application workflow statuses (internal string-based)."""
-    DRAFT = 'draft', 'Черновик'
-    PENDING = 'pending', 'На рассмотрении'
-    IN_REVIEW = 'in_review', 'В работе'
-    INFO_REQUESTED = 'info_requested', 'Запрошена информация'
-    APPROVED = 'approved', 'Одобрено'
-    REJECTED = 'rejected', 'Отклонено'
-    WON = 'won', 'Выигран'
-    LOST = 'lost', 'Проигран'
+    """Application workflow statuses (internal string-based).
+    
+    Customer-requested labels (2026-01):
+    - Создание заявки, Отправка на скоринг, На рассмотрении в банке, 
+    - Возвращение на доработку, Отказано, Одобрен, Выдан
+    """
+    DRAFT = 'draft', 'Создание заявки'
+    PENDING = 'pending', 'Отправка на скоринг'
+    IN_REVIEW = 'in_review', 'На рассмотрении в банке'
+    INFO_REQUESTED = 'info_requested', 'Возвращение на доработку'
+    APPROVED = 'approved', 'Одобрен'
+    REJECTED = 'rejected', 'Отказано'
+    WON = 'won', 'Выдан'
+    LOST = 'lost', 'Не выдан'
 
 
 class ApplicationStatusDefinition(models.Model):
@@ -734,3 +739,155 @@ class TicketMessage(models.Model):
         if self.file:
             return self.file.url
         return None
+
+
+class LeadSource(models.TextChoices):
+    """Lead source types - where the lead came from."""
+    WEBSITE_CALCULATOR = 'website_calculator', 'Калькулятор на сайте'
+    WEBSITE_FORM = 'website_form', 'Форма на сайте'
+    LANDING_PAGE = 'landing_page', 'Лендинг'
+    PHONE = 'phone', 'Телефонный звонок'
+    OTHER = 'other', 'Другое'
+
+
+class LeadStatus(models.TextChoices):
+    """Lead processing status."""
+    NEW = 'new', 'Новый'
+    CONTACTED = 'contacted', 'Связались'
+    QUALIFIED = 'qualified', 'Квалифицирован'
+    CONVERTED = 'converted', 'Конвертирован в заявку'
+    REJECTED = 'rejected', 'Отклонён'
+
+
+class Lead(models.Model):
+    """
+    Lead model for public website submissions.
+    
+    Leads are created from public forms (no authentication required).
+    Admin can convert leads to full Applications once contact is made.
+    
+    Separate from Application to:
+    1. Allow public API without authentication
+    2. Track conversion funnel (site -> lead -> application)
+    3. Store minimal data before full onboarding
+    """
+    # Contact info (required)
+    full_name = models.CharField(
+        'ФИО',
+        max_length=200
+    )
+    phone = models.CharField(
+        'Телефон',
+        max_length=20
+    )
+    email = models.EmailField(
+        'Email',
+        blank=True,
+        default=''
+    )
+    
+    # Product info from calculator
+    product_type = models.CharField(
+        'Тип продукта',
+        max_length=30,
+        choices=ProductType.choices,
+        default=ProductType.BANK_GUARANTEE
+    )
+    guarantee_type = models.CharField(
+        'Тип гарантии',
+        max_length=30,
+        choices=GuaranteeType.choices,
+        blank=True,
+        default=''
+    )
+    amount = models.DecimalField(
+        'Сумма',
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+    term_months = models.IntegerField(
+        'Срок (месяцы)',
+        null=True,
+        blank=True
+    )
+    
+    # Source tracking
+    source = models.CharField(
+        'Источник',
+        max_length=30,
+        choices=LeadSource.choices,
+        default=LeadSource.WEBSITE_CALCULATOR
+    )
+    utm_source = models.CharField(
+        'UTM Source',
+        max_length=100,
+        blank=True,
+        default=''
+    )
+    utm_medium = models.CharField(
+        'UTM Medium',
+        max_length=100,
+        blank=True,
+        default=''
+    )
+    utm_campaign = models.CharField(
+        'UTM Campaign',
+        max_length=100,
+        blank=True,
+        default=''
+    )
+    
+    # Processing
+    status = models.CharField(
+        'Статус',
+        max_length=20,
+        choices=LeadStatus.choices,
+        default=LeadStatus.NEW
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_leads',
+        verbose_name='Назначен'
+    )
+    notes = models.TextField(
+        'Заметки',
+        blank=True,
+        default=''
+    )
+    
+    # Conversion tracking
+    converted_application = models.ForeignKey(
+        Application,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='source_lead',
+        verbose_name='Созданная заявка'
+    )
+    
+    # Timestamps
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    contacted_at = models.DateTimeField(
+        'Дата контакта',
+        null=True,
+        blank=True
+    )
+    
+    class Meta:
+        verbose_name = 'Лид'
+        verbose_name_plural = 'Лиды'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Лид #{self.id} - {self.full_name} - {self.phone}"
+    
+    @property
+    def is_convertible(self):
+        """Can convert to application if qualified and not yet converted."""
+        return self.status == LeadStatus.QUALIFIED and not self.converted_application

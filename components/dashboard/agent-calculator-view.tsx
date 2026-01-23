@@ -1318,13 +1318,13 @@ export function AgentCalculatorView() {
         </div>
     )
 
-    // Insurance Results (uses calculatedOffers)
+    // Insurance Results (uses INSURANCE_COMPANIES)
     const InsuranceResultsView = () => (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <Button variant="ghost" onClick={backToForm}><ArrowLeft className="h-4 w-4 mr-2" />Назад</Button>
                 <h2 className="text-xl font-bold">Результат расчета страхования</h2>
-                <Badge variant="default" className="bg-green-600">Предложений: {calculatedOffers.approved.length}</Badge>
+                <Badge variant="default" className="bg-green-600">Компаний: {INSURANCE_COMPANIES.length}</Badge>
             </div>
 
             <div className="bg-muted/30 p-3 rounded-lg text-sm">
@@ -1337,7 +1337,7 @@ export function AgentCalculatorView() {
 
             <Card>
                 <CardHeader className="py-3">
-                    <span className="text-green-500 font-bold">СТРАХОВЫЕ КОМПАНИИ: {calculatedOffers.approved.length}</span>
+                    <span className="text-green-500 font-bold">СТРАХОВЫЕ КОМПАНИИ: {INSURANCE_COMPANIES.length}</span>
                 </CardHeader>
                 <CardContent className="p-0">
                     <table className="w-full text-sm">
@@ -1345,25 +1345,28 @@ export function AgentCalculatorView() {
                             <tr>
                                 <th className="text-left p-2">Компания</th>
                                 <th className="text-center p-2">Ставка</th>
-                                <th className="text-center p-2">Премия</th>
-                                <th className="text-center p-2">Скорость</th>
+                                <th className="text-center p-2">Премия (ориент.)</th>
                                 <th className="text-center p-2">Выбрать</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {calculatedOffers.approved.map((bank, i) => {
-                                // Calculate insurance premium (estimate 1-5% of amount)
-                                const premiumRate = bank.individual ? 0 : (bank.bgRate || 2.5)
+                            {INSURANCE_COMPANIES.map((company, i) => {
+                                // Estimate insurance premium (1-3% of amount depending on category)
+                                const premiumRate = 
+                                    insuranceCategory === "Персонал" ? 2.0 :
+                                    insuranceCategory === "Транспорт" ? 2.5 :
+                                    insuranceCategory === "Имущество" ? 1.5 :
+                                    insuranceCategory === "Ответственность" ? 1.8 :
+                                    insuranceCategory === "Строительно-монтажные риски" ? 2.2 :
+                                    insuranceCategory === "Контракта" ? 1.5 : 2.0
                                 const premium = (insuranceAmount ?? 0) * premiumRate / 100
                                 return (
-                                    <tr key={i} className={cn("border-t", bank.individual && "bg-[#3CE8D1]/10")}>
+                                    <tr key={i} className="border-t hover:bg-muted/30">
                                         <td className="p-2">
-                                            <span className="font-medium">{bank.name}</span>
-                                            {bank.individual && <Badge className="ml-2 bg-[#3CE8D1] text-[#0a1628]">Инд. условия</Badge>}
+                                            <span className="font-medium">{company}</span>
                                         </td>
-                                        <td className="p-2 text-center">{bank.individual ? "Индив." : `${premiumRate.toFixed(1)}%`}</td>
-                                        <td className="p-2 text-center text-[#3CE8D1]">{bank.individual ? "По запросу" : `${premium.toLocaleString("ru-RU")} ₽`}</td>
-                                        <td className="p-2 text-center"><SpeedBadge speed={bank.speed} /></td>
+                                        <td className="p-2 text-center">{premiumRate.toFixed(1)}%</td>
+                                        <td className="p-2 text-center text-[#3CE8D1]">{premium.toLocaleString("ru-RU")} ₽</td>
                                         <td className="p-2 text-center"><Checkbox checked={selectedOffers.has(i)} onCheckedChange={() => toggleOffer(i)} /></td>
                                     </tr>
                                 )
@@ -1626,7 +1629,7 @@ export function AgentCalculatorView() {
                                                 "px-4 py-2 rounded-xl text-sm font-medium transition-all",
                                                 federalLaw === val
                                                     ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
-                                                    : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
+                                                    : "bg-[#1a2942] text-white border border-[#3CE8D1]/40 hover:border-[#3CE8D1] hover:bg-[#1a2942]/80"
                                             )}
                                         >
                                             {label}
@@ -1701,7 +1704,7 @@ export function AgentCalculatorView() {
                                     <Button
                                         onClick={() => handleCalculateWithValidation("tz")}
                                         disabled={isSubmitting || !getValidation("tz").valid}
-                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] px-8 disabled:opacity-50"
+                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] px-8 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                         РАССЧИТАТЬ
@@ -1763,7 +1766,7 @@ export function AgentCalculatorView() {
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 federalLaw === val
                                                     ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
-                                                    : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
+                                                    : "bg-[#1a2942] text-white border border-[#3CE8D1]/40 hover:border-[#3CE8D1] hover:bg-[#1a2942]/80"
                                             )}
                                         >
                                             {label}
@@ -2120,7 +2123,7 @@ export function AgentCalculatorView() {
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("kik")} disabled={isSubmitting || !getValidation("kik").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:opacity-50 disabled:shadow-none transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("kik")} disabled={isSubmitting || !getValidation("kik").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
                                     </Button>
@@ -2207,7 +2210,7 @@ export function AgentCalculatorView() {
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("express")} disabled={isSubmitting || !getValidation("express").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:opacity-50 disabled:shadow-none transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("express")} disabled={isSubmitting || !getValidation("express").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
                                     </Button>
@@ -2370,7 +2373,7 @@ export function AgentCalculatorView() {
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("factoring")} disabled={isSubmitting || !getValidation("factoring").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:opacity-50 disabled:shadow-none transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("factoring")} disabled={isSubmitting || !getValidation("factoring").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
@@ -2432,7 +2435,7 @@ export function AgentCalculatorView() {
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all disabled:opacity-50">
+                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:cursor-not-allowed">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
@@ -2550,7 +2553,7 @@ export function AgentCalculatorView() {
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("insurance")} disabled={isSubmitting || !getValidation("insurance").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:opacity-50 disabled:shadow-none transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("insurance")} disabled={isSubmitting || !getValidation("insurance").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАСЧЕТ СТРАХОВАНИЯ
                                     </Button>
@@ -2632,7 +2635,7 @@ export function AgentCalculatorView() {
                                     <Button
                                         onClick={() => createVedApplication()}
                                         disabled={isSubmitting || !amount || !vedCurrency || !vedCountry}
-                                        className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all disabled:opacity-50"
+                                        className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:cursor-not-allowed"
                                     >
                                         <Upload className="h-5 w-5 mr-2" />
                                         ОТПРАВИТЬ ЗАЯВКУ

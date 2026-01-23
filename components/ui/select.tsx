@@ -40,7 +40,7 @@ function SelectTrigger({
         // Base styles
         'flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-sm whitespace-nowrap',
         // Background & Border - HIGHLY VISIBLE
-        'bg-[#0d1526] border-2 border-[#3a4a6c] text-white',
+        'bg-input border-2 border-[#3a4a6c] text-white',
         // Placeholder styling
         'data-[placeholder]:text-[#6b7a94]',
         // Size variants
@@ -50,7 +50,7 @@ function SelectTrigger({
         // Transitions
         'transition-all duration-200',
         // Disabled state
-        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[#1a2744]',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-input',
         // Invalid state
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20',
         // Icon styling

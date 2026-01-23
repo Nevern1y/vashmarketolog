@@ -223,10 +223,11 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
 
                                         {/* Message Content */}
                                         <div className={cn(
-                                            "max-w-[70%] flex flex-col",
+                                            "max-w-[85%] flex flex-col min-w-0",
                                             isOwn ? "items-end" : "items-start"
                                         )}>
                                             {/* Sender Info */}
+
                                             <div className="flex items-center gap-1 mb-1">
                                                 <span className="text-xs text-muted-foreground">
                                                     {isOwn ? "Вы" : message.sender_name}
@@ -236,11 +237,12 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
 
                                             {/* Message Bubble */}
                                             <div className={cn(
-                                                "rounded-xl px-4 py-2.5 shadow-sm",
+                                                "rounded-xl px-4 py-2.5 shadow-sm min-w-0 max-w-full overflow-hidden",
                                                 isOwn
                                                     ? "bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]"
                                                     : "bg-[#1e3a5f] border border-[#3CE8D1]/30 text-white"
                                             )}>
+
                                                 {/* Text Content */}
                                                 {message.content && (
                                                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
@@ -280,12 +282,13 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className={cn(
-                                                                    "flex items-center gap-2.5 p-2.5 rounded-lg transition-colors",
+                                                                    "flex items-center gap-2.5 p-2.5 rounded-lg transition-colors w-full min-w-0",
                                                                     isOwn
                                                                         ? "bg-[#3CE8D1]/80 hover:bg-[#3CE8D1]/60"
                                                                         : "bg-card border border-border hover:bg-accent"
                                                                 )}
                                                             >
+
                                                                 {/* Icon */}
                                                                 <div className={cn(
                                                                     "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
@@ -299,10 +302,13 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
 
                                                                 {/* Info */}
                                                                 <div className="flex-1 min-w-0">
-                                                                    <p className={cn(
-                                                                        "text-sm font-medium break-all",
-                                                                        isOwn ? "text-[#0a1628]" : "text-slate-100"
-                                                                    )}>
+                                                                    <p 
+                                                                        className={cn(
+                                                                            "text-sm font-medium truncate",
+                                                                            isOwn ? "text-[#0a1628]" : "text-white"
+                                                                        )}
+                                                                        title={fileInfo.fileName}
+                                                                    >
                                                                         {fileInfo.fileName}
                                                                     </p>
                                                                     <p className={cn(

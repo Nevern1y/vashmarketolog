@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,7 +11,7 @@ import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, Ale
 import { useAuth } from "@/lib/auth-context"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
-import { useDocuments, useDocumentMutations, formatDocumentType, getDocumentStatusColor } from "@/hooks/use-documents"
+import { useDocuments, useDocumentMutations, formatDocumentType } from "@/hooks/use-documents"
 import { useApplicationMutations } from "@/hooks/use-applications"
 import { toast } from "sonner"
 import { AddClientModal } from "./add-client-modal"
@@ -20,6 +21,7 @@ interface CreateApplicationWizardProps {
   isOpen: boolean
   onClose: () => void
   initialClientId?: number | null
+  onSuccess?: (applicationId: number) => void  // Optional callback for redirect
 }
 
 const steps = [
@@ -135,10 +137,12 @@ const creditSubTypes = [
 // Import document types from shared module (Appendix B numeric IDs)
 import {
   getAgentUploadableTypes,
-  getDocumentTypeName
+  getDocumentTypeName,
+  isDocumentRequired
 } from "@/lib/document-types"
 
-export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: CreateApplicationWizardProps) {
+export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSuccess }: CreateApplicationWizardProps) {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("")
@@ -148,6 +152,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
   const [uploadedDocIds, setUploadedDocIds] = useState<number[]>([])
   const [notes, setNotes] = useState("")
+  const [isDragOver, setIsDragOver] = useState(false)  // Drag-drop state
 
   // WAVE 1: Bank selection state
   const [selectedBankIds, setSelectedBankIds] = useState<string[]>([])
@@ -251,6 +256,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
   // State for Add Client Modal
   const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const initialClientSet = useRef(false)
+  const documentAutoSelectDone = useRef(false) // Track if auto-selection was done
 
   const normalizedProduct = selectedProduct === "kik"
     ? "contract_loan"
@@ -258,17 +264,54 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
       ? "corporate_credit"
       : selectedProduct || ""
 
-  const filteredCompanyDocuments = activeCompanyId
-    ? companyDocuments.filter((doc) => doc.company === activeCompanyId || doc.company == null)
-    : []
+  // Memoize filteredCompanyDocuments to prevent infinite re-renders in useEffect
+  const filteredCompanyDocuments = useMemo(() => {
+    return activeCompanyId
+      ? companyDocuments.filter((doc) => doc.company === activeCompanyId || doc.company == null)
+      : []
+  }, [activeCompanyId, companyDocuments])
 
+  // Sort documents: required first, then alphabetically (memoized)
+  const sortedCompanyDocuments = useMemo(() => {
+    return [...filteredCompanyDocuments].sort((a, b) => {
+      const aRequired = isDocumentRequired(a.document_type_id, normalizedProduct || 'general')
+      const bRequired = isDocumentRequired(b.document_type_id, normalizedProduct || 'general')
+      if (aRequired && !bRequired) return -1
+      if (!aRequired && bRequired) return 1
+      return (a.type_display || a.name).localeCompare(b.type_display || b.name)
+    })
+  }, [filteredCompanyDocuments, normalizedProduct])
+
+  // Auto-select company documents when company changes or documents load
+  // Using filteredCompanyDocuments.length to avoid object reference comparison issues
   useEffect(() => {
-    if (activeCompanyId) {
+    if (!activeCompanyId) {
+      // No company selected - reset
       setSelectedDocumentIds([])
       setUploadedDocIds([])
+      documentAutoSelectDone.current = false
+      return
     }
+    
+    // Only auto-select once per company change, after documents are loaded
+    if (filteredCompanyDocuments.length > 0 && !documentAutoSelectDone.current) {
+      // Auto-select all documents from the company
+      const validDocIds = filteredCompanyDocuments.map(doc => doc.id)
+      
+      if (validDocIds.length > 0) {
+        setSelectedDocumentIds(validDocIds)
+        toast.info(`Автоматически выбрано ${validDocIds.length} документов компании`)
+      }
+      documentAutoSelectDone.current = true
+    }
+  }, [activeCompanyId, filteredCompanyDocuments])
+
+  // Reset auto-select flag when company changes
+  useEffect(() => {
+    documentAutoSelectDone.current = false
   }, [activeCompanyId])
 
+  // Sync dates -> days (when user changes dates)
   useEffect(() => {
     if (lastGuaranteeUpdateRef.current === "days") {
       lastGuaranteeUpdateRef.current = null
@@ -276,10 +319,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     }
 
     if (!guaranteeDateFrom || !guaranteeDateTo) {
-      if (guaranteeTermDays) {
-        lastGuaranteeUpdateRef.current = "dates"
-        setGuaranteeTermDays("")
-      }
+      // Use functional update to avoid guaranteeTermDays in dependencies
+      setGuaranteeTermDays(prev => {
+        if (prev) {
+          lastGuaranteeUpdateRef.current = "dates"
+          return ""
+        }
+        return prev
+      })
       return
     }
 
@@ -289,12 +336,17 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
     const diffDays = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000))
     const diffValue = String(diffDays)
-    if (diffValue !== guaranteeTermDays) {
-      lastGuaranteeUpdateRef.current = "dates"
-      setGuaranteeTermDays(diffValue)
-    }
-  }, [guaranteeDateFrom, guaranteeDateTo, guaranteeTermDays])
+    
+    setGuaranteeTermDays(prev => {
+      if (diffValue !== prev) {
+        lastGuaranteeUpdateRef.current = "dates"
+        return diffValue
+      }
+      return prev
+    })
+  }, [guaranteeDateFrom, guaranteeDateTo])
 
+  // Sync days -> dateTo (when user changes days input)
   useEffect(() => {
     if (lastGuaranteeUpdateRef.current === "dates") {
       lastGuaranteeUpdateRef.current = null
@@ -309,12 +361,18 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     if (Number.isNaN(start.getTime())) return
     start.setDate(start.getDate() + days)
     const nextDateTo = start.toISOString().split("T")[0]
-    if (nextDateTo !== guaranteeDateTo) {
-      lastGuaranteeUpdateRef.current = "days"
-      setGuaranteeDateTo(nextDateTo)
-    }
-  }, [guaranteeTermDays, guaranteeDateFrom, guaranteeDateTo])
+    
+    setGuaranteeDateTo(prev => {
+      if (nextDateTo !== prev) {
+        lastGuaranteeUpdateRef.current = "days"
+        return nextDateTo
+      }
+      return prev
+    })
+  }, [guaranteeTermDays, guaranteeDateFrom])
 
+  // Auto-calculate term (months) for bank_guarantee based on dates
+  // Using functional update to avoid term in dependencies (prevents infinite loop)
   useEffect(() => {
     if (normalizedProduct !== "bank_guarantee") return
     if (!guaranteeDateFrom || !guaranteeDateTo) return
@@ -326,10 +384,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
     const diffDays = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 86400000))
     const months = Math.max(1, Math.ceil(diffDays / 30))
     const nextTerm = String(months)
-    if (nextTerm !== term) {
-      setTerm(nextTerm)
-    }
-  }, [normalizedProduct, guaranteeDateFrom, guaranteeDateTo, term])
+    
+    // Use functional update to avoid adding term to dependencies
+    setTerm(prevTerm => prevTerm !== nextTerm ? nextTerm : prevTerm)
+  }, [normalizedProduct, guaranteeDateFrom, guaranteeDateTo])
 
   // Effect to set initial client when wizard opens with a pre-selected client
   if (isOpen && initialClientId && !initialClientSet.current) {
@@ -453,6 +511,61 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
         console.log(`[Wizard] Restored scroll to: ${scrollPosition}`)
       } else {
         window.scrollTo(0, scrollPosition)
+      }
+    }, 100)
+  }
+
+  // Drag-and-drop handlers
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+
+    console.log('[Wizard] Drop event - files:', files.length)
+
+    // Store scroll position
+    const dialogContent = document.querySelector('[role="dialog"]') as HTMLElement
+    const scrollParent = dialogContent?.querySelector('.overflow-y-auto') as HTMLElement
+    const scrollPosition = scrollParent ? scrollParent.scrollTop : (window.pageYOffset || 0)
+
+    for (const file of Array.from(files)) {
+      console.log(`[Wizard] Uploading dropped file: ${file.name}`)
+      const doc = await uploadDocument({
+        name: file.name,
+        file: file,
+        document_type_id: uploadDocTypeId,
+        product_type: normalizedProduct || 'general',
+        company: activeCompanyId,
+      })
+
+      if (doc && doc.id) {
+        setUploadedDocIds(prev => [...prev, doc.id])
+        const typeName = getDocumentTypeName(uploadDocTypeId, normalizedProduct || 'general')
+        toast.success(`Документ "${file.name}" загружен (${typeName})`)
+      } else {
+        toast.error(`Ошибка загрузки "${file.name}"`)
+      }
+    }
+
+    // Restore scroll position
+    setTimeout(() => {
+      if (scrollParent) {
+        scrollParent.scrollTop = scrollPosition
       }
     }, 100)
   }
@@ -685,9 +798,21 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
 
       if (submitted) {
         toast.success("Заявка успешно создана и отправлена!")
+        // Call success callback or redirect to application detail
+        if (onSuccess) {
+          onSuccess(app.id)
+        } else {
+          // Default: redirect to applications list with highlight
+          router.push(`/dashboard?view=applications&highlight=${app.id}`)
+        }
         resetAndClose()
       } else {
         toast.success("Заявка создана как черновик")
+        if (onSuccess) {
+          onSuccess(app.id)
+        } else {
+          router.push(`/dashboard?view=applications&highlight=${app.id}`)
+        }
         resetAndClose()
       }
     } else if (app) {
@@ -2159,15 +2284,22 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                 {activeCompanyId && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Документы компании</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">Документы компании</p>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Star className="h-3 w-3 text-[#FFD93D]" /> — обязательные
+                        </span>
+                      </div>
                       {docsLoading && (
                         <span className="text-xs text-muted-foreground">Загрузка...</span>
                       )}
                     </div>
-                    {filteredCompanyDocuments.length > 0 ? (
+                    {sortedCompanyDocuments.length > 0 ? (
                       <div className="rounded-lg border border-border overflow-hidden">
                         <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
-                          {filteredCompanyDocuments.map((doc) => (
+                          {sortedCompanyDocuments.map((doc) => {
+                            const docIsRequired = isDocumentRequired(doc.document_type_id, normalizedProduct || 'general')
+                            return (
                             <label
                               key={doc.id}
                               className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40"
@@ -2179,14 +2311,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                                 className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
                               />
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium truncate">{formatDocumentType(doc)}</p>
+                                <p className="text-sm font-medium truncate flex items-center gap-1">
+                                  {docIsRequired && <Star className="h-3 w-3 text-[#FFD93D] shrink-0" />}
+                                  {formatDocumentType(doc)}
+                                </p>
                                 <p className="text-xs text-muted-foreground truncate">{doc.name}</p>
                               </div>
-                              <span className={cn("text-[10px] uppercase px-2 py-1 rounded-full border", getDocumentStatusColor(doc.status))}>
-                                {doc.status_display || doc.status}
-                              </span>
                             </label>
-                          ))}
+                          )})}
                         </div>
                       </div>
                     ) : (
@@ -2196,18 +2328,29 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId }: Cr
                 )}
 
 
-                {/* Dropzone */}
+                {/* Dropzone with drag-and-drop support */}
                 <div
-                  className="rounded-xl border-2 border-dashed border-border p-4 md:p-8 text-center transition-colors hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5 cursor-pointer"
+                  className={cn(
+                    "rounded-xl border-2 border-dashed p-4 md:p-8 text-center transition-colors cursor-pointer",
+                    isDragOver 
+                      ? "border-[#3CE8D1] bg-[#3CE8D1]/10" 
+                      : "border-border hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5"
+                  )}
                   onClick={() => fileInputRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                 >
                   {uploading ? (
                     <Loader2 className="mx-auto h-8 w-8 md:h-10 md:w-10 text-[#3CE8D1] animate-spin" />
                   ) : (
-                    <Upload className="mx-auto h-8 w-8 md:h-10 md:w-10 text-muted-foreground" />
+                    <Upload className={cn(
+                      "mx-auto h-8 w-8 md:h-10 md:w-10",
+                      isDragOver ? "text-[#3CE8D1]" : "text-muted-foreground"
+                    )} />
                   )}
                   <p className="mt-3 text-sm font-medium">
-                    {uploading ? "Загрузка..." : "Нажмите для загрузки"}
+                    {uploading ? "Загрузка..." : isDragOver ? "Отпустите файлы" : "Перетащите или нажмите для загрузки"}
                   </p>
                   <p className="mt-1 text-[10px] md:text-xs text-muted-foreground uppercase">PDF, JPG, PNG, XLSX до 10 МБ</p>
                   <input
