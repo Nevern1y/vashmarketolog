@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Count, Case, When, IntegerField
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
@@ -70,24 +70,26 @@ class ClientStatsView(APIView):
                 if crm_companies_with_same_inn:
                     app_query = app_query | Q(company_id__in=crm_companies_with_same_inn)
         
-        # Count active applications (non-terminal statuses)
+        # Count active and won applications in single query using conditional aggregation
         active_statuses = [
             ApplicationStatus.DRAFT,
             ApplicationStatus.PENDING,
             ApplicationStatus.IN_REVIEW,
             ApplicationStatus.INFO_REQUESTED,
         ]
-        active_applications_count = Application.objects.filter(
-            app_query,
-            status__in=active_statuses
-        ).distinct().count()
-        
-        # Count won applications (approved or won)
         won_statuses = [ApplicationStatus.APPROVED, ApplicationStatus.WON]
-        won_applications_count = Application.objects.filter(
-            app_query,
-            status__in=won_statuses
-        ).distinct().count()
+        
+        # Single query with conditional counts (avoids 2 separate queries)
+        stats = Application.objects.filter(app_query).distinct().aggregate(
+            active_count=Count(
+                Case(When(status__in=active_statuses, then=1), output_field=IntegerField())
+            ),
+            won_count=Count(
+                Case(When(status__in=won_statuses, then=1), output_field=IntegerField())
+            )
+        )
+        active_applications_count = stats['active_count'] or 0
+        won_applications_count = stats['won_count'] or 0
         
         # Count user's documents
         documents_count = Document.objects.filter(owner=user).count()
@@ -151,11 +153,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         # Admin sees all
         if user.role == 'admin' or user.is_superuser:
-            return Application.objects.select_related(*base_select).all()
+            return Application.objects.select_related(*base_select).prefetch_related('documents').all()
         
         # Partner sees only assigned
         if user.role == 'partner':
-            return Application.objects.select_related(*base_select).filter(assigned_partner=user)
+            return Application.objects.select_related(*base_select).prefetch_related('documents').filter(assigned_partner=user)
         
         # Client/Agent base query: their own applications
         base_query = Q(created_by=user) | Q(company__owner=user)
@@ -192,7 +194,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 if crm_companies_with_same_inn:
                     base_query = base_query | Q(company_id__in=crm_companies_with_same_inn)
         
-        return Application.objects.filter(base_query).select_related(*base_select).distinct()
+        return Application.objects.filter(base_query).select_related(*base_select).prefetch_related('documents').distinct()
 
     def get_serializer_class(self):
         if self.action == 'create':

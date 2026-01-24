@@ -467,11 +467,29 @@ class MyAgentsView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        from django.db.models import Prefetch
+        from apps.companies.models import CompanyProfile
+        from apps.documents.models import Document
+        
         user = self.request.user
+        
         # Return agents invited by this user (via referral link)
+        # Prefetch companies and documents to avoid N+1 queries
+        # (AgentAccreditationSerializer calls _get_company() ~40 times per agent)
         return User.objects.filter(
             role='agent',
             invited_by=user
+        ).prefetch_related(
+            Prefetch(
+                'owned_companies',
+                queryset=CompanyProfile.objects.filter(is_crm_client=False),
+                to_attr='_prefetched_own_company'
+            ),
+            Prefetch(
+                'documents',
+                queryset=Document.objects.select_related('company').order_by('-uploaded_at'),
+                to_attr='_prefetched_documents'
+            )
         ).order_by('-date_joined')
 
 

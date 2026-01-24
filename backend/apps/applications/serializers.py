@@ -1,8 +1,29 @@
 """
 API Serializers for Applications.
 """
+from functools import lru_cache
 from rest_framework import serializers
 from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, ApplicationStatusDefinition, CalculationSession, Lead, LeadSource, LeadStatus
+
+
+# Cache for ApplicationStatusDefinition lookup (avoids N+1 queries in serializers)
+# Cache is module-level and refreshed on server restart
+@lru_cache(maxsize=512)
+def get_status_name_cached(status_id: int, product_type: str) -> str | None:
+    """
+    Get human-readable status name from ApplicationStatusDefinition.
+    Cached to avoid repeated database queries in list serialization.
+    """
+    try:
+        status_def = ApplicationStatusDefinition.objects.filter(
+            status_id=status_id,
+            product_type=product_type
+        ).first()
+        if status_def:
+            return status_def.name
+    except Exception:
+        pass
+    return None
 
 
 class CalculationSessionSerializer(serializers.ModelSerializer):
@@ -247,16 +268,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
         """Get human-readable status name from ApplicationStatusDefinition (Appendix A)."""
         if obj.status_id is None:
             return None
-        try:
-            status_def = ApplicationStatusDefinition.objects.filter(
-                status_id=obj.status_id,
-                product_type=obj.product_type
-            ).first()
-            if status_def:
-                return status_def.name
-        except Exception:
-            pass
-        return None
+        # Use cached lookup to avoid N+1 queries in list views
+        return get_status_name_cached(obj.status_id, obj.product_type)
 
 
 class ApplicationCreateSerializer(serializers.ModelSerializer):

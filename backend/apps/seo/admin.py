@@ -52,19 +52,51 @@ class SeoPageAdmin(admin.ModelAdmin):
     def duplicate_page(self, request, queryset):
         """
         Дублировать выбранные страницы.
-        Optimized: no extra .get() query - use queryset objects directly.
+        Optimized: uses bulk_create for single INSERT query instead of N queries.
         """
-        count = 0
+        # Collect original pages and their banks for M2M handling
+        originals_with_banks = []
+        pages_to_create = []
+        
         for page in queryset:
-            # Clone the page by setting pk/id to None and saving
-            # This creates a new instance without an extra query
-            page.pk = None
-            page.id = None
-            page.slug = f"{page.slug}-copy"
-            page.is_published = False  # Draft by default for safety
-            page.save()
-            count += 1
-        self.message_user(request, f'Создано копий: {count}', messages.SUCCESS)
+            # Store original banks before cloning (M2M must be handled after bulk_create)
+            has_banks = page.banks.exists()
+            if has_banks:
+                originals_with_banks.append((page, list(page.banks.all())))
+            
+            # Create new SeoPage instance with copied fields
+            pages_to_create.append(SeoPage(
+                slug=f"{page.slug}-copy",
+                meta_title=page.meta_title,
+                meta_description=page.meta_description,
+                meta_keywords=page.meta_keywords,
+                h1_title=page.h1_title,
+                h2_title=page.h2_title,
+                h3_title=page.h3_title,
+                hero_image=page.hero_image,
+                main_description=page.main_description,
+                faq=page.faq,
+                popular_searches=page.popular_searches,
+                bank_offers=page.bank_offers,
+                is_published=False,  # Draft by default for safety
+                page_type=page.page_type,
+                template_name=page.template_name,
+                priority=page.priority,
+            ))
+        
+        # Single INSERT query for all pages
+        created_pages = SeoPage.objects.bulk_create(pages_to_create)
+        
+        # Handle M2M banks relation (must be done after bulk_create)
+        # Match by slug pattern: original.slug -> original.slug-copy
+        if originals_with_banks:
+            created_by_slug = {p.slug: p for p in created_pages}
+            for original, banks in originals_with_banks:
+                clone_slug = f"{original.slug}-copy"
+                if clone_slug in created_by_slug:
+                    created_by_slug[clone_slug].banks.set(banks)
+        
+        self.message_user(request, f'Создано копий: {len(created_pages)}', messages.SUCCESS)
     duplicate_page.short_description = '📋 Дублировать страницы'
     
     def publish_pages(self, request, queryset):

@@ -3,8 +3,59 @@ API Serializers for Document Library.
 
 BREAKING CHANGE: Updated to use numeric document_type_id per Appendix B.
 """
+from functools import lru_cache
 from rest_framework import serializers
 from .models import Document, DocumentTypeDefinition, DocumentSource, DocumentRequest, DocumentRequestStatus
+
+
+# Cache for DocumentTypeDefinition lookup (avoids N+1 queries in serializers)
+# Cache is module-level and refreshed on server restart
+@lru_cache(maxsize=512)
+def get_document_type_name_cached(document_type_id: int, product_type: str) -> str:
+    """
+    Get human-readable document type name from DocumentTypeDefinition.
+    Cached to avoid repeated database queries in list serialization.
+    """
+    if not document_type_id or not product_type:
+        if document_type_id == 0:
+            return "Дополнительный документ"
+        return f"Документ (ID: {document_type_id})"
+    
+    try:
+        type_def = DocumentTypeDefinition.objects.filter(
+            document_type_id=document_type_id,
+            product_type=product_type
+        ).first()
+        if type_def:
+            return type_def.name
+    except Exception:
+        pass
+    
+    if document_type_id == 0:
+        return "Дополнительный документ"
+    return f"Документ (ID: {document_type_id})"
+
+
+@lru_cache(maxsize=512)
+def get_document_source_display_cached(document_type_id: int, product_type: str) -> str:
+    """
+    Get source display from DocumentTypeDefinition.
+    Cached to avoid repeated database queries.
+    """
+    if not document_type_id or not product_type:
+        return "Неизвестно"
+    
+    try:
+        type_def = DocumentTypeDefinition.objects.filter(
+            document_type_id=document_type_id,
+            product_type=product_type
+        ).first()
+        if type_def:
+            return type_def.get_source_display()
+    except Exception:
+        pass
+    
+    return "Неизвестно"
 
 
 class DocumentTypeDefinitionSerializer(serializers.ModelSerializer):
@@ -82,12 +133,12 @@ class DocumentSerializer(serializers.ModelSerializer):
         return None
     
     def get_type_display(self, obj):
-        """Get document type name from reference table."""
-        return obj.type_display
+        """Get document type name from reference table (cached)."""
+        return get_document_type_name_cached(obj.document_type_id, obj.product_type)
     
     def get_source_display(self, obj):
-        """Get source information from reference table."""
-        return obj.source_display
+        """Get source information from reference table (cached)."""
+        return get_document_source_display_cached(obj.document_type_id, obj.product_type)
 
 
 class DocumentUploadSerializer(serializers.ModelSerializer):
@@ -175,8 +226,8 @@ class DocumentListSerializer(serializers.ModelSerializer):
         return None
     
     def get_type_display(self, obj):
-        """Get document type name from reference table."""
-        return obj.type_display
+        """Get document type name from reference table (cached)."""
+        return get_document_type_name_cached(obj.document_type_id, obj.product_type)
 
 
 class DocumentSelectSerializer(serializers.Serializer):

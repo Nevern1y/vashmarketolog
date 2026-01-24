@@ -120,9 +120,6 @@ export default function DashboardPage() {
   // ========================================
   const role = user.role
 
-  // DEBUG: Log current user role for troubleshooting
-  console.log("[DEBUG] Current User:", { id: user.id, email: user.email, role: user.role })
-
   switch (role) {
     // =====================================
     // ADMIN ROLE
