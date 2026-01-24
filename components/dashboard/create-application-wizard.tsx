@@ -244,7 +244,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     : myCompany?.id
   const { documents: companyDocuments, isLoading: docsLoading, refetch: refetchDocs } = useDocuments({})
   const { uploadDocument, isLoading: uploading } = useDocumentMutations()
-  const { createApplication, submitApplication, isLoading: submitting, error } = useApplicationMutations()
+  const { createApplication, isLoading: submitting, error } = useApplicationMutations()
   const { createClient } = useCRMClientMutations()
 
   // State for Add Client Modal
@@ -918,11 +918,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
 
         if (app && app.id) {
           createdApps.push(app.id)
-          // Submit application after creation
-          const submitted = await submitApplication(app.id)
-          if (submitted) {
-            console.log(`[Wizard] Application ${app.id} submitted successfully`)
-          }
+          // Заявка остаётся в статусе draft - пользователь сам контролирует отправку
+          console.log(`[Wizard] Application ${app.id} created as draft`)
         } else {
           failedBanks.push(bank.name)
         }
@@ -935,20 +932,26 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     // Show results to user
     if (createdApps.length > 0) {
       if (createdApps.length === 1) {
-        toast.success("Заявка успешно создана и отправлена!")
+        toast.success("Черновик заявки создан", {
+          description: "Проверьте данные и отправьте на проверку"
+        })
       } else {
-        toast.success(`Создано ${createdApps.length} заявок для выбранных банков`)
+        toast.success(`Создано ${createdApps.length} черновиков`, {
+          description: "Отправьте заявки на проверку из списка"
+        })
       }
 
       // Close wizard first
       resetAndClose()
 
-      // Navigate to applications list (root page with view param)
-      // Use window.location for reliable navigation with query params
+      // Navigate based on number of created applications
       if (onSuccess) {
         onSuccess(createdApps[0])
+      } else if (createdApps.length === 1) {
+        // Одна заявка → детальная страница для проверки и отправки
+        window.location.href = `/?view=application-detail&id=${createdApps[0]}`
       } else {
-        // Use replace to avoid back button issues
+        // Несколько заявок → список с подсветкой первой
         window.location.href = `/?view=applications&highlight=${createdApps[0]}`
       }
     } else {
