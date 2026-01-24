@@ -666,16 +666,19 @@ class PartnerDecisionViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
+        # Base queryset with select_related to avoid N+1 queries
+        base_select = ['partner', 'application', 'application__company']
+        
         # Admin sees all
         if user.role == 'admin' or user.is_superuser:
-            return PartnerDecision.objects.all()
+            return PartnerDecision.objects.select_related(*base_select).all()
         
         # Partner sees own decisions
         if user.role == 'partner':
-            return PartnerDecision.objects.filter(partner=user)
+            return PartnerDecision.objects.select_related(*base_select).filter(partner=user)
         
         # Client/Agent see decisions on their applications
-        return PartnerDecision.objects.filter(
+        return PartnerDecision.objects.select_related(*base_select).filter(
             Q(application__created_by=user) | Q(application__company__owner=user)
         ).distinct()
 
@@ -702,7 +705,8 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
         
         # First filter by application_id from URL if nested
         application_id = self.kwargs.get('application_pk') or self.request.query_params.get('application_id')
-        base_qs = TicketMessage.objects.all()
+        # Add select_related to avoid N+1 queries when serializing sender
+        base_qs = TicketMessage.objects.select_related('sender', 'application').all()
         
         if application_id:
             base_qs = base_qs.filter(application_id=application_id)

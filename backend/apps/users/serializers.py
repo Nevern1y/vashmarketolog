@@ -451,16 +451,24 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
     def _get_company(self, obj):
         """
         Get the agent's own company (not CRM clients).
-        Optimized: uses prefetched data if available to avoid N+1 queries.
+        Optimized: uses prefetched data if available, with instance caching fallback.
         """
-        # Check for prefetched data first (set by AccreditationListView)
+        # Check for instance cache first (avoids repeated queries for same object)
+        if hasattr(obj, '_cached_company'):
+            return obj._cached_company
+        
+        # Check for prefetched data (set by AccreditationListView/MyAgentsView)
         if hasattr(obj, '_prefetched_own_company'):
             companies = obj._prefetched_own_company
-            return companies[0] if companies else None
+            result = companies[0] if companies else None
+            obj._cached_company = result  # Cache on instance
+            return result
         
-        # Fallback to query (for single object views)
+        # Fallback to query (for single object views) with caching
         from apps.companies.models import CompanyProfile
-        return CompanyProfile.objects.filter(owner=obj, is_crm_client=False).first()
+        result = CompanyProfile.objects.filter(owner=obj, is_crm_client=False).first()
+        obj._cached_company = result  # Cache on instance to avoid ~20+ repeated queries
+        return result
     
     # Basic company info
     def get_company_name(self, obj):
