@@ -50,15 +50,19 @@ class SeoPageAdmin(admin.ModelAdmin):
     preview_link.allow_tags = True
     
     def duplicate_page(self, request, queryset):
-        """Дублировать выбранные страницы"""
+        """
+        Дублировать выбранные страницы.
+        Optimized: no extra .get() query - use queryset objects directly.
+        """
         count = 0
         for page in queryset:
-            new_slug = f"{page.slug}-copy"
-            new_page = SeoPage.objects.get(pk=page.pk)
-            new_page.pk = None
-            new_page.id = None
-            new_page.slug = new_slug
-            new_page.save()
+            # Clone the page by setting pk/id to None and saving
+            # This creates a new instance without an extra query
+            page.pk = None
+            page.id = None
+            page.slug = f"{page.slug}-copy"
+            page.is_published = False  # Draft by default for safety
+            page.save()
             count += 1
         self.message_user(request, f'Создано копий: {count}', messages.SUCCESS)
     duplicate_page.short_description = '📋 Дублировать страницы'

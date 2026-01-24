@@ -449,7 +449,16 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
         read_only_fields = fields
     
     def _get_company(self, obj):
-        """Get the agent's own company (not CRM clients)."""
+        """
+        Get the agent's own company (not CRM clients).
+        Optimized: uses prefetched data if available to avoid N+1 queries.
+        """
+        # Check for prefetched data first (set by AccreditationListView)
+        if hasattr(obj, '_prefetched_own_company'):
+            companies = obj._prefetched_own_company
+            return companies[0] if companies else None
+        
+        # Fallback to query (for single object views)
         from apps.companies.models import CompanyProfile
         return CompanyProfile.objects.filter(owner=obj, is_crm_client=False).first()
     
@@ -632,9 +641,18 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
     
     # Documents
     def get_documents(self, obj):
-        """Get all documents uploaded by the agent for accreditation."""
-        from apps.documents.models import Document
-        docs = Document.objects.filter(owner=obj).select_related('company').order_by('-uploaded_at')
+        """
+        Get all documents uploaded by the agent for accreditation.
+        Optimized: uses prefetched data if available to avoid N+1 queries.
+        """
+        # Check for prefetched data first (set by AccreditationListView)
+        if hasattr(obj, '_prefetched_documents'):
+            docs = obj._prefetched_documents
+        else:
+            # Fallback to query (for single object views)
+            from apps.documents.models import Document
+            docs = Document.objects.filter(owner=obj).select_related('company').order_by('-uploaded_at')
+        
         return [
             {
                 'id': doc.id,

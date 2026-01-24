@@ -922,7 +922,10 @@ class LeadViewSet(viewsets.ModelViewSet):
         POST /api/admin/leads/{id}/convert/
         
         Creates Application from Lead data and links them.
+        The admin user becomes the creator of the application.
         """
+        from .models import LeadStatus, ApplicationStatus
+        
         lead = self.get_object()
         
         if lead.converted_application:
@@ -931,11 +934,31 @@ class LeadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # TODO: Create Application from Lead
-        # For now, just mark as converted
-        from .models import LeadStatus
+        # Create Application from Lead data
+        # Admin is set as creator - client can be linked later when they register
+        application = Application.objects.create(
+            created_by=request.user,  # Admin creates on behalf of lead
+            company=None,  # Will be filled when client completes profile
+            product_type=lead.product_type,
+            guarantee_type=lead.guarantee_type or '',
+            amount=lead.amount,
+            term_months=lead.term_months,
+            status=ApplicationStatus.DRAFT,
+            notes=f"Создано из лида #{lead.id}\n"
+                  f"Контакт: {lead.full_name}\n"
+                  f"Телефон: {lead.phone}\n"
+                  f"Email: {lead.email or 'не указан'}",
+        )
+        
+        # Link lead to created application
+        lead.converted_application = application
         lead.status = LeadStatus.CONVERTED
         lead.save()
         
-        return Response(LeadSerializer(lead).data)
+        return Response({
+            'status': 'ok',
+            'message': f'Лид конвертирован в заявку #{application.id}',
+            'application_id': application.id,
+            'lead': LeadSerializer(lead).data,
+        })
 

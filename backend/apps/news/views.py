@@ -5,6 +5,7 @@ from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.utils import timezone
+from django.db.models import F
 from .models import NewsCategory, News
 from .serializers import (
     NewsCategorySerializer,
@@ -86,9 +87,9 @@ class NewsViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
-        # Increment view count
-        instance.views_count += 1
-        instance.save(update_fields=['views_count'])
+        # Atomic increment of view count (avoids race conditions)
+        # Uses F() expression for atomic update without fetching the value
+        News.objects.filter(pk=instance.pk).update(views_count=F('views_count') + 1)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
@@ -104,13 +105,38 @@ class NewsViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def by_category(self, request):
-        """Get news grouped by category."""
-        categories = NewsCategory.objects.filter(is_active=True).prefetch_related('news')
+        """
+        Get news grouped by category.
+        Optimized: uses annotate and Prefetch to avoid N+1 queries.
+        """
+        from django.db.models import Count, Q, Prefetch
+        
+        # Annotate categories with published news count (avoids N+1 in serializer)
+        # Prefetch latest published news for each category
+        categories = NewsCategory.objects.filter(is_active=True).annotate(
+            published_news_count=Count('news', filter=Q(news__is_published=True))
+        ).prefetch_related(
+            Prefetch(
+                'news',
+                queryset=News.objects.filter(is_published=True).select_related('category', 'author').order_by('-published_at')[:5],
+                to_attr='recent_published_news'
+            )
+        )
+        
         result = []
         for cat in categories:
-            news = cat.news.filter(is_published=True)[:5]
+            # Build category data with annotated count (no extra query)
+            cat_data = {
+                'id': cat.id,
+                'name': cat.name,
+                'slug': cat.slug,
+                'order': cat.order,
+                'is_active': cat.is_active,
+                'news_count': cat.published_news_count,
+                'created_at': cat.created_at.isoformat() if cat.created_at else None,
+            }
             result.append({
-                'category': NewsCategorySerializer(cat).data,
-                'news': NewsListSerializer(news, many=True).data,
+                'category': cat_data,
+                'news': NewsListSerializer(cat.recent_published_news, many=True).data,
             })
         return Response(result)

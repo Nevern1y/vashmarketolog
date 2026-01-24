@@ -332,12 +332,31 @@ class AccreditationListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get_queryset(self):
+        from django.db.models import Prefetch
+        from apps.companies.models import CompanyProfile
+        from apps.documents.models import Document
+        
         queryset = User.objects.filter(role='agent')
         
         # Filter by accreditation status (default: pending)
         status_filter = self.request.query_params.get('status', 'pending')
         if status_filter and status_filter != 'all':
             queryset = queryset.filter(accreditation_status=status_filter)
+        
+        # Prefetch companies and documents to avoid N+1 queries
+        # AgentAccreditationSerializer calls _get_company() ~40 times per agent
+        queryset = queryset.prefetch_related(
+            Prefetch(
+                'owned_companies',
+                queryset=CompanyProfile.objects.filter(is_crm_client=False),
+                to_attr='_prefetched_own_company'
+            ),
+            Prefetch(
+                'documents',
+                queryset=Document.objects.select_related('company').order_by('-uploaded_at'),
+                to_attr='_prefetched_documents'
+            )
+        )
         
         return queryset.order_by('-accreditation_submitted_at')
 
