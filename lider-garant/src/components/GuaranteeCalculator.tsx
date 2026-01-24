@@ -21,10 +21,10 @@ const guaranteeTypeMapping: Record<string, string> = {
 };
 
 const guaranteeTypes = [
-  { value: "tender", label: "Участие в тендере" },
-  { value: "contract", label: "Исполнение контракта" },
-  { value: "warranty", label: "Исполнение гарантийных обязательств" },
-  { value: "advance", label: "Возврат аванса" },
+  { value: "application_security", label: "Участие в тендере" },
+  { value: "contract_execution", label: "Исполнение контракта" },
+  { value: "warranty_obligations", label: "Исполнение гарантийных обязательств" },
+  { value: "advance_return", label: "Возврат аванса" },
 ];
 
 export default function GuaranteeCalculator() {

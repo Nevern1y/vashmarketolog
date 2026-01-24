@@ -154,7 +154,7 @@ export interface Application {
         leasing_end_date?: string;       // Дата окончания
         // Insurance fields
         insurance_category?: string;     // Категория страхования
-        insurance_product?: string;      // Страховой продукт
+        insurance_product_type?: string; // Страховой продукт (renamed from insurance_product)
         insurance_amount?: string;       // Страховая сумма
         insurance_term_months?: number;  // Срок договора (мес.)
         // Credit/Express fields
@@ -594,12 +594,12 @@ export function usePartnerActions() {
         }
     }, []);
 
-    const requestInfo = useCallback(async (applicationId: number): Promise<Application | null> => {
+    const requestInfo = useCallback(async (applicationId: number, message?: string): Promise<Application | null> => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const response = await api.post<Application>(`/applications/${applicationId}/request_info/`);
+            const response = await api.post<Application>(`/applications/${applicationId}/request_info/`, { message });
             return response;
         } catch (err) {
             const apiError = err as ApiError;
@@ -626,12 +626,12 @@ export function usePartnerActions() {
         }
     }, []);
 
-    const rejectApplication = useCallback(async (applicationId: number): Promise<Application | null> => {
+    const rejectApplication = useCallback(async (applicationId: number, reason?: string): Promise<Application | null> => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const response = await api.post<Application>(`/applications/${applicationId}/reject/`);
+            const response = await api.post<Application>(`/applications/${applicationId}/reject/`, { reason });
             return response;
         } catch (err) {
             const apiError = err as ApiError;
@@ -675,6 +675,60 @@ export function usePartnerActions() {
         }
     }, []);
 
+    // Phase 4: Send application to bank
+    const sendToBank = useCallback(async (applicationId: number): Promise<{
+        ticket_id: string;
+        bank_status: string;
+        application: Application;
+    } | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<{
+                message: string;
+                ticket_id: string;
+                bank_status: string;
+                application: Application;
+            }>(`/applications/${applicationId}/send_to_bank/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка отправки в банк');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Phase 4: Sync application status from bank
+    const syncBankStatus = useCallback(async (applicationId: number): Promise<{
+        bank_status: string;
+        bank_status_id: number | null;
+        changed: boolean;
+        application: Application;
+    } | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<{
+                message: string;
+                bank_status: string;
+                bank_status_id: number | null;
+                changed: boolean;
+                application: Application;
+            }>(`/applications/${applicationId}/sync_status/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка синхронизации статуса');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         isLoading,
         error,
@@ -685,6 +739,8 @@ export function usePartnerActions() {
         rejectApplication,
         restoreApplication,
         saveNotes,
+        sendToBank,
+        syncBankStatus,
         clearError: () => setError(null),
     };
 }

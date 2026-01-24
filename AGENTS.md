@@ -2,27 +2,41 @@
 
 ## Project Overview
 
-**Next.js 16 + Django REST Framework** financial marketplace (bank guarantees, loans).
+**Next.js 16 (2 apps) + Django REST Framework** financial marketplace (bank guarantees, loans).
 Multi-role dashboard: Client, Agent, Partner, Admin.
 
-**Architecture:** Backend (Django) = Source of Truth, Frontend (Next.js) = Visual Adapter
+**Apps:**
+- Cabinet (root) → lk.lider-garant.ru
+- Landing (`/lider-garant`) → lider-garant.ru
+
+**Architecture:** Backend (Django) = Source of Truth, Frontends (Next.js) = Visual Adapter
 
 ---
 
 ## Build/Lint/Run Commands
 
 ```bash
-npm run dev          # Dev server http://localhost:3000
-npm run build        # Production build
-npm run lint         # ESLint (next/core-web-vitals + next/typescript)
-npm run start        # Production server
+# Cabinet (root)
+npm run dev            # Dev server http://localhost:3000
+npm run build          # Production build
+npm run lint           # ESLint (root config may be missing)
+npm run start          # Production server
 
-# Backend (from backend/)
+# Landing (from /lider-garant)
+npm run dev            # Dev server http://localhost:3000
+npm run build          # Production build
+npm run lint           # ESLint (eslint-config-next)
+npm run start          # Production server
+
+# Backend (from /backend)
 python manage.py runserver 0.0.0.0:8000
 python manage.py migrate
 
-# Docker
-docker-compose up -d   # PostgreSQL + Redis + MinIO
+# Docker (dev)
+docker-compose up -d   # Cabinet:3001 + Landing:3000 + Backend:8000 + DB/Redis/MinIO
+
+# Docker (prod)
+docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 ### Tests
@@ -125,6 +139,8 @@ import { getStatusConfig } from '@/lib/status-mapping'
 const config = getStatusConfig(status)  // { step, label, color, bgColor }
 ```
 
+Also use `lib/application-statuses.ts` for numeric (bank) status IDs.
+
 ### 2. API Client
 ```typescript
 import api from '@/lib/api'
@@ -140,6 +156,8 @@ await api.uploadWithProgress(endpoint, formData, onProgress)  // Files
 // ✅ Use toast from 'sonner', NOT window.alert()
 ```
 
+Avoid `hooks/use-toast.ts` and `components/ui/toaster.tsx` (legacy shadcn toast).
+
 ### 4. Auth Context
 ```typescript
 import { useAuth } from '@/lib/auth-context'
@@ -151,17 +169,22 @@ const { user, isLoading, isAuthenticated, login, logout } = useAuth()
 ## Project Structure
 
 ```
-/app                    # Next.js App Router
+/app                    # Cabinet (Next.js App Router)
 /components
-  /dashboard            # View components
+  /dashboard            # Cabinet view components
   /ui                   # shadcn/ui primitives
-/hooks                  # use-applications.ts, use-documents.ts
+/hooks                  # Cabinet hooks (use-applications.ts, use-documents.ts)
 /lib
   api.ts                # HTTP client with JWT
   auth-context.tsx      # Auth provider
   status-mapping.ts     # Status → visual config (CRITICAL)
+  application-statuses.ts # Bank status IDs (Appendix A)
+  document-types.ts     # Document IDs (Appendix B)
   types.ts              # ViewType, AppMode
   utils.ts              # cn(), formatPhoneNumber()
+/backend                # Django backend
+/lider-garant           # Landing Next.js app
+/nginx                  # Nginx configs + SSL (prod)
 ```
 
 ---
@@ -194,15 +217,17 @@ const { user, isLoading, isAuthenticated, login, logout } = useAuth()
 ## Environment
 
 ```bash
+# Cabinet / Landing
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
+INTERNAL_API_URL=http://backend:8000/api  # docker-compose
 ```
 
 ---
 
 ## Documentation
 
-- `/technicheskoezadanie/rules.md` - System prompt
-- `/technicheskoezadanie/PROJECT_CONTEXT.md` - Project context
+- `DEPLOYMENT_GUIDE.md` - Deployment notes
+- `MCP_README.md`, `MCP_QUICK_REFERENCE.md` - MCP usage
 
 ---
 
@@ -238,6 +263,7 @@ This project uses MCP servers for enhanced AI capabilities with direct access to
 | `puppeteer` | Browser automation | Chromium | ⚠️ May not load in OpenCode |
 | `filestash` | MinIO S3 file access | MinIO S3 endpoint (Docker) | ⚠️ May not load in OpenCode |
 | `django-rest` | Django REST Framework integration | `http://localhost:8000/mcp/` (via mcp-remote) | ⚠️ May not load in OpenCode |
+| `context7` | Library documentation search | Local | ✅ Available |
 
 **Note:** OpenCode typically loads 5-7 MCP servers due to resource constraints. The core infrastructure servers (postgres, redis, github, docker, sentry, memory, think) should be available reliably. Optional/additional servers (openapi, puppeteer, filestash, django-rest) may not load due to timeouts, resource limits, network issues, or dependency requirements.
 

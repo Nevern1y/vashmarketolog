@@ -89,6 +89,10 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
             if (shouldFilterByCompany) {
                 queryParams.company = String(params.company);
             }
+            // Pass includeUnassigned to backend for proper filtering
+            if (params?.includeUnassigned) {
+                queryParams.includeUnassigned = 'true';
+            }
 
             const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
             const results = response.results;

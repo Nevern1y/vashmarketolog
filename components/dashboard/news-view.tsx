@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { cn } from "@/lib/utils"
+import DOMPurify from "dompurify"
 import {
     Newspaper,
     Calendar,
@@ -22,6 +22,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { useNews, useNewsCategories, useFeaturedNews, useNewsDetail, type NewsItem } from "@/hooks/use-news"
+import { cn } from "@/lib/utils"
 
 // =================================================================================
 // NEWS VIEW FOR CLIENTS/AGENTS
@@ -199,6 +200,10 @@ function NewsDetailModal({
         return content.replace(/\n/g, '<br/>')
     }
 
+    const sanitizedContent = displayNews.content
+        ? DOMPurify.sanitize(processContent(displayNews.content))
+        : ""
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -300,7 +305,7 @@ function NewsDetailModal({
                             <Loader2 className="h-6 w-6 animate-spin text-[#3CE8D1]" />
                         </div>
                     ) : displayNews.content ? (
-                        <div dangerouslySetInnerHTML={{ __html: processContent(displayNews.content) }} />
+                        <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
                     ) : (
                         <p>{displayNews.summary}</p>
                     )}

@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
 import { Building2, Lock, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
-import api from "@/lib/api"
+import api, { tokenStorage } from "@/lib/api"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "sonner"
 
 interface AcceptInviteResponse {
     message: string
@@ -24,7 +25,7 @@ interface AcceptInviteResponse {
 export default function AcceptInvitePage() {
     const router = useRouter()
     const params = useParams()
-    const { toast } = useToast()
+    const { refreshUser } = useAuth()
 
     const token = params.token as string
 
@@ -59,15 +60,14 @@ export default function AcceptInvitePage() {
 
             // Save tokens for immediate login
             if (response.access && response.refresh) {
-                localStorage.setItem("access_token", response.access)
-                localStorage.setItem("refresh_token", response.refresh)
-                localStorage.setItem("user", JSON.stringify(response.user))
+                tokenStorage.setTokens({ access: response.access, refresh: response.refresh })
             }
+
+            await refreshUser()
 
             setSuccess(true)
 
-            toast({
-                title: "Аккаунт активирован!",
+            toast.success("Аккаунт активирован!", {
                 description: "Вы можете начать работу с системой.",
             })
 
@@ -85,16 +85,16 @@ export default function AcceptInvitePage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-            <Card className="w-full max-w-md shadow-2xl border-slate-700 bg-slate-800/50 backdrop-blur">
+        <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0a1628] p-4">
+            <Card className="w-full max-w-md rounded-xl shadow-2xl border-0">
                 <CardHeader className="text-center pb-2">
-                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-600/20 flex items-center justify-center">
-                        <Building2 className="h-6 w-6 text-blue-400" />
+                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-[#3CE8D1]/10 flex items-center justify-center">
+                        <Building2 className="h-6 w-6 text-[#3CE8D1]" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">
+                    <CardTitle className="text-2xl font-bold text-foreground">
                         Принятие приглашения
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-muted-foreground">
                         Установите пароль для входа в систему
                     </CardDescription>
                 </CardHeader>
@@ -105,10 +105,10 @@ export default function AcceptInvitePage() {
                             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-600/20 flex items-center justify-center">
                                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
                             </div>
-                            <h3 className="text-lg font-semibold text-white mb-2">
+                            <h3 className="text-lg font-semibold text-foreground mb-2">
                                 Аккаунт активирован!
                             </h3>
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-muted-foreground text-sm">
                                 Перенаправляем вас в систему...
                             </p>
                         </div>
@@ -122,18 +122,18 @@ export default function AcceptInvitePage() {
                             )}
 
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-slate-300">
+                                <Label htmlFor="password" className="text-foreground">
                                     Новый пароль
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id="password"
                                         type="password"
                                         placeholder="Минимум 8 символов"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-10 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                        className="pl-10"
                                         required
                                         minLength={8}
                                         disabled={isLoading}
@@ -142,18 +142,18 @@ export default function AcceptInvitePage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="passwordConfirm" className="text-slate-300">
+                                <Label htmlFor="passwordConfirm" className="text-foreground">
                                     Подтвердите пароль
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id="passwordConfirm"
                                         type="password"
                                         placeholder="Повторите пароль"
                                         value={passwordConfirm}
                                         onChange={(e) => setPasswordConfirm(e.target.value)}
-                                        className="pl-10 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                        className="pl-10"
                                         required
                                         minLength={8}
                                         disabled={isLoading}
@@ -163,7 +163,7 @@ export default function AcceptInvitePage() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
+                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium py-2.5"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (

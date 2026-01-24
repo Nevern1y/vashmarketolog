@@ -96,10 +96,9 @@ export default async function DynamicSeoPage({ params }: Props) {
 
                 {/* Main Description */}
                 {page.main_description && (
-                    <div
-                        className="prose prose-invert max-w-none prose-headings:text-white prose-p:text-slate-300 prose-a:text-[#3ce8d1]"
-                        dangerouslySetInnerHTML={{ __html: page.main_description }}
-                    />
+                    <div className="prose prose-invert max-w-none whitespace-pre-line prose-headings:text-white prose-p:text-slate-300 prose-a:text-[#3ce8d1]">
+                        {page.main_description}
+                    </div>
                 )}
 
                 {/* H3 Title */}

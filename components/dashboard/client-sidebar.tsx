@@ -85,6 +85,7 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
     }
 
     onViewChange("calculator")
+    onCreateApplication()
   }
 
   const handleGoToProfile = () => {

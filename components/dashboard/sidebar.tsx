@@ -33,6 +33,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
 
   const handleCreateApplication = () => {
     onViewChange("calculator")
+    onCreateApplication()
   }
 
   const mainNavItems = [

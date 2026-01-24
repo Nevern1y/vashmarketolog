@@ -51,19 +51,41 @@ class DocumentViewSet(viewsets.ModelViewSet):
             user_id = self.request.query_params.get('user_id')
             if user_id:
                 qs = qs.filter(owner_id=user_id)
-            return qs
-        
-        # Partner sees documents from assigned applications
-        if user.role == 'partner':
+        elif user.role == 'partner':
+            # Partner sees documents from assigned applications
             from apps.applications.models import Application
             assigned_apps = Application.objects.filter(assigned_partner=user)
             document_ids = set()
             for app in assigned_apps:
                 document_ids.update(app.documents.values_list('id', flat=True))
-            return Document.objects.filter(id__in=document_ids)
+            qs = Document.objects.filter(id__in=document_ids)
+        else:
+            # Client/Agent see their own documents
+            qs = Document.objects.filter(owner=user)
         
-        # Client/Agent see their own documents
-        return Document.objects.filter(owner=user)
+        # Apply filters from query params
+        document_type_id = self.request.query_params.get('document_type_id')
+        if document_type_id:
+            qs = qs.filter(document_type_id=document_type_id)
+        
+        product_type = self.request.query_params.get('product_type')
+        if product_type:
+            qs = qs.filter(product_type=product_type)
+        
+        doc_status = self.request.query_params.get('status')
+        if doc_status:
+            qs = qs.filter(status=doc_status)
+        
+        company_id = self.request.query_params.get('company')
+        if company_id:
+            qs = qs.filter(company_id=company_id)
+        
+        # include_unassigned: show documents not attached to any application
+        include_unassigned = self.request.query_params.get('includeUnassigned')
+        if include_unassigned == 'true':
+            qs = qs.filter(applications__isnull=True)
+        
+        return qs
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -99,13 +121,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def by_type(self, request):
         """
         Get documents grouped by type.
-        GET /api/documents/by_type/?type=constituent
+        GET /api/documents/by_type/?document_type_id=1
         """
-        doc_type = request.query_params.get('type')
+        doc_type_id = request.query_params.get('document_type_id') or request.query_params.get('type')
         queryset = self.get_queryset()
         
-        if doc_type:
-            queryset = queryset.filter(document_type=doc_type)
+        if doc_type_id:
+            queryset = queryset.filter(document_type_id=doc_type_id)
         
         serializer = DocumentListSerializer(queryset, many=True, context={'request': request})
         return Response(serializer.data)
@@ -141,12 +163,87 @@ class DocumentViewSet(viewsets.ModelViewSet):
         queryset = Document.objects.filter(owner_id=user_id)
         serializer = DocumentListSerializer(queryset, many=True, context={'request': request})
         
+        # Calculate stats by status
+        total = queryset.count()
+        pending = queryset.filter(status='pending').count()
+        verified = queryset.filter(status='verified').count()
+        rejected = queryset.filter(status='rejected').count()
+        
         return Response({
             'documents': serializer.data,
             'stats': {
-                'total': queryset.count(),
+                'total': total,
+                'pending': pending,
+                'verified': verified,
+                'rejected': rejected,
             }
         })
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='agent_id',
+                type=int,
+                description='Agent user ID (for admin to view specific agent\'s clients)',
+                required=False
+            ),
+            OpenApiParameter(
+                name='client_id',
+                type=int,
+                description='Filter by specific CRM client company ID',
+                required=False
+            ),
+        ],
+        responses={200: DocumentListSerializer(many=True)},
+        description='Get documents from agent\'s CRM clients'
+    )
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def by_clients(self, request):
+        """
+        Get documents from agent's CRM clients.
+        
+        GET /api/documents/by_clients/
+        GET /api/documents/by_clients/?agent_id=123 (admin only)
+        GET /api/documents/by_clients/?client_id=456
+        
+        For agents: returns documents from their CRM clients (is_crm_client=True, owner=agent)
+        For admins: can specify agent_id to view documents of a specific agent's clients
+        """
+        from apps.companies.models import CompanyProfile
+        
+        user = request.user
+        agent_id = request.query_params.get('agent_id')
+        
+        # If admin and agent_id provided - view that agent's clients
+        if (user.role == 'admin' or user.is_superuser) and agent_id:
+            crm_companies = CompanyProfile.objects.filter(
+                owner_id=agent_id,
+                is_crm_client=True
+            )
+        else:
+            # Otherwise - current user's CRM clients
+            crm_companies = CompanyProfile.objects.filter(
+                owner=user,
+                is_crm_client=True
+            )
+        
+        # Optional filter by specific client
+        client_id = request.query_params.get('client_id')
+        if client_id:
+            crm_companies = crm_companies.filter(id=client_id)
+        
+        # Get documents linked to these companies
+        queryset = Document.objects.filter(
+            company__in=crm_companies
+        ).select_related('owner', 'company').order_by('-uploaded_at')
+        
+        serializer = DocumentListSerializer(
+            queryset,
+            many=True,
+            context={'request': request}
+        )
+        
+        return Response(serializer.data)
 
 
 

@@ -50,16 +50,16 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-            <Card className="w-full max-w-md shadow-2xl border-slate-700 bg-slate-800/50 backdrop-blur">
+        <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0a1628] p-4">
+            <Card className="w-full max-w-md rounded-xl shadow-2xl border-0">
                 <CardHeader className="text-center pb-2">
-                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-600/20 flex items-center justify-center">
-                        <Mail className="h-6 w-6 text-blue-400" />
+                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-[#3CE8D1]/10 flex items-center justify-center">
+                        <Mail className="h-6 w-6 text-[#3CE8D1]" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">
+                    <CardTitle className="text-2xl font-bold text-foreground">
                         Восстановление пароля
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-muted-foreground">
                         {success 
                             ? "Проверьте вашу почту"
                             : "Введите email для получения ссылки на сброс пароля"
@@ -73,10 +73,10 @@ export default function ForgotPasswordPage() {
                             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-600/20 flex items-center justify-center">
                                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
                             </div>
-                            <p className="text-slate-300 mb-2">
+                            <p className="text-foreground mb-2">
                                 Если аккаунт с этим email существует, мы отправили письмо с инструкциями.
                             </p>
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-muted-foreground text-sm">
                                 Проверьте папку &quot;Спам&quot;, если письмо не пришло.
                             </p>
                         </div>
@@ -90,18 +90,18 @@ export default function ForgotPasswordPage() {
                             )}
 
                             <div className="space-y-2">
-                                <Label htmlFor="email" className="text-slate-300">
+                                <Label htmlFor="email" className="text-foreground">
                                     Email
                                 </Label>
                                 <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                                    <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id="email"
                                         type="email"
                                         placeholder="example@mail.ru"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="pl-10 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                        className="pl-10"
                                         required
                                         disabled={isLoading}
                                         autoFocus
@@ -111,7 +111,7 @@ export default function ForgotPasswordPage() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
+                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium py-2.5"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
@@ -127,10 +127,10 @@ export default function ForgotPasswordPage() {
                     )}
                 </CardContent>
 
-                <CardFooter className="justify-center border-t border-slate-700 pt-6">
+                <CardFooter className="justify-center border-t border-border pt-6">
                     <Link 
                         href="/auth" 
-                        className="flex items-center text-sm text-slate-400 hover:text-white transition-colors"
+                        className="flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Вернуться к входу

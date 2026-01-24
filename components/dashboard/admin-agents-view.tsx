@@ -85,6 +85,29 @@ interface AgentDocument {
     status: string
     uploaded_at: string | null
     file_url: string | null
+    company: number | null  // null = agent's own doc, number = client's doc
+    company_name: string | null
+}
+
+// Type for CRM client
+interface CRMClient {
+    id: number
+    short_name: string | null
+    name: string | null
+    inn: string | null
+    client_status: 'pending' | 'confirmed'
+}
+
+// Type for client document
+interface ClientDocument {
+    id: number
+    name: string
+    file_url: string | null
+    document_type_id: number
+    type_display: string
+    status: string
+    status_display: string
+    uploaded_at: string
 }
 
 
@@ -147,6 +170,14 @@ export function AdminAgentsView() {
     const [requestDocComment, setRequestDocComment] = useState('')
     const { createRequest } = useDocumentRequests()
 
+    // Client documents state (for Documents tab)
+    const [agentClients, setAgentClients] = useState<CRMClient[]>([])
+    const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
+    const [clientDocuments, setClientDocuments] = useState<ClientDocument[]>([])
+    const [isLoadingClients, setIsLoadingClients] = useState(false)
+    const [isLoadingClientDocs, setIsLoadingClientDocs] = useState(false)
+    const [documentsSubTab, setDocumentsSubTab] = useState<'agent' | 'clients'>('agent')
+
 
     // Collapsible sections
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -171,6 +202,43 @@ export function AdminAgentsView() {
             toast.error('Ошибка загрузки агентов')
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    // Load agent's CRM clients
+    const loadAgentClients = async (agentId: number) => {
+        setIsLoadingClients(true)
+        setAgentClients([])
+        setSelectedClientId(null)
+        setClientDocuments([])
+        try {
+            const res = await api.get(`/companies/agent_clients/?agent_id=${agentId}`)
+            setAgentClients(Array.isArray(res) ? res : [])
+        } catch (err) {
+            toast.error('Ошибка загрузки клиентов агента')
+        } finally {
+            setIsLoadingClients(false)
+        }
+    }
+
+    // Load documents for selected client
+    const loadClientDocuments = async (clientId: number, agentId: number) => {
+        setIsLoadingClientDocs(true)
+        try {
+            const res = await api.get(`/documents/by_clients/?agent_id=${agentId}&client_id=${clientId}`)
+            setClientDocuments(Array.isArray(res) ? res : [])
+        } catch (err) {
+            toast.error('Ошибка загрузки документов клиента')
+        } finally {
+            setIsLoadingClientDocs(false)
+        }
+    }
+
+    // Load clients when switching to clients sub-tab
+    const handleDocumentsSubTabChange = (value: string) => {
+        setDocumentsSubTab(value as 'agent' | 'clients')
+        if (value === 'clients' && selectedAgent && agentClients.length === 0) {
+            loadAgentClients(selectedAgent.id)
         }
     }
 
@@ -556,82 +624,195 @@ export function AdminAgentsView() {
                                 </TabsContent>
 
                                 <TabsContent value="documents" className="flex-1 overflow-y-auto mt-4">
-                                    {/* Header with Request Document button */}
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-semibold">Документы</h3>
-                                        </div>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="border-[#4F7DF3] text-[#4F7DF3] hover:bg-[#4F7DF3] hover:text-white"
-                                            onClick={() => setIsRequestDocOpen(true)}
-                                        >
-                                            <Send className="h-4 w-4 mr-2" />
-                                            Запросить документ
-                                        </Button>
-                                    </div>
+                                    {/* Sub-tabs for Agent docs vs Client docs */}
+                                    <Tabs value={documentsSubTab} onValueChange={handleDocumentsSubTabChange}>
+                                        <TabsList className="mb-4 w-full">
+                                            <TabsTrigger value="agent" className="flex-1">Документы агента</TabsTrigger>
+                                            <TabsTrigger value="clients" className="flex-1">Документы клиентов</TabsTrigger>
+                                        </TabsList>
 
-                                    {selectedAgent.documents && selectedAgent.documents.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {selectedAgent.documents.map((doc) => (
-                                                <div
-                                                    key={doc.id}
-                                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                                                            <FileText className="h-5 w-5 text-muted-foreground" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium">{doc.name}</p>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                Загружен: {formatDate(doc.uploaded_at)}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        {doc.file_url && (
-                                                            <>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                                                    <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </a>
-                                                                </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                                                                    <a href={doc.file_url} download>
-                                                                        <Download className="h-4 w-4" />
-                                                                    </a>
-                                                                </Button>
-                                                            </>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
-                                                            onClick={() => setDeleteDoc(doc)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                        {/* Agent Documents Sub-Tab */}
+                                        <TabsContent value="agent">
+                                            {/* Header with Request Document button */}
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-semibold text-sm">Документы агента</h3>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-12">
-                                            <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
-                                            <p className="text-muted-foreground">У агента нет загруженных документов</p>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="mt-4"
-                                                onClick={() => setIsRequestDocOpen(true)}
-                                            >
-                                                <Send className="h-4 w-4 mr-2" />
-                                                Запросить документ
-                                            </Button>
-                                        </div>
-                                    )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-[#4F7DF3] text-[#4F7DF3] hover:bg-[#4F7DF3] hover:text-white"
+                                                    onClick={() => setIsRequestDocOpen(true)}
+                                                >
+                                                    <Send className="h-4 w-4 mr-2" />
+                                                    Запросить документ
+                                                </Button>
+                                            </div>
+
+                                            {/* Filter: only agent's own documents (company === null) */}
+                                            {(() => {
+                                                const agentOwnDocs = selectedAgent.documents?.filter(d => d.company === null) || []
+                                                return agentOwnDocs.length > 0 ? (
+                                                <div className="space-y-2">
+                                                    {agentOwnDocs.map((doc) => (
+                                                        <div
+                                                            key={doc.id}
+                                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3"
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                                                    <FileText className="h-5 w-5 text-muted-foreground" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-medium">{doc.name}</p>
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        Загружен: {formatDate(doc.uploaded_at)}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                {doc.file_url && (
+                                                                    <>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                                                            <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                                                                                <Eye className="h-4 w-4" />
+                                                                            </a>
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                                                            <a href={doc.file_url} download>
+                                                                                <Download className="h-4 w-4" />
+                                                                            </a>
+                                                                        </Button>
+                                                                    </>
+                                                                )}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10"
+                                                                    onClick={() => setDeleteDoc(doc)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center py-12">
+                                                    <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                                                    <p className="text-muted-foreground">У агента нет собственных документов</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">Документы клиентов доступны на вкладке "Документы клиентов"</p>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="mt-4"
+                                                        onClick={() => setIsRequestDocOpen(true)}
+                                                    >
+                                                        <Send className="h-4 w-4 mr-2" />
+                                                        Запросить документ
+                                                    </Button>
+                                                </div>
+                                            )
+                                            })()}
+                                        </TabsContent>
+
+                                        {/* Client Documents Sub-Tab */}
+                                        <TabsContent value="clients">
+                                            <div className="space-y-4">
+                                                {/* Client selector */}
+                                                <div className="space-y-2">
+                                                    <label className="text-sm font-medium">Выберите клиента</label>
+                                                    {isLoadingClients ? (
+                                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            Загрузка клиентов...
+                                                        </div>
+                                                    ) : agentClients.length > 0 ? (
+                                                        <Select
+                                                            value={selectedClientId?.toString() || ''}
+                                                            onValueChange={(v) => {
+                                                                const clientId = Number(v)
+                                                                setSelectedClientId(clientId)
+                                                                if (selectedAgent) {
+                                                                    loadClientDocuments(clientId, selectedAgent.id)
+                                                                }
+                                                            }}
+                                                        >
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Выберите клиента агента" />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                {agentClients.map(client => (
+                                                                    <SelectItem key={client.id} value={client.id.toString()}>
+                                                                        {client.short_name || client.name || 'Без названия'} (ИНН: {client.inn || '—'})
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    ) : (
+                                                        <p className="text-sm text-muted-foreground">У агента нет CRM-клиентов</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Client documents list */}
+                                                {selectedClientId && (
+                                                    <div className="space-y-2">
+                                                        <h4 className="text-sm font-medium">Документы клиента</h4>
+                                                        {isLoadingClientDocs ? (
+                                                            <div className="flex items-center justify-center py-8">
+                                                                <Loader2 className="h-6 w-6 animate-spin" />
+                                                            </div>
+                                                        ) : clientDocuments.length > 0 ? (
+                                                            <div className="space-y-2">
+                                                                {clientDocuments.map((doc) => (
+                                                                    <div
+                                                                        key={doc.id}
+                                                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border gap-3"
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                                                                                <FileText className="h-5 w-5 text-muted-foreground" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="font-medium text-sm">{doc.name}</p>
+                                                                                <p className="text-xs text-muted-foreground">
+                                                                                    {doc.type_display} • {formatDate(doc.uploaded_at)}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Badge variant={doc.status === 'verified' ? 'default' : 'secondary'}>
+                                                                                {doc.status_display}
+                                                                            </Badge>
+                                                                            {doc.file_url && (
+                                                                                <>
+                                                                                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                                                                        <a href={doc.file_url} target="_blank" rel="noopener noreferrer">
+                                                                                            <Eye className="h-4 w-4" />
+                                                                                        </a>
+                                                                                    </Button>
+                                                                                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                                                                                        <a href={doc.file_url} download>
+                                                                                            <Download className="h-4 w-4" />
+                                                                                        </a>
+                                                                                    </Button>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center py-8">
+                                                                <FileText className="h-8 w-8 text-muted-foreground/20 mb-2" />
+                                                                <p className="text-sm text-muted-foreground">Документов не найдено</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
                                 </TabsContent>
                             </Tabs>
                         </>
@@ -727,7 +908,7 @@ function InfoRow({ label, value, highlight }: InfoRowProps) {
         <div className="flex flex-col gap-0.5">
             <span className="text-xs text-muted-foreground">{label}</span>
             <span className={cn(
-                "text-sm break-words",
+                "text-sm break-all overflow-wrap-anywhere",
                 highlight ? "font-semibold text-[#3CE8D1]" : "font-medium"
             )}>
                 {value || '—'}

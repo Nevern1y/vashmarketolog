@@ -7,6 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle
+} from "@/components/ui/alert-dialog"
+import {
     Table,
     TableBody,
     TableCell,
@@ -39,15 +49,10 @@ export function AdminCRMClientsView() {
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all')
     const [processingId, setProcessingId] = useState<number | null>(null)
+    const [duplicateClient, setDuplicateClient] = useState<AdminCRMClient | null>(null)
+    const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
 
-    const handleConfirm = async (client: AdminCRMClient) => {
-        if (client.has_duplicates) {
-            const confirmed = window.confirm(
-                `Внимание! Компания с ИНН ${client.inn} уже закреплена за другим агентом. Продолжить?`
-            )
-            if (!confirmed) return
-        }
-
+    const confirmClientAction = async (client: AdminCRMClient) => {
         setProcessingId(client.id)
         const success = await confirmClient(client.id)
         setProcessingId(null)
@@ -57,6 +62,23 @@ export function AdminCRMClientsView() {
         } else {
             toast.error("Ошибка при закреплении клиента")
         }
+    }
+
+    const handleConfirm = (client: AdminCRMClient) => {
+        if (client.has_duplicates) {
+            setDuplicateClient(client)
+            setIsDuplicateDialogOpen(true)
+            return
+        }
+
+        confirmClientAction(client)
+    }
+
+    const handleDuplicateConfirm = async () => {
+        if (!duplicateClient) return
+        await confirmClientAction(duplicateClient)
+        setIsDuplicateDialogOpen(false)
+        setDuplicateClient(null)
     }
 
     const handleReject = async (client: AdminCRMClient) => {
@@ -96,7 +118,8 @@ export function AdminCRMClientsView() {
     }
 
     return (
-        <div className="space-y-4 md:space-y-6">
+        <>
+            <div className="space-y-4 md:space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -415,6 +438,40 @@ export function AdminCRMClientsView() {
                     </div>
                 </CardContent>
             </Card>
-        </div>
+            </div>
+
+            <AlertDialog
+                open={isDuplicateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsDuplicateDialogOpen(open)
+                    if (!open) {
+                        setDuplicateClient(null)
+                    }
+                }}
+            >
+                <AlertDialogContent className="bg-card border-border">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Подтвердите закрепление</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {duplicateClient
+                                ? `Компания с ИНН ${duplicateClient.inn} уже закреплена за другим агентом. Продолжить?`
+                                : "Компания уже закреплена за другим агентом. Продолжить?"}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="border-border bg-transparent">
+                            Отмена
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDuplicateConfirm}
+                            disabled={processingId === duplicateClient?.id}
+                            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                        >
+                            Закрепить
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     )
 }

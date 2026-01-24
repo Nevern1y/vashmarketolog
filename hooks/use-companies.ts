@@ -157,6 +157,10 @@ export interface Company {
     ogrn: string;
     name: string;
     short_name: string;
+    // Phase 1: New company info fields
+    foreign_name?: string;                // Name in foreign language
+    legal_form?: string;                  // Organizational form (ООО, АО, etc.)
+    is_resident?: boolean;                // Russian resident
     legal_address: string;
     legal_address_postal_code?: string;  // Postal code for legal address
     actual_address: string;
@@ -166,12 +170,20 @@ export interface Company {
     region: string;
     // Company details
     employee_count?: number;             // Number of employees
+    contracts_count?: number;            // Contract counts
+    contracts_44fz_count?: number;       // 44-FZ contracts
+    contracts_223fz_count?: number;      // 223-FZ contracts
+    // Official contacts
+    company_website?: string;            // Company website
+    company_email?: string;              // Company email
+    office_phone?: string;               // Office phone
     // State Registration (Section 2)
     okato?: string;
     oktmo?: string;
     oktmo_date?: string;
     okpo?: string;
     okfs?: string;
+    okogu?: string;                      // ОКОГУ
     registration_date?: string;
     registration_authority?: string;  // registrar_name -> registration_authority
     authorized_capital_declared?: string;  // stated_capital -> authorized_capital_declared
@@ -194,11 +206,13 @@ export interface Company {
     passport_code: string | null;
     // Signatory fields (MCHD)
     signatory_basis?: 'charter' | 'power_of_attorney'; // Basis for signing
+    // MCHD (Machine-Readable Power of Attorney) fields
     is_mchd?: boolean;                   // Whether using MCHD
-    mchd_full_name?: string;             // MCHD signatory full name
-    mchd_inn?: string;                   // MCHD signatory INN
-    mchd_number?: string;                // MCHD number
-    mchd_date?: string;                  // MCHD date
+    mchd_number?: string;                // MCHD registration number
+    mchd_issue_date?: string;            // MCHD issue date
+    mchd_expiry_date?: string;           // MCHD expiry date
+    mchd_principal_inn?: string;         // Principal's INN
+    mchd_file?: string;                  // MCHD file URL
     // JSONField data (API-Ready for future integrations)
     founders_data: FounderData[];
     legal_founders_data: LegalFounderData[];
@@ -218,8 +232,6 @@ export interface Company {
     contact_phone: string;
     contact_email: string;
     website: string;
-    email: string;  // Added for accreditation form
-    acts_on_basis: string;  // "Устава" / "Доверенности" - for document generation
     // Timestamps
     created_at: string;
     updated_at: string;

@@ -603,9 +603,9 @@ function Row({ label, value, highlight, isLink, span2, small }: RowProps) {
         <div className={cn("flex flex-col gap-0.5", span2 && "col-span-2", small && "text-xs")}>
             <span className={cn("text-muted-foreground", small ? "text-xs" : "text-xs")}>{label}</span>
             {isLink && value ? (
-                <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-[#4F7DF3] hover:underline text-sm break-words">{content}</a>
+<a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-[#4F7DF3] hover:underline text-sm break-all overflow-wrap-anywhere">{content}</a>
             ) : (
-                <span className={cn("break-words", highlight ? "font-semibold text-[#3CE8D1]" : "font-medium", small ? "text-xs" : "text-sm")}>{content}</span>
+                <span className={cn("break-all overflow-wrap-anywhere", highlight ? "font-semibold text-[#3CE8D1]" : "font-medium", small ? "text-xs" : "text-sm")}>{content}</span>
             )}
         </div>
     )

@@ -480,6 +480,47 @@ class CompanyProfile(models.Model):
     contact_email = models.EmailField('Email контактного лица', blank=True, default='')
     website = models.URLField('Веб-сайт', blank=True, default='')
     
+    # =============================================================================
+    # MCHD (Machine-Readable Power of Attorney) Fields
+    # ТЗ: Машиночитаемая доверенность
+    # =============================================================================
+    is_mchd = models.BooleanField(
+        'Есть МЧД',
+        default=False,
+        help_text='Есть ли машиночитаемая доверенность (МЧД)'
+    )
+    mchd_number = models.CharField(
+        'Номер МЧД',
+        max_length=100,
+        blank=True,
+        default='',
+        help_text='Регистрационный номер МЧД'
+    )
+    mchd_issue_date = models.DateField(
+        'Дата выдачи МЧД',
+        null=True,
+        blank=True
+    )
+    mchd_expiry_date = models.DateField(
+        'Дата окончания МЧД',
+        null=True,
+        blank=True
+    )
+    mchd_principal_inn = models.CharField(
+        'ИНН доверителя',
+        max_length=12,
+        blank=True,
+        default='',
+        help_text='ИНН лица, выдавшего доверенность'
+    )
+    mchd_file = models.FileField(
+        'Файл МЧД',
+        upload_to='mchd/%Y/%m/',
+        null=True,
+        blank=True,
+        help_text='XML или PDF файл машиночитаемой доверенности'
+    )
+    
     # Timestamps
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
     updated_at = models.DateTimeField('Дата обновления', auto_now=True)

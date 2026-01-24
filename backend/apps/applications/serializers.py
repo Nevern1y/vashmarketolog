@@ -2,7 +2,7 @@
 API Serializers for Applications.
 """
 from rest_framework import serializers
-from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, CalculationSession, Lead, LeadSource, LeadStatus
+from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, ApplicationStatusDefinition, CalculationSession, Lead, LeadSource, LeadStatus
 
 
 class CalculationSessionSerializer(serializers.ModelSerializer):
@@ -142,6 +142,8 @@ class ApplicationSerializer(serializers.ModelSerializer):
     )
     documents = ApplicationDocumentSerializer(many=True, read_only=True)
     decisions_count = serializers.SerializerMethodField()
+    # Bank integration fields (Phase 7)
+    status_id_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -188,9 +190,17 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'documents',  # Nested document objects for detail view
             'has_signature',
             'notes',
+            'admin_notes',           # Admin-only notes (Phase 1.4)
+            'rejection_reason',      # Rejection reason (Phase 1.4)
+            'info_request_message',  # Info request message (Phase 1.4)
             'decisions_count',
             'external_id',     # Bank ticket ID (Phase 7)
             'bank_status',     # Bank-specific status (Phase 7)
+            # Bank API integration fields
+            'commission_data',  # Commission structure from bank
+            'signing_url',      # URL for document signing
+            'status_id',        # Numeric bank status ID (Appendix A)
+            'status_id_display', # Human-readable status name from Appendix A
             'created_at',
             'updated_at',
             'submitted_at',
@@ -210,6 +220,12 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'calculation_session',  # Link to root application
             'external_id',
             'bank_status',
+            'commission_data',
+            'signing_url',
+            'status_id',
+            'status_id_display',
+            'rejection_reason',       # Read-only (set by admin action)
+            'info_request_message',   # Read-only (set by admin action)
             'created_at',
             'updated_at',
             'submitted_at',
@@ -225,6 +241,21 @@ class ApplicationSerializer(serializers.ModelSerializer):
             last = obj.created_by.last_name or ''
             full_name = f"{first} {last}".strip()
             return full_name if full_name else obj.created_by.email
+        return None
+
+    def get_status_id_display(self, obj):
+        """Get human-readable status name from ApplicationStatusDefinition (Appendix A)."""
+        if obj.status_id is None:
+            return None
+        try:
+            status_def = ApplicationStatusDefinition.objects.filter(
+                status_id=obj.status_id,
+                product_type=obj.product_type
+            ).first()
+            if status_def:
+                return status_def.name
+        except Exception:
+            pass
         return None
 
 
@@ -251,6 +282,17 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
             'credit_sub_type',      # Credit subtype (corporate_credit)
             'financing_term_days',  # Term in days for credits
             'pledge_description',   # Collateral description
+            # Phase 1: Product-specific fields (ТЗ compliance)
+            'insurance_category',       # Insurance
+            'insurance_product_type',   # Insurance
+            'factoring_type',          # Factoring
+            'contractor_inn',          # Factoring debtor
+            'ved_currency',            # VED
+            'ved_country',             # VED
+            'tender_support_type',     # Tender Support
+            'purchase_category',       # Tender Support
+            'industry',                # Tender Support
+            'account_type',            # RKO/SpecAccount
             'target_bank_name',  # For Admin routing
             'calculation_session',  # Link to root application (bank selection page)
             'tender_number',
@@ -336,6 +378,17 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
             'credit_sub_type',      # Credit subtype (corporate_credit)
             'financing_term_days',  # Term in days for credits
             'pledge_description',   # Collateral description
+            # Phase 1: Product-specific fields (ТЗ compliance)
+            'insurance_category',       # Insurance
+            'insurance_product_type',   # Insurance
+            'factoring_type',          # Factoring
+            'contractor_inn',          # Factoring debtor
+            'ved_currency',            # VED
+            'ved_country',             # VED
+            'tender_support_type',     # Tender Support
+            'purchase_category',       # Tender Support
+            'industry',                # Tender Support
+            'account_type',            # RKO/SpecAccount
             'target_bank_name',  # For Admin routing
             'tender_number',
             'tender_platform',

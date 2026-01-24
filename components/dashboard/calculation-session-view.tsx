@@ -143,7 +143,7 @@ export function CalculationSessionView({
             if (productType === "insurance") {
                 return {
                     insurance_category: formData.insuranceCategory || undefined,
-                    insurance_product: formData.insuranceProduct || undefined,
+                    insurance_product_type: formData.insuranceProduct || undefined,
                     insurance_amount: formData.insuranceAmount?.toString() || undefined,
                 }
             }

@@ -65,6 +65,14 @@ const LEASING_TYPES = [
 const FACTORING_TYPES = ["Классический факторинг", "Закрытый факторинг", "Закупочный факторинг"]
 
 // Insurance categories and products per ТЗ + employer requirements
+// Backend enum values with Russian labels
+const INSURANCE_CATEGORIES_BACKEND: { value: string; label: string }[] = [
+    { value: "personnel", label: "Персонал" },
+    { value: "transport", label: "Транспорт" },
+    { value: "property", label: "Имущество" },
+    { value: "liability", label: "Ответственность" },
+]
+// Legacy display array for UI (will be replaced)
 const INSURANCE_CATEGORIES = ["Строительно-монтажные риски", "Контракта", "Персонал", "Транспорт", "Имущество", "Ответственность"]
 const INSURANCE_COMPANIES = [
     "ЭНЕРГОГАРАНТ",
@@ -75,6 +83,34 @@ const INSURANCE_COMPANIES = [
     "БСД",
     "Пари",
 ]
+// Backend enum values with Russian labels for insurance products
+const INSURANCE_PRODUCTS_BACKEND: Record<string, { value: string; label: string }[]> = {
+    personnel: [
+        { value: "dms", label: "Добровольное медицинское страхование (ДМС)" },
+        { value: "critical_illness", label: "Страхование критических заболеваний" },
+        { value: "accident", label: "Страхование несчастных случаев" },
+        { value: "travel", label: "Комплексное страхование в поездках" },
+    ],
+    transport: [
+        { value: "osago", label: "ОСАГО юридических лиц" },
+        { value: "fleet", label: "Комплексное страхование автопарков" },
+        { value: "special_tech", label: "Страхование специальной техники" },
+        { value: "carrier_liability", label: "Страхование ответственности перевозчика" },
+    ],
+    property: [
+        { value: "construction", label: "Страхование объектов строительства" },
+        { value: "cargo", label: "Страхование грузов и перевозок" },
+        { value: "company_property", label: "Страхование имущества компаний" },
+        { value: "business_interruption", label: "Страхование перерывов деятельности" },
+    ],
+    liability: [
+        { value: "civil_liability", label: "Страхование гражданской ответственности" },
+        { value: "hazardous_objects", label: "Страхование опасных объектов" },
+        { value: "professional_risks", label: "Страхование профессиональных рисков" },
+        { value: "quality_liability", label: "Страхование ответственности за качество" },
+    ],
+}
+// Legacy display mapping for UI (will be replaced)
 const INSURANCE_PRODUCTS: Record<string, string[]> = {
     "Персонал": ["ДМС", "Страхование критических заболеваний", "Страхование несчастных случаев", "Комплексное страхование в поездках"],
     "Транспорт": ["ОСАГО юридических лиц", "Комплексное страхование автопарков", "Страхование специальной техники", "Страхование ответственности перевозчика"],
@@ -82,6 +118,31 @@ const INSURANCE_PRODUCTS: Record<string, string[]> = {
     "Ответственность": ["Страхование гражданской ответственности", "Страхование опасных объектов", "Страхование профессиональных рисков", "Страхование ответственности за качество"],
     "Строительно-монтажные риски": ["СМР полный пакет", "СМР базовый", "Страхование строительных рисков"],
     "Контракта": ["Страхование исполнения контракта", "Страхование ответственности по контракту"]
+}
+// Mapping from Russian labels to backend values
+const INSURANCE_CATEGORY_TO_BACKEND: Record<string, string> = {
+    "Персонал": "personnel",
+    "Транспорт": "transport",
+    "Имущество": "property",
+    "Ответственность": "liability",
+}
+const INSURANCE_PRODUCT_TO_BACKEND: Record<string, string> = {
+    "ДМС": "dms",
+    "Страхование критических заболеваний": "critical_illness",
+    "Страхование несчастных случаев": "accident",
+    "Комплексное страхование в поездках": "travel",
+    "ОСАГО юридических лиц": "osago",
+    "Комплексное страхование автопарков": "fleet",
+    "Страхование специальной техники": "special_tech",
+    "Страхование ответственности перевозчика": "carrier_liability",
+    "Страхование объектов строительства": "construction",
+    "Страхование грузов и перевозок": "cargo",
+    "Страхование имущества компаний": "company_property",
+    "Страхование перерывов деятельности": "business_interruption",
+    "Страхование гражданской ответственности": "civil_liability",
+    "Страхование опасных объектов": "hazardous_objects",
+    "Страхование профессиональных рисков": "professional_risks",
+    "Страхование ответственности за качество": "quality_liability",
 }
 
 const TENDER_TYPES = ["Разовое сопровождение", "Тендерное сопровождение под ключ"]
@@ -719,8 +780,9 @@ export function ClientCalculatorView() {
 
             if (showResults === "insurance") {
                 return {
-                    insurance_category: insuranceCategory || undefined,
-                    insurance_product: insuranceProduct || undefined,
+                    // Convert Russian labels to backend enum values
+                    insurance_category: INSURANCE_CATEGORY_TO_BACKEND[insuranceCategory] || insuranceCategory || undefined,
+                    insurance_product_type: INSURANCE_PRODUCT_TO_BACKEND[insuranceProduct] || insuranceProduct || undefined,
                     insurance_amount: insuranceAmount?.toString() || undefined,
                     insurance_term_months: insuranceTerm || undefined,
                 }

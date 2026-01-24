@@ -95,6 +95,13 @@ class CompanyProfileSerializer(serializers.ModelSerializer):
             'contact_phone',
             'contact_email',
             'website',
+            # MCHD (Machine-Readable Power of Attorney)
+            'is_mchd',
+            'mchd_number',
+            'mchd_issue_date',
+            'mchd_expiry_date',
+            'mchd_principal_inn',
+            'mchd_file',
             'created_at',
             'updated_at',
         ]
@@ -115,8 +122,17 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             'ogrn',
             'name',
             'short_name',
+            # Phase 1: New company info fields (ТЗ Клиенты)
+            'foreign_name',
+            'legal_form',
+            'is_resident',
+            # Addresses with postal codes
             'legal_address',
+            'legal_address_postal_code',
             'actual_address',
+            'actual_address_postal_code',
+            'post_address',
+            'post_address_postal_code',
             'region',
             # State registration fields
             'okato',
@@ -124,12 +140,22 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             'oktmo_date',
             'okpo',
             'okfs',
+            'okogu',
             'okved',
             'registration_date',
             'registration_authority',
             'authorized_capital_declared',
             'authorized_capital_paid',
             'authorized_capital_paid_date',
+            # Employee and contract counts
+            'employee_count',
+            'contracts_count',
+            'contracts_44fz_count',
+            'contracts_223fz_count',
+            # Official contacts
+            'company_website',
+            'company_email',
+            'office_phone',
             # Director info
             'director_name',
             'director_position',
@@ -148,6 +174,12 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             'founders_data',
             'legal_founders_data',
             'bank_accounts_data',
+            # New Phase 1 JSONFields (ТЗ Клиенты)
+            'leadership_data',
+            'activities_data',
+            'licenses_data',
+            'etp_accounts_data',
+            'contact_persons_data',
             # Tax and signatory settings
             'signatory_basis',
             'tax_system',
@@ -161,6 +193,13 @@ class CompanyProfileCreateSerializer(serializers.ModelSerializer):
             'contact_phone',
             'contact_email',
             'website',
+            # MCHD (Machine-Readable Power of Attorney)
+            'is_mchd',
+            'mchd_number',
+            'mchd_issue_date',
+            'mchd_expiry_date',
+            'mchd_principal_inn',
+            'mchd_file',
         ]
 
     def create(self, validated_data):
@@ -205,11 +244,48 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'ogrn',
             'name',
             'short_name',
+            # Phase 1: New company info fields (ТЗ Клиенты)
+            'foreign_name',
+            'legal_form',
+            'is_resident',
+            # Addresses with postal codes
             'legal_address',
+            'legal_address_postal_code',
             'actual_address',
+            'actual_address_postal_code',
+            'post_address',
+            'post_address_postal_code',
             'region',
+            # State registration fields
+            'okato',
+            'oktmo',
+            'oktmo_date',
+            'okpo',
+            'okfs',
+            'okogu',
+            'okved',
+            'registration_date',
+            'registration_authority',
+            'authorized_capital_declared',
+            'authorized_capital_paid',
+            'authorized_capital_paid_date',
+            # Employee and contract counts
+            'employee_count',
+            'contracts_count',
+            'contracts_44fz_count',
+            'contracts_223fz_count',
+            # Official contacts
+            'company_website',
+            'company_email',
+            'office_phone',
+            # Director info
             'director_name',
             'director_position',
+            'director_birth_date',
+            'director_birth_place',
+            'director_email',
+            'director_phone',
+            'director_registration_address',
             # Client status (ТЗ: Скриншот 3, 6)
             'client_status',
             'is_accredited',
@@ -224,6 +300,12 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'founders_data',
             'legal_founders_data',
             'bank_accounts_data',
+            # New Phase 1 JSONFields (ТЗ Клиенты)
+            'leadership_data',
+            'activities_data',
+            'licenses_data',
+            'etp_accounts_data',
+            'contact_persons_data',
             # Tax and signatory settings
             'signatory_basis',
             'tax_system',
@@ -237,6 +319,13 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'contact_phone',
             'contact_email',
             'website',
+            # MCHD (Machine-Readable Power of Attorney)
+            'is_mchd',
+            'mchd_number',
+            'mchd_issue_date',
+            'mchd_expiry_date',
+            'mchd_principal_inn',
+            'mchd_file',
             'created_at',
             'updated_at',
         ]

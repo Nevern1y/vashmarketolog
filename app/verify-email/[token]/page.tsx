@@ -43,7 +43,7 @@ export default function VerifyEmailPage() {
     const getStatusIcon = () => {
         switch (status) {
             case "loading":
-                return <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
+                return <Loader2 className="h-8 w-8 text-[#3CE8D1] animate-spin" />
             case "success":
                 return <CheckCircle2 className="h-8 w-8 text-emerald-400" />
             case "expired":
@@ -56,7 +56,7 @@ export default function VerifyEmailPage() {
     const getStatusBgColor = () => {
         switch (status) {
             case "loading":
-                return "bg-blue-600/20"
+                return "bg-[#3CE8D1]/10"
             case "success":
                 return "bg-emerald-600/20"
             case "expired":
@@ -80,16 +80,16 @@ export default function VerifyEmailPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-            <Card className="w-full max-w-md shadow-2xl border-slate-700 bg-slate-800/50 backdrop-blur">
+        <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0a1628] p-4">
+            <Card className="w-full max-w-md rounded-xl shadow-2xl border-0">
                 <CardHeader className="text-center pb-2">
                     <div className={`mx-auto mb-4 h-16 w-16 rounded-full ${getStatusBgColor()} flex items-center justify-center`}>
                         {getStatusIcon()}
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">
+                    <CardTitle className="text-2xl font-bold text-foreground">
                         {getStatusTitle()}
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-muted-foreground">
                         {message}
                     </CardDescription>
                 </CardHeader>
@@ -98,7 +98,7 @@ export default function VerifyEmailPage() {
                     {status === "success" && (
                         <Button
                             onClick={() => router.push("/")}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5"
+                            className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium py-2.5"
                         >
                             Перейти в личный кабинет
                         </Button>
@@ -119,13 +119,13 @@ export default function VerifyEmailPage() {
                             <Button
                                 onClick={() => window.location.reload()}
                                 variant="outline"
-                                className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                                className="w-full"
                             >
                                 Попробовать снова
                             </Button>
                             <Button
                                 onClick={() => router.push("/auth")}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
+                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium py-2.5"
                             >
                                 Вернуться к входу
                             </Button>

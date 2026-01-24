@@ -34,6 +34,15 @@ import {
 import { SeoPageEditor, type SeoPage } from "./seo-page-editor"
 import { api } from "../../lib/api"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../ui/dialog"
 
 export function SeoDashboard() {
     const { user, logout } = useAuth()
@@ -46,6 +55,9 @@ export function SeoDashboard() {
     const [isEditorOpen, setIsEditorOpen] = useState(false)
     const [editingPage, setEditingPage] = useState<SeoPage | null>(null)
     const [isSaving, setIsSaving] = useState(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+    const [pageToDelete, setPageToDelete] = useState<SeoPage | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const fetchPages = async () => {
         setIsLoading(true)
@@ -82,15 +94,25 @@ export function SeoDashboard() {
         setIsEditorOpen(true)
     }
 
-    const handleDelete = async (slug: string) => {
-        if (!confirm("Вы уверены, что хотите удалить эту страницу?")) return
+    const handleDeleteRequest = (page: SeoPage) => {
+        setPageToDelete(page)
+        setIsDeleteDialogOpen(true)
+    }
 
+    const handleDelete = async () => {
+        if (!pageToDelete) return
+        setIsDeleting(true)
         try {
-            await api.delete(`/seo/pages/${slug}/`)
-            setPages(pages.filter(p => p.slug !== slug))
+            await api.delete(`/seo/pages/${pageToDelete.slug}/`)
+            setPages(pages.filter(p => p.slug !== pageToDelete.slug))
+            toast.success("Страница удалена")
         } catch (error) {
             console.error("Failed to delete page:", error)
-            alert("Ошибка при удалении страницы")
+            toast.error("Ошибка при удалении страницы")
+        } finally {
+            setIsDeleting(false)
+            setIsDeleteDialogOpen(false)
+            setPageToDelete(null)
         }
     }
 
@@ -110,7 +132,7 @@ export function SeoDashboard() {
             return true
         } catch (error) {
             console.error("Failed to save page:", error)
-            alert("Ошибка при сохранении")
+            toast.error("Ошибка при сохранении")
             return false
         } finally {
             setIsSaving(false)
@@ -236,7 +258,7 @@ export function SeoDashboard() {
                                                         Редактировать
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
-                                                        onClick={() => handleDelete(page.slug)}
+                                                        onClick={() => handleDeleteRequest(page)}
                                                         className="text-red-400 focus:text-red-300 focus:bg-red-900/20"
                                                     >
                                                         <Trash2 className="h-4 w-4 mr-2" />
@@ -260,6 +282,44 @@ export function SeoDashboard() {
                 onSave={handleSave}
                 isLoading={isSaving}
             />
+
+            <Dialog
+                open={isDeleteDialogOpen}
+                onOpenChange={(open) => {
+                    setIsDeleteDialogOpen(open)
+                    if (!open) {
+                        setPageToDelete(null)
+                    }
+                }}
+            >
+                <DialogContent className="bg-[#0b0b12] border-slate-700 text-slate-100">
+                    <DialogHeader>
+                        <DialogTitle>Удалить страницу?</DialogTitle>
+                        <DialogDescription className="text-slate-400">
+                            {pageToDelete
+                                ? `Страница ${pageToDelete.slug} будет удалена без возможности восстановления.`
+                                : "Страница будет удалена без возможности восстановления."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            disabled={isDeleting}
+                        >
+                            Отмена
+                        </Button>
+                        <Button
+                            className="bg-red-500 text-white hover:bg-red-600"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Удаление..." : "Удалить"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

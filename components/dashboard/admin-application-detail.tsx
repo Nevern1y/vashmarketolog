@@ -39,6 +39,7 @@ import {
     MapPin,
     Landmark,
     ChevronRight,
+    Send,
 } from "lucide-react"
 import { useApplication, usePartnerActions } from "@/hooks/use-applications"
 import { toast } from "sonner"
@@ -55,6 +56,7 @@ import {
 import { ApplicationChat } from "./application-chat"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
+import { getStatusConfig } from "@/lib/status-mapping"
 
 interface AdminApplicationDetailProps {
     applicationId: string
@@ -65,15 +67,15 @@ interface AdminApplicationDetailProps {
 // Constants — Status & Labels
 // ============================================
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
-    draft: { label: "Черновик", color: "text-gray-400", bgColor: "bg-gray-500/10", icon: <FileText className="h-3.5 w-3.5" /> },
-    pending: { label: "Новая", color: "text-amber-400", bgColor: "bg-amber-500/15", icon: <Clock className="h-3.5 w-3.5" /> },
-    in_review: { label: "В работе", color: "text-blue-400", bgColor: "bg-blue-500/15", icon: <Eye className="h-3.5 w-3.5" /> },
-    info_requested: { label: "Запрос инфо", color: "text-orange-400", bgColor: "bg-orange-500/15", icon: <MessageSquare className="h-3.5 w-3.5" /> },
-    approved: { label: "Одобрено", color: "text-emerald-400", bgColor: "bg-emerald-500/15", icon: <CheckCircle className="h-3.5 w-3.5" /> },
-    rejected: { label: "Отклонено", color: "text-rose-400", bgColor: "bg-rose-500/15", icon: <XCircle className="h-3.5 w-3.5" /> },
-    won: { label: "Выигран", color: "text-emerald-400", bgColor: "bg-emerald-500/15", icon: <TrendingUp className="h-3.5 w-3.5" /> },
-    lost: { label: "Проигран", color: "text-rose-400", bgColor: "bg-rose-500/15", icon: <XCircle className="h-3.5 w-3.5" /> },
+const STATUS_ICONS: Record<string, React.ReactNode> = {
+    draft: <FileText className="h-3.5 w-3.5" />,
+    pending: <Clock className="h-3.5 w-3.5" />,
+    in_review: <Eye className="h-3.5 w-3.5" />,
+    info_requested: <MessageSquare className="h-3.5 w-3.5" />,
+    approved: <CheckCircle className="h-3.5 w-3.5" />,
+    rejected: <XCircle className="h-3.5 w-3.5" />,
+    won: <TrendingUp className="h-3.5 w-3.5" />,
+    lost: <XCircle className="h-3.5 w-3.5" />,
 }
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -188,13 +190,13 @@ const KIK_TYPE_LABELS: Record<string, string> = {
 
 const TENDER_SUPPORT_TYPE_LABELS: Record<string, string> = {
     one_time: "Разовое",
-    full_service: "Под ключ",
+    full_cycle: "Под ключ",
 }
 
 const PURCHASE_CATEGORY_LABELS: Record<string, string> = {
-    "44fz": "44-ФЗ",
-    "223fz": "223-ФЗ",
-    property_auctions: "Имущественные торги",
+    gov_44: "44-ФЗ",
+    gov_223: "223-ФЗ",
+    property: "Имущественные торги",
     commercial: "Коммерческие",
 }
 
@@ -298,7 +300,7 @@ function SectionDivider({ label }: { label: string }) {
 
 export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicationDetailProps) {
     const { application, isLoading, refetch } = useApplication(applicationId)
-    const { approveApplication, rejectApplication, restoreApplication, requestInfo, saveNotes, isLoading: isActioning } = usePartnerActions()
+    const { approveApplication, rejectApplication, restoreApplication, requestInfo, saveNotes, sendToBank, syncBankStatus, isLoading: isActioning } = usePartnerActions()
 
     const [showApproveDialog, setShowApproveDialog] = useState(false)
     const [showRejectDialog, setShowRejectDialog] = useState(false)
@@ -308,9 +310,11 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     const [isEditingNotes, setIsEditingNotes] = useState(false)
     const [editedNotes, setEditedNotes] = useState("")
     const [isSavingNotes, setIsSavingNotes] = useState(false)
+    const [isSendingToBank, setIsSendingToBank] = useState(false)
     const [activeTab, setActiveTab] = useState("info")
 
-    const statusCfg = application ? STATUS_CONFIG[application.status] || STATUS_CONFIG.pending : STATUS_CONFIG.pending
+    const statusCfg = application ? getStatusConfig(application.status) : getStatusConfig("pending")
+    const statusIcon = STATUS_ICONS[application?.status || "pending"] || STATUS_ICONS.draft
 
     const formatCurrency = (amount: string | number | null | undefined) => {
         if (!amount) return null
@@ -333,7 +337,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     }
 
     const handleReject = async () => {
-        const result = await rejectApplication(parseInt(applicationId))
+        const result = await rejectApplication(parseInt(applicationId), rejectReason)
         if (result) {
             toast.success("Заявка отклонена")
             await refetch()
@@ -343,7 +347,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     }
 
     const handleRequestInfo = async () => {
-        const result = await requestInfo(parseInt(applicationId))
+        const result = await requestInfo(parseInt(applicationId), requestMessage)
         if (result) {
             toast.success("Запрос отправлен")
             refetch()
@@ -369,6 +373,37 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
             refetch()
         }
         setIsSavingNotes(false)
+    }
+
+    const handleSendToBank = async () => {
+        setIsSendingToBank(true)
+        try {
+            const result = await sendToBank(parseInt(applicationId))
+            if (result) {
+                toast.success(`Заявка отправлена в банк. Ticket ID: ${result.ticket_id}`)
+                refetch()
+            } else {
+                toast.error("Ошибка отправки в банк")
+            }
+        } catch {
+            toast.error("Ошибка отправки в банк")
+        } finally {
+            setIsSendingToBank(false)
+        }
+    }
+
+    const handleSyncBankStatus = async () => {
+        const result = await syncBankStatus(parseInt(applicationId))
+        if (result) {
+            if (result.changed) {
+                toast.success(`Статус обновлен: ${result.bank_status}`)
+            } else {
+                toast.info(`Статус не изменился: ${result.bank_status}`)
+            }
+            refetch()
+        } else {
+            toast.error("Ошибка синхронизации статуса")
+        }
     }
 
     // Loading state
@@ -458,6 +493,31 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 >
                                     <CheckCircle className="h-4 w-4 mr-1.5" />Одобрить
                                 </Button>
+                                {/* Send to Bank button - only show if not already sent */}
+                                {!application.external_id && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleSendToBank}
+                                        disabled={isActioning || isSendingToBank}
+                                        className="flex-1 sm:flex-none h-9 text-xs text-[#3CE8D1] border-[#3CE8D1]/30 hover:text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                    >
+                                        <Send className="h-4 w-4 mr-1.5" />
+                                        {isSendingToBank ? "Отправка..." : "Отправить в банк"}
+                                    </Button>
+                                )}
+                                {/* Sync status button - only show if already sent */}
+                                {application.external_id && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleSyncBankStatus}
+                                        disabled={isActioning}
+                                        className="flex-1 sm:flex-none h-9 text-xs text-blue-400 border-blue-500/30 hover:text-blue-400 hover:bg-blue-500/10"
+                                    >
+                                        <RefreshCw className="h-4 w-4 mr-1.5" />Обновить статус
+                                    </Button>
+                                )}
                             </>
                         )}
                     </div>
@@ -476,7 +536,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
                                         <h1 className="text-xl md:text-2xl font-bold tracking-tight">Заявка #{application.id}</h1>
                                         <Badge className={cn("text-[10px] md:text-xs gap-1 py-0.5", statusCfg.bgColor, statusCfg.color)}>
-                                            {statusCfg.icon}
+                                            {statusIcon}
                                             {statusCfg.label}
                                         </Badge>
                                     </div>
@@ -1109,7 +1169,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all overflow-wrap-anywhere">
                                         {application.notes || "Нет заметок"}
                                     </p>
                                 )}
@@ -1240,8 +1300,8 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                 {/* TAB: Chat */}
                 {/* ============================================ */}
                 <TabsContent value="chat" className="mt-0">
-                    <Card className="border-border/40 bg-[#0a1628]/50">
-                        <CardContent className="p-0">
+                    <Card className="border-border/40 bg-[#0a1628]/50 overflow-hidden">
+                        <CardContent className="p-0 overflow-hidden">
                             <ApplicationChat applicationId={parseInt(applicationId)} />
                         </CardContent>
                     </Card>

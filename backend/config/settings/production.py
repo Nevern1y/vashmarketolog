@@ -45,6 +45,9 @@ EMAIL_SUBJECT_PREFIX = '[Лидер Гарант] '
 # Timeout for email sending (seconds)
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '30'))
 
+# Frontend URL for email links (invitation, verification, password reset)
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://lk.lider-garant.ru')
+
 # =============================================================================
 # HTTPS / SSL ENFORCEMENT
 # =============================================================================

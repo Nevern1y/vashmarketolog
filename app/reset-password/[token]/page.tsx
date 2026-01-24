@@ -65,16 +65,16 @@ export default function ResetPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-            <Card className="w-full max-w-md shadow-2xl border-slate-700 bg-slate-800/50 backdrop-blur">
+        <div className="flex min-h-[100dvh] w-full flex-col items-center justify-center bg-[#0a1628] p-4">
+            <Card className="w-full max-w-md rounded-xl shadow-2xl border-0">
                 <CardHeader className="text-center pb-2">
-                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-blue-600/20 flex items-center justify-center">
-                        <Lock className="h-6 w-6 text-blue-400" />
+                    <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-[#3CE8D1]/10 flex items-center justify-center">
+                        <Lock className="h-6 w-6 text-[#3CE8D1]" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">
+                    <CardTitle className="text-2xl font-bold text-foreground">
                         {success ? "Пароль изменён!" : "Новый пароль"}
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-muted-foreground">
                         {success 
                             ? "Теперь вы можете войти с новым паролем"
                             : "Придумайте новый надёжный пароль"
@@ -88,10 +88,10 @@ export default function ResetPasswordPage() {
                             <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-emerald-600/20 flex items-center justify-center">
                                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
                             </div>
-                            <h3 className="text-lg font-semibold text-white mb-2">
+                            <h3 className="text-lg font-semibold text-foreground mb-2">
                                 Пароль успешно изменён!
                             </h3>
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-muted-foreground text-sm">
                                 Перенаправляем на страницу входа...
                             </p>
                         </div>
@@ -105,18 +105,18 @@ export default function ResetPasswordPage() {
                             )}
 
                             <div className="space-y-2">
-                                <Label htmlFor="password" className="text-slate-300">
+                                <Label htmlFor="password" className="text-foreground">
                                     Новый пароль
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id="password"
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Минимум 8 символов"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-10 pr-10 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                        className="pl-10 pr-10"
                                         required
                                         minLength={8}
                                         disabled={isLoading}
@@ -125,7 +125,7 @@ export default function ResetPasswordPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                         tabIndex={-1}
                                     >
                                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -134,18 +134,18 @@ export default function ResetPasswordPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="passwordConfirm" className="text-slate-300">
+                                <Label htmlFor="passwordConfirm" className="text-foreground">
                                     Подтвердите пароль
                                 </Label>
                                 <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                                    <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         id="passwordConfirm"
                                         type={showPasswordConfirm ? "text" : "password"}
                                         placeholder="Повторите пароль"
                                         value={passwordConfirm}
                                         onChange={(e) => setPasswordConfirm(e.target.value)}
-                                        className="pl-10 pr-10 bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                        className="pl-10 pr-10"
                                         required
                                         minLength={8}
                                         disabled={isLoading}
@@ -153,7 +153,7 @@ export default function ResetPasswordPage() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                         tabIndex={-1}
                                     >
                                         {showPasswordConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -163,7 +163,7 @@ export default function ResetPasswordPage() {
 
                             <Button
                                 type="submit"
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5"
+                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium py-2.5"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (

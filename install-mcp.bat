@@ -2,9 +2,9 @@
 echo Installing MCP Server Dependencies...
 echo.
 
-echo [1/3] Installing djangorestframework-mcp...
+echo [1/3] Installing django-rest-framework-mcp...
 cd backend
-pip install djangorestframework-mcp
+pip install django-rest-framework-mcp==0.1.0a4
 cd ..
 if %errorlevel% neq 0 (
     echo Failed to install djangorestframework-mcp

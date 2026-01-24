@@ -52,7 +52,7 @@ export type AppMode =
     | "seo-dashboard"
 
 // Application status
-export type ApplicationStatus = "draft" | "pending" | "in-review" | "approved" | "rejected" | "won" | "lost"
+export type ApplicationStatus = "draft" | "pending" | "in_review" | "approved" | "rejected" | "won" | "lost"
 
 // Client data for Agent CRM
 export interface Client {
@@ -88,7 +88,7 @@ export interface PartnerApplication {
     clientCompany: string
     productType: string
     amount: number
-    status: "new" | "in-review" | "approved" | "rejected" | "info-requested"
+    status: "new" | "in_review" | "approved" | "rejected" | "info_requested"
     receivedAt: string
     deadline?: string
 }

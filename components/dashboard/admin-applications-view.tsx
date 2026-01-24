@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { getStatusConfig } from "@/lib/status-mapping"
 import {
     Search,
     Loader2,
@@ -65,17 +66,6 @@ import { toast } from "sonner"
 
 interface AdminApplicationsViewProps {
     onSelectApplication?: (applicationId: string) => void
-}
-
-const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-    draft: { label: "Создание заявки", color: "text-gray-500", bgColor: "bg-gray-500/10" },
-    pending: { label: "Отправка на скоринг", color: "text-[#3CE8D1]", bgColor: "bg-[#3CE8D1]/10" },
-    in_review: { label: "На рассмотрении в банке", color: "text-blue-500", bgColor: "bg-blue-500/10" },
-    info_requested: { label: "Возвращение на доработку", color: "text-orange-500", bgColor: "bg-orange-500/10" },
-    approved: { label: "Одобрен", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
-    rejected: { label: "Отказано", color: "text-rose-500", bgColor: "bg-rose-500/10" },
-    won: { label: "Выдан", color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
-    lost: { label: "Не выдан", color: "text-rose-500", bgColor: "bg-rose-500/10" },
 }
 
 const PRODUCT_TABS = [
@@ -157,7 +147,7 @@ function DataField({ label, value, mono, highlight, icon: Icon }: {
             <div className="min-w-0 flex-1">
                 <span className="text-xs text-muted-foreground block">{label}</span>
                 <span className={cn(
-                    "text-sm font-medium break-words",
+                    "text-sm font-medium break-all overflow-wrap-anywhere",
                     mono && "font-mono text-xs",
                     highlight && "text-[#3CE8D1]"
                 )}>{value}</span>
@@ -219,13 +209,14 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
     }
 
     const productLabel = PRODUCT_TABS.find(p => p.value === application.product_type)?.label || application.product_type
+    const statusCfg = getStatusConfig(application.status)
 
     return (
         <div className="p-4 md:p-6 space-y-6 bg-accent/20 border-t border-border">
             {/* Header with main info */}
             <div className="flex flex-wrap items-center gap-4">
-                <Badge className={cn("text-sm px-3 py-1", STATUS_CONFIG[application.status]?.bgColor, STATUS_CONFIG[application.status]?.color)}>
-                    {STATUS_CONFIG[application.status]?.label || application.status}
+                <Badge className={cn("text-sm px-3 py-1", statusCfg.bgColor, statusCfg.color)}>
+                    {statusCfg.label}
                 </Badge>
                 <span className="text-sm text-muted-foreground">Продукт: <span className="font-medium text-foreground">{productLabel}</span></span>
                 {application.external_id && (
@@ -427,7 +418,7 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
             {application.notes && (
                 <DataSection title="Заметки" icon={MessageSquare}>
                     <div className="col-span-full">
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{application.notes}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all overflow-wrap-anywhere">{application.notes}</p>
                     </div>
                 </DataSection>
             )}
@@ -550,7 +541,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
 
     // Mobile Application Card
     const ApplicationCard = ({ app }: { app: typeof filteredApplications[0] }) => {
-        const statusCfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.pending
+        const statusCfg = getStatusConfig(app.status)
         const isExpanded = expandedRows.has(app.id)
         const law = getTenderLaw(app)
 
@@ -767,7 +758,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                     </thead>
                                     <tbody className="divide-y divide-border">
                                         {filteredApplications.map((app) => {
-                                            const statusCfg = STATUS_CONFIG[app.status] || STATUS_CONFIG.pending
+                                            const statusCfg = getStatusConfig(app.status)
                                             const isExpanded = expandedRows.has(app.id)
                                             const law = getTenderLaw(app)
 

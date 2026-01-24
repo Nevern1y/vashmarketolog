@@ -634,7 +634,7 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
     def get_documents(self, obj):
         """Get all documents uploaded by the agent for accreditation."""
         from apps.documents.models import Document
-        docs = Document.objects.filter(owner=obj).order_by('-uploaded_at')
+        docs = Document.objects.filter(owner=obj).select_related('company').order_by('-uploaded_at')
         return [
             {
                 'id': doc.id,
@@ -643,6 +643,8 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
                 'status': doc.status,
                 'uploaded_at': doc.uploaded_at.isoformat() if doc.uploaded_at else None,
                 'file_url': doc.file.url if doc.file else None,
+                'company': doc.company_id,  # null = agent's own doc
+                'company_name': doc.company.short_name or doc.company.name if doc.company else None,
             }
             for doc in docs
         ]

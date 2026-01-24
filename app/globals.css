@@ -541,6 +541,150 @@ screen and (min-width: 1200px) and (max-width: 1440px) and (min-resolution: 192d
 }
 
 /* ============================================
+   💬 CHAT RESPONSIVE & OVERFLOW FIXES
+   Prevents long content from breaking layout
+   Works on all devices: mobile, tablet, desktop, MacBook
+   ============================================ */
+
+/* Chat container - CRITICAL: force width constraint */
+.chat-container {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  contain: inline-size !important;
+}
+
+/* All descendants must respect container */
+.chat-container * {
+  max-width: 100% !important;
+}
+
+/* Universal word-break for text content */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* Chat bubble - aggressive overflow protection */
+.chat-bubble {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  box-sizing: border-box !important;
+}
+
+.chat-bubble p,
+.chat-bubble span {
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  max-width: 100% !important;
+}
+
+/* Force file card links to respect boundaries */
+.chat-bubble a {
+  display: flex !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Force truncate on file names - CRITICAL selector */
+.chat-bubble a > div > p:first-child,
+.chat-bubble a div p:first-of-type {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+/* Images in chat - responsive */
+.chat-bubble img {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+/* Force all content inside ScrollArea to respect boundaries */
+[data-radix-scroll-area-viewport] > div {
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* Grid column containing chat - force containment */
+.lg\:col-span-1 {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* File card in chat - force truncation */
+.chat-file-card {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.chat-file-card > div:nth-child(2) {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.chat-file-card > div:nth-child(2) > p:first-child {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+
+/* Mobile-specific chat fixes */
+@media (max-width: 640px) {
+  .chat-container {
+    height: 400px !important;
+    max-height: calc(100vh - 100px) !important;
+    max-height: calc(100dvh - 100px) !important;
+  }
+  
+  .chat-bubble {
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  .chat-bubble p {
+    font-size: 0.75rem !important;
+    line-height: 1.4 !important;
+  }
+}
+
+/* Tablet fixes */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .chat-container {
+    height: 500px !important;
+    max-height: calc(100vh - 150px) !important;
+  }
+}
+
+/* MacBook/Small laptop fixes (older Safari) */
+@media (min-width: 1025px) and (max-width: 1440px) {
+  .chat-container {
+    height: 550px !important;
+    max-height: calc(100vh - 180px) !important;
+  }
+}
+
+/* Safari-specific chat fixes */
+@supports (-webkit-touch-callout: none) {
+  .chat-bubble {
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
+  
+  .chat-container {
+    max-height: -webkit-fill-available;
+  }
+}
+
+/* ============================================
    📱 MOBILE UTILITIES
    ============================================ */
 
@@ -555,15 +699,25 @@ screen and (min-width: 1200px) and (max-width: 1440px) and (min-resolution: 192d
 
 /* Better touch targets for mobile */
 @media (max-width: 768px) {
-  button, 
-  [role="button"],
-  input,
+  /* Exclude chat buttons from large min-height */
+  button:not(.chat-container button), 
+  [role="button"]:not(.chat-container [role="button"]),
+  input:not(.chat-container input),
   select {
     min-height: 44px; /* Apple's recommended minimum */
   }
   
   .h-9, .h-10 {
     min-height: 40px; /* Slight relaxation for design consistency */
+  }
+  
+  /* Chat-specific: smaller buttons for better fit */
+  .chat-container button {
+    min-height: 36px !important;
+  }
+  
+  .chat-container input {
+    min-height: 36px !important;
   }
 }
 

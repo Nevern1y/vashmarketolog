@@ -350,7 +350,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @extend_schema(
-        request=None,
+        request={'application/json': {'type': 'object', 'properties': {'message': {'type': 'string'}}}},
         responses={200: ApplicationSerializer}
     )
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
@@ -358,6 +358,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """
         Return application for revision (Admin only).
         POST /api/applications/{id}/request_info/
+        
+        Body: {"message": "Please provide additional documents..."}
         
         Sets status to INFO_REQUESTED, allowing the agent to provide more information.
         """
@@ -369,6 +371,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 {'error': 'Запросить информацию можно только для заявок на рассмотрении'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Save message if provided
+        message = request.data.get('message', '')
+        if message:
+            application.info_request_message = message
         
         application.status = ApplicationStatus.INFO_REQUESTED
         application.save()
@@ -401,7 +408,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
-        request=None,
+        request={'application/json': {'type': 'object', 'properties': {'reason': {'type': 'string'}}}},
         responses={200: ApplicationSerializer}
     )
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
@@ -409,6 +416,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         """
         Reject application (Admin only).
         POST /api/applications/{id}/reject/
+        
+        Body: {"reason": "Application rejected due to..."}
         
         Sets status to REJECTED.
         """
@@ -419,6 +428,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 {'error': 'Заявка уже отклонена'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Save rejection reason if provided
+        reason = request.data.get('reason', '')
+        if reason:
+            application.rejection_reason = reason
         
         application.status = ApplicationStatus.REJECTED
         application.save()

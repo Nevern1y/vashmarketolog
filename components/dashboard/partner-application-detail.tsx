@@ -537,13 +537,14 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     <ProductInfoItem
                       label="Тип гарантии"
                       value={
-                        (application as any).guarantee_type === 'participation' ? 'На участие' :
+                        (application as any).guarantee_type === 'application_security' ? 'На участие' :
                           (application as any).guarantee_type === 'contract_execution' ? 'На обеспечение исполнения контракта' :
                             (application as any).guarantee_type === 'advance_return' ? 'На возврат аванса' :
-                              (application as any).guarantee_type === 'warranty_period' ? 'На гарантийный период' :
+                              (application as any).guarantee_type === 'warranty_obligations' ? 'На гарантийный период' :
                                 (application as any).guarantee_type === 'payment_guarantee' ? 'На гарантию оплаты товара' :
-                                  (application as any).guarantee_type === 'vat_refund' ? 'На возвращение НДС' :
-                                    (application as any).guarantee_type
+                                  (application as any).guarantee_type === 'customs_guarantee' ? 'Таможенные гарантии' :
+                                    (application as any).guarantee_type === 'vat_refund' ? 'На возвращение НДС' :
+                                      (application as any).guarantee_type
                       }
                     />
                   )}
@@ -911,8 +912,10 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
         </TabsContent>
 
         {/* Chat Tab */}
-        <TabsContent value="chat">
-          <ApplicationChat applicationId={applicationId} />
+        <TabsContent value="chat" className="overflow-hidden">
+          <div className="overflow-hidden">
+            <ApplicationChat applicationId={applicationId} />
+          </div>
         </TabsContent>
       </Tabs>
 

@@ -328,7 +328,7 @@ export function AgentAccreditationView() {
                             <div className="space-y-2">
                                 <Label>Email</Label>
                                 <Input
-                                    value={company?.email || ""}
+                                    value={company?.contact_email || company?.company_email || ""}
                                     readOnly
                                     className="bg-muted"
                                 />
@@ -336,7 +336,7 @@ export function AgentAccreditationView() {
                             <div className="space-y-2">
                                 <Label>Действует на основании</Label>
                                 <Input
-                                    value={company?.acts_on_basis || "Устава"}
+                                    value={company?.signatory_basis === 'power_of_attorney' ? 'Доверенности' : 'Устава'}
                                     readOnly
                                     className="bg-muted"
                                 />

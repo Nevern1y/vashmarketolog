@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
-import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2, Hash, FileCheck, Globe, Shield, CreditCard, Briefcase, ChevronDown, ChevronUp, Star, Clock, Percent, XCircle, Plus } from "lucide-react"
+import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2, Hash, FileCheck, Globe, Shield, CreditCard, Briefcase, ChevronDown, ChevronUp, Star, Clock, Percent, XCircle, Plus, FolderOpen, File } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
@@ -94,26 +96,16 @@ const INSURANCE_COMPANIES = [
   "Пари",
 ]
 
-// Target banks for routing
-const targetBanks = [
-  { id: "sberbank", label: "Сбербанк" },
-  { id: "vtb", label: "ВТБ" },
-  { id: "alfa", label: "Альфа-Банк" },
-  { id: "gazprombank", label: "Газпромбанк" },
-  { id: "raiffeisen", label: "Райффайзенбанк" },
-  { id: "rosbank", label: "Росбанк" },
-  { id: "otkritie", label: "Открытие" },
-  { id: "promsvyaz", label: "Промсвязьбанк" },
-  { id: "other", label: "Другой банк" },
-]
+// Target banks for routing - REMOVED: bank selection moved to Step 3 (MOCK_BANK_OFFERS)
 
-// Guarantee types (ТЗ requirements - exact match)
+// Guarantee types (ТЗ requirements - must match backend GuaranteeType enum)
 const guaranteeTypes = [
-  { id: "participation", label: "На участие" },
+  { id: "application_security", label: "На участие (обеспечение заявки)" },
   { id: "contract_execution", label: "На обеспечение исполнения контракта" },
   { id: "advance_return", label: "На возврат аванса" },
-  { id: "warranty_period", label: "На гарантийный период" },
+  { id: "warranty_obligations", label: "На гарантийный период (гарантийные обязательства)" },
   { id: "payment_guarantee", label: "На гарантию оплаты товара" },
+  { id: "customs_guarantee", label: "Таможенные гарантии" },
   { id: "vat_refund", label: "На возвращение НДС" },
 ]
 
@@ -128,10 +120,12 @@ const tenderLaws = [
 ]
 
 // Credit sub-types for corporate_credit (ТЗ section 3)
+// Values must match backend CreditSubType enum
 const creditSubTypes = [
-  { id: "express_credit", label: "Экспресс-кредит" },
-  { id: "working_capital", label: "Кредит на пополнение оборотных средств" },
-  { id: "corporate_credit", label: "Корпоративный кредит" },
+  { id: "one_time_credit", label: "Разовый кредит" },
+  { id: "non_revolving_line", label: "Невозобновляемая КЛ" },
+  { id: "revolving_line", label: "Возобновляемая КЛ" },
+  { id: "overdraft", label: "Овердрафт" },
 ]
 
 // Import document types from shared module (Appendix B numeric IDs)
@@ -146,7 +140,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("")
-  const [targetBank, setTargetBank] = useState<string>("")
+  // targetBank state removed - bank selection now on Step 3
   const [amount, setAmount] = useState("")
   const [term, setTerm] = useState("")
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
@@ -248,7 +242,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
   const activeCompanyId = isAgent
     ? (parsedCompanyId && !Number.isNaN(parsedCompanyId) ? parsedCompanyId : undefined)
     : myCompany?.id
-  const { documents: companyDocuments, isLoading: docsLoading } = useDocuments({ company: activeCompanyId, includeUnassigned: true })
+  const { documents: companyDocuments, isLoading: docsLoading, refetch: refetchDocs } = useDocuments({})
   const { uploadDocument, isLoading: uploading } = useDocumentMutations()
   const { createApplication, submitApplication, isLoading: submitting, error } = useApplicationMutations()
   const { createClient } = useCRMClientMutations()
@@ -265,10 +259,15 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
       : selectedProduct || ""
 
   // Memoize filteredCompanyDocuments to prevent infinite re-renders in useEffect
+  // Show all user's documents - they can attach any to the application
   const filteredCompanyDocuments = useMemo(() => {
-    return activeCompanyId
-      ? companyDocuments.filter((doc) => doc.company === activeCompanyId || doc.company == null)
-      : []
+    // Show all documents owned by the agent, optionally filter by selected company
+    if (activeCompanyId) {
+      // If company selected, prioritize that company's docs + docs without company
+      return companyDocuments.filter((doc) => doc.company === activeCompanyId || doc.company == null)
+    }
+    // No company selected - show all user's documents
+    return companyDocuments
   }, [activeCompanyId, companyDocuments])
 
   // Sort documents: required first, then alphabetically (memoized)
@@ -390,15 +389,16 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
   }, [normalizedProduct, guaranteeDateFrom, guaranteeDateTo])
 
   // Effect to set initial client when wizard opens with a pre-selected client
-  if (isOpen && initialClientId && !initialClientSet.current) {
-    setSelectedCompanyId(initialClientId.toString())
-    initialClientSet.current = true
-  }
+  useEffect(() => {
+    if (isOpen && initialClientId && !initialClientSet.current) {
+      setSelectedCompanyId(initialClientId.toString())
+      initialClientSet.current = true
+    }
 
-  // Reset the flag when wizard closes
-  if (!isOpen && initialClientSet.current) {
-    initialClientSet.current = false
-  }
+    if (!isOpen && initialClientSet.current) {
+      initialClientSet.current = false
+    }
+  }, [isOpen, initialClientId])
 
   if (!isOpen) return null
 
@@ -430,6 +430,13 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
       }
       if (!selectedProduct) {
         toast.error("Выберите тип продукта")
+        return
+      }
+    }
+    // Step 3 validation: Must select at least one bank
+    if (currentStep === 3) {
+      if (selectedBankIds.length === 0) {
+        toast.error("Выберите хотя бы один банк")
         return
       }
     }
@@ -504,6 +511,9 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = ""
 
+    // Refetch documents to show newly uploaded ones
+    await refetchDocs()
+
     // Restore scroll position after React re-render
     setTimeout(() => {
       if (scrollParent) {
@@ -561,6 +571,9 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
         toast.error(`Ошибка загрузки "${file.name}"`)
       }
     }
+
+    // Refetch documents to show newly uploaded ones
+    await refetchDocs()
 
     // Restore scroll position
     setTimeout(() => {
@@ -662,12 +675,15 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     console.log("[Wizard] uploadedDocIds:", uploadedDocIds)
     console.log("[Wizard] allDocIds (filtered):", allDocIds)
 
-    // Get target bank label for display
-    const targetBankLabel = targetBanks.find(b => b.id === targetBank)?.label || targetBank
+    // Validation: user must select at least one bank on Step 3
+    if (selectedBankIds.length === 0) {
+      toast.error("Выберите хотя бы один банк для отправки заявки")
+      return
+    }
 
     const payloadProductType = normalizedProduct || selectedProduct || "bank_guarantee"
 
-    // Build payload - only include document_ids if there are any
+    // Build payload - extended with all product-specific fields
     const payload: {
       company: number
       product_type: string
@@ -681,13 +697,25 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
       financing_term_days?: number
       pledge_description?: string
       document_ids?: number[]
+      // Phase 1: Product-specific fields
+      insurance_category?: string
+      insurance_product_type?: string
+      factoring_type?: string
+      contractor_inn?: string
+      ved_currency?: string
+      ved_country?: string
+      tender_support_type?: string
+      purchase_category?: string
+      industry?: string
+      account_type?: string
+      goscontract_data?: Record<string, unknown>
     } = {
       company: companyId,
       product_type: payloadProductType,
       amount: amount.replace(/\s/g, ""),
       term_months: parseInt(term),
       notes: notes,
-      target_bank_name: targetBankLabel,
+      target_bank_name: "", // Will be set per bank in the loop
     }
 
     // Add BG specific fields if BG product
@@ -703,6 +731,36 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
       if (pledgeDescription) payload.pledge_description = pledgeDescription
     }
 
+    // Add Insurance-specific fields
+    if (payloadProductType === "insurance") {
+      if (insuranceCategory) payload.insurance_category = insuranceCategory
+      if (insuranceProduct) payload.insurance_product_type = insuranceProduct
+    }
+
+    // Add Factoring-specific fields
+    if (payloadProductType === "factoring") {
+      if (factoringType) payload.factoring_type = factoringType
+      if (factoringCustomerInn) payload.contractor_inn = factoringCustomerInn
+    }
+
+    // Add VED-specific fields
+    if (payloadProductType === "ved") {
+      if (vedCurrency) payload.ved_currency = vedCurrency
+      if (vedCountry) payload.ved_country = vedCountry
+    }
+
+    // Add Tender Support specific fields
+    if (payloadProductType === "tender_support") {
+      if (tenderSupportType) payload.tender_support_type = tenderSupportType
+      if (purchaseType) payload.purchase_category = purchaseType
+      if (industry) payload.industry = industry
+    }
+
+    // Add RKO/SpecAccount specific fields
+    if (payloadProductType === "rko" || payloadProductType === "special_account") {
+      if (accountType) payload.account_type = accountType
+    }
+
     // Only add document_ids if we have valid IDs
     if (allDocIds.length > 0) {
       payload.document_ids = allDocIds
@@ -710,16 +768,30 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
 
     // Build goscontract_data for Bank Guarantee
     if (payloadProductType === "bank_guarantee") {
-      ; (payload as any).goscontract_data = {
+      payload.goscontract_data = {
         // Tender info
         purchase_number: purchaseNumber || "",
+        subject: tenderSubject || "",
         lot_number: lotNumber || "",
+        contract_number: contractNumber || "",
 
         // Booleans
         is_close_auction: isCloseAuction,
+        is_single_supplier: isSoleSupplier,
         has_prepayment: hasPrepayment,
         advance_percent: hasPrepayment && advancePercent ? parseInt(advancePercent) : null,
         has_customer_template: hasCustomerTemplate,
+        is_recollateralization: isRecollateralization,
+        without_eis: withoutEis,
+        auction_not_held: auctionNotHeld,
+
+        // Prices
+        initial_price: initialPrice ? initialPrice.replace(/\s/g, "") : null,
+        offered_price: offeredPrice ? offeredPrice.replace(/\s/g, "") : null,
+
+        // Beneficiary
+        beneficiary_inn: beneficiaryInn || null,
+        need_working_capital_credit: needWorkingCapitalCredit,
 
         // Guarantee dates
         guarantee_start_date: guaranteeDateFrom || null,
@@ -766,11 +838,30 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     }
 
     // Build goscontract_data for Factoring
+    if (payloadProductType === "factoring") {
+      payload.goscontract_data = {
+        factoring_type: factoringType || "",
+        contract_type: factoringContractType || "",
+        nmc: factoringNmc ? factoringNmc.replace(/\s/g, "") : null,
+        contract_start_date: factoringContractDateFrom || null,
+        contract_end_date: factoringContractDateTo || null,
+        shipment_amount: factoringShipmentAmount ? factoringShipmentAmount.replace(/\s/g, "") : null,
+        payment_delay_days: factoringPaymentDelay ? parseInt(factoringPaymentDelay) : null,
+        customer_inn: factoringCustomerInn || null,
+      }
+    }
+
+    // Build goscontract_data for Insurance
+    if (payloadProductType === "insurance") {
+      payload.goscontract_data = {
+        category: insuranceCategory || "",
+        product: insuranceProduct || "",
+      }
+    }
+
     // Build goscontract_data for VED
     if (payloadProductType === "ved") {
-      ; (payload as any).ved_currency = vedCurrency
-      ; (payload as any).ved_country = vedCountry
-      ; (payload as any).goscontract_data = {
+      payload.goscontract_data = {
         currency: vedCurrency || "",
         country: vedCountry || "",
       }
@@ -778,50 +869,94 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
 
     // Build goscontract_data for Leasing
     if (payloadProductType === "leasing") {
-      ; (payload as any).goscontract_data = {
+      payload.goscontract_data = {
         equipment_type: equipmentType || "",
+        property_description: leasingPropertyDescription || "",
+        has_advance: leasingHasAdvance,
+        advance_percent: leasingHasAdvance && leasingAdvancePercent ? parseInt(leasingAdvancePercent) : null,
+      }
+    }
+
+    // Build goscontract_data for RKO/SpecAccount
+    if (payloadProductType === "rko" || payloadProductType === "special_account") {
+      payload.goscontract_data = {
+        account_type: accountType || payloadProductType,
+      }
+    }
+
+    // Build goscontract_data for Tender Support
+    if (payloadProductType === "tender_support") {
+      payload.goscontract_data = {
+        support_type: tenderSupportType || "",
+        purchase_category: purchaseType || "",
+        industry: industry || "",
       }
     }
 
     // Debug: log full payload
-    console.log("[Wizard] Final payload:", JSON.stringify(payload, null, 2))
+    console.log("[Wizard] Final payload template:", JSON.stringify(payload, null, 2))
 
-    // Create application
-    const app = await createApplication(payload)
+    // Create separate applications for each selected bank
+    const createdApps: number[] = []
+    const failedBanks: string[] = []
 
-    // Debug: log what we got back
-    console.log("[Wizard] createApplication response:", app)
+    for (const bankId of selectedBankIds) {
+      const bank = MOCK_BANK_OFFERS.find(b => b.id === bankId)
+      if (!bank) continue
 
-    if (app && app.id) {
-      // Submit application
-      const submitted = await submitApplication(app.id)
-
-      if (submitted) {
-        toast.success("Заявка успешно создана и отправлена!")
-        // Call success callback or redirect to application detail
-        if (onSuccess) {
-          onSuccess(app.id)
-        } else {
-          // Default: redirect to applications list with highlight
-          router.push(`/dashboard?view=applications&highlight=${app.id}`)
-        }
-        resetAndClose()
-      } else {
-        toast.success("Заявка создана как черновик")
-        if (onSuccess) {
-          onSuccess(app.id)
-        } else {
-          router.push(`/dashboard?view=applications&highlight=${app.id}`)
-        }
-        resetAndClose()
+      // Create bank-specific payload with target_bank_name
+      const bankPayload = {
+        ...payload,
+        target_bank_name: bank.name
       }
-    } else if (app) {
-      // Created but no id - still a draft
-      console.warn("[Wizard] Application created but no ID returned:", app)
-      toast.success("Заявка создана как черновик")
+
+      console.log(`[Wizard] Creating application for bank: ${bank.name}`)
+
+      try {
+        const app = await createApplication(bankPayload)
+        console.log(`[Wizard] createApplication response for ${bank.name}:`, app)
+
+        if (app && app.id) {
+          createdApps.push(app.id)
+          // Submit application after creation
+          const submitted = await submitApplication(app.id)
+          if (submitted) {
+            console.log(`[Wizard] Application ${app.id} submitted successfully`)
+          }
+        } else {
+          failedBanks.push(bank.name)
+        }
+      } catch (err) {
+        console.error(`[Wizard] Error creating application for ${bank.name}:`, err)
+        failedBanks.push(bank.name)
+      }
+    }
+
+    // Show results to user
+    if (createdApps.length > 0) {
+      if (createdApps.length === 1) {
+        toast.success("Заявка успешно создана и отправлена!")
+      } else {
+        toast.success(`Создано ${createdApps.length} заявок для выбранных банков`)
+      }
+
+      // Close wizard first
       resetAndClose()
+
+      // Navigate to applications list (root page with view param)
+      // Use window.location for reliable navigation with query params
+      if (onSuccess) {
+        onSuccess(createdApps[0])
+      } else {
+        // Use replace to avoid back button issues
+        window.location.href = `/?view=applications&highlight=${createdApps[0]}`
+      }
     } else {
-      toast.error(error || "Ошибка создания заявки")
+      toast.error(error || "Не удалось создать заявки")
+    }
+
+    if (failedBanks.length > 0) {
+      toast.error(`Не удалось создать заявки для: ${failedBanks.join(", ")}`)
     }
   }
 
@@ -830,7 +965,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     setCurrentStep(1)
     setSelectedProduct(null)
     setSelectedCompanyId("")
-    setTargetBank("")
+    // targetBank removed - bank selection now on Step 3
+    setSelectedBankIds([])  // Reset selected banks
     setAmount("")
     setTerm("")
     setSelectedDocumentIds([])
@@ -948,14 +1084,13 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="relative w-full max-w-2xl rounded-xl bg-card shadow-2xl max-h-[90vh] overflow-y-auto border border-border [@media(max-height:820px)]:max-h-[85vh]">
-        {/* Close Button */}
-        <button onClick={resetAndClose} className="absolute right-4 top-4 text-muted-foreground hover:text-foreground z-10">
-          <X className="h-5 w-5" />
-        </button>
-
-        {/* Progress Bar */}
+        {/* Progress Bar with Close Button */}
         <div className="border-b border-border px-4 py-3 md:px-6 md:py-4 sticky top-0 bg-card z-20 [@media(max-height:820px)]:py-2">
-          <div className="flex items-center justify-between">
+          {/* Close Button - inside sticky header */}
+          <button onClick={resetAndClose} className="absolute right-4 top-3 md:top-4 text-muted-foreground hover:text-foreground z-10">
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-center justify-between pr-8">
             {steps.map((step, index) => (
               <div key={step.id} className="flex flex-1 items-center">
                 <div className="flex flex-col items-center">
@@ -1171,25 +1306,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                   </div>
                 )}
 
-                {/* Target Bank Selection */}
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    Целевой банк
-                  </Label>
-                  <Select value={targetBank} onValueChange={setTargetBank}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите банк" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {targetBanks.map((bank) => (
-                        <SelectItem key={bank.id} value={bank.id}>
-                          {bank.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+{/* Target Bank Selection - REMOVED: теперь банк выбирается на шаге 3 (Предложения) */}
 
                 <div className="space-y-2">
                   <Label>Сумма, ₽ *</Label>
@@ -2048,7 +2165,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="one_time">Разовое сопровождение</SelectItem>
-                          <SelectItem value="full_service">Тендерное сопровождение под ключ</SelectItem>
+                          <SelectItem value="full_cycle">Тендерное сопровождение под ключ</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2059,9 +2176,9 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                           <SelectValue placeholder="Выберите тип закупки" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="44fz">Госзакупки по 44-ФЗ</SelectItem>
-                          <SelectItem value="223fz">Закупки по 223-ФЗ</SelectItem>
-                          <SelectItem value="property_auctions">Имущественные торги</SelectItem>
+                          <SelectItem value="gov_44">Госзакупки по 44-ФЗ</SelectItem>
+                          <SelectItem value="gov_223">Закупки по 223-ФЗ</SelectItem>
+                          <SelectItem value="property">Имущественные торги</SelectItem>
                           <SelectItem value="commercial">Коммерческие закупки</SelectItem>
                         </SelectContent>
                       </Select>
@@ -2281,97 +2398,184 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                   </p>
                 </div>
 
-                {activeCompanyId && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">Документы компании</p>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Star className="h-3 w-3 text-[#FFD93D]" /> — обязательные
-                        </span>
-                      </div>
-                      {docsLoading && (
-                        <span className="text-xs text-muted-foreground">Загрузка...</span>
-                      )}
-                    </div>
-                    {sortedCompanyDocuments.length > 0 ? (
-                      <div className="rounded-lg border border-border overflow-hidden">
-                        <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
-                          {sortedCompanyDocuments.map((doc) => {
-                            const docIsRequired = isDocumentRequired(doc.document_type_id, normalizedProduct || 'general')
-                            return (
-                            <label
-                              key={doc.id}
-                              className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedDocumentIds.includes(doc.id)}
-                                onChange={() => toggleDocumentSelection(doc.id)}
-                                className="h-4 w-4 rounded border-border accent-[#3CE8D1]"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium truncate flex items-center gap-1">
-                                  {docIsRequired && <Star className="h-3 w-3 text-[#FFD93D] shrink-0" />}
-                                  {formatDocumentType(doc)}
-                                </p>
-                                <p className="text-xs text-muted-foreground truncate">{doc.name}</p>
-                              </div>
-                            </label>
-                          )})}
+                {/* Tabs: My Documents / Upload New */}
+                <Tabs defaultValue="my-docs" className="w-full">
+                  <TabsList className="w-full grid grid-cols-2 bg-muted/50">
+                    <TabsTrigger value="my-docs" className="data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-[#0a1628]">
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                      Мои документы
+                    </TabsTrigger>
+                    <TabsTrigger value="upload" className="data-[state=active]:bg-[#3CE8D1] data-[state=active]:text-[#0a1628]">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Загрузить новый
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Tab 1: My Documents */}
+                  <TabsContent value="my-docs" className="mt-4">
+                    {activeCompanyId ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">Документы компании</p>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <Star className="h-3 w-3 text-[#FFD93D]" /> — обязательные
+                            </span>
+                          </div>
+                          {docsLoading && (
+                            <span className="text-xs text-muted-foreground">Загрузка...</span>
+                          )}
                         </div>
+
+                        {sortedCompanyDocuments.length > 0 ? (
+                          <>
+                            {/* Select All / Deselect All */}
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">
+                                {sortedCompanyDocuments.length} документов доступно
+                              </span>
+                              <div className="flex gap-2">
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    const allIds = sortedCompanyDocuments.map(d => d.id)
+                                    setSelectedDocumentIds(allIds)
+                                  }}
+                                  className="text-[#3CE8D1] hover:underline text-xs"
+                                >
+                                  Выбрать все
+                                </button>
+                                {selectedDocumentIds.length > 0 && (
+                                  <button 
+                                    type="button"
+                                    onClick={() => setSelectedDocumentIds([])}
+                                    className="text-muted-foreground hover:underline text-xs"
+                                  >
+                                    Сбросить
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Document list */}
+                            <div className="rounded-lg border border-border overflow-hidden">
+                              <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
+                                {sortedCompanyDocuments.map((doc) => {
+                                  const docIsRequired = isDocumentRequired(doc.document_type_id, normalizedProduct || 'general')
+                                  const isSelected = selectedDocumentIds.includes(doc.id)
+                                  return (
+                                    <div
+                                      key={doc.id}
+                                      className={cn(
+                                        "flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-all",
+                                        isSelected
+                                          ? "bg-[#3CE8D1]/10"
+                                          : "hover:bg-muted/40"
+                                      )}
+                                      onClick={() => toggleDocumentSelection(doc.id)}
+                                    >
+                                      <Checkbox
+                                        checked={isSelected}
+                                        className="border-[#3CE8D1] data-[state=checked]:bg-[#3CE8D1] data-[state=checked]:text-[#0a1628]"
+                                      />
+                                      <File className="h-4 w-4 text-[#3CE8D1] shrink-0" />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-medium truncate flex items-center gap-1">
+                                          {docIsRequired && <Star className="h-3 w-3 text-[#FFD93D] shrink-0" />}
+                                          {formatDocumentType(doc)}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">{doc.name}</p>
+                                      </div>
+                                      {isSelected && (
+                                        <CheckCircle2 className="h-4 w-4 text-[#3CE8D1] shrink-0" />
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Selected count */}
+                            {selectedDocumentIds.length > 0 && (
+                              <p className="text-sm text-[#3CE8D1]">
+                                Выбрано: {selectedDocumentIds.length} документов
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center py-8">
+                            <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                            <p className="text-muted-foreground">Документы компании пока не загружены.</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Загрузите документы на вкладке "Загрузить новый"
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground">Документы компании пока не загружены.</p>
+                      <div className="text-center py-8">
+                        <Building2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                        <p className="text-muted-foreground">Сначала выберите компанию на шаге 2</p>
+                      </div>
                     )}
-                  </div>
-                )}
+                  </TabsContent>
 
+                  {/* Tab 2: Upload New */}
+                  <TabsContent value="upload" className="mt-4">
+                    {/* Dropzone with drag-and-drop support */}
+                    <div
+                      className={cn(
+                        "rounded-xl border-2 border-dashed p-6 md:p-8 text-center transition-colors cursor-pointer",
+                        isDragOver 
+                          ? "border-[#3CE8D1] bg-[#3CE8D1]/10" 
+                          : "border-border hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5"
+                      )}
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      {uploading ? (
+                        <Loader2 className="mx-auto h-10 w-10 text-[#3CE8D1] animate-spin" />
+                      ) : (
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#3CE8D1]/10 flex items-center justify-center">
+                          <Upload className={cn(
+                            "h-7 w-7",
+                            isDragOver ? "text-[#3CE8D1]" : "text-muted-foreground"
+                          )} />
+                        </div>
+                      )}
+                      <p className="text-sm font-medium">
+                        {uploading ? "Загрузка..." : isDragOver ? "Отпустите файлы" : "Перетащите файлы сюда"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">или нажмите для выбора</p>
+                      <p className="mt-3 text-[10px] text-muted-foreground uppercase">PDF, JPG, PNG, XLSX до 10 МБ</p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                        onChange={handleFileUpload}
+                      />
+                    </div>
 
-                {/* Dropzone with drag-and-drop support */}
-                <div
-                  className={cn(
-                    "rounded-xl border-2 border-dashed p-4 md:p-8 text-center transition-colors cursor-pointer",
-                    isDragOver 
-                      ? "border-[#3CE8D1] bg-[#3CE8D1]/10" 
-                      : "border-border hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5"
-                  )}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  {uploading ? (
-                    <Loader2 className="mx-auto h-8 w-8 md:h-10 md:w-10 text-[#3CE8D1] animate-spin" />
-                  ) : (
-                    <Upload className={cn(
-                      "mx-auto h-8 w-8 md:h-10 md:w-10",
-                      isDragOver ? "text-[#3CE8D1]" : "text-muted-foreground"
-                    )} />
-                  )}
-                  <p className="mt-3 text-sm font-medium">
-                    {uploading ? "Загрузка..." : isDragOver ? "Отпустите файлы" : "Перетащите или нажмите для загрузки"}
-                  </p>
-                  <p className="mt-1 text-[10px] md:text-xs text-muted-foreground uppercase">PDF, JPG, PNG, XLSX до 10 МБ</p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    multiple
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                  />
-                </div>
+                    <p className="text-xs text-muted-foreground text-center mt-3">
+                      Загруженные документы автоматически добавятся в "Мои документы"
+                    </p>
+                  </TabsContent>
+                </Tabs>
 
                 {/* Uploaded in this session */}
                 {uploadedDocIds.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-[#3CE8D1]">
-                      Загружено ({uploadedDocIds.length}):
+                  <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-3 space-y-2">
+                    <p className="text-sm font-medium text-[#3CE8D1] flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Загружено в этой сессии: {uploadedDocIds.length}
                     </p>
-                    <div className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Документы будут прикреплены к заявке
-                    </div>
+                    </p>
                   </div>
                 )}
               </div>

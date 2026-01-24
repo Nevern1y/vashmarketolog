@@ -26,7 +26,8 @@ import {
     CreditCard,
     Hash,
     Landmark,
-    Plus
+    Plus,
+    FolderPlus
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -51,6 +52,8 @@ import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import api from "@/lib/api"
 import { ApplicationChat } from "./application-chat"
+import { AdditionalDocumentsModal } from "./additional-documents-modal"
+import { SubmissionSuccess, useSubmissionSuccess } from "@/components/ui/submission-success"
 
 interface ApplicationDetailViewProps {
     applicationId: string | number
@@ -86,6 +89,12 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const [uploadingDocType, setUploadingDocType] = useState<string | null>(null)
     const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    
+    // Additional documents modal state
+    const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
+    
+    // Submission success animation
+    const { isAnimating: showSubmitSuccess, triggerAnimation: triggerSubmitSuccess } = useSubmissionSuccess()
 
     // Simple ref for documents section to scroll to after upload
     const documentsSectionRef = useRef<HTMLDivElement>(null)
@@ -457,8 +466,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     // Handle application deletion
     const [isDeleting, setIsDeleting] = useState(false)
     const handleDeleteApplication = async () => {
-        if (!confirm("Вы действительно хотите удалить эту заявку? Это действие нельзя отменить.")) return
-
         setIsDeleting(true)
         try {
             const success = await deleteApplication(Number(applicationId))
@@ -497,6 +504,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
         const result = await submitApplication(application.id)
         if (result) {
+            // Trigger success animation with confetti
+            triggerSubmitSuccess()
             toast.success('Заявка отправлена в банк')
             refetch()
         } else {
@@ -505,7 +514,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 description: 'Проверьте, что все обязательные документы загружены и данные заполнены'
             })
         }
-    }, [application, submitApplication, refetch])
+    }, [application, submitApplication, refetch, triggerSubmitSuccess])
 
     // Handle document delete
     const handleDeleteDocument = useCallback(async (docId: number) => {
@@ -668,7 +677,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     const formProgress = calculateFormProgress(application)
     const docProgress = calculateDocumentProgress(application)
-    const isSubmitted = application.status !== 'draft' && application.status !== 'pending'
+    // Application is submitted if status is NOT draft (pending means sent to scoring)
+    const isSubmitted = application.status !== 'draft'
     const missingSubmitFields = getMissingSubmitFields(application)
     const canSubmit = application.status === 'draft' && formProgress === 100 && missingSubmitFields.length === 0
     // Show calculation session number for all users if session exists
@@ -1289,7 +1299,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                     label="Вариант сопровождения"
                                                     value={
                                                         application.tender_support_type === 'one_time' ? 'Разовое сопровождение' :
-                                                            application.tender_support_type === 'full_service' ? 'Тендерное сопровождение под ключ' :
+                                                            application.tender_support_type === 'full_cycle' ? 'Тендерное сопровождение под ключ' :
                                                                 application.tender_support_type
                                                     }
                                                 />
@@ -1298,9 +1308,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                 <ProductInfoItem
                                                     label="Тип закупки"
                                                     value={
-                                                        application.purchase_category === '44fz' ? 'Госзакупки по 44-ФЗ' :
-                                                            application.purchase_category === '223fz' ? 'Закупки по 223-ФЗ' :
-                                                                application.purchase_category === 'property_auctions' ? 'Имущественные торги' :
+                                                        application.purchase_category === 'gov_44' ? 'Госзакупки по 44-ФЗ' :
+                                                            application.purchase_category === 'gov_223' ? 'Закупки по 223-ФЗ' :
+                                                                application.purchase_category === 'property' ? 'Имущественные торги' :
                                                                     application.purchase_category === 'commercial' ? 'Коммерческие закупки' :
                                                                         application.purchase_category
                                                     }
@@ -1548,7 +1558,27 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 {/* Separator */}
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
-                                <h4 className="text-white font-medium mb-4">Дополнительные документы</h4>
+                                {/* CTA Banner for Additional Documents */}
+                                <div className="rounded-lg bg-gradient-to-r from-[#3CE8D1]/20 to-[#4F7DF3]/20 border-2 border-dashed border-[#3CE8D1]/50 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-[#3CE8D1]/20 p-3 rounded-lg shrink-0">
+                                            <FolderPlus className="h-6 w-6 text-[#3CE8D1]" />
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-white">Дополнительные документы</p>
+                                            <p className="text-sm text-[#94a3b8]">
+                                                Загрузите документы из раздела "Мои документы" или добавьте новые
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        onClick={() => setIsDocsModalOpen(true)}
+                                        className="bg-[#3CE8D1] hover:bg-[#3CE8D1]/80 text-[#0a1628] font-medium w-full sm:w-auto"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Добавить документы
+                                    </Button>
+                                </div>
 
                                 {/* Documents List - Only show non-required documents to avoid duplicates */}
                                 {(() => {
@@ -1623,39 +1653,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                     )
                                 })()}
 
-                                {/* "Other Document" Upload Slot with Drag-and-Drop */}
-                                <div
-                                    className="mt-6 pt-4 border-t border-[#1e3a5f]"
-                                    onDrop={handleDrop}
-                                    onDragOver={handleDragOver}
-                                    onDragLeave={handleDragLeave}
-                                >
-                                    <h4 className="text-white font-medium mb-4 flex items-center gap-2">
-                                        <Plus className="h-5 w-5 text-[#3CE8D1]" />
-                                        Другой документ
-                                    </h4>
-                                    <input
-                                        type="file"
-                                        id="other-doc-upload"
-                                        multiple
-                                        className="hidden"
-                                        onChange={(e) => handleFileUpload(e)}
-                                    />
-                                    <label
-                                        htmlFor="other-doc-upload"
-                                        className={cn(
-                                            "flex items-center justify-center gap-3 p-6 rounded-lg border-2 border-dashed cursor-pointer transition-all",
-                                            isDragging
-                                                ? "border-[#3CE8D1] bg-[#3CE8D1]/10"
-                                                : "border-[#1e3a5f] hover:border-[#3CE8D1] hover:bg-[#3CE8D1]/5"
-                                        )}
-                                    >
-                                        <Upload className={cn("h-5 w-5 text-[#3CE8D1]", isDragging && "animate-bounce")} />
-                                        <span className={cn(isDragging ? "text-[#3CE8D1]" : "text-[#94a3b8]")}>
-                                            {isDragging ? "Отпустите файлы для загрузки" : "Нажмите для выбора файлов"}
-                                        </span>
-                                    </label>
-                                </div>
+
                             </CardContent>
                         )}
                     </Card>
@@ -1676,21 +1674,12 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                             <CardContent className="p-6 pt-0">
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
-                                {isSubmitted ? (
-                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
-                                        <CheckCircle className="h-16 w-16 mx-auto text-emerald-400 mb-4" />
-                                        <h3 className="text-xl font-semibold text-white mb-2">
-                                            Заявка отправлена
-                                        </h3>
-                                        <p className="text-[#94a3b8] mb-4">
-                                            Статус: {application.status_display}
-                                        </p>
-                                        {application.submitted_at && (
-                                            <p className="text-sm text-[#94a3b8]">
-                                                Отправлено: {new Date(application.submitted_at).toLocaleString('ru-RU')}
-                                            </p>
-                                        )}
-                                    </div>
+                                {isSubmitted || showSubmitSuccess ? (
+                                    <SubmissionSuccess
+                                        isVisible={true}
+                                        submittedAt={application.submitted_at || undefined}
+                                        statusDisplay={application.status_display}
+                                    />
                                 ) : (
                                     <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <div className="max-w-md mx-auto">
@@ -1851,8 +1840,8 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 </div>
 
                 {/* Right Column - Chat Panel */}
-                <div className="lg:col-span-1">
-                    <div className="sticky top-6">
+                <div className="lg:col-span-1 min-w-0 overflow-hidden">
+                    <div className="sticky top-6 overflow-hidden">
                         <ApplicationChat
                             applicationId={applicationId}
                             className="h-[600px] lg:h-[calc(100vh-200px)]"
@@ -1861,6 +1850,19 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 </div>
 
             </div>
+
+            {/* Additional Documents Modal */}
+            {application && (
+                <AdditionalDocumentsModal
+                    isOpen={isDocsModalOpen}
+                    onClose={() => setIsDocsModalOpen(false)}
+                    applicationId={application.id}
+                    productType={application.product_type || 'bank_guarantee'}
+                    existingDocuments={application.documents || []}
+                    onDocumentsAttached={refetch}
+                    getRequiredDocuments={getRequiredDocuments}
+                />
+            )}
         </div >
     )
 }

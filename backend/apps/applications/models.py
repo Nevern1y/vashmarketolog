@@ -565,6 +565,28 @@ class Application(models.Model):
     # Comments/Notes
     notes = models.TextField('Примечания', blank=True, default='')
     
+    # Admin notes (separate from client notes to avoid collision)
+    admin_notes = models.TextField(
+        'Заметки администратора',
+        blank=True,
+        default='',
+        help_text='Внутренние заметки администратора (не видны клиенту)'
+    )
+    
+    # Rejection/Request Info reasons (Phase 1.4)
+    rejection_reason = models.TextField(
+        'Причина отклонения',
+        blank=True,
+        default='',
+        help_text='Причина отклонения заявки (заполняется администратором)'
+    )
+    info_request_message = models.TextField(
+        'Сообщение запроса информации',
+        blank=True,
+        default='',
+        help_text='Сообщение при запросе дополнительной информации'
+    )
+    
     # Bank Integration fields (Phase 7)
     external_id = models.CharField(
         'ID заявки в банке',

@@ -9,19 +9,19 @@ This directory contains the Model Context Protocol (MCP) server configuration fo
 
 ## Installation Status
 
-✅ **All MCP servers installed and configured on 2026-01-16**
+✅ **All 12 MCP servers installed and configured on 2026-01-24**
 
 What was set up:
-- Created `mcp.json` with 11 MCP server configurations
+- Created `mcp.json` with 12 MCP server configurations (including `context7`)
 - Created `.env.mcp` with GitHub and Sentry tokens
 - Added `.env.mcp` to `.gitignore` for security
 - Installed `django-rest-framework-mcp` in backend Django project
+- Installed `mcp-remote` and `context7` as dev dependencies
 - Added `djangorestframework_mcp` to Django `INSTALLED_APPS`
 - Added MCP endpoint to Django `urls.py` at `/mcp/`
 - Updated `backend/requirements.txt` with `django-rest-framework-mcp==0.1.0a4`
-- Rebuilt and restarted Docker backend container
-- Verified MCP endpoint is accessible at `http://localhost:8000/mcp/`
-- Installed `mcp-remote` globally for HTTP transport
+- Verified backend MCP endpoint structure
+- Ready for documentation search via `context7`
 
 All servers are ready to use! Just restart OpenCode.
 
@@ -62,6 +62,7 @@ OpenCode will automatically use the `mcp.json` configuration file.
 | `think` | Enhanced reasoning | ✅ Ready |
 | `filestash` | MinIO S3 file access | ✅ Ready |
 | `django-rest` | Django REST Framework integration | ✅ Ready (via mcp-remote) |
+| `context7` | Library documentation search | ✅ Ready |
 
 ## Usage Examples
 

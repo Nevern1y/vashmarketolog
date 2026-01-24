@@ -120,36 +120,16 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
         setError(null);
 
         try {
-            // Use FormData for file upload support
             const formData = new FormData();
             formData.append('content', content.trim());
             if (file) {
                 formData.append('file', file);
             }
 
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/applications/${applicationId}/messages/`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${tokenStorage.getAccessToken()}`,
-                    },
-                    body: formData,
-                }
+            const newMessage = await api.post<ChatMessageResponse>(
+                `/applications/${applicationId}/messages/`,
+                formData
             );
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error('[Chat] Server Error Detail:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    errorData: errorData,
-                    url: response.url
-                });
-                throw new Error(errorData.error || errorData.detail || errorData.non_field_errors?.[0] || `Ошибка отправки: ${response.status}`);
-            }
-
-            const newMessage: ChatMessageResponse = await response.json();
 
             // Add new message to state immediately
             setMessages(prev => [...prev, {
@@ -168,8 +148,8 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
 
             return true;
         } catch (err) {
-            const apiError = err as Error;
-            console.error('[Chat] Send error:', apiError.message);
+            const apiError = err as ApiError;
+            console.error('[Chat] Send error:', apiError.message || err);
             setError(apiError.message || 'Ошибка отправки сообщения');
             return false;
         } finally {

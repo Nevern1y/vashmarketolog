@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
 from .models import CompanyProfile
 from .serializers import (
@@ -67,6 +67,45 @@ class CompanyProfileViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set owner to current user on create."""
         serializer.save(owner=self.request.user)
+
+    @extend_schema(
+        description='Get list of CRM clients for an agent (for admin viewing agent\'s clients)',
+        responses={200: CompanyProfileListSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def agent_clients(self, request):
+        """
+        Get CRM clients belonging to an agent.
+        
+        GET /api/companies/agent_clients/
+        GET /api/companies/agent_clients/?agent_id=123 (admin only)
+        
+        For agents: returns their own CRM clients
+        For admins: can specify agent_id to view a specific agent's clients
+        """
+        user = request.user
+        agent_id = request.query_params.get('agent_id')
+        
+        # If admin and agent_id provided - view that agent's clients
+        if (user.role == 'admin' or user.is_superuser) and agent_id:
+            queryset = CompanyProfile.objects.filter(
+                owner_id=agent_id,
+                is_crm_client=True
+            )
+        elif user.role in ['agent', 'admin'] or user.is_superuser:
+            # Agent views their own clients
+            queryset = CompanyProfile.objects.filter(
+                owner=user,
+                is_crm_client=True
+            )
+        else:
+            return Response(
+                {'error': 'Доступ запрещён'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = CompanyProfileListSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema(tags=['Companies'])
