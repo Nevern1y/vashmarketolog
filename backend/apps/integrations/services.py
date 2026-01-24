@@ -526,6 +526,108 @@ class BankIntegrationService:
         
         return payload
     
+    def _create_company_snapshot(self, company: CompanyProfile) -> Dict[str, Any]:
+        """
+        Create a snapshot of company data for preservation in full_client_data.
+        
+        This captures all company fields at the time of application submission
+        so that subsequent edits to the company profile don't affect the application.
+        
+        Returns:
+            Dict containing all relevant company fields in a normalized structure.
+        """
+        def safe_str(value):
+            """Convert value to string or return None."""
+            if value is None:
+                return None
+            return str(value)
+        
+        def safe_date(value):
+            """Convert date to ISO string or return None."""
+            if value is None:
+                return None
+            if hasattr(value, 'isoformat'):
+                return value.isoformat()
+            return str(value)
+        
+        def safe_decimal(value):
+            """Convert Decimal to string or return None."""
+            if value is None:
+                return None
+            return str(value)
+        
+        snapshot = {
+            # Core identification
+            'id': company.id,
+            'inn': company.inn,
+            'kpp': company.kpp,
+            'ogrn': company.ogrn,
+            'name': company.name,
+            'short_name': company.short_name,
+            
+            # Addresses
+            'legal_address': company.legal_address,
+            'actual_address': company.actual_address,
+            
+            # Director info
+            'director_name': company.director_name,
+            'director_position': company.director_position,
+            'director_birth_date': safe_date(company.director_birth_date),
+            'director_birth_place': company.director_birth_place,
+            'director_email': company.director_email,
+            'director_phone': company.director_phone,
+            'director_registration_address': company.director_registration_address,
+            
+            # Director passport
+            'passport_series': company.passport_series,
+            'passport_number': company.passport_number,
+            'passport_issued_by': company.passport_issued_by,
+            'passport_date': safe_date(company.passport_date),
+            'passport_code': company.passport_code,
+            
+            # JSONField data (these are already dicts/lists)
+            'founders_data': company.founders_data or [],
+            'bank_accounts_data': company.bank_accounts_data or [],
+            'legal_founders_data': company.legal_founders_data or [],
+            'leadership_data': company.leadership_data or [],
+            'activities_data': company.activities_data or [],
+            'licenses_data': company.licenses_data or [],
+            'etp_accounts_data': company.etp_accounts_data or [],
+            'contact_persons_data': company.contact_persons_data or [],
+            
+            # Tax and signatory
+            'signatory_basis': company.signatory_basis,
+            'tax_system': company.tax_system,
+            'vat_rate': company.vat_rate,
+            
+            # Registration and capital
+            'registration_date': safe_date(company.registration_date),
+            'authorized_capital_declared': safe_decimal(company.authorized_capital_declared),
+            'authorized_capital_paid': safe_decimal(company.authorized_capital_paid),
+            'employee_count': company.employee_count,
+            'website': company.website,
+            
+            # MCHD
+            'is_mchd': company.is_mchd,
+            'mchd_number': company.mchd_number,
+            'mchd_issue_date': safe_date(company.mchd_issue_date),
+            'mchd_expiry_date': safe_date(company.mchd_expiry_date),
+            'mchd_principal_inn': company.mchd_principal_inn,
+            
+            # Bank details
+            'bank_name': company.bank_name,
+            'bank_bic': company.bank_bic,
+            'bank_account': company.bank_account,
+            'bank_corr_account': company.bank_corr_account,
+            
+            # Contact
+            'contact_person': company.contact_person,
+            'contact_phone': company.contact_phone,
+            'contact_email': company.contact_email,
+        }
+        
+        return snapshot
+    
     def _extract_postal_code(self, address: str) -> str:
         """
         Extract postal code from address string.
@@ -647,6 +749,14 @@ class BankIntegrationService:
                 # Update status to pending if still draft
                 if application.status == ApplicationStatus.DRAFT:
                     application.status = ApplicationStatus.PENDING
+                
+                # Save client data snapshot (Phase 2 enhancement)
+                # This preserves the company data at the time of submission
+                company = application.company
+                if company and not application.full_client_data:
+                    application.full_client_data = self._create_company_snapshot(company)
+                    logger.info(f"[PHASE 1] Saved full_client_data snapshot for application {application_id}")
+                
                 application.save()
                 logger.info(f"[PHASE 1] Application {application_id} saved with external_id={ticket_id_str}")
             except Exception as e:

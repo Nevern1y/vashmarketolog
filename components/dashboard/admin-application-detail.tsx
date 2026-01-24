@@ -40,6 +40,15 @@ import {
     Landmark,
     ChevronRight,
     Send,
+    // Phase 2: Additional icons for extended company data
+    Briefcase,
+    UserCheck,
+    BadgeCheck,
+    CircleDollarSign,
+    Globe,
+    Award,
+    Receipt,
+    Fingerprint,
 } from "lucide-react"
 import { useApplication, usePartnerActions } from "@/hooks/use-applications"
 import { toast } from "sonner"
@@ -963,7 +972,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                             />
                                             <DataRow 
                                                 label="Продукт" 
-                                                value={INSURANCE_PRODUCT_LABELS[application.insurance_product_type || gd.insurance_product || ""] || application.insurance_product_type || gd.insurance_product} 
+                                                value={INSURANCE_PRODUCT_LABELS[application.insurance_product_type || gd.insurance_product_type || ""] || application.insurance_product_type || gd.insurance_product_type} 
                                                 icon={<FileText className="h-3.5 w-3.5" />}
                                             />
                                         </div>
@@ -1219,20 +1228,34 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 </DataCard>
 
                                 <DataCard title="Адреса" icon={<MapPin className="h-4 w-4" />}>
-                                    {application.company_data.legal_address && (
+                                    {application.company_data.legal_address ? (
                                         <div className="mb-3">
                                             <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                                 <MapPin className="h-3 w-3" />Юридический адрес
                                             </p>
                                             <p className="text-sm">{application.company_data.legal_address}</p>
                                         </div>
+                                    ) : (
+                                        <div className="mb-3">
+                                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                                                <MapPin className="h-3 w-3" />Юридический адрес
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">Не указан</p>
+                                        </div>
                                     )}
-                                    {application.company_data.actual_address && (
+                                    {application.company_data.actual_address ? (
                                         <div>
                                             <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
                                                 <MapPin className="h-3 w-3" />Фактический адрес
                                             </p>
                                             <p className="text-sm">{application.company_data.actual_address}</p>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                                                <MapPin className="h-3 w-3" />Фактический адрес
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">Совпадает с юридическим</p>
                                         </div>
                                     )}
                                 </DataCard>
@@ -1244,15 +1267,320 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                     <DataRow label="К/С" value={application.company_data.bank_corr_account} mono />
                                 </DataCard>
 
+                                {/* ============================================ */}
+                                {/* Phase 2: Director Passport Data */}
+                                {/* ============================================ */}
+                                {(application.company_data.passport_series || application.company_data.passport_number) && (
+                                    <DataCard title="Паспортные данные руководителя" icon={<Fingerprint className="h-4 w-4" />}>
+                                        <DataRow 
+                                            label="Серия и номер" 
+                                            value={`${application.company_data.passport_series || ''} ${application.company_data.passport_number || ''}`.trim() || '—'} 
+                                            mono 
+                                        />
+                                        <DataRow label="Кем выдан" value={application.company_data.passport_issued_by} />
+                                        <DataRow label="Дата выдачи" value={application.company_data.passport_date} />
+                                        <DataRow label="Код подразделения" value={application.company_data.passport_code} mono />
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Extended Director Info */}
+                                {(application.company_data.director_birth_date || application.company_data.director_phone || application.company_data.director_email) && (
+                                    <DataCard title="Дополнительные данные руководителя" icon={<UserCheck className="h-4 w-4" />}>
+                                        <DataRow label="Дата рождения" value={application.company_data.director_birth_date} icon={<Calendar className="h-3.5 w-3.5" />} />
+                                        <DataRow label="Место рождения" value={application.company_data.director_birth_place} />
+                                        <DataRow label="Телефон" value={application.company_data.director_phone} icon={<Phone className="h-3.5 w-3.5" />} />
+                                        <DataRow label="Email" value={application.company_data.director_email} icon={<Mail className="h-3.5 w-3.5" />} />
+                                        {application.company_data.director_registration_address && (
+                                            <div className="mt-3">
+                                                <p className="text-xs text-muted-foreground mb-1">Адрес регистрации</p>
+                                                <p className="text-sm">{application.company_data.director_registration_address}</p>
+                                            </div>
+                                        )}
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Tax & Registration Info */}
+                                {(application.company_data.tax_system || application.company_data.registration_date || application.company_data.authorized_capital_paid) && (
+                                    <DataCard title="Налоги и регистрация" icon={<Receipt className="h-4 w-4" />}>
+                                        <DataRow label="Система налогообложения" value={
+                                            application.company_data.tax_system === 'osn' ? 'ОСН' :
+                                            application.company_data.tax_system === 'usn_income' ? 'УСН (доходы)' :
+                                            application.company_data.tax_system === 'usn_income_expense' ? 'УСН (доходы-расходы)' :
+                                            application.company_data.tax_system === 'esn' ? 'ЕСН' :
+                                            application.company_data.tax_system === 'patent' ? 'Патент' :
+                                            application.company_data.tax_system
+                                        } />
+                                        <DataRow label="Ставка НДС" value={
+                                            application.company_data.vat_rate === 'none' ? 'Без НДС' :
+                                            application.company_data.vat_rate ? `${application.company_data.vat_rate}%` : '—'
+                                        } />
+                                        <DataRow label="Дата регистрации" value={application.company_data.registration_date} icon={<Calendar className="h-3.5 w-3.5" />} />
+                                        <Separator className="my-3" />
+                                        <DataRow label="Уставный капитал (заявл.)" value={
+                                            application.company_data.authorized_capital_declared 
+                                                ? `${parseFloat(application.company_data.authorized_capital_declared).toLocaleString('ru-RU')} ₽` 
+                                                : '—'
+                                        } icon={<CircleDollarSign className="h-3.5 w-3.5" />} />
+                                        <DataRow label="Уставный капитал (оплач.)" value={
+                                            application.company_data.authorized_capital_paid 
+                                                ? `${parseFloat(application.company_data.authorized_capital_paid).toLocaleString('ru-RU')} ₽` 
+                                                : '—'
+                                        } />
+                                        <DataRow label="Численность сотрудников" value={application.company_data.employee_count?.toString()} icon={<Users className="h-3.5 w-3.5" />} />
+                                        {application.company_data.website && (
+                                            <div className="flex items-center gap-2 py-2 border-b border-border/20 last:border-0">
+                                                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span className="text-xs text-muted-foreground min-w-[120px]">Сайт</span>
+                                                <a href={application.company_data.website} target="_blank" rel="noopener noreferrer" className="text-sm text-[#3CE8D1] hover:underline flex items-center gap-1 ml-auto">
+                                                    {application.company_data.website} <ExternalLink className="h-3 w-3" />
+                                                </a>
+                                            </div>
+                                        )}
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Signatory & MCHD */}
+                                {(application.company_data.signatory_basis || application.company_data.is_mchd) && (
+                                    <DataCard title="Подписант" icon={<FileSignature className="h-4 w-4" />}>
+                                        <DataRow label="Основание полномочий" value={
+                                            application.company_data.signatory_basis === 'charter' ? 'Устав' :
+                                            application.company_data.signatory_basis === 'power_of_attorney' ? 'Доверенность' :
+                                            application.company_data.signatory_basis
+                                        } />
+                                        {application.company_data.is_mchd && (
+                                            <>
+                                                <Separator className="my-3" />
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <BadgeCheck className="h-4 w-4 text-[#3CE8D1]" />
+                                                    <span className="text-sm font-medium">Машиночитаемая доверенность (МЧД)</span>
+                                                </div>
+                                                <DataRow label="Номер МЧД" value={application.company_data.mchd_number} mono />
+                                                <DataRow label="Дата выдачи" value={application.company_data.mchd_issue_date} />
+                                                <DataRow label="Действует до" value={application.company_data.mchd_expiry_date} />
+                                                <DataRow label="ИНН доверителя" value={application.company_data.mchd_principal_inn} mono />
+                                            </>
+                                        )}
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Enhanced Founders (Physical Persons) with Passport */}
                                 {application.company_data.founders_data && application.company_data.founders_data.length > 0 && (
-                                    <DataCard title="Учредители" icon={<Users className="h-4 w-4" />} className="lg:col-span-2">
-                                        <div className="space-y-2">
+                                    <DataCard title="Учредители (физ. лица)" icon={<Users className="h-4 w-4" />} className="lg:col-span-2">
+                                        <div className="space-y-4">
                                             {application.company_data.founders_data.map((founder, idx) => (
-                                                <div key={idx} className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0">
-                                                    <span className="text-sm font-medium">{founder.name}</span>
-                                                    <div className="text-sm text-muted-foreground flex items-center gap-4">
-                                                        {founder.inn && <span className="font-mono text-xs bg-slate-800/50 px-2 py-0.5 rounded">ИНН: {founder.inn}</span>}
-                                                        {founder.share != null && <Badge variant="outline">Доля: {founder.share}%</Badge>}
+                                                <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-sm font-medium">{founder.full_name || (founder as {name?: string}).name}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            {founder.inn && <span className="font-mono text-xs bg-slate-700/50 px-2 py-0.5 rounded">ИНН: {founder.inn}</span>}
+                                                            {founder.share_relative != null && <Badge variant="outline">Доля: {founder.share_relative}%</Badge>}
+                                                        </div>
+                                                    </div>
+                                                    {/* Founder Passport Info */}
+                                                    {founder.document && (
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 pt-2 border-t border-border/20">
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Серия/Номер</p>
+                                                                <p className="text-xs font-mono">{founder.document.series} {founder.document.number}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Дата выдачи</p>
+                                                                <p className="text-xs">{founder.document.issued_at}</p>
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                <p className="text-xs text-muted-foreground">Кем выдан</p>
+                                                                <p className="text-xs truncate">{founder.document.authority_name}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {/* Additional founder info */}
+                                                    {(founder.birth_date || founder.birth_place) && (
+                                                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/20">
+                                                            {founder.birth_date && (
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground">Дата рождения</p>
+                                                                    <p className="text-xs">{founder.birth_date}</p>
+                                                                </div>
+                                                            )}
+                                                            {founder.birth_place && (
+                                                                <div>
+                                                                    <p className="text-xs text-muted-foreground">Место рождения</p>
+                                                                    <p className="text-xs">{founder.birth_place}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Legal Founders (Companies) */}
+                                {application.company_data.legal_founders_data && application.company_data.legal_founders_data.length > 0 && (
+                                    <DataCard title="Учредители (юр. лица)" icon={<Building2 className="h-4 w-4" />} className="lg:col-span-2">
+                                        <div className="space-y-3">
+                                            {application.company_data.legal_founders_data.map((legalFounder, idx) => (
+                                                <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-sm font-medium">{legalFounder.name}</span>
+                                                        {legalFounder.share_relative != null && <Badge variant="outline">Доля: {legalFounder.share_relative}%</Badge>}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                                        {legalFounder.inn && (
+                                                            <div>
+                                                                <p className="text-muted-foreground">ИНН</p>
+                                                                <p className="font-mono">{legalFounder.inn}</p>
+                                                            </div>
+                                                        )}
+                                                        {legalFounder.ogrn && (
+                                                            <div>
+                                                                <p className="text-muted-foreground">ОГРН</p>
+                                                                <p className="font-mono">{legalFounder.ogrn}</p>
+                                                            </div>
+                                                        )}
+                                                        {legalFounder.director_name && (
+                                                            <div className="col-span-2">
+                                                                <p className="text-muted-foreground">Руководитель</p>
+                                                                <p>{legalFounder.director_position || 'Генеральный директор'}: {legalFounder.director_name}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Leadership */}
+                                {application.company_data.leadership_data && application.company_data.leadership_data.length > 0 && (
+                                    <DataCard title="Руководство компании" icon={<Briefcase className="h-4 w-4" />} className="lg:col-span-2">
+                                        <div className="space-y-3">
+                                            {application.company_data.leadership_data.map((leader, idx) => (
+                                                <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div>
+                                                            <span className="text-sm font-medium">{leader.full_name}</span>
+                                                            <span className="text-xs text-muted-foreground ml-2">({leader.position})</span>
+                                                        </div>
+                                                        {leader.share_percent != null && <Badge variant="outline">Доля: {leader.share_percent}%</Badge>}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                                        {leader.email && (
+                                                            <div>
+                                                                <p className="text-muted-foreground">Email</p>
+                                                                <p>{leader.email}</p>
+                                                            </div>
+                                                        )}
+                                                        {leader.phone && (
+                                                            <div>
+                                                                <p className="text-muted-foreground">Телефон</p>
+                                                                <p>{leader.phone}</p>
+                                                            </div>
+                                                        )}
+                                                        {leader.passport && (
+                                                            <div className="col-span-2">
+                                                                <p className="text-muted-foreground">Паспорт</p>
+                                                                <p className="font-mono">{leader.passport.series} {leader.passport.number}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Activities (OKVED) */}
+                                <DataCard title="Виды деятельности (ОКВЭД)" icon={<Briefcase className="h-4 w-4" />}>
+                                    {application.company_data.activities_data && application.company_data.activities_data.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {application.company_data.activities_data.map((activity, idx) => (
+                                                <div key={idx} className="flex items-start gap-2 py-1.5">
+                                                    <span className="font-mono text-xs bg-slate-700/50 px-1.5 py-0.5 rounded shrink-0">{activity.code}</span>
+                                                    <span className="text-sm">{activity.name}</span>
+                                                    {activity.is_primary && <Badge variant="default" className="shrink-0 ml-auto">Основной</Badge>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">Данные ОКВЭД не заполнены</p>
+                                    )}
+                                </DataCard>
+
+                                {/* Phase 2: Licenses & SRO */}
+                                {application.company_data.licenses_data && application.company_data.licenses_data.length > 0 && (
+                                    <DataCard title="Лицензии и СРО" icon={<Award className="h-4 w-4" />}>
+                                        <div className="space-y-3">
+                                            {application.company_data.licenses_data.map((license, idx) => (
+                                                <div key={idx} className="p-2 bg-slate-800/30 rounded border border-border/30">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-sm font-medium">{license.name}</span>
+                                                        {license.type && <Badge variant="outline">{license.type}</Badge>}
+                                                    </div>
+                                                    <div className="flex gap-4 text-xs text-muted-foreground">
+                                                        {license.number && <span>№ {license.number}</span>}
+                                                        {license.issued_date && <span>от {license.issued_date}</span>}
+                                                        {license.valid_until && <span>до {license.valid_until}</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: ETP Accounts */}
+                                {application.company_data.etp_accounts_data && application.company_data.etp_accounts_data.length > 0 && (
+                                    <DataCard title="Аккаунты ЭТП" icon={<Globe className="h-4 w-4" />}>
+                                        <div className="space-y-2">
+                                            {application.company_data.etp_accounts_data.map((etp, idx) => (
+                                                <div key={idx} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
+                                                    <span className="text-sm">{etp.platform}</span>
+                                                    {etp.account && <span className="font-mono text-xs bg-slate-700/50 px-2 py-0.5 rounded">{etp.account}</span>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Contact Persons */}
+                                {application.company_data.contact_persons_data && application.company_data.contact_persons_data.length > 0 && (
+                                    <DataCard title="Контактные лица" icon={<Users className="h-4 w-4" />}>
+                                        <div className="space-y-3">
+                                            {application.company_data.contact_persons_data.map((person, idx) => (
+                                                <div key={idx} className="p-2 bg-slate-800/30 rounded border border-border/30">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-sm font-medium">
+                                                            {[person.last_name, person.first_name, person.patronymic].filter(Boolean).join(' ')}
+                                                        </span>
+                                                        {person.position && <span className="text-xs text-muted-foreground">{person.position}</span>}
+                                                    </div>
+                                                    <div className="flex gap-4 text-xs text-muted-foreground">
+                                                        {person.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{person.phone}</span>}
+                                                        {person.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{person.email}</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </DataCard>
+                                )}
+
+                                {/* Phase 2: Additional Bank Accounts */}
+                                {application.company_data.bank_accounts_data && application.company_data.bank_accounts_data.length > 1 && (
+                                    <DataCard title="Дополнительные банковские счета" icon={<Landmark className="h-4 w-4" />} className="lg:col-span-2">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {application.company_data.bank_accounts_data.slice(1).map((account, idx) => (
+                                                <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
+                                                    <p className="text-sm font-medium mb-2">{account.bank_name}</p>
+                                                    <div className="space-y-1 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">БИК:</span>
+                                                            <span className="font-mono">{account.bic}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-muted-foreground">Р/С:</span>
+                                                            <span className="font-mono">{account.account}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}

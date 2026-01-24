@@ -27,7 +27,17 @@ import {
     Hash,
     Landmark,
     Plus,
-    FolderPlus
+    FolderPlus,
+    // Phase 2: Additional icons for extended company data
+    Fingerprint,
+    Briefcase,
+    Award,
+    Globe,
+    Receipt,
+    Users,
+    BadgeCheck,
+    CircleDollarSign,
+    FileSignature,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -922,6 +932,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
                                 {/* Registration Tab */}
                                 <TabsContent value="registration" className="space-y-4">
+                                    {/* Director Info */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
                                             <div className="flex items-center gap-2 mb-3">
@@ -930,27 +941,310 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                             </div>
                                             <p className="text-white font-medium">{application.company_data?.director_name || 'Не указан'}</p>
                                             <p className="text-sm text-[#94a3b8] mt-1">{application.company_data?.director_position || 'Генеральный директор'}</p>
-                                        </div>
-                                        <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <FileText className="h-4 w-4 text-[#3CE8D1]" />
-                                                <span className="text-sm font-medium text-[#94a3b8]">Учредители</span>
-                                            </div>
-                                            {application.company_data?.founders_data && application.company_data.founders_data.length > 0 ? (
-                                                <div className="space-y-2">
-                                                    {application.company_data.founders_data.map((founder, idx) => (
-                                                        <div key={idx} className="text-white text-sm">
-                                                            <span className="font-medium">{founder.name}</span>
-                                                            {founder.inn && <span className="text-[#94a3b8]"> (ИНН: {founder.inn})</span>}
-                                                            {founder.share && <span className="text-[#94a3b8]"> — {founder.share}%</span>}
-                                                        </div>
-                                                    ))}
+                                            {/* Extended Director Info */}
+                                            {(application.company_data?.director_phone || application.company_data?.director_email) && (
+                                                <div className="mt-2 pt-2 border-t border-[#1e3a5f] space-y-1">
+                                                    {application.company_data?.director_phone && (
+                                                        <p className="text-sm text-[#94a3b8]"><Phone className="h-3 w-3 inline mr-1" />{application.company_data.director_phone}</p>
+                                                    )}
+                                                    {application.company_data?.director_email && (
+                                                        <p className="text-sm text-[#94a3b8]"><Mail className="h-3 w-3 inline mr-1" />{application.company_data.director_email}</p>
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <p className="text-[#94a3b8] text-sm">Данные не заполнены</p>
                                             )}
                                         </div>
+                                        
+                                        {/* Director Passport */}
+                                        {(application.company_data?.passport_series || application.company_data?.passport_number) && (
+                                            <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <Fingerprint className="h-4 w-4 text-[#3CE8D1]" />
+                                                    <span className="text-sm font-medium text-[#94a3b8]">Паспорт руководителя</span>
+                                                </div>
+                                                <p className="text-white font-mono">
+                                                    {application.company_data?.passport_series} {application.company_data?.passport_number}
+                                                </p>
+                                                {application.company_data?.passport_issued_by && (
+                                                    <p className="text-sm text-[#94a3b8] mt-1">{application.company_data.passport_issued_by}</p>
+                                                )}
+                                                <div className="flex gap-4 mt-2 text-sm text-[#94a3b8]">
+                                                    {application.company_data?.passport_date && <span>Выдан: {application.company_data.passport_date}</span>}
+                                                    {application.company_data?.passport_code && <span>Код: {application.company_data.passport_code}</span>}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+
+                                    {/* Founders (Physical Persons) with Passport Data */}
+                                    <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Users className="h-4 w-4 text-[#3CE8D1]" />
+                                            <span className="text-sm font-medium text-[#94a3b8]">Учредители (физ. лица)</span>
+                                        </div>
+                                        {application.company_data?.founders_data && application.company_data.founders_data.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {application.company_data.founders_data.map((founder, idx) => (
+                                                    <div key={idx} className="p-3 rounded bg-[#0f2042] border border-[#1e3a5f]">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-white font-medium">{founder.full_name || (founder as {name?: string}).name}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                {founder.inn && <span className="text-xs font-mono bg-[#1e3a5f] px-2 py-0.5 rounded text-[#94a3b8]">ИНН: {founder.inn}</span>}
+                                                                {founder.share_relative != null && <Badge variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]/30">{founder.share_relative}%</Badge>}
+                                                            </div>
+                                                        </div>
+                                                        {/* Founder Passport Info */}
+                                                        {founder.document && (
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-[#1e3a5f]">
+                                                                <div>
+                                                                    <p className="text-xs text-[#94a3b8]">Серия/Номер</p>
+                                                                    <p className="text-xs font-mono text-white">{founder.document.series} {founder.document.number}</p>
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-[#94a3b8]">Дата выдачи</p>
+                                                                    <p className="text-xs text-white">{founder.document.issued_at}</p>
+                                                                </div>
+                                                                <div className="col-span-2">
+                                                                    <p className="text-xs text-[#94a3b8]">Кем выдан</p>
+                                                                    <p className="text-xs text-white truncate">{founder.document.authority_name}</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {/* Birth info */}
+                                                        {(founder.birth_date || founder.birth_place) && (
+                                                            <div className="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-[#1e3a5f]">
+                                                                {founder.birth_date && (
+                                                                    <div>
+                                                                        <p className="text-xs text-[#94a3b8]">Дата рождения</p>
+                                                                        <p className="text-xs text-white">{founder.birth_date}</p>
+                                                                    </div>
+                                                                )}
+                                                                {founder.birth_place && (
+                                                                    <div>
+                                                                        <p className="text-xs text-[#94a3b8]">Место рождения</p>
+                                                                        <p className="text-xs text-white">{founder.birth_place}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[#94a3b8] text-sm">Данные не заполнены</p>
+                                        )}
+                                    </div>
+
+                                    {/* Legal Founders (Companies) */}
+                                    {application.company_data?.legal_founders_data && application.company_data.legal_founders_data.length > 0 && (
+                                        <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Building2 className="h-4 w-4 text-[#3CE8D1]" />
+                                                <span className="text-sm font-medium text-[#94a3b8]">Учредители (юр. лица)</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {application.company_data.legal_founders_data.map((legalFounder, idx) => (
+                                                    <div key={idx} className="p-3 rounded bg-[#0f2042] border border-[#1e3a5f]">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-white font-medium">{legalFounder.name}</span>
+                                                            {legalFounder.share_relative != null && <Badge variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]/30">{legalFounder.share_relative}%</Badge>}
+                                                        </div>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                                            {legalFounder.inn && (
+                                                                <div>
+                                                                    <p className="text-[#94a3b8]">ИНН</p>
+                                                                    <p className="text-white font-mono">{legalFounder.inn}</p>
+                                                                </div>
+                                                            )}
+                                                            {legalFounder.ogrn && (
+                                                                <div>
+                                                                    <p className="text-[#94a3b8]">ОГРН</p>
+                                                                    <p className="text-white font-mono">{legalFounder.ogrn}</p>
+                                                                </div>
+                                                            )}
+                                                            {legalFounder.director_name && (
+                                                                <div className="col-span-2">
+                                                                    <p className="text-[#94a3b8]">Руководитель</p>
+                                                                    <p className="text-white">{legalFounder.director_position || 'Ген. директор'}: {legalFounder.director_name}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Leadership */}
+                                    {application.company_data?.leadership_data && application.company_data.leadership_data.length > 0 && (
+                                        <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Briefcase className="h-4 w-4 text-[#3CE8D1]" />
+                                                <span className="text-sm font-medium text-[#94a3b8]">Руководство компании</span>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {application.company_data.leadership_data.map((leader, idx) => (
+                                                    <div key={idx} className="p-3 rounded bg-[#0f2042] border border-[#1e3a5f]">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div>
+                                                                <span className="text-white font-medium">{leader.full_name}</span>
+                                                                <span className="text-xs text-[#94a3b8] ml-2">({leader.position})</span>
+                                                            </div>
+                                                            {leader.share_percent != null && <Badge variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]/30">{leader.share_percent}%</Badge>}
+                                                        </div>
+                                                        <div className="flex gap-4 text-xs text-[#94a3b8]">
+                                                            {leader.email && <span><Mail className="h-3 w-3 inline mr-1" />{leader.email}</span>}
+                                                            {leader.phone && <span><Phone className="h-3 w-3 inline mr-1" />{leader.phone}</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Tax & Registration Info */}
+                                    {(application.company_data?.tax_system || application.company_data?.registration_date || application.company_data?.authorized_capital_paid) && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <Receipt className="h-4 w-4 text-[#3CE8D1]" />
+                                                    <span className="text-sm font-medium text-[#94a3b8]">Налоговая информация</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {application.company_data?.tax_system && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-[#94a3b8]">Система налогообложения:</span>
+                                                            <span className="text-white">
+                                                                {application.company_data.tax_system === 'osn' ? 'ОСН' :
+                                                                application.company_data.tax_system === 'usn_income' ? 'УСН (доходы)' :
+                                                                application.company_data.tax_system === 'usn_income_expense' ? 'УСН (доходы-расходы)' :
+                                                                application.company_data.tax_system}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {application.company_data?.vat_rate && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-[#94a3b8]">Ставка НДС:</span>
+                                                            <span className="text-white">{application.company_data.vat_rate === 'none' ? 'Без НДС' : `${application.company_data.vat_rate}%`}</span>
+                                                        </div>
+                                                    )}
+                                                    {application.company_data?.registration_date && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-[#94a3b8]">Дата регистрации:</span>
+                                                            <span className="text-white">{application.company_data.registration_date}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <CircleDollarSign className="h-4 w-4 text-[#3CE8D1]" />
+                                                    <span className="text-sm font-medium text-[#94a3b8]">Капитал и численность</span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {application.company_data?.authorized_capital_paid && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-[#94a3b8]">Уставный капитал:</span>
+                                                            <span className="text-white">{parseFloat(application.company_data.authorized_capital_paid).toLocaleString('ru-RU')} ₽</span>
+                                                        </div>
+                                                    )}
+                                                    {application.company_data?.employee_count && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-[#94a3b8]">Численность:</span>
+                                                            <span className="text-white">{application.company_data.employee_count} чел.</span>
+                                                        </div>
+                                                    )}
+                                                    {application.company_data?.website && (
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-[#94a3b8]">Сайт:</span>
+                                                            <a href={application.company_data.website} target="_blank" rel="noopener noreferrer" className="text-[#3CE8D1] hover:underline flex items-center gap-1">
+                                                                {application.company_data.website.replace(/^https?:\/\//, '')} <ExternalLink className="h-3 w-3" />
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* MCHD */}
+                                    {application.company_data?.is_mchd && (
+                                        <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <BadgeCheck className="h-4 w-4 text-[#3CE8D1]" />
+                                                <span className="text-sm font-medium text-[#94a3b8]">Машиночитаемая доверенность (МЧД)</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                                {application.company_data?.mchd_number && (
+                                                    <div>
+                                                        <p className="text-[#94a3b8] text-xs">Номер МЧД</p>
+                                                        <p className="text-white font-mono">{application.company_data.mchd_number}</p>
+                                                    </div>
+                                                )}
+                                                {application.company_data?.mchd_issue_date && (
+                                                    <div>
+                                                        <p className="text-[#94a3b8] text-xs">Дата выдачи</p>
+                                                        <p className="text-white">{application.company_data.mchd_issue_date}</p>
+                                                    </div>
+                                                )}
+                                                {application.company_data?.mchd_expiry_date && (
+                                                    <div>
+                                                        <p className="text-[#94a3b8] text-xs">Действует до</p>
+                                                        <p className="text-white">{application.company_data.mchd_expiry_date}</p>
+                                                    </div>
+                                                )}
+                                                {application.company_data?.mchd_principal_inn && (
+                                                    <div>
+                                                        <p className="text-[#94a3b8] text-xs">ИНН доверителя</p>
+                                                        <p className="text-white font-mono">{application.company_data.mchd_principal_inn}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Activities (OKVED) */}
+                                    {application.company_data?.activities_data && application.company_data.activities_data.length > 0 && (
+                                        <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Briefcase className="h-4 w-4 text-[#3CE8D1]" />
+                                                <span className="text-sm font-medium text-[#94a3b8]">Виды деятельности (ОКВЭД)</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {application.company_data.activities_data.map((activity, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2 py-1">
+                                                        <span className="font-mono text-xs bg-[#1e3a5f] px-1.5 py-0.5 rounded text-[#94a3b8]">{activity.code}</span>
+                                                        <span className="text-sm text-white">{activity.name}</span>
+                                                        {activity.is_primary && <Badge className="ml-auto bg-[#3CE8D1]/20 text-[#3CE8D1] hover:bg-[#3CE8D1]/30">Основной</Badge>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Licenses & SRO */}
+                                    {application.company_data?.licenses_data && application.company_data.licenses_data.length > 0 && (
+                                        <div className="p-4 rounded-lg bg-[#0a1628] border border-[#1e3a5f]">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <Award className="h-4 w-4 text-[#3CE8D1]" />
+                                                <span className="text-sm font-medium text-[#94a3b8]">Лицензии и СРО</span>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {application.company_data.licenses_data.map((license, idx) => (
+                                                    <div key={idx} className="p-3 rounded bg-[#0f2042] border border-[#1e3a5f]">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="text-sm text-white font-medium">{license.name}</span>
+                                                            {license.type && <Badge variant="outline" className="text-[#94a3b8]">{license.type}</Badge>}
+                                                        </div>
+                                                        <div className="flex gap-4 text-xs text-[#94a3b8]">
+                                                            {license.number && <span>№ {license.number}</span>}
+                                                            {license.issued_date && <span>от {license.issued_date}</span>}
+                                                            {license.valid_until && <span>до {license.valid_until}</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </TabsContent>
 
                                 {/* Bank Requisites Tab */}

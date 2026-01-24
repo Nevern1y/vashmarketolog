@@ -23,6 +23,111 @@ export interface ApplicationDocument {
 
 
 // Nested company data for Partner/Bank view
+// Extended in Phase 2 to expose all fields needed for Admin/Agent interfaces
+
+// Supporting types for JSONField arrays
+export interface FounderDocument {
+    series: string;
+    number: string;
+    issued_at: string;
+    authority_name: string;
+    authority_code: string;
+}
+
+export interface FounderAddress {
+    value: string;
+    postal_code?: string;
+}
+
+export interface FounderEntry {
+    full_name: string;
+    inn?: string;
+    share_relative?: number;
+    document?: FounderDocument;
+    birth_place?: string;
+    birth_date?: string;
+    gender?: number;
+    citizen?: string;
+    legal_address?: FounderAddress;
+    is_resident?: boolean;
+}
+
+export interface LegalFounderEntry {
+    share_relative?: number;
+    inn?: string;
+    ogrn?: string;
+    name: string;
+    registration_date?: string;
+    first_registration_date?: string;
+    is_resident?: boolean;
+    bank_name?: string;
+    website?: string;
+    email?: string;
+    phone?: string;
+    director_position?: string;
+    director_name?: string;
+}
+
+export interface LeadershipPassport {
+    document_type?: string;
+    series?: string;
+    number?: string;
+    issued_date?: string;
+    issued_by?: string;
+    department_code?: string;
+    registration_address?: string;
+}
+
+export interface LeadershipEntry {
+    position: string;
+    full_name: string;
+    share_percent?: number;
+    citizenship?: string;
+    birth_date?: string;
+    birth_place?: string;
+    email?: string;
+    phone?: string;
+    passport?: LeadershipPassport;
+}
+
+export interface ActivityEntry {
+    code: string;
+    name: string;
+    is_primary?: boolean;
+}
+
+export interface LicenseEntry {
+    type?: string;
+    name: string;
+    number?: string;
+    issued_date?: string;
+    valid_until?: string;
+}
+
+export interface EtpAccountEntry {
+    platform: string;
+    account?: string;
+    bik?: string;
+    bank_name?: string;
+    corr_account?: string;
+}
+
+export interface ContactPersonEntry {
+    position?: string;
+    last_name?: string;
+    first_name?: string;
+    patronymic?: string;
+    email?: string;
+    phone?: string;
+}
+
+export interface BankAccountEntry {
+    account: string;
+    bic: string;
+    bank_name: string;
+    corr_account?: string;
+}
+
 export interface CompanyDataForPartner {
     id: number;
     inn: string;
@@ -32,22 +137,62 @@ export interface CompanyDataForPartner {
     short_name: string;
     legal_address: string;
     actual_address: string;
+    
+    // Director basic info
     director_name: string;
     director_position: string;
-    // Passport fields
+    
+    // Extended Director info (Phase 2)
+    director_birth_date: string | null;
+    director_birth_place: string | null;
+    director_email: string | null;
+    director_phone: string | null;
+    director_registration_address: string | null;
+    
+    // Director Passport fields
     passport_series: string | null;
     passport_number: string | null;
     passport_issued_by: string | null;
     passport_date: string | null;
     passport_code: string | null;
-    // JSON data
-    founders_data: Array<{ name: string; inn?: string; share?: number }>;
-    bank_accounts_data: Array<{ account: string; bic: string; bank_name: string }>;
+    
+    // JSON data - Founders (physical persons)
+    founders_data: FounderEntry[];
+    bank_accounts_data: BankAccountEntry[];
+    
+    // Additional JSONFields (Phase 2)
+    legal_founders_data: LegalFounderEntry[];
+    leadership_data: LeadershipEntry[];
+    activities_data: ActivityEntry[];
+    licenses_data: LicenseEntry[];
+    etp_accounts_data: EtpAccountEntry[];
+    contact_persons_data: ContactPersonEntry[];
+    
+    // Tax and Signatory settings
+    signatory_basis: string | null;
+    tax_system: string | null;
+    vat_rate: string | null;
+    
+    // Registration and Capital info
+    registration_date: string | null;
+    authorized_capital_declared: string | null;
+    authorized_capital_paid: string | null;
+    employee_count: number | null;
+    website: string | null;
+    
+    // MCHD (Machine-Readable Power of Attorney)
+    is_mchd: boolean;
+    mchd_number: string | null;
+    mchd_issue_date: string | null;
+    mchd_expiry_date: string | null;
+    mchd_principal_inn: string | null;
+    
     // Bank details
     bank_name: string;
     bank_bic: string;
     bank_account: string;
     bank_corr_account: string;
+    
     // Contact
     contact_person: string;
     contact_phone: string;

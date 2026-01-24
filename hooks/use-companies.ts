@@ -213,6 +213,9 @@ export interface Company {
     mchd_expiry_date?: string;           // MCHD expiry date
     mchd_principal_inn?: string;         // Principal's INN
     mchd_file?: string;                  // MCHD file URL
+    mchd_full_name?: string;             // MCHD representative full name
+    mchd_inn?: string;                   // MCHD representative INN
+    mchd_date?: string;                  // MCHD date (alias for issue_date)
     // JSONField data (API-Ready for future integrations)
     founders_data: FounderData[];
     legal_founders_data: LegalFounderData[];

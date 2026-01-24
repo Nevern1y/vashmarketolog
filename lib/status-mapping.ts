@@ -212,16 +212,98 @@ export interface BankStatusConfig {
 /**
  * Bank API Status IDs → Visual Config
  * СТРОГО по Приложению А PDF
+ * 
+ * Updated: Added all BG (101-1090) and KIK (2101-2990) statuses
  */
 export const BANK_STATUS_CONFIG: Record<number, BankStatusConfig> = {
+    // ========================================
+    // БГ (Bank Guarantee) Statuses: 101-1090
+    // ========================================
+    
+    // Initial stages
     101: { label: 'Анкета', color: 'text-slate-400', bgColor: 'bg-slate-700/50' },
     102: { label: 'Предзаявка', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
     110: { label: 'Прескоринг', color: 'text-indigo-400', bgColor: 'bg-indigo-400/10' },
-    120: { label: 'Дозаполнение', color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
+    120: { label: 'Дозаполнение заявки', color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
+    
+    // Review stages
+    140: { label: 'Проверка (этап 1)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    150: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    160: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    170: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
     210: { label: 'Проверка документов', color: 'text-[#FFD93D]', bgColor: 'bg-[#FFD93D]/10' },
+    310: { label: 'Проверка (этап 1)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    
+    // Rejection flow
+    520: { label: 'Не актуальна', color: 'text-slate-500', bgColor: 'bg-slate-500/10' },
     530: { label: 'Отклонена', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    533: { label: 'Формирование заявления на отказ', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    534: { label: 'Подтверждение отказа клиента', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    535: { label: 'Отказ клиента', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    
+    // Additional review stages
+    610: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    630: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    640: { label: 'Одобрено с замечаниями', color: 'text-[#FFD93D]', bgColor: 'bg-[#FFD93D]/10' },
+    650: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    690: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    
+    // Decision stages
     707: { label: 'Решение принято', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    708: { label: 'Решение принято', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    710: { label: 'Одобрено, ожидается согласование БГ', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    715: { label: 'Ожидается формирование ЭЦП', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    720: { label: 'Ожидаются документы ЭЦП', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    750: { label: 'Проверка ЭЦП', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    
+    // Payment & Issuance
+    810: { label: 'Ожидается оплата', color: 'text-amber-400', bgColor: 'bg-amber-400/10' },
+    850: { label: 'Ожидается выпуск', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10' },
     910: { label: 'Гарантия выпущена', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10' },
+    1010: { label: 'Гарантия в реестре', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
+    1090: { label: 'Гарантия закрыта', color: 'text-emerald-600', bgColor: 'bg-emerald-600/10' },
+    
+    // ========================================
+    // КИК (Contract Loan) Statuses: 2101-2990
+    // ========================================
+    
+    // Initial stages
+    2101: { label: 'Анкета (КИК)', color: 'text-slate-400', bgColor: 'bg-slate-700/50' },
+    2102: { label: 'Предзаявка (КИК)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    2110: { label: 'Прескоринг (КИК)', color: 'text-indigo-400', bgColor: 'bg-indigo-400/10' },
+    2120: { label: 'Дозаполнение заявки (КИК)', color: 'text-orange-400', bgColor: 'bg-orange-400/10' },
+    
+    // Review stages
+    2050: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    2140: { label: 'Проверка (этап 1)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    2150: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    2170: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    2210: { label: 'Проверка документов (КИК)', color: 'text-[#FFD93D]', bgColor: 'bg-[#FFD93D]/10' },
+    2310: { label: 'Проверка (этап 1)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    2510: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    
+    // Rejection flow
+    2520: { label: 'Не актуальна (КИК)', color: 'text-slate-500', bgColor: 'bg-slate-500/10' },
+    2530: { label: 'Отклонена (КИК)', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    2533: { label: 'Формирование заявления на отказ', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    2534: { label: 'Подтверждение отказа клиента', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    2535: { label: 'Отказ клиента (КИК)', color: 'text-[#E03E9D]', bgColor: 'bg-[#E03E9D]/10' },
+    2540: { label: 'Одобрено с замечаниями (КИК)', color: 'text-[#FFD93D]', bgColor: 'bg-[#FFD93D]/10' },
+    2630: { label: 'Проверка (этап 2)', color: 'text-[#4F7DF3]', bgColor: 'bg-[#4F7DF3]/10' },
+    
+    // Decision stages
+    2707: { label: 'Решение принято (КИК)', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    2708: { label: 'Решение принято (КИК)', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    2712: { label: 'Ожидается согласование условий', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    2715: { label: 'Ожидается формирование ЭЦП (КИК)', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    2720: { label: 'Ожидаются документы ЭЦП (КИК)', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    2750: { label: 'Проверка ЭЦП (КИК)', color: 'text-[#3CE8D1]', bgColor: 'bg-[#3CE8D1]/10' },
+    
+    // Payment & Issuance
+    2810: { label: 'Ожидается оплата (КИК)', color: 'text-amber-400', bgColor: 'bg-amber-400/10' },
+    2860: { label: 'Выдача кредита', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10' },
+    2910: { label: 'Кредит выдан', color: 'text-emerald-400', bgColor: 'bg-emerald-400/10' },
+    2990: { label: 'Кредит погашен', color: 'text-emerald-600', bgColor: 'bg-emerald-600/10' },
 };
 
 /**

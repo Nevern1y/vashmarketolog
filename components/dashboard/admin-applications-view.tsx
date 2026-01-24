@@ -291,6 +291,25 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
                         <DataField label="БИК" value={application.company_data.bank_bic} mono />
                         <DataField label="Р/С" value={application.company_data.bank_account} mono />
                         <DataField label="К/С" value={application.company_data.bank_corr_account} mono />
+                        {/* Phase 2: OKVED Activities */}
+                        {application.company_data.activities_data && application.company_data.activities_data.length > 0 && (
+                            <div className="col-span-full mt-2 pt-2 border-t border-border/30">
+                                <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                                    <Briefcase className="h-3 w-3" />ОКВЭД
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {application.company_data.activities_data.slice(0, 5).map((activity, idx) => (
+                                        <span key={idx} className="text-xs font-mono bg-slate-700/50 px-1.5 py-0.5 rounded">
+                                            {activity.code}
+                                            {activity.is_primary && <span className="text-[#3CE8D1] ml-1">•</span>}
+                                        </span>
+                                    ))}
+                                    {application.company_data.activities_data.length > 5 && (
+                                        <span className="text-xs text-muted-foreground">+{application.company_data.activities_data.length - 5}</span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </DataSection>

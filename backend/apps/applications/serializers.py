@@ -88,7 +88,9 @@ class CalculationSessionCreateSerializer(serializers.ModelSerializer):
 class CompanyDataForPartnerSerializer(serializers.Serializer):
     """
     Read-only nested serializer for company data visible to Partner/Bank.
-    Includes passport, founders, and bank accounts info.
+    Includes passport, founders, leadership, activities, licenses, and bank accounts info.
+    
+    Extended in Phase 2 to expose all fields needed for Admin/Agent interfaces.
     """
     id = serializers.IntegerField(read_only=True)
     inn = serializers.CharField(read_only=True)
@@ -98,22 +100,66 @@ class CompanyDataForPartnerSerializer(serializers.Serializer):
     short_name = serializers.CharField(read_only=True)
     legal_address = serializers.CharField(read_only=True)
     actual_address = serializers.CharField(read_only=True)
+    
+    # Director basic info
     director_name = serializers.CharField(read_only=True)
     director_position = serializers.CharField(read_only=True)
-    # Passport fields (critical for bank decisions)
+    
+    # Extended Director info (Phase 2)
+    director_birth_date = serializers.DateField(read_only=True, allow_null=True)
+    director_birth_place = serializers.CharField(read_only=True, allow_null=True)
+    director_email = serializers.EmailField(read_only=True, allow_null=True)
+    director_phone = serializers.CharField(read_only=True, allow_null=True)
+    director_registration_address = serializers.CharField(read_only=True, allow_null=True)
+    
+    # Director Passport fields (critical for bank decisions)
     passport_series = serializers.CharField(read_only=True, allow_null=True)
     passport_number = serializers.CharField(read_only=True, allow_null=True)
     passport_issued_by = serializers.CharField(read_only=True, allow_null=True)
     passport_date = serializers.DateField(read_only=True, allow_null=True)
     passport_code = serializers.CharField(read_only=True, allow_null=True)
+    
     # Founders and bank accounts (JSONFields)
     founders_data = serializers.JSONField(read_only=True)
     bank_accounts_data = serializers.JSONField(read_only=True)
+    
+    # Additional JSONFields (Phase 2 - full company data exposure)
+    legal_founders_data = serializers.JSONField(read_only=True, default=list)
+    leadership_data = serializers.JSONField(read_only=True, default=list)
+    activities_data = serializers.JSONField(read_only=True, default=list)
+    licenses_data = serializers.JSONField(read_only=True, default=list)
+    etp_accounts_data = serializers.JSONField(read_only=True, default=list)
+    contact_persons_data = serializers.JSONField(read_only=True, default=list)
+    
+    # Tax and Signatory settings
+    signatory_basis = serializers.CharField(read_only=True, allow_null=True)
+    tax_system = serializers.CharField(read_only=True, allow_null=True)
+    vat_rate = serializers.CharField(read_only=True, allow_null=True)
+    
+    # Registration and Capital info
+    registration_date = serializers.DateField(read_only=True, allow_null=True)
+    authorized_capital_declared = serializers.DecimalField(
+        read_only=True, max_digits=15, decimal_places=2, allow_null=True
+    )
+    authorized_capital_paid = serializers.DecimalField(
+        read_only=True, max_digits=15, decimal_places=2, allow_null=True
+    )
+    employee_count = serializers.IntegerField(read_only=True, allow_null=True)
+    website = serializers.URLField(read_only=True, allow_null=True)
+    
+    # MCHD (Machine-Readable Power of Attorney)
+    is_mchd = serializers.BooleanField(read_only=True, default=False)
+    mchd_number = serializers.CharField(read_only=True, allow_null=True)
+    mchd_issue_date = serializers.DateField(read_only=True, allow_null=True)
+    mchd_expiry_date = serializers.DateField(read_only=True, allow_null=True)
+    mchd_principal_inn = serializers.CharField(read_only=True, allow_null=True)
+    
     # Bank details
     bank_name = serializers.CharField(read_only=True)
     bank_bic = serializers.CharField(read_only=True)
     bank_account = serializers.CharField(read_only=True)
     bank_corr_account = serializers.CharField(read_only=True)
+    
     # Contact
     contact_person = serializers.CharField(read_only=True)
     contact_phone = serializers.CharField(read_only=True)
@@ -146,13 +192,16 @@ class ApplicationSerializer(serializers.ModelSerializer):
     """
     Full serializer for Application.
     Includes nested company_data for Partner/Bank to see full client info.
+    
+    Phase 2: company_data uses full_client_data snapshot if available (immutable),
+    otherwise falls back to live company profile (editable).
     """
     created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
     created_by_name = serializers.SerializerMethodField()
     company_name = serializers.CharField(source='company.name', read_only=True)
     company_inn = serializers.CharField(source='company.inn', read_only=True)
-    # Nested company data for Partner/Bank view
-    company_data = CompanyDataForPartnerSerializer(source='company', read_only=True)
+    # Nested company data - uses full_client_data snapshot or live company profile
+    company_data = serializers.SerializerMethodField()
     partner_email = serializers.EmailField(source='assigned_partner.email', read_only=True, allow_null=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     product_type_display = serializers.CharField(source='get_product_type_display', read_only=True)
@@ -262,6 +311,24 @@ class ApplicationSerializer(serializers.ModelSerializer):
             last = obj.created_by.last_name or ''
             full_name = f"{first} {last}".strip()
             return full_name if full_name else obj.created_by.email
+        return None
+    
+    def get_company_data(self, obj):
+        """
+        Get company data - uses full_client_data snapshot if available (immutable),
+        otherwise falls back to live company profile data.
+        
+        This ensures that after an application is sent to bank, the company data
+        shown is the data that was actually sent, not current profile data.
+        """
+        # If we have a saved snapshot from when the application was sent, use it
+        if obj.full_client_data and isinstance(obj.full_client_data, dict) and obj.full_client_data.get('inn'):
+            return obj.full_client_data
+        
+        # Otherwise, serialize the live company profile
+        if obj.company:
+            return CompanyDataForPartnerSerializer(obj.company).data
+        
         return None
 
     def get_status_id_display(self, obj):
