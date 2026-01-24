@@ -68,6 +68,8 @@ const FACTORING_TYPES = ["Классический факторинг", "Зак�
 // Insurance categories and products per ТЗ + employer requirements
 // Backend enum values with Russian labels
 const INSURANCE_CATEGORIES_BACKEND: { value: string; label: string }[] = [
+    { value: "smr", label: "Строительно-монтажные риски" },
+    { value: "contract", label: "Контракта" },
     { value: "personnel", label: "Персонал" },
     { value: "transport", label: "Транспорт" },
     { value: "property", label: "Имущество" },
@@ -86,6 +88,15 @@ const INSURANCE_COMPANIES = [
 ]
 // Backend enum values with Russian labels for insurance products
 const INSURANCE_PRODUCTS_BACKEND: Record<string, { value: string; label: string }[]> = {
+    smr: [
+        { value: "smr_full", label: "СМР полный пакет" },
+        { value: "smr_basic", label: "СМР базовый" },
+        { value: "smr_risks", label: "Страхование строительных рисков" },
+    ],
+    contract: [
+        { value: "contract_execution", label: "Страхование исполнения контракта" },
+        { value: "contract_liability", label: "Страхование ответственности по контракту" },
+    ],
     personnel: [
         { value: "dms", label: "Добровольное медицинское страхование (ДМС)" },
         { value: "critical_illness", label: "Страхование критических заболеваний" },
@@ -122,24 +133,37 @@ const INSURANCE_PRODUCTS: Record<string, string[]> = {
 }
 // Mapping from Russian labels to backend values
 const INSURANCE_CATEGORY_TO_BACKEND: Record<string, string> = {
+    "Строительно-монтажные риски": "smr",
+    "Контракта": "contract",
     "Персонал": "personnel",
     "Транспорт": "transport",
     "Имущество": "property",
     "Ответственность": "liability",
 }
 const INSURANCE_PRODUCT_TO_BACKEND: Record<string, string> = {
+    // SMR
+    "СМР полный пакет": "smr_full",
+    "СМР базовый": "smr_basic",
+    "Страхование строительных рисков": "smr_risks",
+    // Contract
+    "Страхование исполнения контракта": "contract_execution",
+    "Страхование ответственности по контракту": "contract_liability",
+    // Personnel
     "ДМС": "dms",
     "Страхование критических заболеваний": "critical_illness",
     "Страхование несчастных случаев": "accident",
     "Комплексное страхование в поездках": "travel",
+    // Transport
     "ОСАГО юридических лиц": "osago",
     "Комплексное страхование автопарков": "fleet",
     "Страхование специальной техники": "special_tech",
     "Страхование ответственности перевозчика": "carrier_liability",
+    // Property
     "Страхование объектов строительства": "construction",
     "Страхование грузов и перевозок": "cargo",
     "Страхование имущества компаний": "company_property",
     "Страхование перерывов деятельности": "business_interruption",
+    // Liability
     "Страхование гражданской ответственности": "civil_liability",
     "Страхование опасных объектов": "hazardous_objects",
     "Страхование профессиональных рисков": "professional_risks",

@@ -55,6 +55,46 @@ import { ApplicationChat } from "./application-chat"
 import { AdditionalDocumentsModal } from "./additional-documents-modal"
 import { SubmissionSuccess, useSubmissionSuccess } from "@/components/ui/submission-success"
 
+// Insurance category and product display labels
+const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
+    smr: "Строительно-монтажные риски",
+    contract: "Контракта",
+    personnel: "Персонал",
+    transport: "Транспорт",
+    property: "Имущество",
+    liability: "Ответственность",
+}
+
+const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
+    // SMR
+    smr_full: "СМР полный пакет",
+    smr_basic: "СМР базовый",
+    smr_risks: "Страхование строительных рисков",
+    // Contract
+    contract_execution: "Страхование исполнения контракта",
+    contract_liability: "Страхование ответственности по контракту",
+    // Personnel
+    dms: "Добровольное медицинское страхование (ДМС)",
+    critical_illness: "Страхование критических заболеваний",
+    accident: "Страхование несчастных случаев",
+    travel: "Комплексное страхование в поездках",
+    // Transport
+    osago: "ОСАГО юридических лиц",
+    fleet: "Комплексное страхование автопарков",
+    special_tech: "Страхование специальной техники",
+    carrier_liability: "Страхование ответственности перевозчика",
+    // Property
+    construction: "Страхование объектов строительства",
+    cargo: "Страхование грузов и перевозок",
+    company_property: "Страхование имущества компаний",
+    business_interruption: "Страхование перерывов деятельности",
+    // Liability
+    civil_liability: "Страхование гражданской ответственности",
+    hazardous_objects: "Страхование опасных объектов",
+    professional_risks: "Страхование профессиональных рисков",
+    quality_liability: "Страхование ответственности за качество",
+}
+
 interface ApplicationDetailViewProps {
     applicationId: string | number
     onBack?: () => void
@@ -1214,41 +1254,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         {application.insurance_category && (
                                             <ProductInfoItem
                                                 label="Вид страхования"
-                                                value={
-                                                    application.insurance_category === 'personnel' ? 'Персонал' :
-                                                        application.insurance_category === 'transport' ? 'Транспорт' :
-                                                            application.insurance_category === 'property' ? 'Имущество' :
-                                                                application.insurance_category === 'liability' ? 'Ответственность' :
-                                                                    application.insurance_category
-                                                }
+                                                value={INSURANCE_CATEGORY_LABELS[application.insurance_category] || application.insurance_category}
                                             />
                                         )}
                                         {application.insurance_product_type && (
                                             <ProductInfoItem
                                                 label="Страховой продукт"
-                                                value={
-                                                    // Personnel
-                                                    application.insurance_product_type === 'dms' ? 'Добровольное медицинское страхование (ДМС)' :
-                                                        application.insurance_product_type === 'critical_illness' ? 'Страхование критических заболеваний' :
-                                                            application.insurance_product_type === 'accidents' ? 'Страхование несчастных случаев' :
-                                                                application.insurance_product_type === 'travel' ? 'Комплексное страхование в поездках' :
-                                                                    // Transport
-                                                                    application.insurance_product_type === 'osago' ? 'ОСАГО юридических лиц' :
-                                                                        application.insurance_product_type === 'fleet' ? 'Комплексное страхование автопарков' :
-                                                                            application.insurance_product_type === 'special_equipment' ? 'Страхование специальной техники' :
-                                                                                application.insurance_product_type === 'carrier_liability' ? 'Страхование ответственности перевозчика' :
-                                                                                    // Property
-                                                                                    application.insurance_product_type === 'construction' ? 'Страхование объектов строительства' :
-                                                                                        application.insurance_product_type === 'cargo' ? 'Страхование грузов и перевозок' :
-                                                                                            application.insurance_product_type === 'company_property' ? 'Страхование имущества компаний' :
-                                                                                                application.insurance_product_type === 'business_interruption' ? 'Страхование перерывов деятельности' :
-                                                                                                    // Liability
-                                                                                                    application.insurance_product_type === 'civil' ? 'Страхование гражданской ответственности' :
-                                                                                                        application.insurance_product_type === 'hazardous' ? 'Страхование опасных объектов' :
-                                                                                                            application.insurance_product_type === 'professional' ? 'Страхование профессиональных рисков' :
-                                                                                                                application.insurance_product_type === 'quality' ? 'Страхование ответственности за качество' :
-                                                                                                                    application.insurance_product_type
-                                                }
+                                                value={INSURANCE_PRODUCT_LABELS[application.insurance_product_type] || application.insurance_product_type}
                                             />
                                         )}
                                     </div>

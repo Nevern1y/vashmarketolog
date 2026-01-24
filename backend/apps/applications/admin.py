@@ -34,6 +34,7 @@ class ApplicationAdmin(admin.ModelAdmin):
     list_display = [
         'id',
         'product_type',
+        'insurance_category',
         'amount',
         'status',
         'status_id',
@@ -42,7 +43,7 @@ class ApplicationAdmin(admin.ModelAdmin):
         'assigned_partner',
         'created_at',
     ]
-    list_filter = ['product_type', 'status', 'created_at']
+    list_filter = ['product_type', 'insurance_category', 'status', 'created_at']
     search_fields = ['company__name', 'company__inn', 'created_by__email']
     readonly_fields = ['created_at', 'updated_at', 'submitted_at']
     filter_horizontal = ['documents']
@@ -54,6 +55,11 @@ class ApplicationAdmin(admin.ModelAdmin):
         }),
         ('Компания', {
             'fields': ('company', 'created_by')
+        }),
+        ('Страхование', {
+            'fields': ('insurance_category', 'insurance_product_type'),
+            'classes': ('collapse',),
+            'description': 'Только для заявок на страхование'
         }),
         ('Тендер', {
             'fields': ('tender_number', 'tender_platform', 'tender_deadline'),

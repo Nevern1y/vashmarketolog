@@ -108,10 +108,42 @@ const FACTORING_TYPE_LABELS: Record<string, string> = {
 }
 
 const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
+    smr: "Строительно-монтажные риски",
+    contract: "Контракта",
     personnel: "Персонал",
     transport: "Транспорт",
     property: "Имущество",
     liability: "Ответственность",
+}
+
+const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
+    // SMR
+    smr_full: "СМР полный пакет",
+    smr_basic: "СМР базовый",
+    smr_risks: "Страхование строительных рисков",
+    // Contract
+    contract_execution: "Страхование исполнения контракта",
+    contract_liability: "Страхование ответственности по контракту",
+    // Personnel
+    dms: "ДМС",
+    critical_illness: "Критические заболевания",
+    accident: "Несчастные случаи",
+    travel: "Страхование в поездках",
+    // Transport
+    osago: "ОСАГО юр. лиц",
+    fleet: "Страхование автопарков",
+    special_tech: "Спецтехника",
+    carrier_liability: "Ответственность перевозчика",
+    // Property
+    construction: "Объекты строительства",
+    cargo: "Грузы и перевозки",
+    company_property: "Имущество компаний",
+    business_interruption: "Перерывы деятельности",
+    // Liability
+    civil_liability: "Гражданская ответственность",
+    hazardous_objects: "Опасные объекты",
+    professional_risks: "Профессиональные риски",
+    quality_liability: "Ответственность за качество",
 }
 
 const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
@@ -335,7 +367,7 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
             {application.product_type === "insurance" && (
                 <DataSection title="Параметры страхования" icon={Shield}>
                     <DataField label="Категория" value={application.insurance_category ? INSURANCE_CATEGORY_LABELS[application.insurance_category] || application.insurance_category : null} />
-                    <DataField label="Продукт" value={application.insurance_product_type} />
+                    <DataField label="Продукт" value={application.insurance_product_type ? INSURANCE_PRODUCT_LABELS[application.insurance_product_type] || application.insurance_product_type : null} />
                 </DataSection>
             )}
 

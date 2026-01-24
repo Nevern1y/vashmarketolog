@@ -26,6 +26,8 @@ class ProductType(models.TextChoices):
 
 class InsuranceCategory(models.TextChoices):
     """Insurance categories per ТЗ Страхование."""
+    SMR = 'smr', 'Строительно-монтажные риски'
+    CONTRACT = 'contract', 'Контракта'
     PERSONNEL = 'personnel', 'Персонал'
     TRANSPORT = 'transport', 'Транспорт'
     PROPERTY = 'property', 'Имущество'
@@ -34,6 +36,13 @@ class InsuranceCategory(models.TextChoices):
 
 class InsuranceProductType(models.TextChoices):
     """Insurance product subtypes per ТЗ."""
+    # SMR (Строительно-монтажные риски)
+    SMR_FULL = 'smr_full', 'СМР полный пакет'
+    SMR_BASIC = 'smr_basic', 'СМР базовый'
+    SMR_RISKS = 'smr_risks', 'Страхование строительных рисков'
+    # Contract (Контракта)
+    CONTRACT_EXECUTION = 'contract_execution', 'Страхование исполнения контракта'
+    CONTRACT_LIABILITY = 'contract_liability', 'Страхование ответственности по контракту'
     # Personnel
     DMS = 'dms', 'Добровольное медицинское страхование (ДМС)'
     CRITICAL_ILLNESS = 'critical_illness', 'Страхование критических заболеваний'

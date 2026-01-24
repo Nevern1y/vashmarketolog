@@ -139,6 +139,8 @@ const CONTRACT_TYPE_LABELS: Record<string, string> = {
 }
 
 const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
+    smr: "Строительно-монтажные риски",
+    contract: "Контракта",
     personnel: "Персонал",
     transport: "Транспорт",
     property: "Имущество",
@@ -146,18 +148,29 @@ const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
 }
 
 const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
+    // SMR
+    smr_full: "СМР полный пакет",
+    smr_basic: "СМР базовый",
+    smr_risks: "Страхование строительных рисков",
+    // Contract
+    contract_execution: "Страхование исполнения контракта",
+    contract_liability: "Страхование ответственности по контракту",
+    // Personnel
     dms: "ДМС",
     critical_illness: "Критические заболевания",
     accident: "Несчастные случаи",
     travel: "Страхование в поездках",
+    // Transport
     osago: "ОСАГО юр. лиц",
     fleet: "Страхование автопарков",
     special_tech: "Спецтехника",
     carrier_liability: "Ответственность перевозчика",
+    // Property
     construction: "Объекты строительства",
     cargo: "Грузы и перевозки",
     company_property: "Имущество компаний",
     business_interruption: "Перерывы деятельности",
+    // Liability
     civil_liability: "Гражданская ответственность",
     hazardous_objects: "Опасные объекты",
     professional_risks: "Профессиональные риски",

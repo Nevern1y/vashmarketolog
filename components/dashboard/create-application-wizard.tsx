@@ -1968,7 +1968,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                           <SelectContent>
                             <SelectItem value="dms">Добровольное медицинское страхование (ДМС)</SelectItem>
                             <SelectItem value="critical_illness">Страхование критических заболеваний</SelectItem>
-                            <SelectItem value="accidents">Страхование несчастных случаев</SelectItem>
+                            <SelectItem value="accident">Страхование несчастных случаев</SelectItem>
                             <SelectItem value="travel">Комплексное страхование в поездках</SelectItem>
                           </SelectContent>
                         </Select>
@@ -2016,7 +2016,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                           <SelectContent>
                             <SelectItem value="osago">ОСАГО юридических лиц</SelectItem>
                             <SelectItem value="fleet">Комплексное страхование автопарков</SelectItem>
-                            <SelectItem value="special_equipment">Страхование специальной техники</SelectItem>
+                            <SelectItem value="special_tech">Страхование специальной техники</SelectItem>
                             <SelectItem value="carrier_liability">Страхование ответственности перевозчика</SelectItem>
                           </SelectContent>
                         </Select>
@@ -2048,10 +2048,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                             <SelectValue placeholder="Выберите продукт" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="civil">Страхование гражданской ответственности</SelectItem>
-                            <SelectItem value="hazardous">Страхование опасных объектов</SelectItem>
-                            <SelectItem value="professional">Страхование профессиональных рисков</SelectItem>
-                            <SelectItem value="quality">Страхование ответственности за качество</SelectItem>
+                            <SelectItem value="civil_liability">Страхование гражданской ответственности</SelectItem>
+                            <SelectItem value="hazardous_objects">Страхование опасных объектов</SelectItem>
+                            <SelectItem value="professional_risks">Страхование профессиональных рисков</SelectItem>
+                            <SelectItem value="quality_liability">Страхование ответственности за качество</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
