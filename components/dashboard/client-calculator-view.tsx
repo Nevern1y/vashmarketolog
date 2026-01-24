@@ -64,6 +64,20 @@ const LEASING_TYPES = [
 
 const FACTORING_TYPES = ["Классический факторинг", "Закрытый факторинг", "Закупочный факторинг"]
 
+// Mapping factoring types to backend enum codes
+const FACTORING_TYPE_MAPPING: Record<string, string> = {
+    "Классический факторинг": "classic",
+    "Закрытый факторинг": "closed",
+    "Закупочный факторинг": "procurement"
+}
+
+// Mapping credit types to backend enum codes (new CreditSubType)
+const CREDIT_TYPE_MAPPING: Record<string, string> = {
+    "Экспресс-кредит": "express",
+    "Кредит на пополнение оборотных средств": "working_capital",
+    "Корпоративный кредит": "corporate"
+}
+
 // Insurance categories and products per ТЗ + employer requirements
 // Backend enum values with Russian labels
 const INSURANCE_CATEGORIES_BACKEND: { value: string; label: string }[] = [
@@ -709,11 +723,13 @@ export function ClientCalculatorView() {
         }
 
         // Map federal law to backend TenderLaw enum values
-        // Backend choices: 44_fz, 223_fz, 615_pp, 185_fz, kbg, commercial
+        // Backend choices: 44_fz, 223_fz, 615_pp, 185_fz, 275_fz, kbg, commercial
         const lawMapping: Record<string, string> = {
             "44": "44_fz",
             "223": "223_fz",
             "615": "615_pp",
+            "185": "185_fz",
+            "275": "275_fz",
             "kbg": "kbg"
         }
 
@@ -774,7 +790,8 @@ export function ClientCalculatorView() {
 
             if (showResults === "express") {
                 return {
-                    credit_type: creditType || undefined,
+                    // Use mapping to convert Russian label to backend code
+                    credit_sub_type: CREDIT_TYPE_MAPPING[creditType] || creditType || undefined,
                     credit_start_date: dateFrom || undefined,
                     credit_end_date: dateTo || undefined,
                 }
@@ -783,7 +800,8 @@ export function ClientCalculatorView() {
             if (showResults === "factoring") {
                 return {
                     ...baseData,
-                    factoring_type: factoringType || undefined,
+                    // Use mapping to convert Russian label to backend code
+                    factoring_type: FACTORING_TYPE_MAPPING[factoringType] || factoringType || undefined,
                     financing_amount: financingAmount?.toString() || undefined,
                     financing_date: financingDate || undefined,
                     contract_type: contractType || undefined,
@@ -898,6 +916,12 @@ export function ClientCalculatorView() {
                     guarantee_type: showResults === "bg" ? bgType : undefined,
                     tender_law: lawMapping[federalLaw],
                     calculation_session: sessionId || undefined,  // Link to root application
+                    // Product-specific fields in root (not just goscontract_data)
+                    factoring_type: showResults === "factoring" ? (FACTORING_TYPE_MAPPING[factoringType] || undefined) : undefined,
+                    credit_sub_type: showResults === "express" ? (CREDIT_TYPE_MAPPING[creditType] || undefined) : undefined,
+                    insurance_category: showResults === "insurance" ? (INSURANCE_CATEGORY_TO_BACKEND[insuranceCategory] || undefined) : undefined,
+                    insurance_product_type: showResults === "insurance" ? (INSURANCE_PRODUCT_TO_BACKEND[insuranceProduct] || undefined) : undefined,
+                    contractor_inn: showResults === "factoring" ? (customerInn || undefined) : undefined,
                 }
 
                 const result = await createApplication(payload as Parameters<typeof createApplication>[0])
@@ -1611,7 +1635,7 @@ export function ClientCalculatorView() {
                             <div className="space-y-3">
                                 <Label className="text-sm font-medium">Федеральный закон *</Label>
                                 <div className="flex flex-wrap gap-3">
-                                    {[["44", "44-ФЗ"], ["223", "223-ФЗ"], ["615", "615 ПП"]].map(([val, label]) => (
+                                    {[["44", "44-ФЗ"], ["223", "223-ФЗ"], ["615", "615 ПП"], ["185", "185-ФЗ"], ["275", "275-ФЗ"], ["kbg", "КБГ"]].map(([val, label]) => (
                                         <button
                                             key={val}
                                             type="button"
@@ -1748,7 +1772,7 @@ export function ClientCalculatorView() {
                                     <Label className="text-base font-semibold text-white">Федеральный закон</Label>
                                 </div>
                                 <div className="flex flex-wrap gap-3">
-                                    {[["44", "44-ФЗ"], ["223", "223-ФЗ"], ["615", "615-ПП"], ["kbg", "КБГ"], ["275", "275-ФЗ"]].map(([val, label]) => (
+                                    {[["44", "44-ФЗ"], ["223", "223-ФЗ"], ["615", "615-ПП"], ["185", "185-ФЗ"], ["kbg", "КБГ"], ["275", "275-ФЗ"]].map(([val, label]) => (
                                         <button
                                             key={val}
                                             type="button"

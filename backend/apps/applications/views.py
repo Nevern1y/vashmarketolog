@@ -911,7 +911,7 @@ class LeadViewSet(viewsets.ModelViewSet):
     - DELETE /api/admin/leads/{id}/ - delete lead
     - POST /api/admin/leads/{id}/convert/ - convert lead to application
     """
-    queryset = Lead.objects.all()
+    queryset = Lead.objects.select_related('assigned_to').all()
     permission_classes = [IsAuthenticated, IsAdmin]
     
     def get_serializer_class(self):

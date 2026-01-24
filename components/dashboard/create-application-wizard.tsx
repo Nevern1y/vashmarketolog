@@ -99,13 +99,13 @@ const INSURANCE_COMPANIES = [
 // Target banks for routing - REMOVED: bank selection moved to Step 3 (MOCK_BANK_OFFERS)
 
 // Guarantee types (ТЗ requirements - must match backend GuaranteeType enum)
+// NOTE: customs_guarantee removed per Calculator alignment (2026-01)
 const guaranteeTypes = [
   { id: "application_security", label: "На участие (обеспечение заявки)" },
   { id: "contract_execution", label: "На обеспечение исполнения контракта" },
   { id: "advance_return", label: "На возврат аванса" },
   { id: "warranty_obligations", label: "На гарантийный период (гарантийные обязательства)" },
   { id: "payment_guarantee", label: "На гарантию оплаты товара" },
-  { id: "customs_guarantee", label: "Таможенные гарантии" },
   { id: "vat_refund", label: "На возвращение НДС" },
 ]
 
@@ -115,17 +115,25 @@ const tenderLaws = [
   { id: "223_fz", label: "223-ФЗ" },
   { id: "615_pp", label: "615-ПП" },
   { id: "185_fz", label: "185-ФЗ" },
+  { id: "275_fz", label: "275-ФЗ" },
   { id: "kbg", label: "КБГ (Коммерческая)" },
   { id: "commercial", label: "Коммерческий" },
 ]
 
-// Credit sub-types for corporate_credit (ТЗ section 3)
+// Credit sub-types for corporate_credit (aligned with Calculator - 2026-01)
 // Values must match backend CreditSubType enum
 const creditSubTypes = [
-  { id: "one_time_credit", label: "Разовый кредит" },
-  { id: "non_revolving_line", label: "Невозобновляемая КЛ" },
-  { id: "revolving_line", label: "Возобновляемая КЛ" },
-  { id: "overdraft", label: "Овердрафт" },
+  { id: "express", label: "Экспресс-кредит" },
+  { id: "working_capital", label: "Кредит на пополнение оборотных средств" },
+  { id: "corporate", label: "Корпоративный кредит" },
+]
+
+// Leasing types (aligned with Calculator - 2026-01)
+const leasingTypes = [
+  { id: "equipment", label: "Оборудование" },
+  { id: "special_tech", label: "Спецтехника" },
+  { id: "vehicles", label: "Автотранспорт" },
+  { id: "other", label: "Другое" },
 ]
 
 // Import document types from shared module (Appendix B numeric IDs)
@@ -612,7 +620,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     }
 
     if (normalizedProduct === "leasing") {
-      if (!equipmentType || equipmentType.trim().length < 2) missingFields.push("Предмет лизинга")
+      if (!equipmentType) missingFields.push("Предмет лизинга")
     }
 
     if (normalizedProduct === "insurance") {
@@ -1895,14 +1903,20 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
                     </h3>
                     <div className="space-y-2">
                       <Label>Предмет лизинга *</Label>
-                      <Input
-                        type="text"
-                        placeholder="Например: Грузовой автомобиль, Производственное оборудование"
-                        value={equipmentType}
-                        onChange={(e) => setEquipmentType(e.target.value)}
-                      />
+                      <Select value={equipmentType} onValueChange={setEquipmentType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите тип имущества" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {leasingTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <p className="text-xs text-muted-foreground">
-                        Укажите тип имущества, которое планируете взять в лизинг
+                        Выберите тип имущества для лизинга
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">

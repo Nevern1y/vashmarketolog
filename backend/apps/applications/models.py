@@ -103,16 +103,23 @@ class TenderLaw(models.TextChoices):
     FZ_223 = '223_fz', '223-ФЗ'
     PP_615 = '615_pp', '615-ПП'
     FZ_185 = '185_fz', '185-ФЗ'
+    FZ_275 = '275_fz', '275-ФЗ'
     KBG = 'kbg', 'КБГ (Коммерческая)'
     COMMERCIAL = 'commercial', 'Коммерческий'
 
 
 class CreditSubType(models.TextChoices):
-    """Corporate credit sub-types."""
-    ONE_TIME_CREDIT = 'one_time_credit', 'Разовый кредит'
-    NON_REVOLVING_LINE = 'non_revolving_line', 'Невозобновляемая КЛ'
-    REVOLVING_LINE = 'revolving_line', 'Возобновляемая КЛ'
-    OVERDRAFT = 'overdraft', 'Овердрафт'
+    """Corporate credit sub-types per Calculator (эталон).
+    
+    Previous values (deprecated):
+    - one_time_credit, non_revolving_line, revolving_line, overdraft
+    
+    New values aligned with Calculator:
+    - express, working_capital, corporate
+    """
+    EXPRESS = 'express', 'Экспресс-кредит'
+    WORKING_CAPITAL = 'working_capital', 'Кредит на пополнение оборотных средств'
+    CORPORATE = 'corporate', 'Корпоративный кредит'
 
 
 class ApplicationStatus(models.TextChoices):
