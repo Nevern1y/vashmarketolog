@@ -146,13 +146,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         
+        # Base select_related for optimized queries (avoid N+1)
+        base_select = ['company', 'created_by', 'assigned_partner']
+        
         # Admin sees all
         if user.role == 'admin' or user.is_superuser:
-            return Application.objects.all()
+            return Application.objects.select_related(*base_select).all()
         
         # Partner sees only assigned
         if user.role == 'partner':
-            return Application.objects.filter(assigned_partner=user)
+            return Application.objects.select_related(*base_select).filter(assigned_partner=user)
         
         # Client/Agent base query: their own applications
         base_query = Q(created_by=user) | Q(company__owner=user)
@@ -189,7 +192,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 if crm_companies_with_same_inn:
                     base_query = base_query | Q(company_id__in=crm_companies_with_same_inn)
         
-        return Application.objects.filter(base_query).distinct()
+        return Application.objects.filter(base_query).select_related(*base_select).distinct()
 
     def get_serializer_class(self):
         if self.action == 'create':

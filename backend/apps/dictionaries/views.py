@@ -51,25 +51,30 @@ class DocumentTypeDictionaryViewSet(viewsets.ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
+    @method_decorator(cache_page(3600))  # Cache for 1 hour (same as list)
     @action(detail=False, methods=['get'])
     def by_product(self, request):
         """
         Get document types grouped by product.
         GET /dictionaries/document-types/by_product/
-        """
-        result = {}
-        products = DocumentTypeDefinition.objects.filter(
-            is_active=True
-        ).values_list('product_type', flat=True).distinct()
         
-        for product in products:
-            types = DocumentTypeDefinition.objects.filter(
-                product_type=product,
-                is_active=True
-            ).order_by('document_type_id')
-            result[product] = DocumentTypeDefinitionSerializer(types, many=True).data
+        Optimized: single query instead of N+1 loop.
+        """
+        from collections import defaultdict
+        
+        result = defaultdict(list)
+        
+        # Single query fetching all active types
+        all_types = DocumentTypeDefinition.objects.filter(
+            is_active=True
+        ).order_by('product_type', 'document_type_id')
+        
+        for doc_type in all_types:
+            result[doc_type.product_type].append(
+                DocumentTypeDefinitionSerializer(doc_type).data
+            )
             
-        return Response(result)
+        return Response(dict(result))
 
 
 class StatusDictionaryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -102,25 +107,30 @@ class StatusDictionaryViewSet(viewsets.ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     
+    @method_decorator(cache_page(3600))  # Cache for 1 hour (same as list)
     @action(detail=False, methods=['get'])
     def by_product(self, request):
         """
         Get statuses grouped by product.
         GET /dictionaries/statuses/by_product/
-        """
-        result = {}
-        products = ApplicationStatusDefinition.objects.filter(
-            is_active=True
-        ).values_list('product_type', flat=True).distinct()
         
-        for product in products:
-            statuses = ApplicationStatusDefinition.objects.filter(
-                product_type=product,
-                is_active=True
-            ).order_by('order', 'status_id')
-            result[product] = ApplicationStatusDefinitionSerializer(statuses, many=True).data
+        Optimized: single query instead of N+1 loop.
+        """
+        from collections import defaultdict
+        
+        result = defaultdict(list)
+        
+        # Single query fetching all active statuses
+        all_statuses = ApplicationStatusDefinition.objects.filter(
+            is_active=True
+        ).order_by('product_type', 'order', 'status_id')
+        
+        for status in all_statuses:
+            result[status.product_type].append(
+                ApplicationStatusDefinitionSerializer(status).data
+            )
             
-        return Response(result)
+        return Response(dict(result))
     
     @action(detail=False, methods=['get'])
     def funnel(self, request):

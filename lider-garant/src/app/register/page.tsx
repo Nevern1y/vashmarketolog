@@ -2,7 +2,9 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import LottieHero from "@/components/LottieHero";
 import {
   Form,
@@ -28,6 +30,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +47,10 @@ export default function RegisterPage() {
     try {
       const result = await registerApi(values as RegisterData);
       if (result.success) {
-        console.log("Registration successful:", result);
-        // TODO: Redirect to login or dashboard
+        toast.success("Регистрация успешна!", { 
+          description: "Войдите в систему для продолжения" 
+        });
+        router.push("/login");
       } else {
         setError(result.message || "Ошибка регистрации");
       }

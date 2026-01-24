@@ -44,7 +44,8 @@ class MessageViewSet(viewsets.ModelViewSet):
         
         # Filter by application if provided
         application_id = self.request.query_params.get('application_id')
-        queryset = ApplicationMessage.objects.all()
+        # Optimize: select_related('sender') to avoid N+1 queries on sender.email
+        queryset = ApplicationMessage.objects.select_related('sender').all()
         
         if application_id:
             queryset = queryset.filter(application_id=application_id)

@@ -182,7 +182,10 @@ class ApplicationChatConsumer(AsyncWebsocketConsumer):
         from apps.applications.models import Application
         
         try:
-            application = Application.objects.get(id=self.application_id)
+            # Optimized: fetch all related objects in one query to avoid N+1
+            application = Application.objects.select_related(
+                'company', 'company__owner', 'assigned_partner', 'created_by'
+            ).get(id=self.application_id)
         except Application.DoesNotExist:
             return False
         
@@ -192,10 +195,13 @@ class ApplicationChatConsumer(AsyncWebsocketConsumer):
         
         # Partner must be assigned
         if self.user.role == 'partner':
-            return application.assigned_partner == self.user
+            return application.assigned_partner_id == self.user.id
         
         # Client/Agent must own the application
-        return application.created_by == self.user or application.company.owner == self.user
+        return (
+            application.created_by_id == self.user.id or 
+            (application.company and application.company.owner_id == self.user.id)
+        )
 
     @database_sync_to_async
     def save_message(self, text):

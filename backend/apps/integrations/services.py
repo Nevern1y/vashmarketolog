@@ -179,6 +179,8 @@ class BankIntegrationService:
         This is a utility method that returns a list of documents
         in the format expected by the bank API, using numeric IDs.
         
+        Optimized: Pre-fetches all DocumentTypeDefinition records to avoid N+1 queries.
+        
         Returns:
             List of dicts with document data:
             [
@@ -202,25 +204,33 @@ class BankIntegrationService:
         
         result = []
         product_type = application.product_type
+        documents = list(application.documents.all())
         
-        for doc in application.documents.all():
+        if not documents:
+            return result
+        
+        # Pre-fetch all document type definitions in ONE query to avoid N+1
+        type_ids = [getattr(doc, 'document_type_id', 0) or 0 for doc in documents]
+        definitions = {
+            (d.document_type_id, d.product_type): d.name
+            for d in DocumentTypeDefinition.objects.filter(
+                document_type_id__in=type_ids
+            )
+        }
+        
+        for doc in documents:
             # Get document type_id (default to 0 if not set)
             type_id = getattr(doc, 'document_type_id', 0) or 0
             doc_product_type = getattr(doc, 'product_type', '') or product_type
             
-            # Look up type name from reference table
-            type_name = ''
-            try:
-                type_def = DocumentTypeDefinition.objects.get(
-                    document_type_id=type_id,
-                    product_type=doc_product_type
+            # Look up type name from pre-fetched dictionary
+            type_name = definitions.get(
+                (type_id, doc_product_type),
+                definitions.get(
+                    (type_id, ''), 
+                    'Дополнительный документ' if type_id == 0 else f'Документ (ID: {type_id})'
                 )
-                type_name = type_def.name
-            except DocumentTypeDefinition.DoesNotExist:
-                if type_id == 0:
-                    type_name = 'Дополнительный документ'
-                else:
-                    type_name = f'Документ (ID: {type_id})'
+            )
             
             result.append({
                 'type_id': type_id,
