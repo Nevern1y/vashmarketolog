@@ -1358,6 +1358,19 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                                 <DataRow label="Дата выдачи" value={application.company_data.mchd_issue_date} />
                                                 <DataRow label="Действует до" value={application.company_data.mchd_expiry_date} />
                                                 <DataRow label="ИНН доверителя" value={application.company_data.mchd_principal_inn} mono />
+                                                {application.company_data.mchd_file && (
+                                                    <div className="mt-3 pt-3 border-t border-border/20">
+                                                        <a
+                                                            href={application.company_data.mchd_file}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 text-sm text-[#3CE8D1] hover:underline"
+                                                        >
+                                                            <Download className="h-4 w-4" />
+                                                            Скачать файл МЧД
+                                                        </a>
+                                                    </div>
+                                                )}
                                             </>
                                         )}
                                     </DataCard>

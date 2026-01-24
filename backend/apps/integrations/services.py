@@ -613,6 +613,7 @@ class BankIntegrationService:
             'mchd_issue_date': safe_date(company.mchd_issue_date),
             'mchd_expiry_date': safe_date(company.mchd_expiry_date),
             'mchd_principal_inn': company.mchd_principal_inn,
+            'mchd_file': company.mchd_file.url if company.mchd_file else None,
             
             # Bank details
             'bank_name': company.bank_name,

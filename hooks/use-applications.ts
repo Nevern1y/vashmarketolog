@@ -186,6 +186,7 @@ export interface CompanyDataForPartner {
     mchd_issue_date: string | null;
     mchd_expiry_date: string | null;
     mchd_principal_inn: string | null;
+    mchd_file: string | null;
     
     // Bank details
     bank_name: string;

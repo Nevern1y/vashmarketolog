@@ -153,6 +153,7 @@ class CompanyDataForPartnerSerializer(serializers.Serializer):
     mchd_issue_date = serializers.DateField(read_only=True, allow_null=True)
     mchd_expiry_date = serializers.DateField(read_only=True, allow_null=True)
     mchd_principal_inn = serializers.CharField(read_only=True, allow_null=True)
+    mchd_file = serializers.SerializerMethodField()
     
     # Bank details
     bank_name = serializers.CharField(read_only=True)
@@ -164,6 +165,22 @@ class CompanyDataForPartnerSerializer(serializers.Serializer):
     contact_person = serializers.CharField(read_only=True)
     contact_phone = serializers.CharField(read_only=True)
     contact_email = serializers.CharField(read_only=True)
+    
+    def get_mchd_file(self, obj):
+        """
+        Return absolute URL for MCHD file if it exists.
+        Handles both dict (from JSON snapshot) and CompanyProfile model instance.
+        """
+        if isinstance(obj, dict):
+            # From snapshot - already a URL string
+            return obj.get('mchd_file')
+        # Model instance
+        if hasattr(obj, 'mchd_file') and obj.mchd_file:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.mchd_file.url)
+            return obj.mchd_file.url
+        return None
 
 
 class ApplicationDocumentSerializer(serializers.Serializer):

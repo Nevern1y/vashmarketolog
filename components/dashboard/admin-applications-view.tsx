@@ -35,6 +35,7 @@ import {
 } from "lucide-react"
 import { useApplications, usePartnerActions, useApplication } from "@/hooks/use-applications"
 import { usePartners } from "@/hooks/use-partners"
+import { CompanyExtendedDataSections } from "@/components/dashboard/company-data-sections"
 import {
     Select,
     SelectContent,
@@ -313,6 +314,11 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
                     </>
                 )}
             </DataSection>
+
+            {/* Extended Company Data Sections (Founders, Leadership, Licenses, etc.) */}
+            {application.company_data && (
+                <CompanyExtendedDataSections companyData={application.company_data} />
+            )}
 
             {/* Tender Info Section */}
             {(application.tender_number || application.tender_platform || application.tender_deadline) && (
