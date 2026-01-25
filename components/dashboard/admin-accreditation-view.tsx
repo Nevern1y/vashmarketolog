@@ -255,13 +255,13 @@ export function AdminAccreditationView() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-12 gap-6 min-h-[700px]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:min-h-[700px]">
                 {/* Left Panel - Queue */}
-                <Card className="col-span-4 border-border flex flex-col">
+                <Card className="lg:col-span-4 border-border flex flex-col">
                     <CardHeader className="pb-3 border-b">
                         <CardTitle className="text-sm flex items-center gap-2"><Users className="h-4 w-4" />Очередь</CardTitle>
                         <div className="relative mt-2">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                             <Input placeholder="Поиск..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 h-9" />
                         </div>
                     </CardHeader>
@@ -293,7 +293,7 @@ export function AdminAccreditationView() {
                 </Card>
 
                 {/* Right Panel - Details */}
-                <Card className="col-span-8 border-border flex flex-col">
+                <Card className="lg:col-span-8 border-border flex flex-col">
                     {selected ? (
                         <>
                             <CardHeader className="pb-4 border-b">
@@ -322,7 +322,7 @@ export function AdminAccreditationView() {
                                         </div>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent className="pt-3 px-1">
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <Row label="Полное наименование" value={selected.company_name} />
                                             <Row label="Краткое наименование" value={selected.company_short_name} />
                                             <Row label="ИНН" value={selected.company_inn} highlight />
@@ -356,7 +356,7 @@ export function AdminAccreditationView() {
                                         </div>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent className="pt-3 px-1">
-                                        <div className="grid grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
                                             <Row label="ОКАТО" value={selected.okato} />
                                             <Row label="ОКТМО" value={selected.oktmo} />
                                             <Row label="ОКПО" value={selected.okpo} />
@@ -382,7 +382,7 @@ export function AdminAccreditationView() {
                                         </div>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent className="pt-3 px-1">
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <Row label="ФИО" value={selected.director_name} highlight />
                                             <Row label="Должность" value={selected.director_position} />
                                             <Row label="Дата рождения" value={formatDate(selected.director_birth_date)} />
@@ -392,7 +392,7 @@ export function AdminAccreditationView() {
                                         </div>
                                         <div className="mt-3 pt-3 border-t border-border/50">
                                             <h4 className="text-xs font-semibold text-muted-foreground mb-2">Паспортные данные (проверка на мошенничество)</h4>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <Row label="Серия и номер" value={selected.passport_series && selected.passport_number ? `${selected.passport_series} ${selected.passport_number}` : '—'} highlight />
                                                 <Row label="Дата выдачи" value={formatDate(selected.passport_date)} />
                                                 <Row label="Кем выдан" value={selected.passport_issued_by} span2 />
@@ -400,7 +400,7 @@ export function AdminAccreditationView() {
                                             </div>
                                         </div>
                                         <div className="mt-3 pt-3 border-t border-border/50">
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <Row label="Действует на основании" value={selected.signatory_basis === 'charter' ? 'Устава' : 'Доверенности'} />
                                                 <Row label="Система налогообложения" value={selected.tax_system?.toUpperCase() || '—'} />
                                                 <Row label="Ставка НДС" value={selected.vat_rate ? `${selected.vat_rate}%` : '—'} />
@@ -421,7 +421,7 @@ export function AdminAccreditationView() {
                                         </div>
                                     </CollapsibleTrigger>
                                     <CollapsibleContent className="pt-3 px-1">
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             <Row label="Наименование банка" value={selected.bank_name} span2 />
                                             <Row label="БИК" value={selected.bank_bik} highlight />
                                             <Row label="Р/с" value={selected.bank_account} highlight />
@@ -450,7 +450,7 @@ export function AdminAccreditationView() {
                                                             <span className="font-medium text-sm">{founder.full_name || `Учредитель ${idx + 1}`}</span>
                                                             {founder.share_relative && <Badge variant="outline">{founder.share_relative}%</Badge>}
                                                         </div>
-                                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                                                             <Row label="ИНН" value={founder.inn} small />
                                                             <Row label="Гражданство" value={founder.citizen} small />
                                                             <Row label="Дата рождения" value={founder.birth_date} small />
@@ -600,7 +600,7 @@ interface RowProps {
 function Row({ label, value, highlight, isLink, span2, small }: RowProps) {
     const content = value || '—'
     return (
-        <div className={cn("flex flex-col gap-0.5", span2 && "col-span-2", small && "text-xs")}>
+        <div className={cn("flex flex-col gap-0.5", span2 && "sm:col-span-2", small && "text-xs")}>
             <span className={cn("text-muted-foreground", small ? "text-xs" : "text-xs")}>{label}</span>
             {isLink && value ? (
 <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-[#4F7DF3] hover:underline text-sm break-all overflow-wrap-anywhere">{content}</a>

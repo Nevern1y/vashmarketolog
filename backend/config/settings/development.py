@@ -7,10 +7,10 @@ DEBUG = True
 
 # Frontend URL for invitation links
 FRONTEND_URL = 'http://localhost:3000'
-DEFAULT_FROM_EMAIL = 'noreply@lidergarant.ru'
+DEFAULT_FROM_EMAIL = 'info@lider-garant.ru'
 
-# Use console email backend for development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Use console email backend for development (can be overridden in .env)
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
 
 # Additional CORS origins for development
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development!

@@ -41,7 +41,7 @@ export function AdminStatisticsView() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <BarChart3 className="h-6 w-6 text-[#3CE8D1]" />
@@ -56,7 +56,7 @@ export function AdminStatisticsView() {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
                 {statCards.map((s, i) => (
                     <Card key={i} className="border-border">
                         <CardContent className="p-4">
@@ -107,7 +107,7 @@ export function AdminStatisticsView() {
             </Card>
 
             {/* Conversion Rate */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card className="border-border">
                     <CardHeader>
                         <CardTitle className="text-sm font-semibold">Конверсия</CardTitle>

@@ -44,8 +44,9 @@ import {
     Globe,
     Contact,
 } from "lucide-react"
-import { useCRMClient, useCRMClientMutations, type FounderData, type BankAccountData } from "@/hooks/use-companies"
+import { useCRMClient, useCRMClientMutations, type FounderData, type BankAccountData, type LegalFounderData, type LeaderData, type EtpAccountData, type ContactPersonData } from "@/hooks/use-companies"
 import { toast } from "sonner"
+import { ScrollText } from "lucide-react"
 
 // =============================================================================
 // PROPS
@@ -57,6 +58,68 @@ interface EditClientSheetProps {
     onClose: () => void
     onSaved: () => void
     mode?: 'view' | 'edit'
+}
+
+// =============================================================================
+// LATIN-ONLY VALIDATION
+// =============================================================================
+
+const LATIN_REGEX = /^[\u0000-\u007F]*$/
+const LATIN_ERROR = "Только латинские символы"
+
+// =============================================================================
+// FORMATTING HELPERS
+// =============================================================================
+
+// Format phone number as +7 (XXX) XXX XX XX
+const formatPhoneNumber = (value: string): string => {
+    const digits = value.replace(/\D/g, "")
+    if (!digits) return ""
+
+    let processed = digits;
+    if (digits.length === 1 && digits === '8') {
+        processed = '7';
+    } else if (digits.startsWith('8')) {
+        processed = '7' + digits.slice(1);
+    } else if (digits.length > 0 && !digits.startsWith('7')) {
+        processed = '7' + digits;
+    }
+
+    const limited = processed.slice(0, 11);
+
+    if (limited.length === 0) return "";
+    if (limited.length <= 1) return `+${limited}`;
+    if (limited.length <= 4) return `+${limited.slice(0, 1)} (${limited.slice(1)}`;
+    if (limited.length <= 7) return `+${limited.slice(0, 1)} (${limited.slice(1, 4)}) ${limited.slice(4)}`;
+    if (limited.length <= 9) return `+${limited.slice(0, 1)} (${limited.slice(1, 4)}) ${limited.slice(4, 7)} ${limited.slice(7)}`;
+    return `+${limited.slice(0, 1)} (${limited.slice(1, 4)}) ${limited.slice(4, 7)} ${limited.slice(7, 9)} ${limited.slice(9, 11)}`;
+}
+
+// Format number with thousand separators (1000000 -> "1 000 000")
+const formatInputNumber = (value: number | string | undefined): string => {
+    if (!value && value !== 0) return ""
+    let str = typeof value === 'number' ? value.toString() : value
+    str = str.replace(/\s/g, '')
+    const parts = str.split(/[.,]/)
+    const integerPart = parts[0]
+    const decimalPart = parts[1]
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+    if (decimalPart !== undefined) {
+        return `${formattedInteger},${decimalPart}`
+    }
+    if (str.endsWith(',') || str.endsWith('.')) {
+        return `${formattedInteger},`
+    }
+    return formattedInteger
+}
+
+// Parse formatted string back to number ("1 000 000,50" -> 1000000.5)
+const parseInputNumber = (value: string): number | undefined => {
+    if (!value) return undefined
+    const sanitized = value.replace(/[^\d\s,.]/g, '')
+    const cleaned = sanitized.replace(/\s/g, '').replace(',', '.')
+    const num = parseFloat(cleaned)
+    return isNaN(num) ? undefined : num
 }
 
 // =============================================================================
@@ -72,32 +135,73 @@ const founderDocumentSchema = z.object({
 })
 
 const founderSchema = z.object({
-    full_name: z.string().min(1, "Обязательное поле"),
-    inn: z.string().max(12, "Максимум 12 цифр"),
-    share_relative: z.coerce.number().min(0).max(100, "Доля 0-100%"),
-    document: founderDocumentSchema,
-    birth_place: z.string().optional(),
-    birth_date: z.string().optional(),
+    full_name: z.string().optional().or(z.literal("")),
+    inn: z.string().max(12, "Максимум 12 цифр").optional().or(z.literal("")),
+    share_relative: z.coerce.number().min(0).max(100, "Доля 0-100%").optional(),
+    document: founderDocumentSchema.optional(),
+    birth_place: z.string().optional().or(z.literal("")),
+    birth_date: z.string().optional().or(z.literal("")),
     gender: z.coerce.number().min(1).max(2).optional(),
     citizen: z.string().default("РФ"),
-    // WAVE 2: New address fields for API compliance
-    legal_address: z.string().optional(),
-    legal_address_postal_code: z.string().max(6, "Индекс: 6 цифр").optional(),
-    actual_address: z.string().optional(),
-    actual_address_postal_code: z.string().max(6, "Индекс: 6 цифр").optional(),
+    registration_address: z.string().optional().or(z.literal("")),
+    is_resident: z.boolean().default(true),
+    actual_address: z.string().optional().or(z.literal("")),
 })
 
 const bankAccountSchema = z.object({
-    bank_name: z.string().min(1, "Обязательное поле"),
-    bank_bik: z.string().max(9, "БИК: 9 цифр"),
-    account: z.string().max(20, "Счёт: 20 цифр"),
+    bank_name: z.string().optional().or(z.literal("")),
+    bank_bik: z.string().max(9, "БИК: 9 цифр").optional().or(z.literal("")),
+    account: z.string().max(20, "Счёт: 20 цифр").optional().or(z.literal("")),
+    corr_account: z.string().optional().or(z.literal("")),
 })
 
-// ТЗ Клиенты: Деятельность и лицензии
+// Leadership schema (доп. руководители)
+const leaderSchema = z.object({
+    position: z.string().optional().default(""),
+    full_name: z.string().optional().default(""),
+    share_percent: z.coerce.number().min(0).max(100).optional(),
+    citizenship: z.string().default("РФ"),
+    birth_date: z.string().optional(),
+    birth_place: z.string().optional(),
+    email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional().or(z.literal("")),
+    phone: z.string().optional(),
+    registration_address: z.string().optional(),
+    passport: z.object({
+        series: z.string().optional(),
+        number: z.string().optional(),
+        issued_date: z.string().optional(),
+        issued_by: z.string().optional(),
+        department_code: z.string().optional(),
+    }).optional(),
+})
+
+// Legal founder schema (юр.лица-учредители)
+const legalFounderSchema = z.object({
+    share_relative: z.coerce.number().min(0).max(100).optional(),
+    inn: z.string().optional(),
+    ogrn: z.string().optional(),
+    name: z.string().optional(),
+    registration_date: z.string().optional(),
+    first_registration_date: z.string().optional(),
+    is_resident: z.boolean().default(true),
+    bank_name: z.string().optional(),
+    website: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
+    email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional(),
+    phone: z.string().optional(),
+    director_position: z.string().optional(),
+    director_name: z.string().optional(),
+})
+
+// Activity schema (ОКВЭД - синхронизирован с my-company-view)
 const activitySchema = z.object({
-    okved_code: z.string().min(1, "Код ОКВЭД"),
-    okved_name: z.string().optional(),
-    is_primary: z.boolean().default(false),
+    primary_okved: z.string().optional(),
+    additional_okved: z.string().optional(),
+    revenue_share: z.coerce.number().min(0).max(100).optional(),
+    activity_years: z.coerce.number().min(0).optional(),
+    license_number: z.string().optional(),
+    license_date: z.string().optional(),
+    license_issuer: z.string().optional(),
+    license_valid_until: z.string().optional(),
 })
 
 const licenseSchema = z.object({
@@ -190,6 +294,30 @@ const clientFormSchema = z.object({
     licenses: z.array(licenseSchema).default([]),
     etp_accounts: z.array(etpAccountSchema).default([]),
     contact_persons: z.array(contactPersonSchema).default([]),
+    
+    // Leadership & Legal Founders (NEW)
+    leadership: z.array(leaderSchema).default([]),
+    legal_founders: z.array(legalFounderSchema).default([]),
+    
+    // Госрегистрация (NEW)
+    okato: z.string().optional().or(z.literal("")),
+    oktmo: z.string().optional().or(z.literal("")),
+    okpo: z.string().optional().or(z.literal("")),
+    okfs: z.string().optional().or(z.literal("")),
+    okogu: z.string().optional().or(z.literal("")),
+    okopf: z.string().optional().or(z.literal("")),
+    okved: z.string().optional().or(z.literal("")),
+    registration_date: z.string().optional().or(z.literal("")),
+    authorized_capital: z.coerce.number().optional(),
+    
+    // Director extended fields (NEW)
+    director_share: z.coerce.number().min(0).max(100).optional(),
+    director_citizen: z.string().default("РФ"),
+    director_birth_date: z.string().optional().or(z.literal("")),
+    director_birth_place: z.string().optional().or(z.literal("")),
+    director_email: z.string().regex(LATIN_REGEX, LATIN_ERROR).optional().or(z.literal("")),
+    director_phone: z.string().optional().or(z.literal("")),
+    director_registration_address: z.string().optional().or(z.literal("")),
 })
 
 type ClientFormData = z.infer<typeof clientFormSchema>
@@ -215,23 +343,56 @@ const createEmptyFounder = (): z.infer<typeof founderSchema> => ({
     birth_date: "",
     gender: 1,
     citizen: "РФ",
-    // WAVE 2: Address fields
-    legal_address: "",
-    legal_address_postal_code: "",
+    registration_address: "",
+    is_resident: true,
     actual_address: "",
-    actual_address_postal_code: "",
 })
 
 const createEmptyBankAccount = (): z.infer<typeof bankAccountSchema> => ({
     bank_name: "",
     bank_bik: "",
     account: "",
+    corr_account: "",
 })
 
 const createEmptyActivity = (): z.infer<typeof activitySchema> => ({
-    okved_code: "",
-    okved_name: "",
-    is_primary: false,
+    primary_okved: "",
+    additional_okved: "",
+    revenue_share: 0,
+    activity_years: 0,
+    license_number: "",
+    license_date: "",
+    license_issuer: "",
+    license_valid_until: "",
+})
+
+const createEmptyLeader = (): z.infer<typeof leaderSchema> => ({
+    position: "",
+    full_name: "",
+    share_percent: 0,
+    citizenship: "РФ",
+    birth_date: "",
+    birth_place: "",
+    email: "",
+    phone: "",
+    registration_address: "",
+    passport: { series: "", number: "", issued_date: "", issued_by: "", department_code: "" },
+})
+
+const createEmptyLegalFounder = (): z.infer<typeof legalFounderSchema> => ({
+    share_relative: 0,
+    inn: "",
+    ogrn: "",
+    name: "",
+    registration_date: "",
+    first_registration_date: "",
+    is_resident: true,
+    bank_name: "",
+    website: "",
+    email: "",
+    phone: "",
+    director_position: "",
+    director_name: "",
 })
 
 const createEmptyLicense = (): z.infer<typeof licenseSchema> => ({
@@ -332,6 +493,31 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
             contact_phone: "",
             contact_email: "",
             website: "",
+            // New arrays
+            activities: [],
+            licenses: [],
+            etp_accounts: [],
+            contact_persons: [],
+            leadership: [],
+            legal_founders: [],
+            // Госрегистрация
+            okato: "",
+            oktmo: "",
+            okpo: "",
+            okfs: "",
+            okogu: "",
+            okopf: "",
+            okved: "",
+            registration_date: "",
+            authorized_capital: 0,
+            // Director extended
+            director_share: 0,
+            director_citizen: "РФ",
+            director_birth_date: "",
+            director_birth_place: "",
+            director_email: "",
+            director_phone: "",
+            director_registration_address: "",
         },
     })
 
@@ -371,6 +557,18 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
         name: "contact_persons",
     })
 
+    // useFieldArray for leadership (доп. руководители)
+    const leadershipArray = useFieldArray({
+        control: form.control,
+        name: "leadership",
+    })
+
+    // useFieldArray for legal_founders (юр.лица-учредители)
+    const legalFoundersArray = useFieldArray({
+        control: form.control,
+        name: "legal_founders",
+    })
+
     // Watch address checkbox
     const isActualSameAsLegal = form.watch("is_actual_same_as_legal")
     const legalAddress = form.watch("legal_address")
@@ -402,6 +600,9 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                     birth_date: f.birth_date || "",
                     gender: f.gender || 1,
                     citizen: f.citizen || "РФ",
+                    registration_address: f.legal_address?.value || "",
+                    is_resident: f.is_resident ?? true,
+                    actual_address: f.actual_address?.value || "",
                 }))
 
             // Map bank_accounts_data from backend
@@ -410,6 +611,47 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                     bank_name: b.bank_name || "",
                     bank_bik: b.bank_bik || "",
                     account: b.account || "",
+                    corr_account: (b as unknown as { corr_account?: string }).corr_account || "",
+                }))
+
+            // Map leadership from backend (may not exist on type yet)
+            const clientAny = client as unknown as Record<string, unknown>
+            const mappedLeadership: z.infer<typeof leaderSchema>[] =
+                (Array.isArray(clientAny.leadership) ? clientAny.leadership : []).map((l: LeaderData) => ({
+                    position: l.position || "",
+                    full_name: l.full_name || "",
+                    share_percent: l.share_percent || 0,
+                    citizenship: l.citizenship || "РФ",
+                    birth_date: l.birth_date || "",
+                    birth_place: l.birth_place || "",
+                    email: l.email || "",
+                    phone: l.phone || "",
+                    registration_address: l.registration_address || "",
+                    passport: l.passport ? {
+                        series: l.passport.series || "",
+                        number: l.passport.number || "",
+                        issued_date: l.passport.issued_date || "",
+                        issued_by: l.passport.issued_by || "",
+                        department_code: l.passport.department_code || "",
+                    } : undefined,
+                }))
+
+            // Map legal_founders from backend (may not exist on type yet)
+            const mappedLegalFounders: z.infer<typeof legalFounderSchema>[] =
+                (Array.isArray(clientAny.legal_founders) ? clientAny.legal_founders : []).map((lf: LegalFounderData) => ({
+                    share_relative: lf.share_relative || 0,
+                    inn: lf.inn || "",
+                    ogrn: lf.ogrn || "",
+                    name: lf.name || "",
+                    registration_date: lf.registration_date || "",
+                    first_registration_date: lf.first_registration_date || "",
+                    is_resident: lf.is_resident ?? true,
+                    bank_name: lf.bank_name || "",
+                    website: lf.website || "",
+                    email: lf.email || "",
+                    phone: lf.phone || "",
+                    director_position: lf.director_position || "",
+                    director_name: lf.director_name || "",
                 }))
 
             form.reset({
@@ -431,6 +673,16 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 is_post_same_as_legal: client.legal_address === client.post_address && !!client.legal_address,
                 // Company details
                 employee_count: client.employee_count ?? 0,
+                // Госрегистрация (use clientAny for new fields)
+                okato: safeString(clientAny.okato as string),
+                oktmo: safeString(clientAny.oktmo as string),
+                okpo: safeString(clientAny.okpo as string),
+                okfs: safeString(clientAny.okfs as string),
+                okogu: safeString(clientAny.okogu as string),
+                okopf: safeString(clientAny.okopf as string),
+                okved: safeString(clientAny.okved as string),
+                registration_date: safeString(clientAny.registration_date as string),
+                authorized_capital: (clientAny.authorized_capital as number) ?? 0,
                 // Signatory
                 signatory_basis: (client.signatory_basis as "charter" | "power_of_attorney") || "charter",
                 is_mchd: client.is_mchd ?? false,
@@ -438,9 +690,17 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 mchd_inn: safeString(client.mchd_inn),
                 mchd_number: safeString(client.mchd_number),
                 mchd_date: safeString(client.mchd_date),
-                // Director + Passport
+                // Director + Extended fields (use clientAny for new fields)
                 director_name: safeString(client.director_name),
                 director_position: safeString(client.director_position),
+                director_share: (clientAny.director_share as number) ?? 0,
+                director_citizen: safeString(clientAny.director_citizen as string) || "РФ",
+                director_birth_date: safeString(clientAny.director_birth_date as string),
+                director_birth_place: safeString(clientAny.director_birth_place as string),
+                director_email: safeString(clientAny.director_email as string),
+                director_phone: safeString(clientAny.director_phone as string),
+                director_registration_address: safeString(clientAny.director_registration_address as string),
+                // Director Passport
                 passport_series: safeString(client.passport_series),
                 passport_number: safeString(client.passport_number),
                 passport_date: safeString(client.passport_date),
@@ -449,10 +709,12 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 // Dynamic arrays
                 founders: mappedFounders,
                 bank_accounts: mappedBankAccounts,
-                activities: client.activities_data || [],
-                licenses: client.licenses_data || [],
-                etp_accounts: client.etp_accounts_data || [],
-                contact_persons: client.contact_persons_data || [],
+                leadership: mappedLeadership,
+                legal_founders: mappedLegalFounders,
+                activities: (clientAny.activities_data as z.infer<typeof activitySchema>[]) || [],
+                licenses: (clientAny.licenses_data as z.infer<typeof licenseSchema>[]) || [],
+                etp_accounts: (clientAny.etp_accounts_data as z.infer<typeof etpAccountSchema>[]) || [],
+                contact_persons: (clientAny.contact_persons_data as z.infer<typeof contactPersonSchema>[]) || [],
                 // Legacy bank fields
                 bank_name: safeString(client.bank_name),
                 bank_bic: safeString(client.bank_bic),
@@ -492,52 +754,201 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
             : data.actual_address
 
         // Prepare founders_data for backend
-        const foundersData: FounderData[] = data.founders.map(f => ({
-            full_name: f.full_name,
-            inn: f.inn,
-            share_relative: f.share_relative,
-            document: {
-                series: f.document.series,
-                number: f.document.number,
-                issued_at: f.document.issued_at || "",
-                authority_name: f.document.authority_name || "",
-                authority_code: f.document.authority_code || "",
-            },
-            birth_place: f.birth_place || "",
-            birth_date: f.birth_date || "",
-            gender: (f.gender || 1) as 1 | 2,
-            citizen: f.citizen || "РФ",
-        }))
+        const foundersData: FounderData[] = data.founders
+            .filter(f => f.full_name && f.full_name.trim() !== "")
+            .map(f => ({
+                full_name: f.full_name || "",
+                inn: f.inn || "",
+                share_relative: f.share_relative || 0,
+                document: f.document ? {
+                    series: f.document.series || "",
+                    number: f.document.number || "",
+                    issued_at: f.document.issued_at || "",
+                    authority_name: f.document.authority_name || "",
+                    authority_code: f.document.authority_code || "",
+                } : undefined,
+                birth_place: f.birth_place || "",
+                birth_date: f.birth_date || "",
+                gender: (f.gender || 1) as 1 | 2,
+                citizen: f.citizen || "РФ",
+                is_resident: f.is_resident,
+                legal_address: { value: f.registration_address || "", postal_code: "" },
+                actual_address: f.actual_address ? { value: f.actual_address, postal_code: "" } : undefined,
+            }))
 
         // Prepare bank_accounts_data for backend
-        const bankAccountsData: BankAccountData[] = data.bank_accounts.map(b => ({
-            bank_name: b.bank_name,
-            bank_bik: b.bank_bik,
-            account: b.account,
-        }))
+        const bankAccountsData: BankAccountData[] = data.bank_accounts
+            .filter(b => b.bank_name && b.bank_name.trim() !== "" || b.account && b.account.trim() !== "")
+            .map(b => ({
+                bank_name: b.bank_name,
+                bank_bik: b.bank_bik,
+                account: b.account,
+                corr_account: b.corr_account,
+            }))
+
+        // Prepare leadership for backend
+        const leadershipData: LeaderData[] = data.leadership
+            .filter(l => l.full_name && l.full_name.trim() !== "")
+            .map(l => ({
+                position: l.position || "",
+                full_name: l.full_name || "",
+                share_percent: l.share_percent || 0,
+                citizenship: l.citizenship || "РФ",
+                birth_date: l.birth_date || "",
+                birth_place: l.birth_place || "",
+                email: l.email || "",
+                phone: l.phone || "",
+                registration_address: l.registration_address || "",
+                passport: l.passport ? {
+                    series: l.passport.series || "",
+                    number: l.passport.number || "",
+                    issued_date: l.passport.issued_date || "",
+                    issued_by: l.passport.issued_by || "",
+                    department_code: l.passport.department_code || "",
+                } : undefined,
+            }))
+
+        // Prepare legal_founders for backend
+        const legalFoundersData: LegalFounderData[] = data.legal_founders
+            .filter(lf => lf.name && lf.name.trim() !== "")
+            .map(lf => ({
+                share_relative: lf.share_relative || 0,
+                inn: lf.inn || "",
+                ogrn: lf.ogrn || "",
+                name: lf.name || "",
+                registration_date: lf.registration_date || "",
+                first_registration_date: lf.first_registration_date || "",
+                is_resident: lf.is_resident,
+                bank_name: lf.bank_name || "",
+                website: lf.website || "",
+                email: lf.email || "",
+                phone: lf.phone || "",
+                director_position: lf.director_position || "",
+                director_name: lf.director_name || "",
+            }))
+
+        // Prepare ETP accounts for backend
+        const etpAccountsData: EtpAccountData[] = data.etp_accounts
+            .filter(e => e.platform && e.platform.trim() !== "")
+            .map(e => ({
+                platform: e.platform || "",
+                account_number: e.account_number || "",
+                bank_bik: e.bank_bik || "",
+                bank_name: e.bank_name || "",
+                corr_account: e.corr_account || "",
+            }))
+
+        // Prepare contact persons for backend
+        const contactPersonsData: ContactPersonData[] = data.contact_persons
+            .filter(c => c.last_name && c.last_name.trim() !== "")
+            .map(c => ({
+                position: c.position || "",
+                last_name: c.last_name || "",
+                first_name: c.first_name || "",
+                middle_name: c.middle_name || "",
+                email: c.email || "",
+                phone: c.phone || "",
+            }))
+
+        // Prepare activities for backend
+        const activitiesData = data.activities
+            .filter(a => a.primary_okved && a.primary_okved.trim() !== "")
+            .map(a => ({
+                primary_okved: a.primary_okved || "",
+                additional_okved: a.additional_okved || "",
+                revenue_share: a.revenue_share || 0,
+                activity_years: a.activity_years || 0,
+                license_number: a.license_number || "",
+                license_date: a.license_date || "",
+                license_issuer: a.license_issuer || "",
+                license_valid_until: a.license_valid_until || "",
+            }))
+
+        // Prepare licenses for backend
+        const licensesData = data.licenses
+            .filter(l => l.license_type && l.license_type.trim() !== "")
+            .map(l => ({
+                license_type: l.license_type || "",
+                license_number: l.license_number || "",
+                issue_date: l.issue_date || "",
+                expiry_date: l.expiry_date || "",
+                issuing_authority: l.issuing_authority || "",
+            }))
 
         const payload = {
+            // Core Identity
             inn: data.inn,
             kpp: data.kpp || undefined,
             ogrn: data.ogrn || undefined,
             name: data.name,
             short_name: data.short_name || undefined,
             region: data.region || undefined,
+            
+            // Addresses
             legal_address: data.legal_address || undefined,
+            legal_address_postal_code: data.legal_address_postal_code || undefined,
             actual_address: actualAddress || undefined,
+            actual_address_postal_code: data.actual_address_postal_code || undefined,
+            post_address: data.post_address || undefined,
+            post_address_postal_code: data.post_address_postal_code || undefined,
+            
+            // Company details
+            employee_count: data.employee_count || undefined,
+            
+            // Госрегистрация
+            okato: data.okato || undefined,
+            oktmo: data.oktmo || undefined,
+            okpo: data.okpo || undefined,
+            okfs: data.okfs || undefined,
+            okogu: data.okogu || undefined,
+            okopf: data.okopf || undefined,
+            okved: data.okved || undefined,
+            registration_date: data.registration_date || undefined,
+            authorized_capital: data.authorized_capital || undefined,
+            
+            // Director
             director_name: data.director_name || undefined,
             director_position: data.director_position || undefined,
+            director_share: data.director_share || undefined,
+            director_citizen: data.director_citizen || undefined,
+            director_birth_date: data.director_birth_date || undefined,
+            director_birth_place: data.director_birth_place || undefined,
+            director_email: data.director_email || undefined,
+            director_phone: data.director_phone || undefined,
+            director_registration_address: data.director_registration_address || undefined,
+            
+            // Director Passport
             passport_series: data.passport_series || undefined,
             passport_number: data.passport_number || undefined,
             passport_date: data.passport_date || undefined,
             passport_code: data.passport_code || undefined,
             passport_issued_by: data.passport_issued_by || undefined,
+            
+            // Signatory / MCHD
+            signatory_basis: data.signatory_basis || undefined,
+            is_mchd: data.is_mchd,
+            mchd_full_name: data.mchd_full_name || undefined,
+            mchd_inn: data.mchd_inn || undefined,
+            mchd_number: data.mchd_number || undefined,
+            mchd_date: data.mchd_date || undefined,
+            
+            // Dynamic arrays
             founders_data: foundersData.length > 0 ? foundersData : undefined,
             bank_accounts_data: bankAccountsData.length > 0 ? bankAccountsData : undefined,
+            leadership: leadershipData.length > 0 ? leadershipData : undefined,
+            legal_founders: legalFoundersData.length > 0 ? legalFoundersData : undefined,
+            activities: activitiesData.length > 0 ? activitiesData : undefined,
+            licenses: licensesData.length > 0 ? licensesData : undefined,
+            etp_accounts: etpAccountsData.length > 0 ? etpAccountsData : undefined,
+            contact_persons: contactPersonsData.length > 0 ? contactPersonsData : undefined,
+            
+            // Legacy bank fields
             bank_name: data.bank_name || undefined,
             bank_bic: data.bank_bic || undefined,
             bank_account: data.bank_account || undefined,
             bank_corr_account: data.bank_corr_account || undefined,
+            
+            // Contact
             contact_person: data.contact_person || undefined,
             contact_phone: data.contact_phone || undefined,
             contact_email: data.contact_email || undefined,
@@ -597,7 +1008,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
                                     <Tabs defaultValue="identity" className="w-full">
                                         <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
-                                            <TabsList className="flex w-max md:w-full md:grid md:grid-cols-9 bg-muted/50 mb-2">
+                                            <TabsList className="flex w-max md:w-full md:grid md:grid-cols-10 bg-muted/50 mb-2">
                                                 <TabsTrigger value="identity" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
                                                     <Building2 className="h-3 w-3" />
                                                     <span>Орг-ция</span>
@@ -605,6 +1016,10 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                 <TabsTrigger value="addresses" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
                                                     <MapPin className="h-3 w-3" />
                                                     <span>Адреса</span>
+                                                </TabsTrigger>
+                                                <TabsTrigger value="registration" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
+                                                    <ScrollText className="h-3 w-3" />
+                                                    <span>Госрег.</span>
                                                 </TabsTrigger>
                                                 <TabsTrigger value="management" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">
                                                     <Users className="h-3 w-3" />
@@ -831,9 +1246,10 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                     <FormLabel>Телефон</FormLabel>
                                                                     <FormControl>
                                                                         <Input
-                                                                            placeholder="+7 (XXX) XXX-XX-XX"
+                                                                            placeholder="+7 (999) 123 45 67"
                                                                             disabled={isReadOnly}
                                                                             {...field}
+                                                                            onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
                                                                         />
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -957,6 +1373,138 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                             </Card>
                                         </TabsContent>
 
+                                        {/* TAB: ГОСРЕГИСТРАЦИЯ (NEW) */}
+                                        <TabsContent value="registration">
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="text-base">Данные государственной регистрации</CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    <div className="grid gap-4 md:grid-cols-3">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="registration_date"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Дата регистрации</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="date" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="authorized_capital"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Уставный капитал, руб.</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            placeholder="10 000"
+                                                                            disabled={isReadOnly}
+                                                                            value={formatInputNumber(field.value)}
+                                                                            onChange={(e) => field.onChange(parseInputNumber(e.target.value))}
+                                                                        />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="okved"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Основной ОКВЭД</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="01.11" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-4 md:grid-cols-3">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="okato"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>ОКАТО</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="45268501000" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="oktmo"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>ОКТМО</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="45378000" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="okpo"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>ОКПО</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="12345678" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-4 md:grid-cols-3">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="okfs"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>ОКФС</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="16" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="okogu"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>ОКОГУ</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="4210014" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="okopf"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>ОКОПФ</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="12300" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        </TabsContent>
+
                                         {/* TAB 3: MANAGEMENT (Director + Passport) */}
                                         <TabsContent value="management">
                                             <Card>
@@ -994,6 +1542,122 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                             placeholder="Генеральный директор"
                                                                             disabled={isReadOnly}
                                                                             {...field}
+                                                                        />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    {/* Extended Director Fields (NEW) */}
+                                                    <div className="grid gap-4 md:grid-cols-3">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_share"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Доля в УК, %</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            type="number"
+                                                                            min={0}
+                                                                            max={100}
+                                                                            placeholder="0"
+                                                                            disabled={isReadOnly}
+                                                                            {...field}
+                                                                            value={field.value ?? ""}
+                                                                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                                        />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_citizen"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Гражданство</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="РФ" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_birth_date"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Дата рождения</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="date" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-4 md:grid-cols-2">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_birth_place"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Место рождения</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="г. Москва" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_registration_address"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Адрес регистрации</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input placeholder="г. Москва, ул. Примерная, д. 1" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-4 md:grid-cols-2">
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_phone"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Телефон руководителя</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            placeholder="+7 (999) 123 45 67"
+                                                                            disabled={isReadOnly}
+                                                                            {...field}
+                                                                            value={field.value ?? ""}
+                                                                            onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
+                                                                        />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="director_email"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Email руководителя</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input
+                                                                            type="email"
+                                                                            placeholder="director@example.com"
+                                                                            disabled={isReadOnly}
+                                                                            {...field}
+                                                                            value={field.value ?? ""}
                                                                         />
                                                                     </FormControl>
                                                                     <FormMessage />
@@ -1106,6 +1770,165 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                 )}
                                                             />
                                                         </div>
+                                                    </div>
+
+                                                    {/* Leadership Section (NEW) */}
+                                                    <div className="border-t pt-4">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <h4 className="font-medium text-foreground text-sm">Дополнительные руководители</h4>
+                                                            {!isReadOnly && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => leadershipArray.append(createEmptyLeader())}
+                                                                >
+                                                                    <Plus className="h-4 w-4 mr-1" />
+                                                                    Добавить
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                        {leadershipArray.fields.length === 0 ? (
+                                                            <p className="text-sm text-muted-foreground py-4">Дополнительные руководители не добавлены</p>
+                                                        ) : (
+                                                            <div className="space-y-4">
+                                                                {leadershipArray.fields.map((field, index) => (
+                                                                    <div key={field.id} className="p-4 border rounded-lg space-y-4">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <h5 className="text-sm font-medium">Руководитель #{index + 1}</h5>
+                                                                            {!isReadOnly && (
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    onClick={() => leadershipArray.remove(index)}
+                                                                                >
+                                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-3">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.full_name`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>ФИО</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="Иванов Иван Иванович" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.position`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Должность</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="Заместитель директора" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.share_percent`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Доля, %</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input
+                                                                                                type="number"
+                                                                                                min={0}
+                                                                                                max={100}
+                                                                                                placeholder="0"
+                                                                                                disabled={isReadOnly}
+                                                                                                {...field}
+                                                                                                value={field.value ?? ""}
+                                                                                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                                                            />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-3">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.citizenship`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Гражданство</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="РФ" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.birth_date`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Дата рождения</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input type="date" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.phone`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Телефон</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input
+                                                                                                placeholder="+7 (999) 123 45 67"
+                                                                                                disabled={isReadOnly}
+                                                                                                {...field}
+                                                                                                value={field.value ?? ""}
+                                                                                                onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
+                                                                                            />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-2">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.email`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Email</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input type="email" placeholder="email@example.com" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                        <FormMessage />
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`leadership.${index}.registration_address`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Адрес регистрации</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="г. Москва, ул. Примерная, д. 1" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </CardContent>
                                             </Card>
@@ -1527,16 +2350,16 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Addresses (WAVE 2: API Compliance) */}
+                                                                {/* Addresses */}
                                                                 <div className="border-t pt-4">
                                                                     <h6 className="text-sm font-medium text-muted-foreground mb-3">
                                                                         Адреса учредителя
                                                                     </h6>
                                                                     <div className="grid gap-4 md:grid-cols-2">
-                                                                        {/* Legal Address */}
+                                                                        {/* Registration Address */}
                                                                         <FormField
                                                                             control={form.control}
-                                                                            name={`founders.${index}.legal_address`}
+                                                                            name={`founders.${index}.registration_address`}
                                                                             render={({ field }) => (
                                                                                 <FormItem>
                                                                                     <FormLabel>Адрес регистрации</FormLabel>
@@ -1547,25 +2370,6 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                                             {...field}
                                                                                         />
                                                                                     </FormControl>
-                                                                                </FormItem>
-                                                                            )}
-                                                                        />
-                                                                        <FormField
-                                                                            control={form.control}
-                                                                            name={`founders.${index}.legal_address_postal_code`}
-                                                                            render={({ field }) => (
-                                                                                <FormItem>
-                                                                                    <FormLabel>Индекс (рег.)</FormLabel>
-                                                                                    <FormControl>
-                                                                                        <Input
-                                                                                            placeholder="000000"
-                                                                                            maxLength={6}
-                                                                                            disabled={isReadOnly}
-                                                                                            {...field}
-                                                                                            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                                                                                        />
-                                                                                    </FormControl>
-                                                                                    <FormMessage />
                                                                                 </FormItem>
                                                                             )}
                                                                         />
@@ -1587,30 +2391,197 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                                 </FormItem>
                                                                             )}
                                                                         />
-                                                                        <FormField
-                                                                            control={form.control}
-                                                                            name={`founders.${index}.actual_address_postal_code`}
-                                                                            render={({ field }) => (
-                                                                                <FormItem>
-                                                                                    <FormLabel>Индекс (прож.)</FormLabel>
-                                                                                    <FormControl>
-                                                                                        <Input
-                                                                                            placeholder="000000"
-                                                                                            maxLength={6}
-                                                                                            disabled={isReadOnly}
-                                                                                            {...field}
-                                                                                            onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))}
-                                                                                        />
-                                                                                    </FormControl>
-                                                                                    <FormMessage />
-                                                                                </FormItem>
-                                                                            )}
-                                                                        />
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         ))
                                                     )}
+
+                                                    {/* Legal Founders Section (NEW) */}
+                                                    <div className="border-t pt-4 mt-4">
+                                                        <div className="flex items-center justify-between mb-4">
+                                                            <h4 className="font-medium text-foreground text-sm">Учредители - юридические лица</h4>
+                                                            {!isReadOnly && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => legalFoundersArray.append(createEmptyLegalFounder())}
+                                                                >
+                                                                    <Plus className="h-4 w-4 mr-1" />
+                                                                    Добавить юр.лицо
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                        {legalFoundersArray.fields.length === 0 ? (
+                                                            <p className="text-sm text-muted-foreground py-4">Юридические лица-учредители не добавлены</p>
+                                                        ) : (
+                                                            <div className="space-y-4">
+                                                                {legalFoundersArray.fields.map((field, index) => (
+                                                                    <div key={field.id} className="p-4 border rounded-lg space-y-4">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <h5 className="text-sm font-medium">Юр.лицо #{index + 1}</h5>
+                                                                            {!isReadOnly && (
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    onClick={() => legalFoundersArray.remove(index)}
+                                                                                >
+                                                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-3">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.name`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem className="md:col-span-2">
+                                                                                        <FormLabel>Наименование</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="ООО Компания" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.share_relative`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Доля, %</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input
+                                                                                                type="number"
+                                                                                                min={0}
+                                                                                                max={100}
+                                                                                                placeholder="0"
+                                                                                                disabled={isReadOnly}
+                                                                                                {...field}
+                                                                                                value={field.value ?? ""}
+                                                                                                onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                                                            />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-3">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.inn`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>ИНН</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="10 цифр" maxLength={10} disabled={isReadOnly} {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.ogrn`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>ОГРН</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="13 цифр" maxLength={13} disabled={isReadOnly} {...field} value={field.value ?? ""} onChange={(e) => field.onChange(e.target.value.replace(/\D/g, ""))} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.registration_date`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Дата регистрации</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input type="date" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-3">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.director_name`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>ФИО директора</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="Иванов Иван Иванович" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.director_position`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Должность директора</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="Генеральный директор" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.phone`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Телефон</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input
+                                                                                                placeholder="+7 (999) 123 45 67"
+                                                                                                disabled={isReadOnly}
+                                                                                                {...field}
+                                                                                                value={field.value ?? ""}
+                                                                                                onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
+                                                                                            />
+                                                                                        </FormControl>
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="grid gap-4 md:grid-cols-2">
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.email`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Email</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input type="email" placeholder="company@example.com" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                        <FormMessage />
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                            <FormField
+                                                                                control={form.control}
+                                                                                name={`legal_founders.${index}.website`}
+                                                                                render={({ field }) => (
+                                                                                    <FormItem>
+                                                                                        <FormLabel>Веб-сайт</FormLabel>
+                                                                                        <FormControl>
+                                                                                            <Input placeholder="www.example.com" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                                        </FormControl>
+                                                                                        <FormMessage />
+                                                                                    </FormItem>
+                                                                                )}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </CardContent>
                                             </Card>
                                         </TabsContent>
@@ -1833,31 +2804,31 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                 {activitiesArray.fields.map((field, index) => (
                                                                     <div key={field.id} className="flex items-start gap-2 p-3 border rounded-lg">
                                                                         <div className="grid gap-3 flex-1 md:grid-cols-3">
-                                                                            <FormField
-                                                                                control={form.control}
-                                                                                name={`activities.${index}.okved_code`}
-                                                                                render={({ field }) => (
-                                                                                    <FormItem>
-                                                                                        <FormLabel>Код ОКВЭД *</FormLabel>
-                                                                                        <FormControl>
-                                                                                            <Input placeholder="01.11" disabled={isReadOnly} {...field} />
-                                                                                        </FormControl>
-                                                                                        <FormMessage />
-                                                                                    </FormItem>
-                                                                                )}
-                                                                            />
-                                                                            <FormField
-                                                                                control={form.control}
-                                                                                name={`activities.${index}.okved_name`}
-                                                                                render={({ field }) => (
-                                                                                    <FormItem className="md:col-span-2">
-                                                                                        <FormLabel>Наименование</FormLabel>
-                                                                                        <FormControl>
-                                                                                            <Input placeholder="Выращивание зерновых культур" disabled={isReadOnly} {...field} />
-                                                                                        </FormControl>
-                                                                                    </FormItem>
-                                                                                )}
-                                                                            />
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`activities.${index}.primary_okved`}
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Основной ОКВЭД *</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input placeholder="01.11" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`activities.${index}.additional_okved`}
+                                                                render={({ field }) => (
+                                                                    <FormItem className="md:col-span-2">
+                                                                        <FormLabel>Дополнительный ОКВЭД</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input placeholder="01.12, 01.13, 01.14" disabled={isReadOnly} {...field} value={field.value ?? ""} />
+                                                                        </FormControl>
+                                                                    </FormItem>
+                                                                )}
+                                                            />
                                                                         </div>
                                                                         {!isReadOnly && (
                                                                             <Button
@@ -2183,7 +3154,12 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                                                                                 <FormItem>
                                                                                     <FormLabel>Телефон</FormLabel>
                                                                                     <FormControl>
-                                                                                        <Input placeholder="+7 (999) 123-45-67" disabled={isReadOnly} {...field} />
+                                                                                        <Input
+                                                                                            placeholder="+7 (999) 123 45 67"
+                                                                                            disabled={isReadOnly}
+                                                                                            {...field}
+                                                                                            onChange={(e) => field.onChange(formatPhoneNumber(e.target.value))}
+                                                                                        />
                                                                                     </FormControl>
                                                                                 </FormItem>
                                                                             )}

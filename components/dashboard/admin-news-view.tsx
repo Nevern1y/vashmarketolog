@@ -690,14 +690,14 @@ export function AdminNewsView() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                 <div>
                     <h1 className="text-2xl font-bold">Управление новостями</h1>
                     <p className="text-muted-foreground">
                         Создание, редактирование и удаление новостей
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <CategoryManagementSheet
                         categories={categories}
                         isLoading={categoriesLoading}
@@ -714,9 +714,9 @@ export function AdminNewsView() {
             </div>
 
             {/* Filters */}
-            <div className="flex gap-4">
-                <div className="relative flex-1 max-w-sm">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative w-full sm:max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                         placeholder="Поиск по заголовку..."
                         value={searchQuery}
@@ -725,7 +725,7 @@ export function AdminNewsView() {
                     />
                 </div>
                 <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger className="w-[200px]">
+                    <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Все категории" />
                     </SelectTrigger>
                     <SelectContent>
@@ -741,15 +741,15 @@ export function AdminNewsView() {
             </div>
 
             {/* News Table */}
-            <div className="rounded-lg border border-border bg-card">
+            <div className="rounded-lg border border-border bg-card overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-[40%]">Заголовок</TableHead>
-                            <TableHead>Категория</TableHead>
+                            <TableHead className="hidden lg:table-cell">Категория</TableHead>
                             <TableHead>Статус</TableHead>
-                            <TableHead>Просмотры</TableHead>
-                            <TableHead>Дата</TableHead>
+                            <TableHead className="hidden xl:table-cell">Просмотры</TableHead>
+                            <TableHead className="hidden xl:table-cell">Дата</TableHead>
                             <TableHead className="text-right">Действия</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -777,7 +777,7 @@ export function AdminNewsView() {
                                             <span className="font-medium line-clamp-1">{item.title}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="hidden lg:table-cell">
                                         {item.category ? (
                                             <Badge variant="outline" className="text-xs">
                                                 <Tag className="h-3 w-3 mr-1" />
@@ -800,10 +800,10 @@ export function AdminNewsView() {
                                             </Badge>
                                         )}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="hidden xl:table-cell">
                                         <span className="text-muted-foreground">{item.views_count}</span>
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="hidden xl:table-cell">
                                         <span className="text-sm text-muted-foreground">
                                             {formatDate(item.published_at || item.created_at)}
                                         </span>

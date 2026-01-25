@@ -318,7 +318,7 @@ export function AdminDashboard() {
                     "fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col",
                     "h-dvh border-r border-border bg-slate-900",
                     "transition-[width] duration-300 ease-in-out",
-                    sidebarCollapsed ? "w-16" : "w-60"
+                    sidebarCollapsed ? "w-14 xl:w-16" : "w-56 xl:w-60"
                 )}
             >
                 <AdminSidebarContent
@@ -352,8 +352,8 @@ export function AdminDashboard() {
             {/* ============================================ */}
             <div className={cn(
                 "flex min-h-screen flex-col transition-[padding] duration-300 ease-in-out",
-                "lg:pl-60",
-                sidebarCollapsed && "lg:pl-16"
+                "lg:pl-56 xl:pl-60",
+                sidebarCollapsed && "lg:pl-14 xl:pl-16"
             )}>
                 {/* Mobile Header */}
                 <AdminMobileHeader
@@ -364,7 +364,7 @@ export function AdminDashboard() {
                 />
 
                 {/* Desktop Header */}
-                <header className="hidden lg:flex items-center justify-between border-b border-border bg-slate-900/50 backdrop-blur-sm px-6 py-3 sticky top-0 z-40">
+                <header className="hidden lg:flex items-center justify-between border-b border-border bg-slate-900/50 backdrop-blur-sm px-4 xl:px-6 2xl:px-8 py-3 sticky top-0 z-40">
                     <div className="flex items-center gap-3">
                         <h1 className="text-lg font-semibold text-white">
                             {NAV_ITEMS.find(item => item.id === activeView)?.label || (activeView === "profile-settings" ? "Настройки аккаунта" : "Админ")}
@@ -423,8 +423,8 @@ export function AdminDashboard() {
                 </header>
 
                 {/* Scrollable Content Area */}
-                <main className="flex-1 overflow-y-auto bg-background">
-                    <div className="p-4 lg:p-6">
+                <main className="flex-1 overflow-y-auto bg-background min-w-0">
+                    <div className="p-4 lg:p-5 xl:p-6 2xl:p-8">
                         {renderContent()}
                     </div>
                 </main>

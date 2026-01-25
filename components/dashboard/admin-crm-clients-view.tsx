@@ -187,7 +187,7 @@ export function AdminCRMClientsView() {
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                         placeholder="Поиск по ИНН, названию или агенту..."
                         value={searchQuery}
@@ -320,7 +320,7 @@ export function AdminCRMClientsView() {
                     </div>
 
                     {/* Desktop: Table View */}
-                    <div className="hidden md:block">
+                    <div className="hidden md:block overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -328,7 +328,7 @@ export function AdminCRMClientsView() {
                                     <TableHead>ИНН</TableHead>
                                     <TableHead>Агент</TableHead>
                                     <TableHead>Статус</TableHead>
-                                    <TableHead>Дубликаты</TableHead>
+                                    <TableHead className="hidden xl:table-cell">Дубликаты</TableHead>
                                     <TableHead className="text-right">Действия</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -386,7 +386,7 @@ export function AdminCRMClientsView() {
                                                     </Badge>
                                                 )}
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell className="hidden xl:table-cell">
                                                 {client.has_duplicates ? (
                                                     <Badge variant="destructive" className="gap-1">
                                                         <AlertTriangle className="h-3 w-3" />

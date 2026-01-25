@@ -274,16 +274,26 @@ export function getDocumentTypeById(
 
 /**
  * Get document type name by ID.
+ * Searches across ALL document type arrays.
  * Returns a fallback string if not found.
  */
 export function getDocumentTypeName(
     documentTypeId: number,
     productType: string
 ): string {
+    // First try product-specific types
     const type = getDocumentTypeById(documentTypeId, productType);
     if (type) {
         return type.name;
     }
+    
+    // Then search in all document types (BG, KIK, General)
+    const allTypes = [...BG_DOCUMENT_TYPES, ...KIK_DOCUMENT_TYPES, ...GENERAL_DOCUMENT_TYPES];
+    const foundType = allTypes.find(t => t.id === documentTypeId);
+    if (foundType) {
+        return foundType.name;
+    }
+    
     if (documentTypeId === 0) {
         return 'Дополнительный документ';
     }

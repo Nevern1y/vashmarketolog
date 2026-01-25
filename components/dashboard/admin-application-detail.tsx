@@ -471,7 +471,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     const isTenderSupport = application.product_type === 'tender_support'
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto">
             {/* ============================================ */}
             {/* HEADER — Rich, informative */}
             {/* ============================================ */}
@@ -642,7 +642,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                 {/* TAB: Information */}
                 {/* ============================================ */}
                 <TabsContent value="info" className="mt-0">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {/* Left Column — Product Parameters (takes 2 columns) */}
                         <div className="lg:col-span-2 space-y-6">
                             
@@ -716,7 +716,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                         <>
                                             <Separator className="my-4" />
                                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Опыт исполнения контрактов</p>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="bg-slate-800/30 rounded-lg p-3 text-center">
                                                     <p className="text-2xl font-bold">{gd.contracts_44fz_count || 0}</p>
                                                     <p className="text-xs text-muted-foreground">по 44-ФЗ</p>
@@ -831,7 +831,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                         <>
                                             <Separator className="my-4" />
                                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Опыт исполнения контрактов</p>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div className="bg-slate-800/30 rounded-lg p-3 text-center">
                                                     <p className="text-2xl font-bold">{gd.contracts_44fz_count || 0}</p>
                                                     <p className="text-xs text-muted-foreground">по 44-ФЗ</p>
@@ -1204,7 +1204,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                 {/* TAB: Company */}
                 {/* ============================================ */}
                 <TabsContent value="company" className="mt-0">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                         <DataCard title="Основные данные" icon={<Building2 className="h-4 w-4" />} accent>
                             <DataRow label="Название" value={application.company_name} icon={<Building2 className="h-3.5 w-3.5" />} />
                             <DataRow label="ИНН" value={application.company_inn} mono icon={<Hash className="h-3.5 w-3.5" />} />
@@ -1378,7 +1378,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
 
                                 {/* Phase 2: Enhanced Founders (Physical Persons) with Passport */}
                                 {application.company_data.founders_data && application.company_data.founders_data.length > 0 && (
-                                    <DataCard title="Учредители (физ. лица)" icon={<Users className="h-4 w-4" />} className="lg:col-span-2">
+                                    <DataCard title="Учредители (физ. лица)" icon={<Users className="h-4 w-4" />} className="xl:col-span-2">
                                         <div className="space-y-4">
                                             {application.company_data.founders_data.map((founder, idx) => (
                                                 <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
@@ -1391,7 +1391,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                                     </div>
                                                     {/* Founder Passport Info */}
                                                     {founder.document && (
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 pt-2 border-t border-border/20">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 mt-2 pt-2 border-t border-border/20">
                                                             <div>
                                                                 <p className="text-xs text-muted-foreground">Серия/Номер</p>
                                                                 <p className="text-xs font-mono">{founder.document.series} {founder.document.number}</p>
@@ -1408,7 +1408,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                                     )}
                                                     {/* Additional founder info */}
                                                     {(founder.birth_date || founder.birth_place) && (
-                                                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/20">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/20">
                                                             {founder.birth_date && (
                                                                 <div>
                                                                     <p className="text-xs text-muted-foreground">Дата рождения</p>
@@ -1431,7 +1431,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
 
                                 {/* Phase 2: Legal Founders (Companies) */}
                                 {application.company_data.legal_founders_data && application.company_data.legal_founders_data.length > 0 && (
-                                    <DataCard title="Учредители (юр. лица)" icon={<Building2 className="h-4 w-4" />} className="lg:col-span-2">
+                                    <DataCard title="Учредители (юр. лица)" icon={<Building2 className="h-4 w-4" />} className="xl:col-span-2">
                                         <div className="space-y-3">
                                             {application.company_data.legal_founders_data.map((legalFounder, idx) => (
                                                 <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
@@ -1439,7 +1439,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                                         <span className="text-sm font-medium">{legalFounder.name}</span>
                                                         {legalFounder.share_relative != null && <Badge variant="outline">Доля: {legalFounder.share_relative}%</Badge>}
                                                     </div>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 text-xs">
                                                         {legalFounder.inn && (
                                                             <div>
                                                                 <p className="text-muted-foreground">ИНН</p>
@@ -1467,7 +1467,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
 
                                 {/* Phase 2: Leadership */}
                                 {application.company_data.leadership_data && application.company_data.leadership_data.length > 0 && (
-                                    <DataCard title="Руководство компании" icon={<Briefcase className="h-4 w-4" />} className="lg:col-span-2">
+                                    <DataCard title="Руководство компании" icon={<Briefcase className="h-4 w-4" />} className="xl:col-span-2">
                                         <div className="space-y-3">
                                             {application.company_data.leadership_data.map((leader, idx) => (
                                                 <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
@@ -1478,7 +1478,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                                         </div>
                                                         {leader.share_percent != null && <Badge variant="outline">Доля: {leader.share_percent}%</Badge>}
                                                     </div>
-                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-2 text-xs">
                                                         {leader.email && (
                                                             <div>
                                                                 <p className="text-muted-foreground">Email</p>
@@ -1580,7 +1580,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
 
                                 {/* Phase 2: Additional Bank Accounts */}
                                 {application.company_data.bank_accounts_data && application.company_data.bank_accounts_data.length > 1 && (
-                                    <DataCard title="Дополнительные банковские счета" icon={<Landmark className="h-4 w-4" />} className="lg:col-span-2">
+                                    <DataCard title="Дополнительные банковские счета" icon={<Landmark className="h-4 w-4" />} className="xl:col-span-2">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {application.company_data.bank_accounts_data.slice(1).map((account, idx) => (
                                                 <div key={idx} className="p-3 bg-slate-800/30 rounded-lg border border-border/30">
@@ -1610,7 +1610,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                 {/* ============================================ */}
                 <TabsContent value="documents" className="mt-0">
                     {documentsCount > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                             {application.documents?.map((doc) => (
                                 <Card key={doc.id} className="border-border/40 bg-[#0a1628]/50 hover:border-[#3CE8D1]/30 transition-colors">
                                     <CardContent className="p-4">

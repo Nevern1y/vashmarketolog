@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -24,6 +24,8 @@ import { toast } from "sonner"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany } from "@/hooks/use-companies"
+import { useDocuments, type DocumentListItem } from "@/hooks/use-documents"
+import { getRequiredDocumentsForProduct, getDocumentTypeName } from "@/lib/document-types"
 
 // =============================================================================
 // BANK DATABASE (Real data used for calculations)
@@ -432,6 +434,18 @@ export function ClientCalculatorView() {
     // Current calculation session ID (for linking applications to root application)
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
 
+    // Smart Document Prompt state
+    const [showDocumentPrompt, setShowDocumentPrompt] = useState(false)
+    const [documentPromptData, setDocumentPromptData] = useState<{
+        allDocuments: DocumentListItem[]
+        autoSelectedIds: number[]
+        missingRequired: Array<{ id: number; name: string }>
+    }>({ allDocuments: [], autoSelectedIds: [], missingRequired: [] })
+    const [selectedDocIds, setSelectedDocIds] = useState<number[]>([])
+
+    // Documents hook - load documents for client's company
+    const { documents: companyDocuments, isLoading: docsLoading } = useDocuments({})
+
     // =========================================================================
     // CLEAR FORM FUNCTIONS
     // =========================================================================
@@ -503,6 +517,81 @@ export function ClientCalculatorView() {
         setInsuranceProduct("")
         setInsuranceAmount(undefined)
         setInsuranceTerm(undefined)
+    }
+
+    // =========================================================================
+    // SMART DOCUMENT MATCHING
+    // =========================================================================
+
+    // Get product type for document matching
+    const getProductTypeForDocs = (): string => {
+        switch (activeTab) {
+            case "bg": return "bank_guarantee"
+            case "kik": return "contract_loan"
+            case "express": return "corporate_credit"
+            case "factoring": return "factoring"
+            case "leasing": return "leasing"
+            case "insurance": return "insurance"
+            case "ved": return "ved"
+            case "rko": return "rko"
+            default: return "general"
+        }
+    }
+
+    // Match user's documents to required documents for the product
+    // Returns ALL documents + auto-selects matching ones
+    const matchDocumentsToRequired = () => {
+        const productType = getProductTypeForDocs()
+        const requiredDocs = getRequiredDocumentsForProduct(productType)
+        const requiredDocIds = requiredDocs.map(d => d.id)
+
+        // Get ALL documents for client's company
+        const allDocs = company 
+            ? companyDocuments.filter(d => 
+                d.company === company.id || 
+                d.company == null
+              )
+            : companyDocuments
+
+        // Auto-select documents that match required types
+        const autoSelectedIds = allDocs
+            .filter(d => requiredDocIds.includes(d.document_type_id))
+            .map(d => d.id)
+
+        // Find missing required documents (types not found in user's docs)
+        const foundTypeIds = allDocs.map(d => d.document_type_id)
+        const missingRequired = requiredDocIds
+            .filter(id => !foundTypeIds.includes(id))
+            .map(id => ({ id, name: getDocumentTypeName(id, productType) }))
+
+        return { allDocuments: allDocs, autoSelectedIds, missingRequired }
+    }
+
+    // Toggle document selection
+    const toggleDocSelection = (docId: number) => {
+        setSelectedDocIds(prev => 
+            prev.includes(docId) 
+                ? prev.filter(id => id !== docId)
+                : [...prev, docId]
+        )
+    }
+
+    // Handler: Proceed to create applications with selected documents
+    const handleProceedWithDocuments = async () => {
+        setShowDocumentPrompt(false)
+        await executeCreateApplications(selectedDocIds)
+    }
+
+    // Handler: Skip documents, create applications without them
+    const handleSkipDocuments = async () => {
+        setShowDocumentPrompt(false)
+        setSelectedDocIds([])
+        await executeCreateApplications([])
+    }
+
+    // Handler: Go back from document prompt
+    const handleBackFromDocuments = () => {
+        setShowDocumentPrompt(false)
     }
 
     // =========================================================================
@@ -709,8 +798,28 @@ export function ClientCalculatorView() {
         setSelectedOffers(new Set())
     }
 
-    // Handle create application - REAL API INTEGRATION
+    // Handle create application - shows document prompt first
     const handleCreateApplication = async () => {
+        if (selectedOffers.size === 0) {
+            toast.error("Выберите хотя бы одно предложение")
+            return
+        }
+
+        // Check if client has a company
+        if (!company) {
+            toast.error("Сначала создайте компанию в профиле")
+            return
+        }
+
+        // Match documents and show prompt
+        const matched = matchDocumentsToRequired()
+        setDocumentPromptData(matched)
+        setSelectedDocIds(matched.autoSelectedIds) // Auto-select matching docs
+        setShowDocumentPrompt(true)
+    }
+
+    // Execute create applications with document IDs - REAL API INTEGRATION
+    const executeCreateApplications = async (documentIds: number[]) => {
         if (selectedOffers.size === 0) {
             toast.error("Выберите хотя бы одно предложение")
             return
@@ -922,6 +1031,7 @@ export function ClientCalculatorView() {
                     insurance_category: showResults === "insurance" ? (INSURANCE_CATEGORY_TO_BACKEND[insuranceCategory] || undefined) : undefined,
                     insurance_product_type: showResults === "insurance" ? (INSURANCE_PRODUCT_TO_BACKEND[insuranceProduct] || undefined) : undefined,
                     contractor_inn: showResults === "factoring" ? (customerInn || undefined) : undefined,
+                    document_ids: documentIds.length > 0 ? documentIds : undefined,
                 }
 
                 const result = await createApplication(payload as Parameters<typeof createApplication>[0])
@@ -1161,6 +1271,256 @@ export function ClientCalculatorView() {
     // =============================================================================
     // RESULTS VIEWS
     // =============================================================================
+
+    // Document Prompt View - Professional 3-column layout
+    const DocumentPromptView = () => {
+        const { allDocuments, missingRequired } = documentPromptData
+        const productType = getProductTypeForDocs()
+        const requiredDocs = getRequiredDocumentsForProduct(productType)
+        const hasDocuments = allDocuments.length > 0
+        const selectedCount = selectedDocIds.length
+        
+        // Get selected banks from calculatedOffers
+        const selectedBanksList = Array.from(selectedOffers).map(idx => calculatedOffers.approved[idx]).filter(Boolean)
+
+        // Helper to get proper document name
+        const getDocName = (doc: DocumentListItem): string => {
+            // If type_display exists and is not "Документ (ID: X)", use it
+            if (doc.type_display && !doc.type_display.startsWith("Документ (ID:")) {
+                return doc.type_display
+            }
+            // Try to get name from document-types mapping
+            const mappedName = getDocumentTypeName(doc.document_type_id, productType)
+            if (mappedName && !mappedName.startsWith("Документ (ID:")) {
+                return mappedName
+            }
+            // Fallback to file name
+            return doc.name
+        }
+
+        // Handle document selection without scroll jump
+        const handleDocToggle = (docId: number) => {
+            // Use setTimeout to prevent scroll jump
+            setTimeout(() => {
+                toggleDocSelection(docId)
+            }, 0)
+        }
+
+        return (
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="sm" onClick={handleBackFromDocuments}>
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Назад
+                        </Button>
+                        <div>
+                            <h2 className="text-xl font-bold">Прикрепление документов</h2>
+                            <p className="text-sm text-muted-foreground">Выберите документы для заявки</p>
+                        </div>
+                    </div>
+                    <Badge variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]/50">
+                        Выбрано: {selectedCount}
+                    </Badge>
+                </div>
+
+                {/* Three Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* LEFT: Required Documents for Product */}
+                    <Card className="border-amber-500/30 bg-amber-500/5">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-amber-500" />
+                                <CardTitle className="text-sm font-semibold text-amber-400">
+                                    Рекомендованные документы
+                                </CardTitle>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Для {activeTab === "bg" ? "БГ" : activeTab === "kik" ? "КИК" : activeTab === "tz" ? "Тендерного займа" : "продукта"}
+                            </p>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                                {requiredDocs.map((doc) => {
+                                    // Check if user has this document
+                                    const userDoc = allDocuments.find(d => d.document_type_id === doc.id)
+                                    const isUploaded = Boolean(userDoc)
+                                    const isSelected = userDoc ? selectedDocIds.includes(userDoc.id) : false
+                                    
+                                    // Get proper name (not ID)
+                                    const displayName = doc.name.startsWith("Документ (ID:") 
+                                        ? getDocumentTypeName(doc.id, productType) 
+                                        : doc.name
+                                    
+                                    return (
+                                        <div 
+                                            key={doc.id}
+                                            className={cn(
+                                                "flex items-center gap-2 px-2.5 py-2 rounded-md text-sm",
+                                                isUploaded 
+                                                    ? isSelected 
+                                                        ? "bg-green-500/20 text-green-300" 
+                                                        : "bg-muted/30 text-muted-foreground"
+                                                    : "bg-red-500/10 text-red-400"
+                                            )}
+                                        >
+                                            {isUploaded ? (
+                                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                            ) : (
+                                                <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                                            )}
+                                            <span className="truncate flex-1">{displayName}</span>
+                                            {isSelected && (
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-400 border-green-500/50">
+                                                    выбран
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                                {requiredDocs.length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-4">
+                                        Нет рекомендаций
+                                    </p>
+                                )}
+                            </div>
+                            {missingRequired.length > 0 && (
+                                <div className="mt-3 pt-3 border-t border-amber-500/20">
+                                    <p className="text-xs text-amber-400">
+                                        Не загружено: {missingRequired.length} из {requiredDocs.length}
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* CENTER: User's Documents (selectable) */}
+                    <Card className="border-[#3CE8D1]/30">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-[#3CE8D1]" />
+                                <CardTitle className="text-sm font-semibold">Ваши документы</CardTitle>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {hasDocuments ? `${allDocuments.length} загружено` : "Нет документов"}
+                            </p>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            {hasDocuments ? (
+                                <div className="space-y-1 max-h-[300px] overflow-y-auto">
+                                    {allDocuments.map((doc) => {
+                                        const isSelected = selectedDocIds.includes(doc.id)
+                                        const docName = getDocName(doc)
+                                        
+                                        return (
+                                            <div
+                                                key={doc.id}
+                                                onClick={() => handleDocToggle(doc.id)}
+                                                className={cn(
+                                                    "flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-all select-none",
+                                                    isSelected 
+                                                        ? "bg-[#3CE8D1]/15 border border-[#3CE8D1]/40" 
+                                                        : "hover:bg-muted/40 border border-transparent"
+                                                )}
+                                            >
+                                                <div 
+                                                    className={cn(
+                                                        "h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                                                        isSelected 
+                                                            ? "bg-[#3CE8D1] border-[#3CE8D1]" 
+                                                            : "border-muted-foreground/50"
+                                                    )}
+                                                >
+                                                    {isSelected && (
+                                                        <CheckCircle2 className="h-3 w-3 text-[#0a1628]" />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate">{docName}</p>
+                                                    <p className="text-[10px] text-muted-foreground truncate">{doc.name}</p>
+                                                </div>
+                                                {isSelected && (
+                                                    <CheckCircle2 className="h-4 w-4 text-[#3CE8D1] shrink-0" />
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 text-center">
+                                    <FileText className="h-10 w-10 text-muted-foreground/30 mb-2" />
+                                    <p className="text-sm text-muted-foreground">Документы не загружены</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Можно добавить позже в разделе "Документы"
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* RIGHT: Selected Banks */}
+                    <Card className="border-blue-500/30 bg-blue-500/5">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-blue-400" />
+                                <CardTitle className="text-sm font-semibold text-blue-300">
+                                    Выбранные банки
+                                </CardTitle>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {selectedBanksList.length} {selectedBanksList.length === 1 ? "банк" : selectedBanksList.length < 5 ? "банка" : "банков"}
+                            </p>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+                                {selectedBanksList.map((bank, idx) => (
+                                    <div 
+                                        key={idx}
+                                        className="flex items-center gap-2 px-2.5 py-2 rounded-md bg-blue-500/10"
+                                    >
+                                        <Building2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                                        <span className="text-sm truncate flex-1">{bank.name}</span>
+                                        {bank.individual && (
+                                            <Badge className="bg-[#3CE8D1] text-[#0a1628] text-[10px] px-1.5 py-0">
+                                                Инд.
+                                            </Badge>
+                                        )}
+                                    </div>
+                                ))}
+                                {selectedBanksList.length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-center py-4">
+                                        Банки не выбраны
+                                    </p>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Bottom Action Bar - Single button */}
+                <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                    <button
+                        onClick={handleSkipDocuments}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        Пропустить документы
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground">
+                            Выбрано документов: <span className="text-[#3CE8D1] font-semibold">{selectedCount}</span>
+                        </span>
+                        <Button
+                            onClick={handleProceedWithDocuments}
+                            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-semibold px-6"
+                        >
+                            {selectedCount > 0 ? `Создать заявку (${selectedCount})` : "Создать без документов"}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     // TZ Results (now uses calculatedOffers)
     const TZResultsView = () => (
@@ -1517,6 +1877,9 @@ export function ClientCalculatorView() {
             </div>
         </div>
     )
+
+    // Show document prompt if active
+    if (showDocumentPrompt) return <DocumentPromptView />
 
     // Show results if calculated
     if (showResults === "tz") return <TZResultsView />

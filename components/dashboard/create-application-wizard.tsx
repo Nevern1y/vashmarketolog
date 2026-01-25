@@ -140,7 +140,8 @@ const leasingTypes = [
 import {
   getAgentUploadableTypes,
   getDocumentTypeName,
-  isDocumentRequired
+  isDocumentRequired,
+  getRequiredDocumentsForProduct
 } from "@/lib/document-types"
 
 export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSuccess }: CreateApplicationWizardProps) {
@@ -259,6 +260,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
   const [isAddClientOpen, setIsAddClientOpen] = useState(false)
   const initialClientSet = useRef(false)
   const documentAutoSelectDone = useRef(false) // Track if auto-selection was done
+
+  // NEW: State for smart document prompt (Step 3.5)
+  const [showDocumentPrompt, setShowDocumentPrompt] = useState(false)
+  const [autoMatchedDocs, setAutoMatchedDocs] = useState<{
+    found: Array<{ id: number; name: string; document_type_id: number }>
+    missing: Array<{ id: number; name: string }>
+  }>({ found: [], missing: [] })
+  const [skipDocumentStep, setSkipDocumentStep] = useState(false)
 
   const normalizedProduct = selectedProduct === "kik"
     ? "contract_loan"
@@ -442,16 +451,34 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
       }
     }
     // Step 3 validation: Must select at least one bank
+    // After validation, show smart document prompt instead of going to Step 4
     if (currentStep === 3) {
       if (selectedBankIds.length === 0) {
         toast.error("Выберите хотя бы один банк")
         return
       }
+      // Match documents and show prompt
+      const matched = matchDocumentsToRequired()
+      setAutoMatchedDocs(matched)
+      setShowDocumentPrompt(true)
+      return // Don't advance step yet
     }
     if (currentStep < 5) setCurrentStep(currentStep + 1)
   }
 
   const handleBack = () => {
+    // If showing document prompt, go back to Step 3
+    if (showDocumentPrompt) {
+      setShowDocumentPrompt(false)
+      return
+    }
+    // If on Step 5 and we skipped Step 4, go back to Step 3 (show prompt again)
+    if (currentStep === 5 && skipDocumentStep) {
+      const matched = matchDocumentsToRequired()
+      setAutoMatchedDocs(matched)
+      setShowDocumentPrompt(true)
+      return
+    }
     if (currentStep > 1) setCurrentStep(currentStep - 1)
   }
 
@@ -1035,7 +1062,55 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     setContractExecutionPercent(0)
     setIgnoreExecutionPercent(false)
     setIgnoreExecutionPercent(false)
+    // Reset document prompt state
+    setShowDocumentPrompt(false)
+    setAutoMatchedDocs({ found: [], missing: [] })
+    setSkipDocumentStep(false)
   }
+
+  // Smart document matching: compare user's documents with required documents for product
+  const matchDocumentsToRequired = useCallback(() => {
+    const requiredDocs = getRequiredDocumentsForProduct(normalizedProduct || 'general')
+    const found: Array<{ id: number; name: string; document_type_id: number }> = []
+    const missing: Array<{ id: number; name: string }> = []
+
+    for (const req of requiredDocs) {
+      const match = filteredCompanyDocuments.find(d => d.document_type_id === req.id)
+      if (match) {
+        found.push({ id: match.id, name: match.name, document_type_id: match.document_type_id })
+      } else {
+        missing.push(req)
+      }
+    }
+    return { found, missing }
+  }, [filteredCompanyDocuments, normalizedProduct])
+
+  // Handler: Attach found documents and skip Step 4
+  const handleAttachAndContinue = useCallback(() => {
+    // Select all matched documents
+    const matchedIds = autoMatchedDocs.found.map(d => d.id)
+    setSelectedDocumentIds(prev => [...new Set([...prev, ...matchedIds])])
+    setSkipDocumentStep(true)
+    setShowDocumentPrompt(false)
+    setCurrentStep(5) // Go directly to Summary
+  }, [autoMatchedDocs.found])
+
+  // Handler: Skip documents, proceed without attaching
+  const handleSkipDocuments = useCallback(() => {
+    setSkipDocumentStep(true)
+    setShowDocumentPrompt(false)
+    setCurrentStep(5) // Go directly to Summary
+  }, [])
+
+  // Handler: Attach found documents and go to Step 4 for manual upload
+  const handleManualUpload = useCallback(() => {
+    // Select all matched documents
+    const matchedIds = autoMatchedDocs.found.map(d => d.id)
+    setSelectedDocumentIds(prev => [...new Set([...prev, ...matchedIds])])
+    setSkipDocumentStep(false)
+    setShowDocumentPrompt(false)
+    setCurrentStep(4) // Go to Documents step
+  }, [autoMatchedDocs.found])
 
   const handleCreateClient = async (data: any) => {
     try {
@@ -2216,7 +2291,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
           )}
 
           {/* Step 3: Bank Selection (WAVE 1 - NEW) */}
-          {currentStep === 3 && (
+          {currentStep === 3 && !showDocumentPrompt && (
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
@@ -2382,6 +2457,122 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
               </p>
             </div>
           )
+          }
+
+          {/* Document Prompt (shown after Step 3, before Step 4) */}
+          {
+            currentStep === 3 && showDocumentPrompt && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3CE8D1]/10">
+                    <FileCheck className="h-5 w-5 text-[#3CE8D1]" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Документы для заявки</h2>
+                    <p className="text-xs text-muted-foreground">
+                      Проверьте наличие необходимых документов
+                    </p>
+                  </div>
+                </div>
+
+                {/* Found Documents */}
+                {autoMatchedDocs.found.length > 0 && (
+                  <div className="rounded-lg border border-[#3CE8D1]/30 bg-[#3CE8D1]/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-[#3CE8D1]">
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        Найдено документов: {autoMatchedDocs.found.length}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 pl-6">
+                      {autoMatchedDocs.found.map((doc) => (
+                        <div key={doc.id} className="flex items-center gap-2 text-sm">
+                          <File className="h-3.5 w-3.5 text-[#3CE8D1]" />
+                          <span className="truncate">{doc.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Missing Documents */}
+                {autoMatchedDocs.missing.length > 0 && (
+                  <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-yellow-500">
+                      <AlertCircle className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        Не найдено: {autoMatchedDocs.missing.length}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5 pl-6">
+                      {autoMatchedDocs.missing.map((doc) => (
+                        <div key={doc.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <FileText className="h-3.5 w-3.5 text-yellow-500/70" />
+                          <span className="truncate">{doc.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-6">
+                      Вы сможете загрузить недостающие документы позже
+                    </p>
+                  </div>
+                )}
+
+                {/* All documents found - success message */}
+                {autoMatchedDocs.found.length > 0 && autoMatchedDocs.missing.length === 0 && (
+                  <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-3">
+                    <p className="text-sm text-[#3CE8D1] font-medium flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Все обязательные документы найдены!
+                    </p>
+                  </div>
+                )}
+
+                {/* No documents found at all */}
+                {autoMatchedDocs.found.length === 0 && autoMatchedDocs.missing.length === 0 && (
+                  <div className="rounded-lg bg-muted/50 p-4 text-center">
+                    <FileText className="h-10 w-10 mx-auto mb-2 text-muted-foreground/50" />
+                    <p className="text-sm text-muted-foreground">
+                      Документы для этого типа продукта не требуются
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-2 pt-2">
+                  {autoMatchedDocs.found.length > 0 && (
+                    <Button
+                      onClick={handleAttachAndContinue}
+                      className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] h-10 font-semibold"
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Прикрепить найденные и продолжить
+                    </Button>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleSkipDocuments}
+                      className="border-border bg-transparent h-10"
+                    >
+                      Добавить позже
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleManualUpload}
+                      className="border-[#3CE8D1]/50 text-[#3CE8D1] hover:bg-[#3CE8D1]/10 h-10"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Загрузить вручную
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-muted-foreground text-center">
+                  Документы можно добавить и после создания заявки в её карточке
+                </p>
+              </div>
+            )
           }
 
           {/* Step 4: Documents */}
@@ -2653,7 +2844,8 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
           }
         </div >
 
-        {/* Footer Navigation */}
+        {/* Footer Navigation - hidden when document prompt is showing */}
+        {!showDocumentPrompt && (
         < div className="flex items-center justify-between border-t border-border px-4 md:px-6 py-3 md:py-4 sticky bottom-0 bg-card z-20" >
           <Button
             variant="outline"
@@ -2694,6 +2886,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
             )
           }
         </div >
+        )}
       </div >
       <AddClientModal
         isOpen={isAddClientOpen}

@@ -200,7 +200,7 @@ function DataSection({ title, icon: Icon, children }: {
                 {Icon && <Icon className="h-4 w-4 text-[#3CE8D1]" />}
                 {title}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-1 pl-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-x-4 gap-y-1 pl-1">
                 {children}
             </div>
         </div>
@@ -746,7 +746,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                     <div className="flex flex-col sm:flex-row gap-3">
                         {/* Search */}
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                             <Input
                                 placeholder="Поиск по ID, компании, ИНН, агенту, тендеру..."
                                 value={searchQuery}
@@ -801,10 +801,10 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                             <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[60px]">#</th>
                                             <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[200px]">Компания</th>
                                             <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">Продукт</th>
-                                            <th className="hidden xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Закон</th>
-                                            <th className="hidden xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">МФО/Банк</th>
+                                            <th className="hidden 2xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Закон</th>
+                                            <th className="hidden 2xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">МФО/Банк</th>
                                             <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Сумма</th>
-                                            <th className="hidden xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[150px]">Создатель</th>
+                                            <th className="hidden 2xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[150px]">Создатель</th>
                                             <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Статус</th>
                                             <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Дата</th>
                                             <th className="hidden 2xl:table-cell text-center text-xs font-semibold text-muted-foreground p-4 min-w-[50px]">
@@ -857,7 +857,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 {PRODUCT_TABS.find(p => p.value === app.product_type)?.shortLabel || app.product_type}
                                                             </span>
                                                         </td>
-                                                        <td className="hidden xl:table-cell p-4">
+                                                        <td className="hidden 2xl:table-cell p-4">
                                                             {law ? (
                                                                 <Badge variant="outline" className="text-xs">
                                                                     {TENDER_LAW_LABELS[law] || law}
@@ -866,7 +866,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 <span className="text-muted-foreground">—</span>
                                                             )}
                                                         </td>
-                                                        <td className="hidden xl:table-cell p-4">
+                                                        <td className="hidden 2xl:table-cell p-4">
                                                             <span className="text-sm text-foreground">
                                                                 {app.target_bank_name || "—"}
                                                             </span>
@@ -876,7 +876,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 {formatCurrency(app.amount)} ₽
                                                             </span>
                                                         </td>
-                                                        <td className="hidden xl:table-cell p-4">
+                                                        <td className="hidden 2xl:table-cell p-4">
                                                             <div className="max-w-[150px]">
                                                                 <p className="text-sm text-foreground truncate">
                                                                     {app.created_by_name || "—"}

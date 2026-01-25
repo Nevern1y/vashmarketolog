@@ -20,7 +20,8 @@ import { ProfileSettingsView } from "@/components/dashboard/profile-settings-vie
 import { IndividualReviewView } from "@/components/dashboard/individual-review-view"
 import { AdminDashboard } from "@/components/dashboard/admin-dashboard"
 import { ApplicationDetailView } from "@/components/dashboard/application-detail-view"
-import { CreateApplicationWizard } from "@/components/dashboard/create-application-wizard"
+// НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор
+// import { CreateApplicationWizard } from "@/components/dashboard/create-application-wizard"
 import { MobileHeader } from "@/components/dashboard/mobile-header"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { HelpView } from "@/components/dashboard/help-view"
@@ -55,22 +56,28 @@ export default function DashboardPage() {
   const showingAppDetail = !!selectedApplicationId
 
   // UI states (these don't need to persist)
-  const [isWizardOpen, setIsWizardOpen] = useState(false)
-  const [wizardClientId, setWizardClientId] = useState<number | null>(null)
+  // НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор
+  // const [isWizardOpen, setIsWizardOpen] = useState(false)
+  // const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [selectedCalculationSessionId, setSelectedCalculationSessionId] = useState<number | null>(null)
 
-  // Open wizard with optional pre-selected client
-  const openWizard = (clientId?: number) => {
-    setWizardClientId(clientId || null)
-    setIsWizardOpen(true)
+  // НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор
+  // Теперь openWizard переключает на раздел калькулятор
+  const openWizard = (_clientId?: number) => {
+    // Определяем роль и переключаем на калькулятор
+    if (user?.role === 'agent') {
+      setAgentView('calculator')
+    } else if (user?.role === 'client') {
+      setClientView('calculator')
+    }
   }
 
-  // Close wizard and reset client
-  const closeWizard = () => {
-    setIsWizardOpen(false)
-    setWizardClientId(null)
-  }
+  // НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: closeWizard больше не нужен
+  // const closeWizard = () => {
+  //   setIsWizardOpen(false)
+  //   setWizardClientId(null)
+  // }
 
   // Navigation to calculation session (root application)
   const openCalculationSession = (sessionId: number) => {
@@ -185,7 +192,8 @@ export default function DashboardPage() {
               </main>
             </div>
 
-            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+            {/* НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор */}
+            {/* <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} /> */}
           </div>
         )
       }
@@ -233,7 +241,8 @@ export default function DashboardPage() {
               </main>
             </div>
 
-            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+            {/* НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор */}
+            {/* <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} /> */}
           </div>
         )
       }
@@ -318,7 +327,8 @@ export default function DashboardPage() {
             </main>
           </div>
 
-          <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+          {/* НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор */}
+          {/* <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} /> */}
         </div>
       )
 
@@ -380,7 +390,8 @@ export default function DashboardPage() {
               </main>
             </div>
 
-            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+            {/* НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор */}
+            {/* <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} /> */}
           </div>
         )
       }
@@ -428,7 +439,8 @@ export default function DashboardPage() {
               </main>
             </div>
 
-            <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+            {/* НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор */}
+            {/* <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} /> */}
           </div>
         )
       }
@@ -497,7 +509,8 @@ export default function DashboardPage() {
             </main>
           </div>
 
-          <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} />
+          {/* НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор */}
+          {/* <CreateApplicationWizard isOpen={isWizardOpen} onClose={closeWizard} initialClientId={wizardClientId} /> */}
         </div>
       )
 
