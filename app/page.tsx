@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import type { ClientViewType, ViewType } from "@/lib/types"
+import type { ClientViewType, ViewType, AgentViewType } from "@/lib/types"
+import type { CalculatorPrefill } from "@/lib/calculator-prefill"
 import { useAuth } from "@/lib/auth-context"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
 import { Sidebar } from "@/components/dashboard/sidebar"
@@ -34,12 +35,13 @@ import { AgentCheckCounterpartyView } from "@/components/dashboard/agent-check-c
 import { AgentActsView } from "@/components/dashboard/agent-acts-view"
 import { ClientTenderSupportView } from "@/components/dashboard/client-tender-support-view"
 import { CalculationSessionView } from "@/components/dashboard/calculation-session-view"
+import { ClientDetailPage } from "@/components/dashboard/client-detail-page"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 
 // Valid view values for type safety
-const AGENT_VIEWS: ViewType[] = ["company", "applications", "clients", "banks", "calculator", "check_counterparty", "call_database", "acts", "profile-settings", "news", "help", "documents", "contract", "bank_conditions"]
+const AGENT_VIEWS: AgentViewType[] = ["company", "applications", "clients", "client_detail", "banks", "calculator", "check_counterparty", "call_database", "acts", "profile-settings", "news", "help", "documents", "contract", "bank_conditions"]
 const CLIENT_VIEWS: ClientViewType[] = ["accreditation", "company", "documents", "applications", "victories", "tender_support", "calculator", "news", "help", "profile-settings"]
 
 export default function DashboardPage() {
@@ -61,11 +63,26 @@ export default function DashboardPage() {
   // const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
   const [selectedCalculationSessionId, setSelectedCalculationSessionId] = useState<number | null>(null)
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
+  const [calculatorPrefill, setCalculatorPrefill] = useState<CalculatorPrefill | null>(null)
 
   // НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор
   // Теперь openWizard переключает на раздел калькулятор
   const openWizard = (_clientId?: number) => {
+    setCalculatorPrefill(null)
     // Определяем роль и переключаем на калькулятор
+    if (user?.role === 'agent') {
+      setAgentView('calculator')
+    } else if (user?.role === 'client') {
+      setClientView('calculator')
+    }
+  }
+
+  const openCalculatorFromApplication = (prefill: CalculatorPrefill) => {
+    setCalculatorPrefill(prefill)
+    setSelectedCalculationSessionId(null)
+    closeDetail()
+
     if (user?.role === 'agent') {
       setAgentView('calculator')
     } else if (user?.role === 'client') {
@@ -87,6 +104,17 @@ export default function DashboardPage() {
 
   const closeCalculationSession = () => {
     setSelectedCalculationSessionId(null)
+  }
+
+  // Navigation to client detail page
+  const openClientDetail = (clientId: number) => {
+    setSelectedClientId(clientId)
+    setAgentView("client_detail")
+  }
+
+  const closeClientDetail = () => {
+    setSelectedClientId(null)
+    setAgentView("clients")
   }
 
   // ========================================
@@ -237,7 +265,7 @@ export default function DashboardPage() {
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setAgentView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
-                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} />
+                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} onNavigateToCalculator={openCalculatorFromApplication} />
               </main>
             </div>
 
@@ -298,12 +326,29 @@ export default function DashboardPage() {
               )}
               {/* Agent CRM - Clients List */}
               {agentView === "clients" && (
-                <ClientsListView onCreateApplication={(clientId) => openWizard(clientId)} />
+                <ClientsListView 
+                  onCreateApplication={(clientId) => openWizard(clientId)} 
+                  onClientSelect={openClientDetail}
+                />
+              )}
+              {/* Agent CRM - Client Detail Page */}
+              {agentView === "client_detail" && selectedClientId && (
+                <ClientDetailPage
+                  clientId={selectedClientId}
+                  onBack={closeClientDetail}
+                  onApplicationClick={(appId) => openDetail(String(appId))}
+                  onCreateApplication={(clientId) => openWizard(clientId)}
+                />
               )}
               {agentView === "banks" && <AgentBanksView />}
               {agentView === "profile-settings" && <ProfileSettingsView />}
               {agentView === "victories" && <MyVictoriesView />}
-              {agentView === "calculator" && <AgentCalculatorView />}
+              {agentView === "calculator" && (
+                <AgentCalculatorView
+                  prefill={calculatorPrefill}
+                  onPrefillApplied={() => setCalculatorPrefill(null)}
+                />
+              )}
               {agentView === "check_counterparty" && <AgentCheckCounterpartyView />}
               {agentView === "acts" && <AgentActsView />}
               {agentView === "news" && <NewsView />}
@@ -319,7 +364,7 @@ export default function DashboardPage() {
                   <p className="text-muted-foreground">Раздел "Условия банков" в разработке</p>
                 </div>
               )}
-              {!["company", "accreditation", "applications", "clients", "banks", "profile-settings", "victories", "calculator", "check_counterparty", "acts", "news", "help", "documents", "contract", "bank_conditions"].includes(agentView) && (
+              {!["company", "accreditation", "applications", "clients", "client_detail", "banks", "profile-settings", "victories", "calculator", "check_counterparty", "acts", "news", "help", "documents", "contract", "bank_conditions"].includes(agentView) && (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-muted-foreground">Раздел в разработке</p>
                 </div>
@@ -435,7 +480,7 @@ export default function DashboardPage() {
               />
               <DashboardHeader onNotificationClick={(n) => n.details.applicationId && openDetail(String(n.details.applicationId))} onNavigateToSettings={() => setClientView("profile-settings")} />
               <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-6 2xl:p-8 [@media(max-height:820px)]:p-4">
-                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} />
+                <ApplicationDetailView applicationId={selectedApplicationId!} onBack={closeDetail} onNavigateToCalculationSession={openCalculationSession} onNavigateToCalculator={openCalculatorFromApplication} />
               </main>
             </div>
 
@@ -497,7 +542,12 @@ export default function DashboardPage() {
               )}
               {clientView === "victories" && <MyVictoriesView />}
               {clientView === "tender_support" && <ClientTenderSupportView />}
-              {clientView === "calculator" && <ClientCalculatorView />}
+              {clientView === "calculator" && (
+                <ClientCalculatorView
+                  prefill={calculatorPrefill}
+                  onPrefillApplied={() => setCalculatorPrefill(null)}
+                />
+              )}
               {clientView === "news" && <NewsView />}
               {clientView === "help" && <HelpView />}
               {clientView === "profile-settings" && <ProfileSettingsView />}

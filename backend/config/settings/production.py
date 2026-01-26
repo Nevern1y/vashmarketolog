@@ -25,8 +25,8 @@ EMAIL_BACKEND = os.getenv(
     'django.core.mail.backends.smtp.EmailBackend'
 )
 
-# SMTP server settings
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.yandex.ru')
+# SMTP server settings (Beget defaults)
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.beget.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '465'))
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'True').lower() == 'true'
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False').lower() == 'true'

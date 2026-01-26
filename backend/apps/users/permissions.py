@@ -71,6 +71,24 @@ class IsClientOrAgent(BasePermission):
         )
 
 
+class IsAgentOrAdmin(BasePermission):
+    """
+    Permission for AGENT or ADMIN roles.
+    Used for bank API operations (send_to_bank, sync_status) which should not be
+    accessible to clients directly.
+    
+    SECURITY: Bank submissions should only be done by agents or admins,
+    not by clients, to ensure proper review before sending to bank.
+    """
+    message = 'Доступ разрешён только для агентов и администраторов.'
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated and 
+            (request.user.role in ['agent', 'admin'] or request.user.is_superuser)
+        )
+
+
 class IsOwner(BasePermission):
     """
     Object-level permission for accessing own resources.

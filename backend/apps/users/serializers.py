@@ -124,6 +124,7 @@ class UserLoginSerializer(TokenObtainPairSerializer):
             'first_name': self.user.first_name,
             'last_name': self.user.last_name,
             'is_active': self.user.is_active,
+            'email_verified': self.user.email_verified,
             # Phase 4: Include accreditation status
             'accreditation_status': self.user.accreditation_status,
         }
@@ -149,6 +150,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'full_name',
             'avatar',
             'is_active',
+            'email_verified',
             'date_joined',
             'updated_at',
             # Phase 4: Accreditation fields
@@ -156,7 +158,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'accreditation_submitted_at',
             'accreditation_comment',
         ]
-        read_only_fields = ['id', 'email', 'role', 'is_active', 'date_joined', 'updated_at',
+        read_only_fields = ['id', 'email', 'role', 'is_active', 'email_verified', 'date_joined', 'updated_at',
                            'accreditation_status', 'accreditation_submitted_at', 'accreditation_comment']
     
     def get_full_name(self, obj):
@@ -196,6 +198,9 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
             parts = full_name.strip().split(' ', 1)
             validated_data['first_name'] = parts[0]
             validated_data['last_name'] = parts[1] if len(parts) > 1 else ''
+
+        if 'email' in validated_data and validated_data['email'] != instance.email:
+            instance.email_verified = False
         
         return super().update(instance, validated_data)
 

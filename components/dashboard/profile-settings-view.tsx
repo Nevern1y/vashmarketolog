@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
-import { authApi } from "@/lib/api"
+import api, { authApi } from "@/lib/api"
 import { useAvatar } from "@/hooks/use-avatar"
 import { formatPhoneNumber } from "@/lib/utils"
 
@@ -69,6 +69,7 @@ export function ProfileSettingsView() {
     const [profileEmail, setProfileEmail] = useState(user?.email || "")
     const [profilePhone, setProfilePhone] = useState(user?.phone || "")
     const [isSavingProfile, setIsSavingProfile] = useState(false)
+    const [isSendingVerification, setIsSendingVerification] = useState(false)
 
     // Form state for requisites
     const [bankBik, setBankBik] = useState("")
@@ -181,6 +182,27 @@ export function ProfileSettingsView() {
             toast.error(error.message || "Ошибка при смене пароля")
         } finally {
             setIsSavingPassword(false)
+        }
+    }
+
+    const isEmailVerified = Boolean(user?.email_verified)
+
+    const handleSendVerification = async () => {
+        if (!user?.email) {
+            toast.error("Email не указан")
+            return
+        }
+
+        setIsSendingVerification(true)
+        try {
+            await api.post("/auth/email/send-verification/")
+            toast.success("Письмо отправлено", {
+                description: "Проверьте почту и подтвердите email"
+            })
+        } catch (error: any) {
+            toast.error(error.message || "Не удалось отправить письмо")
+        } finally {
+            setIsSendingVerification(false)
         }
     }
 
@@ -581,6 +603,29 @@ export function ProfileSettingsView() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-medium">Подтверждение email</h4>
+                                <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="font-medium">{user?.email || "Email"}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {isEmailVerified ? "Email подтверждён" : "Email не подтверждён"}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleSendVerification}
+                                        disabled={isSendingVerification || isEmailVerified}
+                                    >
+                                        {isSendingVerification ? (
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Mail className="h-4 w-4 mr-2" />
+                                        )}
+                                        {isEmailVerified ? "Подтверждено" : "Отправить письмо"}
+                                    </Button>
+                                </div>
+                            </div>
                             <div className="space-y-4">
                                 <h4 className="text-sm font-medium">Смена пароля</h4>
                                 <div className="grid gap-4 md:grid-cols-2">

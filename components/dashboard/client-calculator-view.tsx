@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import type { CalculatorPrefill } from "@/lib/calculator-prefill"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,6 +22,7 @@ import {
     Search, Calendar, Settings
 } from "lucide-react"
 import { toast } from "sonner"
+import { getCompanyBasicsError } from "@/lib/company-basics"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany } from "@/hooks/use-companies"
@@ -79,6 +81,56 @@ const CREDIT_TYPE_MAPPING: Record<string, string> = {
     "Кредит на пополнение оборотных средств": "working_capital",
     "Корпоративный кредит": "corporate"
 }
+
+const CREDIT_TYPE_LABELS = Object.entries(CREDIT_TYPE_MAPPING).reduce<Record<string, string>>(
+    (acc, [label, value]) => {
+        acc[value] = label
+        return acc
+    },
+    {}
+)
+
+const FACTORING_TYPE_LABELS = Object.entries(FACTORING_TYPE_MAPPING).reduce<Record<string, string>>(
+    (acc, [label, value]) => {
+        acc[value] = label
+        return acc
+    },
+    {}
+)
+
+const LAW_VALUE_MAPPING: Record<string, string> = {
+    "44_fz": "44",
+    "223_fz": "223",
+    "615_pp": "615",
+    "185_fz": "185",
+    "275_fz": "275",
+    "kbg": "kbg",
+    "commercial": "kbg",
+}
+
+const TAB_BY_PRODUCT: Record<string, string> = {
+    bank_guarantee: "bg",
+    tender_loan: "tz",
+    contract_loan: "kik",
+    corporate_credit: "express",
+    factoring: "factoring",
+    leasing: "leasing",
+    insurance: "insurance",
+    ved: "ved",
+    rko: "rko",
+    special_account: "rko",
+    deposits: "deposits",
+}
+
+const parseOptionalNumber = (value?: string | number | null): number | undefined => {
+    if (value === null || value === undefined || value === "") return undefined
+    if (typeof value === "number") return Number.isFinite(value) ? value : undefined
+    const cleaned = value.replace(/\s/g, "").replace(",", ".")
+    const num = parseFloat(cleaned)
+    return isNaN(num) ? undefined : num
+}
+
+const getLawValue = (law?: string | null) => (law ? LAW_VALUE_MAPPING[law] : undefined)
 
 // Insurance categories and products per ТЗ + employer requirements
 // Backend enum values with Russian labels
@@ -326,7 +378,12 @@ const INITIAL_APPLICATIONS: RkoApplication[] = []
 // MAIN COMPONENT
 // =============================================================================
 
-export function ClientCalculatorView() {
+interface ClientCalculatorViewProps {
+    prefill?: CalculatorPrefill | null
+    onPrefillApplied?: () => void
+}
+
+export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalculatorViewProps) {
     const [activeTab, setActiveTab] = useState<string | null>(null) // null = show product cards
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showResults, setShowResults] = useState<string | null>(null)
@@ -396,6 +453,11 @@ export function ClientCalculatorView() {
     // RKO specific
     const [rkoType, setRkoType] = useState<"rko" | "specaccount">("rko")
 
+    // Deposits specific
+    const [depositAmount, setDepositAmount] = useState<number | undefined>(undefined)
+    const [depositTermMonths, setDepositTermMonths] = useState<number | undefined>(undefined)
+    const [depositType, setDepositType] = useState("term")
+
     // Unsecured loan specific
     const [fullName, setFullName] = useState("")
     const [phone, setPhone] = useState("+7")
@@ -434,14 +496,7 @@ export function ClientCalculatorView() {
     // Current calculation session ID (for linking applications to root application)
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
 
-    // Smart Document Prompt state
-    const [showDocumentPrompt, setShowDocumentPrompt] = useState(false)
-    const [documentPromptData, setDocumentPromptData] = useState<{
-        allDocuments: DocumentListItem[]
-        autoSelectedIds: number[]
-        missingRequired: Array<{ id: number; name: string }>
-    }>({ allDocuments: [], autoSelectedIds: [], missingRequired: [] })
-    const [selectedDocIds, setSelectedDocIds] = useState<number[]>([])
+    // NOTE: Smart Document Prompt removed - documents now auto-attach without user confirmation
 
     // Documents hook - load documents for client's company
     const { documents: companyDocuments, isLoading: docsLoading } = useDocuments({})
@@ -567,32 +622,8 @@ export function ClientCalculatorView() {
         return { allDocuments: allDocs, autoSelectedIds, missingRequired }
     }
 
-    // Toggle document selection
-    const toggleDocSelection = (docId: number) => {
-        setSelectedDocIds(prev => 
-            prev.includes(docId) 
-                ? prev.filter(id => id !== docId)
-                : [...prev, docId]
-        )
-    }
-
-    // Handler: Proceed to create applications with selected documents
-    const handleProceedWithDocuments = async () => {
-        setShowDocumentPrompt(false)
-        await executeCreateApplications(selectedDocIds)
-    }
-
-    // Handler: Skip documents, create applications without them
-    const handleSkipDocuments = async () => {
-        setShowDocumentPrompt(false)
-        setSelectedDocIds([])
-        await executeCreateApplications([])
-    }
-
-    // Handler: Go back from document prompt
-    const handleBackFromDocuments = () => {
-        setShowDocumentPrompt(false)
-    }
+    // NOTE: toggleDocSelection, handleProceedWithDocuments, handleSkipDocuments, handleBackFromDocuments
+    // have been removed - documents are now auto-attached without user confirmation
 
     // =========================================================================
     // FORMATTED NUMBER INPUT HELPER
@@ -642,6 +673,98 @@ export function ClientCalculatorView() {
         const num = parseFloat(cleaned)
         return isNaN(num) ? undefined : num
     }
+
+    useEffect(() => {
+        if (!prefill) return
+
+        const { application, productType } = prefill
+        const gos = application.goscontract_data || {}
+        const amountValue = parseOptionalNumber(application.amount)
+        const lawValue = getLawValue((application.tender_law as string) || (gos.law as string | undefined))
+
+        setActiveTab(TAB_BY_PRODUCT[productType] || "bg")
+        setShowResults(null)
+        setSelectedOffers(new Set())
+
+        if (amountValue !== undefined) setAmount(amountValue)
+        if (lawValue) setFederalLaw(lawValue)
+        if (gos.purchase_number || application.tender_number) {
+            setNoticeNumber((gos.purchase_number as string) || application.tender_number)
+        }
+        if (gos.lot_number) setLotNumber(gos.lot_number as string)
+
+        if (productType === "bank_guarantee" || productType === "tender_loan") {
+            setBgType(application.guarantee_type || (gos.bg_type as string) || "")
+            setDateFrom((gos.guarantee_start_date as string) || "")
+            setDateTo((gos.guarantee_end_date as string) || "")
+            setHasAdvance(Boolean(gos.has_prepayment))
+            setAdvancePercent(parseOptionalNumber(gos.advance_percent as number | undefined))
+            setHasCustomerTemplate(Boolean(gos.has_customer_template))
+        }
+
+        if (productType === "contract_loan") {
+            const contractLoanType = (gos.contract_loan_type as string | undefined) || ""
+            setKikType(contractLoanType === "credit_execution" ? "credit" : contractLoanType || "credit")
+            setContractPrice(parseOptionalNumber(gos.contract_price as string | undefined))
+            setCreditAmount(parseOptionalNumber(gos.credit_amount as string | undefined) ?? amountValue)
+            setContractDateFrom((gos.contract_start_date as string) || "")
+            setContractDateTo((gos.contract_end_date as string) || "")
+            setDateFrom((gos.credit_start_date as string) || "")
+            setDateTo((gos.credit_end_date as string) || "")
+            setCompletionPercent(parseOptionalNumber(gos.contract_execution_percent as number | undefined))
+            setIgnoreCompletion(Boolean(gos.ignore_execution_percent))
+            setHasAdvance(Boolean(gos.has_prepayment))
+            setAdvancePercent(parseOptionalNumber(gos.advance_percent as number | undefined))
+        }
+
+        if (productType === "corporate_credit") {
+            const creditLabel = CREDIT_TYPE_LABELS[application.credit_sub_type || ""]
+            if (creditLabel) setCreditType(creditLabel)
+            setDateFrom((gos.credit_start_date as string) || "")
+            setDateTo((gos.credit_end_date as string) || "")
+        }
+
+        if (productType === "factoring") {
+            const factoringLabel = FACTORING_TYPE_LABELS[application.factoring_type || (gos.factoring_type as string) || ""]
+            if (factoringLabel) setFactoringType(factoringLabel)
+            setContractType((gos.contract_type as string) || "gov")
+            setCustomerInn(application.contractor_inn || (gos.contractor_inn as string) || (gos.customer_inn as string) || "")
+            setFinancingAmount(parseOptionalNumber(gos.financing_amount as string | undefined) ?? amountValue)
+            setFinancingDate((gos.financing_date as string) || "")
+            setNmc(parseOptionalNumber(gos.nmc as string | undefined))
+            setShipmentVolume(parseOptionalNumber(gos.shipment_volume as string | undefined))
+            setPaymentDelay(parseOptionalNumber(gos.payment_delay as number | undefined))
+        }
+
+        if (productType === "leasing") {
+            setLeasingCreditType((gos.leasing_credit_type as string) || "")
+            setLeasingAmount(parseOptionalNumber(gos.leasing_amount as string | undefined) ?? amountValue)
+            setLeasingEndDate((gos.leasing_end_date as string) || "")
+        }
+
+        if (productType === "insurance") {
+            setInsuranceCategory(application.insurance_category || (gos.insurance_category as string) || "")
+            setInsuranceProduct(application.insurance_product_type || (gos.insurance_product_type as string) || "")
+            setInsuranceAmount(parseOptionalNumber(gos.insurance_amount as string | undefined) ?? amountValue)
+            setInsuranceTerm(parseOptionalNumber(gos.insurance_term_months as number | undefined) ?? application.term_months)
+        }
+
+        if (productType === "ved") {
+            setVedCurrency(application.ved_currency || (gos.currency as string) || "")
+            setVedCountry(application.ved_country || (gos.country as string) || "")
+        }
+
+        if (productType === "rko" || productType === "special_account") {
+            setRkoType(productType === "special_account" ? "specaccount" : "rko")
+        }
+
+        if (productType === "deposits") {
+            setDepositAmount(amountValue)
+            setDepositTermMonths(application.term_months || undefined)
+        }
+
+        onPrefillApplied?.()
+    }, [prefill, onPrefillApplied])
 
     // =========================================================================
     // VALIDATION FUNCTIONS
@@ -798,24 +921,31 @@ export function ClientCalculatorView() {
         setSelectedOffers(new Set())
     }
 
-    // Handle create application - shows document prompt first
+    // Handle create application - auto-attach documents and create immediately
     const handleCreateApplication = async () => {
         if (selectedOffers.size === 0) {
             toast.error("Выберите хотя бы одно предложение")
             return
         }
 
-        // Check if client has a company
-        if (!company) {
-            toast.error("Сначала создайте компанию в профиле")
+        const companyError = getCompanyBasicsError(company)
+        if (!company || companyError) {
+            toast.error(companyError || "Для создания заявки заполните ИНН и полное наименование.")
             return
         }
 
-        // Match documents and show prompt
+        // Auto-match documents from company library
         const matched = matchDocumentsToRequired()
-        setDocumentPromptData(matched)
-        setSelectedDocIds(matched.autoSelectedIds) // Auto-select matching docs
-        setShowDocumentPrompt(true)
+        
+        // Show warning if there are missing required documents
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+        
+        // Create applications immediately with auto-selected document IDs
+        await executeCreateApplications(matched.autoSelectedIds)
     }
 
     // Execute create applications with document IDs - REAL API INTEGRATION
@@ -825,9 +955,9 @@ export function ClientCalculatorView() {
             return
         }
 
-        // Check if client has a company
-        if (!company) {
-            toast.error("Сначала создайте компанию в профиле")
+        const companyError = getCompanyBasicsError(company)
+        if (!company || companyError) {
+            toast.error(companyError || "Для создания заявки заполните ИНН и полное наименование.")
             return
         }
 
@@ -1104,9 +1234,9 @@ export function ClientCalculatorView() {
 
     // Create RKO/Specaccount application - REAL API INTEGRATION
     const createRkoApplication = async (bank: string, type: "rko" | "specaccount") => {
-        // Check if client has a company
-        if (!company) {
-            toast.error("Сначала создайте компанию в профиле")
+        const companyError = getCompanyBasicsError(company)
+        if (!company || companyError) {
+            toast.error(companyError || "Для создания заявки заполните ИНН и полное наименование.")
             return
         }
 
@@ -1160,9 +1290,9 @@ export function ClientCalculatorView() {
 
     // Create VED (International Payments) application - REAL API INTEGRATION
     const createVedApplication = async (bankName?: string) => {
-        // Check if client has a company
-        if (!company) {
-            toast.error("Сначала создайте компанию в профиле")
+        const companyError = getCompanyBasicsError(company)
+        if (!company || companyError) {
+            toast.error(companyError || "Для создания заявки заполните ИНН и полное наименование.")
             return
         }
 
@@ -1272,255 +1402,7 @@ export function ClientCalculatorView() {
     // RESULTS VIEWS
     // =============================================================================
 
-    // Document Prompt View - Professional 3-column layout
-    const DocumentPromptView = () => {
-        const { allDocuments, missingRequired } = documentPromptData
-        const productType = getProductTypeForDocs()
-        const requiredDocs = getRequiredDocumentsForProduct(productType)
-        const hasDocuments = allDocuments.length > 0
-        const selectedCount = selectedDocIds.length
-        
-        // Get selected banks from calculatedOffers
-        const selectedBanksList = Array.from(selectedOffers).map(idx => calculatedOffers.approved[idx]).filter(Boolean)
-
-        // Helper to get proper document name
-        const getDocName = (doc: DocumentListItem): string => {
-            // If type_display exists and is not "Документ (ID: X)", use it
-            if (doc.type_display && !doc.type_display.startsWith("Документ (ID:")) {
-                return doc.type_display
-            }
-            // Try to get name from document-types mapping
-            const mappedName = getDocumentTypeName(doc.document_type_id, productType)
-            if (mappedName && !mappedName.startsWith("Документ (ID:")) {
-                return mappedName
-            }
-            // Fallback to file name
-            return doc.name
-        }
-
-        // Handle document selection without scroll jump
-        const handleDocToggle = (docId: number) => {
-            // Use setTimeout to prevent scroll jump
-            setTimeout(() => {
-                toggleDocSelection(docId)
-            }, 0)
-        }
-
-        return (
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="sm" onClick={handleBackFromDocuments}>
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Назад
-                        </Button>
-                        <div>
-                            <h2 className="text-xl font-bold">Прикрепление документов</h2>
-                            <p className="text-sm text-muted-foreground">Выберите документы для заявки</p>
-                        </div>
-                    </div>
-                    <Badge variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]/50">
-                        Выбрано: {selectedCount}
-                    </Badge>
-                </div>
-
-                {/* Three Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    {/* LEFT: Required Documents for Product */}
-                    <Card className="border-amber-500/30 bg-amber-500/5">
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4 text-amber-500" />
-                                <CardTitle className="text-sm font-semibold text-amber-400">
-                                    Рекомендованные документы
-                                </CardTitle>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Для {activeTab === "bg" ? "БГ" : activeTab === "kik" ? "КИК" : activeTab === "tz" ? "Тендерного займа" : "продукта"}
-                            </p>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-                                {requiredDocs.map((doc) => {
-                                    // Check if user has this document
-                                    const userDoc = allDocuments.find(d => d.document_type_id === doc.id)
-                                    const isUploaded = Boolean(userDoc)
-                                    const isSelected = userDoc ? selectedDocIds.includes(userDoc.id) : false
-                                    
-                                    // Get proper name (not ID)
-                                    const displayName = doc.name.startsWith("Документ (ID:") 
-                                        ? getDocumentTypeName(doc.id, productType) 
-                                        : doc.name
-                                    
-                                    return (
-                                        <div 
-                                            key={doc.id}
-                                            className={cn(
-                                                "flex items-center gap-2 px-2.5 py-2 rounded-md text-sm",
-                                                isUploaded 
-                                                    ? isSelected 
-                                                        ? "bg-green-500/20 text-green-300" 
-                                                        : "bg-muted/30 text-muted-foreground"
-                                                    : "bg-red-500/10 text-red-400"
-                                            )}
-                                        >
-                                            {isUploaded ? (
-                                                <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
-                                            ) : (
-                                                <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                                            )}
-                                            <span className="truncate flex-1">{displayName}</span>
-                                            {isSelected && (
-                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-green-400 border-green-500/50">
-                                                    выбран
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                                {requiredDocs.length === 0 && (
-                                    <p className="text-xs text-muted-foreground text-center py-4">
-                                        Нет рекомендаций
-                                    </p>
-                                )}
-                            </div>
-                            {missingRequired.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-amber-500/20">
-                                    <p className="text-xs text-amber-400">
-                                        Не загружено: {missingRequired.length} из {requiredDocs.length}
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* CENTER: User's Documents (selectable) */}
-                    <Card className="border-[#3CE8D1]/30">
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-[#3CE8D1]" />
-                                <CardTitle className="text-sm font-semibold">Ваши документы</CardTitle>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {hasDocuments ? `${allDocuments.length} загружено` : "Нет документов"}
-                            </p>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            {hasDocuments ? (
-                                <div className="space-y-1 max-h-[300px] overflow-y-auto">
-                                    {allDocuments.map((doc) => {
-                                        const isSelected = selectedDocIds.includes(doc.id)
-                                        const docName = getDocName(doc)
-                                        
-                                        return (
-                                            <div
-                                                key={doc.id}
-                                                onClick={() => handleDocToggle(doc.id)}
-                                                className={cn(
-                                                    "flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-all select-none",
-                                                    isSelected 
-                                                        ? "bg-[#3CE8D1]/15 border border-[#3CE8D1]/40" 
-                                                        : "hover:bg-muted/40 border border-transparent"
-                                                )}
-                                            >
-                                                <div 
-                                                    className={cn(
-                                                        "h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-                                                        isSelected 
-                                                            ? "bg-[#3CE8D1] border-[#3CE8D1]" 
-                                                            : "border-muted-foreground/50"
-                                                    )}
-                                                >
-                                                    {isSelected && (
-                                                        <CheckCircle2 className="h-3 w-3 text-[#0a1628]" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium truncate">{docName}</p>
-                                                    <p className="text-[10px] text-muted-foreground truncate">{doc.name}</p>
-                                                </div>
-                                                {isSelected && (
-                                                    <CheckCircle2 className="h-4 w-4 text-[#3CE8D1] shrink-0" />
-                                                )}
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-8 text-center">
-                                    <FileText className="h-10 w-10 text-muted-foreground/30 mb-2" />
-                                    <p className="text-sm text-muted-foreground">Документы не загружены</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Можно добавить позже в разделе "Документы"
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* RIGHT: Selected Banks */}
-                    <Card className="border-blue-500/30 bg-blue-500/5">
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center gap-2">
-                                <Building2 className="h-4 w-4 text-blue-400" />
-                                <CardTitle className="text-sm font-semibold text-blue-300">
-                                    Выбранные банки
-                                </CardTitle>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                {selectedBanksList.length} {selectedBanksList.length === 1 ? "банк" : selectedBanksList.length < 5 ? "банка" : "банков"}
-                            </p>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-                                {selectedBanksList.map((bank, idx) => (
-                                    <div 
-                                        key={idx}
-                                        className="flex items-center gap-2 px-2.5 py-2 rounded-md bg-blue-500/10"
-                                    >
-                                        <Building2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                                        <span className="text-sm truncate flex-1">{bank.name}</span>
-                                        {bank.individual && (
-                                            <Badge className="bg-[#3CE8D1] text-[#0a1628] text-[10px] px-1.5 py-0">
-                                                Инд.
-                                            </Badge>
-                                        )}
-                                    </div>
-                                ))}
-                                {selectedBanksList.length === 0 && (
-                                    <p className="text-xs text-muted-foreground text-center py-4">
-                                        Банки не выбраны
-                                    </p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Bottom Action Bar - Single button */}
-                <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                    <button
-                        onClick={handleSkipDocuments}
-                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        Пропустить документы
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground">
-                            Выбрано документов: <span className="text-[#3CE8D1] font-semibold">{selectedCount}</span>
-                        </span>
-                        <Button
-                            onClick={handleProceedWithDocuments}
-                            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-semibold px-6"
-                        >
-                            {selectedCount > 0 ? `Создать заявку (${selectedCount})` : "Создать без документов"}
-                        </Button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
+    // NOTE: DocumentPromptView removed - documents are now auto-attached without user confirmation
 
     // TZ Results (now uses calculatedOffers)
     const TZResultsView = () => (
@@ -1878,8 +1760,8 @@ export function ClientCalculatorView() {
         </div>
     )
 
-    // Show document prompt if active
-    if (showDocumentPrompt) return <DocumentPromptView />
+    // NOTE: DocumentPromptView removed - documents auto-attach now
+    // if (showDocumentPrompt) return <DocumentPromptView />
 
     // Show results if calculated
     if (showResults === "tz") return <TZResultsView />
@@ -3210,16 +3092,29 @@ export function ClientCalculatorView() {
                         <CardContent className="space-y-6 pt-6">
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium">Сумма размещения, ₽ *</Label>
-                                <Input type="text" inputMode="decimal" placeholder="10 000 000" className="text-lg" />
+                                <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={formatInputNumber(depositAmount)}
+                                    onChange={e => setDepositAmount(parseInputNumber(e.target.value))}
+                                    placeholder="10 000 000"
+                                    className="text-lg"
+                                />
                             </div>
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-medium">Срок размещения (дней)</Label>
-                                    <Input type="text" inputMode="numeric" placeholder="90" />
+                                    <Label className="text-sm font-medium">Срок размещения (мес.)</Label>
+                                    <Input
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={formatInputNumber(depositTermMonths)}
+                                        onChange={e => setDepositTermMonths(parseInputNumber(e.target.value))}
+                                        placeholder="3"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm font-medium">Тип депозита</Label>
-                                    <Select>
+                                    <Select value={depositType} onValueChange={setDepositType}>
                                         <SelectTrigger><SelectValue placeholder="Выберите тип" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="term">Срочный депозит</SelectItem>

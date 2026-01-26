@@ -132,6 +132,7 @@ const TENDER_LAW_LABELS: Record<string, string> = {
     "223_fz": "223-ФЗ",
     "615_pp": "615-ПП",
     "185_fz": "185-ФЗ",
+    "275_fz": "275-ФЗ",
     kbg: "КБГ",
     commercial: "Коммерческий",
 }
@@ -187,6 +188,9 @@ const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
 }
 
 const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
+    express: "Экспресс-кредит",
+    working_capital: "Кредит на пополнение оборотных средств",
+    corporate: "Корпоративный кредит",
     one_time_credit: "Разовый кредит",
     non_revolving_line: "Невозобновляемая КЛ",
     revolving_line: "Возобновляемая КЛ",
@@ -198,6 +202,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     rko_basic: "РКО Базовый",
     rko_premium: "РКО Премиум",
     rko_business: "РКО Бизнес",
+    specaccount: "Спецсчёт",
     special: "Спецсчёт",
     "44fz": "Спецсчет 44-ФЗ",
     "223fz": "Спецсчет 223-ФЗ",

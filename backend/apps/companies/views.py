@@ -176,12 +176,16 @@ class CRMClientViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set owner, is_crm_client, generate invitation token, and save email.
         
-        TEST MODE: If 'password' is provided in request data, create a User directly
-        instead of sending invitation email. This is for testing during deployment.
+        TEST MODE: If 'password' is provided in request data AND DEBUG=True,
+        create a User directly instead of sending invitation email.
+        This is ONLY available in development environment for testing.
+        
+        SECURITY: In production (DEBUG=False), the password parameter is ignored.
         """
         import secrets
         import logging
         from django.contrib.auth import get_user_model
+        from django.conf import settings
         
         User = get_user_model()
         logger = logging.getLogger(__name__)
@@ -192,8 +196,13 @@ class CRMClientViewSet(viewsets.ModelViewSet):
         # Get email from contact_email field
         invitation_email = serializer.validated_data.get('contact_email', '')
         
-        # Check if password is provided (TEST MODE)
-        password = self.request.data.get('password', None)
+        # Check if password is provided (TEST MODE - only in DEBUG)
+        # SECURITY: Only allow test-mode user creation in development
+        password = None
+        if settings.DEBUG:
+            password = self.request.data.get('password', None)
+        elif self.request.data.get('password'):
+            logger.warning(f"[SECURITY] Test-mode password provided in production for {invitation_email} - IGNORED")
         
         instance = serializer.save(
             owner=self.request.user,
@@ -240,7 +249,7 @@ class CRMClientViewSet(viewsets.ModelViewSet):
                 
                 # Get frontend URL from settings or use default
                 frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
-                registration_url = f"{frontend_url}/register/invited?token={invitation_token}"
+                registration_url = f"{frontend_url}/register/invited/{invitation_token}"
                 
                 # Get agent name for personalized message
                 agent_name = self.request.user.first_name or self.request.user.email
@@ -266,7 +275,7 @@ class CRMClientViewSet(viewsets.ModelViewSet):
                 send_mail(
                     subject=subject,
                     message=message,
-                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lidergarant.ru'),
+                    from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'),
                     recipient_list=[instance.invitation_email],
                     fail_silently=False,
                 )

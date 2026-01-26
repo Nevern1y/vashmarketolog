@@ -4,6 +4,7 @@ export type AgentViewType =
   | "contract"
   | "applications"
   | "clients"
+  | "client_detail"  // NEW: Full-page client detail with tabs
   | "documents"
   | "calculator"
   | "banks"
@@ -15,6 +16,9 @@ export type AgentViewType =
   | "individual_terms"
   | "news"
   | "help"
+
+// Tab types for client detail page
+export type ClientDetailTab = "applications" | "info" | "documents"
 
 export type ClientViewType =
   | "accreditation"

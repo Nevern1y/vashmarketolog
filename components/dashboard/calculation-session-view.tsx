@@ -9,8 +9,9 @@
  * from the same calculation.
  */
 
-import { useCalculationSession, useApplicationMutations, useCalculationSessionMutations, type CalculationSession } from "@/hooks/use-applications"
+import { useCalculationSession, useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useDocuments, formatDocumentType } from "@/hooks/use-documents"
+import { useCRMClient, useMyCompany } from "@/hooks/use-companies"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,8 @@ import {
 import { useState, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { useAuth } from "@/lib/auth-context"
+import { getCompanyBasicsError } from "@/lib/company-basics"
 
 interface CalculationSessionViewProps {
     sessionId: number
@@ -47,6 +50,10 @@ export function CalculationSessionView({
     const { createApplication } = useApplicationMutations()
     const { updateSubmittedBanks } = useCalculationSessionMutations()
     const { documents: companyDocuments, isLoading: documentsLoading } = useDocuments({ company: session?.company, includeUnassigned: true })
+    const { user } = useAuth()
+    const { company: myCompany } = useMyCompany()
+    const crmClientId = user?.role === "agent" ? session?.company ?? null : null
+    const { client: crmCompany } = useCRMClient(crmClientId)
     const [selectedBanks, setSelectedBanks] = useState<string[]>([])
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
@@ -73,6 +80,13 @@ export function CalculationSessionView({
 
     const handleCreateApplications = async () => {
         if (selectedBanks.length === 0 || !session) return
+
+        const guardCompany = user?.role === "agent" ? crmCompany : myCompany
+        const companyError = getCompanyBasicsError(guardCompany)
+        if (!guardCompany || companyError) {
+            toast.error(companyError || "Для создания заявки заполните ИНН и полное наименование.")
+            return
+        }
 
         setIsCreating(true)
         const successfulBankNames: string[] = []

@@ -16,7 +16,7 @@
         "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN"
       }
     },
     "redis": {
@@ -43,7 +43,7 @@
         "@getsentry/sentry-mcp"
       ],
       "env": {
-        "SENTRY_AUTH_TOKEN": "<YOUR_TOKEN>"
+        "SENTRY_AUTH_TOKEN": "YOUR_SENTRY_AUTH_TOKEN"
       }
     },
     "openapi": {
@@ -82,7 +82,9 @@
       "command": "npx",
       "args": [
         "-y",
-        "context7"
+        "@upstash/context7-mcp",
+        "--api-key",
+        "YOUR_UPSTASH_API_KEY"
       ],
       "env": {}
     },

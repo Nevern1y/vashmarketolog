@@ -70,6 +70,16 @@ function ProductInfoItem({
   )
 }
 
+const TENDER_LAW_LABELS: Record<string, string> = {
+  "44_fz": "44-ФЗ",
+  "223_fz": "223-ФЗ",
+  "615_pp": "615-ПП",
+  "185_fz": "185-ФЗ",
+  "275_fz": "275-ФЗ",
+  kbg: "КБГ (Коммерческая)",
+  commercial: "Коммерческий",
+}
+
 export function PartnerApplicationDetail({ applicationId, onBack }: PartnerApplicationDetailProps) {
   const [decisionModal, setDecisionModal] = useState<"approve" | "reject" | "request-info" | null>(null)
   const [comment, setComment] = useState("")
@@ -281,7 +291,12 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
               <div>
                 <p className="text-xs text-muted-foreground">Продукт</p>
                 <p className="font-medium">{application.product_type_display}</p>
-                <p className="text-xs text-muted-foreground">{application.tender_law || (application as any).goscontract_data?.law || "-"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(() => {
+                    const law = application.tender_law || (application as any).goscontract_data?.law
+                    return law ? (TENDER_LAW_LABELS[law] || law) : "-"
+                  })()}
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -521,11 +536,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                 <ProductInfoItem label="Срок" value={`${application.term_months} месяцев`} />
                 {application.tender_law && (
                   <ProductInfoItem label="Закон о закупках" value={
-                    application.tender_law === '44_fz' ? '44-ФЗ' :
-                      application.tender_law === '223_fz' ? '223-ФЗ' :
-                        application.tender_law === '615_pp' ? '615-ПП' :
-                          application.tender_law === 'kbg' ? 'КБГ (Коммерческая)' :
-                            application.tender_law
+                    TENDER_LAW_LABELS[application.tender_law] || application.tender_law
                   } />
                 )}
               </div>
@@ -696,11 +707,14 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                     <ProductInfoItem
                       label="Тип кредита"
                       value={
-                        (application as any).credit_sub_type === 'one_time_credit' ? 'Разовый кредит' :
-                          (application as any).credit_sub_type === 'non_revolving_line' ? 'Невозобновляемая КЛ' :
-                            (application as any).credit_sub_type === 'revolving_line' ? 'Возобновляемая КЛ' :
-                              (application as any).credit_sub_type === 'overdraft' ? 'Овердрафт' :
-                                (application as any).credit_sub_type
+                        (application as any).credit_sub_type === 'express' ? 'Экспресс-кредит' :
+                          (application as any).credit_sub_type === 'working_capital' ? 'Кредит на пополнение оборотных средств' :
+                            (application as any).credit_sub_type === 'corporate' ? 'Корпоративный кредит' :
+                              (application as any).credit_sub_type === 'one_time_credit' ? 'Разовый кредит' :
+                                (application as any).credit_sub_type === 'non_revolving_line' ? 'Невозобновляемая КЛ' :
+                                  (application as any).credit_sub_type === 'revolving_line' ? 'Возобновляемая КЛ' :
+                                    (application as any).credit_sub_type === 'overdraft' ? 'Овердрафт' :
+                                      (application as any).credit_sub_type
                       }
                     />
                   )}

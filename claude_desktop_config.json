@@ -1,5 +1,14 @@
 {
   "mcpServers": {
+    "context7": {
+      "command": "node",
+      "args": [
+        "D:\\New folder\\dashboarddesignanalysis\\node_modules\\@upstash\\context7-mcp\\dist\\index.js",
+        "--api-key",
+        "YOUR_UPSTASH_API_KEY"
+      ],
+      "env": {}
+    },
     "postgres": {
       "command": "npx",
       "args": [
@@ -8,16 +17,6 @@
         "postgresql://postgres:postgres@localhost:5432/lider_garant"
       ],
       "env": {}
-    },
-    "github": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
-      }
     },
     "redis": {
       "command": "npx",
@@ -36,21 +35,21 @@
       ],
       "env": {}
     },
-    "sentry": {
+    "github": {
       "command": "npx",
       "args": [
         "-y",
-        "@getsentry/sentry-mcp"
+        "@modelcontextprotocol/server-github"
       ],
       "env": {
-        "SENTRY_AUTH_TOKEN": "<YOUR_TOKEN>"
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PERSONAL_ACCESS_TOKEN"
       }
     },
-    "openapi": {
+    "puppeteer": {
       "command": "npx",
       "args": [
         "-y",
-        "openapi-mcp-server"
+        "@modelcontextprotocol/server-puppeteer"
       ],
       "env": {}
     },
@@ -62,14 +61,6 @@
       ],
       "env": {}
     },
-    "puppeteer": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-puppeteer"
-      ],
-      "env": {}
-    },
     "think": {
       "command": "npx",
       "args": [
@@ -78,27 +69,11 @@
       ],
       "env": {}
     },
-    "context7": {
+    "openapi": {
       "command": "npx",
       "args": [
         "-y",
-        "context7"
-      ],
-      "env": {}
-    },
-    "filestash": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "--name",
-        "filestash-mcp",
-        "-p",
-        "8334:8334",
-        "mickaelkerjean/filestash:latest",
-        "--options",
-        "provider.s3.endpoint=http://localhost:9000,provider.s3.access_key_id=minioadmin,provider.s3.secret_access_key=minioadmin,provider.s3.region=us-east-1,provider.s3.bucket=documents"
+        "openapi-mcp-server"
       ],
       "env": {}
     },

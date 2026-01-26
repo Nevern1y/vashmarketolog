@@ -82,7 +82,9 @@
       "command": "npx",
       "args": [
         "-y",
-        "context7"
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ASMLAAImcDJhYmY0NmNmYWNiOTQ0NjIyYmU1NzhjZGY3NWFmZmQ5Y3AyODk3MQ"
       ],
       "env": {}
     },

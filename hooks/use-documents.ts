@@ -10,6 +10,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api, { type ApiError } from '@/lib/api';
 import { getDocumentTypeName } from '@/lib/document-types';
+import { 
+    matchDocumentsToRequirements, 
+    autoSelectDocumentsForBanks,
+    type DocumentMatchResult 
+} from '@/lib/bank-document-requirements';
 
 // Types matching backend (updated for numeric IDs)
 export interface Document {
@@ -314,4 +319,137 @@ export function formatDocumentType(doc: DocumentListItem | Document): string {
     }
     // Fall back to client-side resolution
     return getDocumentTypeName(doc.document_type_id, doc.product_type || 'general');
+}
+
+// ============================================================================
+// AUTO-MATCH DOCUMENTS HOOK
+// ============================================================================
+
+export interface UseAutoMatchDocumentsParams {
+    companyId: number | null
+    bankIds: string[]
+    productType: string
+}
+
+export interface UseAutoMatchDocumentsResult {
+    /** Documents automatically selected for the banks */
+    selectedDocuments: DocumentListItem[]
+    /** Coverage results per bank */
+    bankCoverage: Map<string, DocumentMatchResult>
+    /** Overall readiness (all banks have 100% coverage) */
+    isFullyReady: boolean
+    /** Minimum coverage across all banks */
+    minCoveragePercent: number
+    /** Loading state */
+    isLoading: boolean
+    /** Error message */
+    error: string | null
+    /** Refresh documents */
+    refetch: () => void
+}
+
+/**
+ * Hook for auto-matching company documents to bank requirements.
+ * 
+ * Usage:
+ * ```tsx
+ * const { selectedDocuments, bankCoverage, isFullyReady } = useAutoMatchDocuments({
+ *   companyId: 123,
+ *   bankIds: ['sber', 'vtb'],
+ *   productType: 'bank_guarantee'
+ * })
+ * ```
+ */
+export function useAutoMatchDocuments({
+    companyId,
+    bankIds,
+    productType,
+}: UseAutoMatchDocumentsParams): UseAutoMatchDocumentsResult {
+    const [selectedDocuments, setSelectedDocuments] = useState<DocumentListItem[]>([])
+    const [bankCoverage, setBankCoverage] = useState<Map<string, DocumentMatchResult>>(new Map())
+    const [isFullyReady, setIsFullyReady] = useState(false)
+    const [minCoveragePercent, setMinCoveragePercent] = useState(0)
+
+    // Fetch company documents
+    const { documents, isLoading, error, refetch } = useDocuments(
+        companyId ? { company: companyId } : undefined
+    )
+
+    // Auto-match when documents or bank selection changes
+    useEffect(() => {
+        if (!companyId || bankIds.length === 0 || documents.length === 0) {
+            setSelectedDocuments([])
+            setBankCoverage(new Map())
+            setIsFullyReady(false)
+            setMinCoveragePercent(0)
+            return
+        }
+
+        const { selectedDocuments: matched, bankCoverage: coverage } = autoSelectDocumentsForBanks(
+            documents,
+            bankIds,
+            productType
+        )
+
+        setSelectedDocuments(matched)
+        setBankCoverage(coverage)
+
+        // Calculate minimum coverage and readiness
+        let minCoverage = 100
+        let allReady = true
+
+        coverage.forEach((result) => {
+            if (result.coveragePercent < minCoverage) {
+                minCoverage = result.coveragePercent
+            }
+            if (result.coveragePercent < 100) {
+                allReady = false
+            }
+        })
+
+        setMinCoveragePercent(minCoverage)
+        setIsFullyReady(allReady)
+    }, [companyId, bankIds, productType, documents])
+
+    return {
+        selectedDocuments,
+        bankCoverage,
+        isFullyReady,
+        minCoveragePercent,
+        isLoading,
+        error,
+        refetch,
+    }
+}
+
+/**
+ * Hook for checking single bank document requirements.
+ * Simplified version for displaying coverage on bank cards.
+ */
+export function useBankDocumentCoverage(
+    companyId: number | null,
+    bankId: string,
+    productType: string
+): {
+    coverage: DocumentMatchResult | null
+    isLoading: boolean
+    error: string | null
+} {
+    const [coverage, setCoverage] = useState<DocumentMatchResult | null>(null)
+
+    const { documents, isLoading, error } = useDocuments(
+        companyId ? { company: companyId } : undefined
+    )
+
+    useEffect(() => {
+        if (!companyId || !bankId || documents.length === 0) {
+            setCoverage(null)
+            return
+        }
+
+        const result = matchDocumentsToRequirements(documents, bankId, productType)
+        setCoverage(result)
+    }, [companyId, bankId, productType, documents])
+
+    return { coverage, isLoading, error }
 }

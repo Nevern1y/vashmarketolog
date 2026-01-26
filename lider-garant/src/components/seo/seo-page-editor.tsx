@@ -29,9 +29,17 @@ export interface FaqItem {
     answer: string
 }
 
+// Popular search item - normalized format from backend
+export interface PopularSearchItem {
+    text: string
+    href: string
+}
+
 export interface BankOffer {
-    bank_name: string
-    rate?: string
+    bank_id?: number
+    bank_name?: string
+    custom_rate?: string  // Backend field name
+    rate?: string         // UI field name (normalized to custom_rate)
     custom_text?: string
 }
 
@@ -51,7 +59,7 @@ export interface SeoPage {
     is_published: boolean
     priority: number
     faq: FaqItem[]
-    popular_searches: string[]
+    popular_searches: PopularSearchItem[]  // Fixed: was string[], now object[]
     bank_offers: BankOffer[]
 }
 
@@ -267,9 +275,11 @@ export function SeoPageEditor({
     // Popular Searches Management
     const addSearchTerm = () => {
         if (newSearchTerm.trim()) {
+            // Create PopularSearchItem object
+            const newItem: PopularSearchItem = { text: newSearchTerm.trim(), href: '#' }
             setFormData({
                 ...formData,
-                popular_searches: [...(formData.popular_searches || []), newSearchTerm.trim()]
+                popular_searches: [...(formData.popular_searches || []), newItem]
             })
             setNewSearchTerm("")
         }
@@ -309,6 +319,8 @@ export function SeoPageEditor({
         if (!templateName || templateName === 'none' || !TEMPLATE_DATA[templateName]) return
 
         const template = TEMPLATE_DATA[templateName]
+        // Convert string[] searches to PopularSearchItem[]
+        const normalizedSearches: PopularSearchItem[] = template.searches.map(s => ({ text: s, href: '#' }))
         setFormData({
             ...formData,
             meta_title: template.meta_title,
@@ -316,7 +328,7 @@ export function SeoPageEditor({
             h1_title: template.h1_title,
             main_description: template.main_description,
             faq: template.faqs,
-            popular_searches: template.searches,
+            popular_searches: normalizedSearches,
         })
     }
 
@@ -610,7 +622,7 @@ export function SeoPageEditor({
                                         ) : (
                                             (formData.popular_searches || []).map((term, idx) => (
                                                 <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30">
-                                                    {term}
+                                                    {term.text}
                                                     <button
                                                         type="button"
                                                         onClick={() => removeSearchTerm(idx)}

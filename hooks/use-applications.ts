@@ -366,6 +366,7 @@ export interface CalculationSession {
 
 export interface ApplicationListItem {
     id: number;
+    company: number;  // Company ID for filtering
     company_name: string;
     company_inn?: string;
     product_type: string;
@@ -403,8 +404,46 @@ export interface CreateApplicationPayload {
     tender_number?: string;
     tender_platform?: string;
     tender_deadline?: string;
+    tender_law?: string;  // Federal law (44_fz, 223_fz, etc.)
+    guarantee_type?: string;  // BG type
+    credit_sub_type?: string;
+    financing_term_days?: number;
+    pledge_description?: string;
+    insurance_category?: string;
+    insurance_product_type?: string;
+    factoring_type?: string;
+    contractor_inn?: string;
+    ved_currency?: string;
+    ved_country?: string;
+    tender_support_type?: string;
+    purchase_category?: string;
+    industry?: string;
+    account_type?: string;
     notes?: string;
     document_ids?: number[];
+    // Structured JSON data for product-specific fields
+    goscontract_data?: {
+        purchase_number?: string;
+        lot_number?: string;
+        law?: string;
+        bg_type?: string;
+        guarantee_start_date?: string;
+        guarantee_end_date?: string;
+        has_prepayment?: boolean;
+        advance_percent?: number;
+        has_customer_template?: boolean;
+        beneficiary_name?: string;
+        beneficiary_inn?: string;
+        // КИК fields
+        contract_loan_type?: string;
+        contract_price?: string;
+        credit_amount?: string;
+        contract_start_date?: string;
+        contract_end_date?: string;
+        credit_start_date?: string;
+        credit_end_date?: string;
+        [key: string]: unknown;
+    };
 }
 
 export interface PaginatedResponse<T> {
@@ -602,6 +641,7 @@ export function useApplication(id: number | string | null, pollingInterval: numb
         application,
         isLoading,
         error,
+        setApplication,
         refetch,
         startPolling,
         stopPolling,

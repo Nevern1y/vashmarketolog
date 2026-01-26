@@ -43,13 +43,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
     }
 
+    const canonicalPath = `/${slug}`;
+    
     return {
         title: page.meta_title || page.h1_title,
         description: page.meta_description,
         keywords: page.meta_keywords,
+        alternates: {
+            canonical: canonicalPath,
+        },
         openGraph: {
             title: page.meta_title || page.h1_title,
             description: page.meta_description,
+            url: canonicalPath,
+            type: "article",
         },
     };
 }
@@ -115,16 +122,16 @@ export default async function DynamicSeoPage({ params }: Props) {
                             <span className="text-[#3ce8d1]">🏦</span> Предложения банков
                         </h2>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {bankOffers.map((offer: { bank_name: string; rate?: string; custom_text?: string }, idx: number) => (
+                            {bankOffers.map((offer: { bank_name?: string; bank_id?: number; custom_rate?: string; rate?: string; custom_text?: string }, idx: number) => (
                                 <div
                                     key={idx}
                                     className="p-5 rounded-xl bg-white/5 border border-white/10 hover:border-[#3ce8d1]/50 transition-colors"
                                 >
                                     <h3 className="text-lg font-semibold text-[#3ce8d1] mb-2">
-                                        {offer.bank_name}
+                                        {offer.bank_name || `Банк ${offer.bank_id || idx + 1}`}
                                     </h3>
-                                    {offer.rate && (
-                                        <p className="text-white text-sm mb-1">{offer.rate}</p>
+                                    {(offer.custom_rate || offer.rate) && (
+                                        <p className="text-white text-sm mb-1">{offer.custom_rate || offer.rate}</p>
                                     )}
                                     {offer.custom_text && (
                                         <p className="text-slate-400 text-sm">{offer.custom_text}</p>
@@ -169,12 +176,12 @@ export default async function DynamicSeoPage({ params }: Props) {
                             <span className="text-[#3ce8d1]">🔍</span> Часто ищут
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {popularSearches.map((term: string, idx: number) => (
+                            {popularSearches.map((item: { text: string; href?: string }, idx: number) => (
                                 <span
                                     key={idx}
                                     className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors cursor-default"
                                 >
-                                    {term}
+                                    {item.text}
                                 </span>
                             ))}
                         </div>

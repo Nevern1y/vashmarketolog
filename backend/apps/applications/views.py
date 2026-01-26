@@ -29,7 +29,8 @@ from .serializers import (
 from rest_framework.views import APIView
 from apps.users.permissions import (
     IsAdmin, 
-    IsClientOrAgent, 
+    IsClientOrAgent,
+    IsAgentOrAdmin,
     IsPartner,
     CanMakeDecision,
 )
@@ -535,7 +536,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         request=None,
         responses={200: ApplicationSerializer}
     )
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsClientOrAgent])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAgentOrAdmin])
     def send_to_bank(self, request, pk=None):
         """
         Send application to Realist Bank API.
@@ -544,7 +545,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         Phase 7: Sends the application payload to the bank's add_ticket endpoint.
         On success, saves the returned ticket_id to application.external_id.
         
-        Only for Agent/Admin roles (via IsClientOrAgent permission).
+        SECURITY: Only for Agent/Admin roles - clients cannot submit directly to bank.
         """
         import logging
         logger = logging.getLogger(__name__)
@@ -600,7 +601,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         request=None,
         responses={200: ApplicationSerializer}
     )
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsClientOrAgent])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAgentOrAdmin])
     def sync_status(self, request, pk=None):
         """
         Sync application status from Realist Bank API.
@@ -608,6 +609,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Phase 7.2: Polls the bank to get current ticket status
         and updates the local bank_status field.
+        
+        SECURITY: Only for Agent/Admin roles - clients cannot poll bank directly.
         """
         import logging
         logger = logging.getLogger(__name__)

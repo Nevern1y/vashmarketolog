@@ -26,9 +26,10 @@ import { toast } from "sonner"
 
 interface ClientsListViewProps {
   onCreateApplication?: (clientId: number) => void
+  onClientSelect?: (clientId: number) => void // Navigate to full client page
 }
 
-export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
+export function ClientsListView({ onCreateApplication, onClientSelect }: ClientsListViewProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [pageSize, setPageSize] = useState(10)
@@ -302,7 +303,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
               paginatedClients.map((client) => (
                 <div
                   key={client.id}
-                  onClick={() => openViewSheet(client.id)}
+                  onClick={() => onClientSelect ? onClientSelect(client.id) : openViewSheet(client.id)}
                   className="p-3 rounded-lg border bg-card hover:bg-accent/50 cursor-pointer transition-colors"
                 >
                   {/* Header */}
@@ -399,7 +400,7 @@ export function ClientsListView({ onCreateApplication }: ClientsListViewProps) {
                     <TableRow
                       key={client.id}
                       className="cursor-pointer hover:bg-accent/50 transition-colors"
-                      onClick={() => openViewSheet(client.id)}
+                      onClick={() => onClientSelect ? onClientSelect(client.id) : openViewSheet(client.id)}
                     >
                       {/* Column 1: Краткое наименование организации */}
                       <TableCell>

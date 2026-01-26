@@ -42,6 +42,7 @@ import {
 
 import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
+import { getMissingCompanyBasics } from "@/lib/company-basics"
 
 
 
@@ -71,6 +72,8 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
   const { company, isLoading: companyLoading } = useMyCompany()
 
   const [showGuardAlert, setShowGuardAlert] = useState(false)
+  const missingBasics = getMissingCompanyBasics(company ? { inn: company.inn, name: company.name } : null)
+  const missingBasicsText = missingBasics.join(" и ")
 
   const handleLogout = async () => {
     await logout()
@@ -79,7 +82,7 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
   const handleCreateClick = () => {
     if (companyLoading) return
 
-    if (!company || !company.inn) {
+    if (missingBasics.length > 0) {
       setShowGuardAlert(true)
       return
     }
@@ -95,7 +98,10 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
 
   return (
     <>
-      <aside className="flex h-[100dvh] min-h-screen w-[260px] flex-col bg-[#0a1628] text-white overflow-y-auto">
+      <aside 
+        data-sidebar="sidebar"
+        className="flex h-[100dvh] min-h-screen w-[260px] flex-col bg-[#0a1628] text-white overflow-y-auto"
+      >
         {/* Logo */}
         <div className="flex items-center px-5 py-6">
           <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-12 w-auto" />
@@ -176,7 +182,7 @@ export function ClientSidebar({ activeView, onViewChange, onCreateApplication }:
             </div>
             <AlertDialogDescription className="text-muted-foreground">
               Для создания заявки необходимо заполнить профиль компании.
-              Пожалуйста, укажите ИНН и основные данные вашей организации.
+              Пожалуйста, укажите {missingBasicsText || "ИНН и полное наименование"}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

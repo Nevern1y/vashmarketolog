@@ -264,7 +264,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                 className={cn(
                                                     "chat-bubble rounded-xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-sm",
                                                     isOwn
-                                                        ? "bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]"
+                                                        ? "bg-[#3CE8D1] bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]"
                                                         : "bg-[#1e3a5f] border border-[#3CE8D1]/30 text-white"
                                                 )}
                                                 style={{

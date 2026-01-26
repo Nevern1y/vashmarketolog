@@ -38,6 +38,7 @@ export interface User {
   last_name: string;
   full_name?: string;
   is_active: boolean;
+  email_verified?: boolean;
   accreditation_status?: 'none' | 'pending' | 'approved' | 'rejected';
 }
 
@@ -113,7 +114,8 @@ const processQueue = (error: Error | null) => {
 };
 
 // Refresh token function
-async function refreshAccessToken(): Promise<AuthTokens | null> {
+// EXPORTED for use in auth-context when only refresh token exists
+export async function refreshAccessToken(): Promise<AuthTokens | null> {
   const refreshToken = tokenStorage.getRefreshToken();
 
   if (!refreshToken) {

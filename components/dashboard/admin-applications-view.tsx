@@ -74,11 +74,14 @@ const PRODUCT_TABS = [
     { value: "bank_guarantee", label: "Банковские гарантии", shortLabel: "БГ", prefix: "БГ" },
     { value: "tender_loan", label: "Кредиты для бизнеса", shortLabel: "Кредит", prefix: "КР" },
     { value: "contract_loan", label: "КИК", shortLabel: "КИК", prefix: "КИК" },
+    { value: "corporate_credit", label: "Корпоративный кредит", shortLabel: "Корп. кредит", prefix: "КК" },
     { value: "leasing", label: "Лизинг для юрлиц", shortLabel: "Лизинг", prefix: "ЛЗ" },
     { value: "factoring", label: "Факторинг для бизнеса", shortLabel: "Факторинг", prefix: "ФК" },
     { value: "insurance", label: "Страхование СМР", shortLabel: "Страх.", prefix: "СТР" },
     { value: "ved", label: "Международные платежи", shortLabel: "ВЭД", prefix: "МП" },
     { value: "rko", label: "РКО и спецсчета", shortLabel: "РКО", prefix: "РКО" },
+    { value: "special_account", label: "Спецсчет", shortLabel: "Спецсчет", prefix: "СС" },
+    { value: "tender_support", label: "Тендерное сопровождение", shortLabel: "Сопров.", prefix: "ТС" },
     { value: "deposits", label: "Депозиты", shortLabel: "Депозит", prefix: "ДП" },
 ]
 
@@ -98,6 +101,7 @@ const TENDER_LAW_LABELS: Record<string, string> = {
     "223_fz": "223-ФЗ",
     "615_pp": "615-ПП",
     "185_fz": "185-ФЗ",
+    "275_fz": "275-ФЗ",
     kbg: "КБГ (Коммерческая)",
     commercial: "Коммерческий",
 }
@@ -148,6 +152,9 @@ const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
 }
 
 const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
+    express: "Экспресс-кредит",
+    working_capital: "Кредит на пополнение оборотных средств",
+    corporate: "Корпоративный кредит",
     one_time_credit: "Разовый кредит",
     non_revolving_line: "Невозобновляемая КЛ",
     revolving_line: "Возобновляемая КЛ",
@@ -156,6 +163,10 @@ const CREDIT_SUB_TYPE_LABELS: Record<string, string> = {
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     rko: "РКО",
+    rko_basic: "РКО Базовый",
+    rko_premium: "РКО Премиум",
+    rko_business: "РКО Бизнес",
+    specaccount: "Спецсчёт",
     special: "Спецсчёт",
     "44fz": "Спецсчет 44-ФЗ",
     "223fz": "Спецсчет 223-ФЗ",
@@ -241,7 +252,7 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
         )
     }
 
-    const productLabel = PRODUCT_TABS.find(p => p.value === application.product_type)?.label || application.product_type
+    const productLabel = PRODUCT_TABS.find(p => p.value === application.product_type)?.label || application.product_type_display || application.product_type
     const statusCfg = getStatusConfig(application.status)
 
     return (
@@ -854,7 +865,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                         </td>
                                                         <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm text-foreground">
-                                                                {PRODUCT_TABS.find(p => p.value === app.product_type)?.shortLabel || app.product_type}
+                                                                {PRODUCT_TABS.find(p => p.value === app.product_type)?.shortLabel || app.product_type_display || app.product_type}
                                                             </span>
                                                         </td>
                                                         <td className="hidden 2xl:table-cell p-4">

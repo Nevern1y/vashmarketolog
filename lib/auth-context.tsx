@@ -6,7 +6,8 @@
  * 
  * CRITICAL: Session persistence is handled here.
  * - On mount, checks localStorage for tokens
- * - If token exists, attempts to fetch user data
+ * - If access token exists, attempts to fetch user data
+ * - If only refresh token exists, attempts to refresh first
  * - isLoading starts TRUE to prevent premature redirect
  * 
  * AUTO-LOGOUT: Logs out user after 1 hour of inactivity.
@@ -15,7 +16,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { authApi, tokenStorage, type User, type RegisterPayload, type ApiError } from '@/lib/api';
+import { authApi, tokenStorage, refreshAccessToken, type User, type RegisterPayload, type ApiError } from '@/lib/api';
 import type { AppMode } from '@/lib/types';
 
 // Auto-logout after 1 hour of inactivity (in milliseconds)
@@ -84,7 +85,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // Step 2: If we have a token, try to fetch user data
+            // Step 2: If we only have refresh token (no access), try to refresh first
+            if (!accessToken && refreshToken) {
+                console.log('[AUTH] Only refresh token exists, attempting refresh...');
+                try {
+                    const newTokens = await refreshAccessToken();
+                    if (!newTokens) {
+                        console.log('[AUTH] Refresh failed, user not authenticated');
+                        setIsLoading(false);
+                        return;
+                    }
+                    console.log('[AUTH] Token refreshed successfully');
+                } catch (err) {
+                    console.log('[AUTH] Refresh failed with error:', err);
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
+            // Step 3: Now we should have an access token, try to fetch user data
             try {
                 console.log('[AUTH] Fetching user data...');
                 const userData = await authApi.getMe();
@@ -109,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             }
 
-            // Step 3: ALWAYS set loading to false after check completes
+            // Step 4: ALWAYS set loading to false after check completes
             setIsLoading(false);
             console.log('[AUTH] Initialization complete');
         };

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import {
     ChevronLeft,
     ChevronDown,
@@ -38,6 +38,7 @@ import {
     BadgeCheck,
     CircleDollarSign,
     FileSignature,
+    Pencil,
 } from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -61,8 +62,10 @@ import { useDocumentMutations, type DocumentListItem, type PaginatedResponse } f
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import api from "@/lib/api"
+import type { CalculatorPrefill } from "@/lib/calculator-prefill"
 import { ApplicationChat } from "./application-chat"
 import { AdditionalDocumentsModal } from "./additional-documents-modal"
+import { ApplicationEditModal } from "./application-edit-modal"
 import { SubmissionSuccess, useSubmissionSuccess } from "@/components/ui/submission-success"
 
 // Insurance category and product display labels
@@ -109,6 +112,7 @@ interface ApplicationDetailViewProps {
     applicationId: string | number
     onBack?: () => void
     onNavigateToCalculationSession?: (sessionId: number) => void
+    onNavigateToCalculator?: (prefill: CalculatorPrefill) => void
 }
 
 /**
@@ -120,8 +124,8 @@ interface ApplicationDetailViewProps {
  * - Step 3: Отправка в банк (Bank submission)
  * - Step 4: Согласование и оплата (Approval & Payment)
  */
-export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalculationSession }: ApplicationDetailViewProps) {
-    const { application, isLoading, error, refetch } = useApplication(applicationId)
+export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalculationSession, onNavigateToCalculator }: ApplicationDetailViewProps) {
+    const { application, isLoading, error, refetch, setApplication, startPolling, stopPolling } = useApplication(applicationId)
     const { submitApplication, updateApplication, deleteApplication, isLoading: isSubmitting } = useApplicationMutations()
     const { uploadDocument, deleteDocument, getLastError: getDocumentError } = useDocumentMutations()
     const { user } = useAuth()
@@ -143,8 +147,21 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     // Additional documents modal state
     const [isDocsModalOpen, setIsDocsModalOpen] = useState(false)
     
+    // Edit application modal state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    
     // Submission success animation
     const { isAnimating: showSubmitSuccess, triggerAnimation: triggerSubmitSuccess } = useSubmissionSuccess()
+
+    // Pause polling while editing to prevent form resets
+    useEffect(() => {
+        if (isEditModalOpen) {
+            stopPolling()
+            return
+        }
+
+        startPolling(() => refetch())
+    }, [isEditModalOpen, startPolling, stopPolling, refetch])
 
     // Simple ref for documents section to scroll to after upload
     const documentsSectionRef = useRef<HTMLDivElement>(null)
@@ -566,6 +583,229 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         }
     }, [application, submitApplication, refetch, triggerSubmitSuccess])
 
+    // Handle edit application save - polymorphic for all product types
+    const handleEditApplicationSave = useCallback(async (data: Record<string, unknown>): Promise<boolean> => {
+        if (!application) return false
+
+        try {
+            const productType = application.product_type
+            
+            // Build goscontract_data update based on product type
+            let goscontractUpdate: Record<string, unknown> = {
+                ...(application.goscontract_data || {}),
+            }
+
+            // Common fields
+            if (data.purchase_number !== undefined) goscontractUpdate.purchase_number = data.purchase_number
+            if (data.lot_number !== undefined) goscontractUpdate.lot_number = data.lot_number
+            if (data.law !== undefined) goscontractUpdate.law = data.law
+
+            // Product-specific goscontract_data fields
+            switch (productType) {
+                case "bank_guarantee":
+                case "tender_loan":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        bg_type: data.guarantee_type as string,
+                        guarantee_start_date: data.guarantee_start_date as string,
+                        guarantee_end_date: data.guarantee_end_date as string,
+                        has_prepayment: data.has_prepayment as boolean,
+                        advance_percent: data.advance_percent as number,
+                        has_customer_template: data.has_customer_template as boolean,
+                        beneficiary_name: data.beneficiary_name as string,
+                        beneficiary_inn: data.beneficiary_inn as string,
+                    }
+                    break
+
+                case "contract_loan":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        contract_loan_type: data.contract_loan_type as string,
+                        contract_price: data.contract_price as string,
+                        contract_start_date: data.contract_start_date as string,
+                        contract_end_date: data.contract_end_date as string,
+                        credit_amount: data.credit_amount as string,
+                        credit_start_date: data.credit_start_date as string,
+                        credit_end_date: data.credit_end_date as string,
+                        contract_execution_percent: data.contract_execution_percent as number,
+                        ignore_execution_percent: data.ignore_execution_percent as boolean,
+                        has_prepayment: data.has_prepayment as boolean,
+                        advance_percent: data.advance_percent as number,
+                    }
+                    break
+
+                case "corporate_credit":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        credit_sub_type: data.credit_sub_type as string,
+                        credit_start_date: data.credit_start_date as string,
+                        credit_end_date: data.credit_end_date as string,
+                        pledge_description: data.pledge_description as string,
+                    }
+                    break
+
+                case "factoring":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        factoring_type: data.factoring_type as string,
+                        contract_type: data.contract_type as string,
+                        contractor_inn: data.contractor_inn as string,
+                        financing_amount: data.financing_amount as string,
+                        financing_date: data.financing_date as string,
+                        financing_term_days: data.financing_term_days as number,
+                        nmc: data.nmc as string,
+                        shipment_volume: data.shipment_volume as string,
+                        payment_delay: data.payment_delay as number,
+                    }
+                    break
+
+                case "leasing":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        leasing_credit_type: data.leasing_credit_type as string,
+                        leasing_amount: data.leasing_amount as string,
+                        leasing_end_date: data.leasing_end_date as string,
+                    }
+                    break
+
+                case "insurance":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        insurance_category: data.insurance_category as string,
+                        insurance_product_type: data.insurance_product_type as string,
+                        insurance_amount: data.insurance_amount as string,
+                        insurance_term_months: data.insurance_term_months as number,
+                    }
+                    break
+
+                case "ved":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        currency: data.ved_currency as string,
+                        country: data.ved_country as string,
+                    }
+                    break
+
+                case "rko":
+                case "special_account":
+                    goscontractUpdate = {
+                        ...goscontractUpdate,
+                        account_type: data.account_type as string,
+                    }
+                    break
+            }
+
+            // Build update payload with product-specific root fields
+            const updatePayload: Record<string, unknown> = {
+                amount: data.amount as string,
+                goscontract_data: goscontractUpdate,
+            }
+
+            // Add product-specific root-level fields
+            if (productType === "bank_guarantee" || productType === "tender_loan") {
+                updatePayload.guarantee_type = data.guarantee_type as string
+                updatePayload.tender_law = data.law as string
+                updatePayload.tender_number = data.purchase_number as string
+            }
+            if (productType === "corporate_credit") {
+                updatePayload.credit_sub_type = data.credit_sub_type as string
+                updatePayload.pledge_description = data.pledge_description as string
+            }
+            if (productType === "factoring") {
+                updatePayload.factoring_type = data.factoring_type as string
+                updatePayload.contractor_inn = data.contractor_inn as string
+                if (data.financing_term_days !== undefined) {
+                    updatePayload.financing_term_days = data.financing_term_days as number
+                }
+            }
+            if (productType === "insurance") {
+                updatePayload.insurance_category = data.insurance_category as string
+                updatePayload.insurance_product_type = data.insurance_product_type as string
+                if (data.insurance_term_months !== undefined) {
+                    updatePayload.term_months = data.insurance_term_months as number
+                }
+            }
+            if (productType === "tender_support") {
+                updatePayload.tender_support_type = data.tender_support_type as string
+                updatePayload.purchase_category = data.purchase_category as string
+                updatePayload.industry = data.industry as string
+                if (data.term_months !== undefined) {
+                    updatePayload.term_months = data.term_months as number
+                }
+            }
+            if (productType === "deposits") {
+                if (data.term_months !== undefined) {
+                    updatePayload.term_months = data.term_months as number
+                }
+            }
+            if (productType === "ved") {
+                updatePayload.ved_currency = data.ved_currency as string
+                updatePayload.ved_country = data.ved_country as string
+            }
+            if (productType === "rko" || productType === "special_account") {
+                updatePayload.account_type = data.account_type as string
+            }
+
+            const optimisticApplication = {
+                ...application,
+                ...updatePayload,
+                goscontract_data: goscontractUpdate,
+            } as Application
+
+            setApplication(optimisticApplication)
+            stopPolling()
+
+            const result = await updateApplication(application.id, updatePayload)
+
+            if (result) {
+                setApplication(result)
+                await refetch()
+                startPolling(() => refetch())
+                return true
+            }
+            setApplication(application)
+            startPolling(() => refetch())
+            return false
+        } catch {
+            setApplication(application)
+            startPolling(() => refetch())
+            return false
+        }
+    }, [application, updateApplication, refetch, setApplication, startPolling, stopPolling])
+
+    const handleRecalculate = useCallback(() => {
+        if (!application) return
+
+        if (application.calculation_session && onNavigateToCalculationSession) {
+            onNavigateToCalculationSession(application.calculation_session)
+            return
+        }
+
+        const supportedProducts = new Set([
+            "bank_guarantee",
+            "tender_loan",
+            "contract_loan",
+            "corporate_credit",
+            "factoring",
+            "leasing",
+            "insurance",
+            "ved",
+            "rko",
+            "special_account",
+            "deposits",
+        ])
+
+        if (onNavigateToCalculator && supportedProducts.has(application.product_type)) {
+            onNavigateToCalculator({
+                productType: application.product_type,
+                application,
+            })
+            return
+        }
+
+        toast.info("Пересчет недоступен для этого продукта")
+    }, [application, onNavigateToCalculationSession, onNavigateToCalculator])
+
     // Handle document delete
     const handleDeleteDocument = useCallback(async (docId: number) => {
         console.log(`[Delete] Deleting document ${docId}`)
@@ -796,6 +1036,23 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     {/* Application Info Card - Refined per User Request */}
                     <Card className="bg-[#0f2042] border-[#1e3a5f]">
                         <CardContent className="p-4">
+                            {/* Header with Edit button */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-medium text-[#3CE8D1] uppercase tracking-wide">
+                                    Данные заявки
+                                </h3>
+                                {application.status === 'draft' && (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => setIsEditModalOpen(true)}
+                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] shadow-md shadow-[#3CE8D1]/20 font-semibold"
+                                        title="Редактировать заявку"
+                                    >
+                                        <Pencil className="h-4 w-4 mr-1" />
+                                        Редактировать
+                                    </Button>
+                                )}
+                            </div>
                             {/* Key Information Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-4 text-sm">
                                 {/* 1. Client */}
@@ -1366,6 +1623,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                             application.tender_law === '223_fz' ? '223-ФЗ' :
                                                                 application.tender_law === '615_pp' ? '615-ПП' :
                                                                     application.tender_law === '185_fz' ? '185-ФЗ' :
+                                                                        application.tender_law === '275_fz' ? '275-ФЗ' :
                                                                         application.tender_law === 'kbg' ? 'КБГ (Коммерческая)' :
                                                                             application.tender_law === 'commercial' ? 'Коммерческий' :
                                                                                 application.tender_law
@@ -1473,11 +1731,14 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                 <ProductInfoItem
                                                     label="Тип кредита"
                                                     value={
-                                                        application.credit_sub_type === 'one_time_credit' ? 'Разовый кредит' :
-                                                            application.credit_sub_type === 'non_revolving_line' ? 'Невозобновляемая КЛ' :
-                                                                application.credit_sub_type === 'revolving_line' ? 'Возобновляемая КЛ' :
-                                                                    application.credit_sub_type === 'overdraft' ? 'Овердрафт' :
-                                                                        application.credit_sub_type
+                                                        application.credit_sub_type === 'express' ? 'Экспресс-кредит' :
+                                                            application.credit_sub_type === 'working_capital' ? 'Кредит на пополнение оборотных средств' :
+                                                                application.credit_sub_type === 'corporate' ? 'Корпоративный кредит' :
+                                                                    application.credit_sub_type === 'one_time_credit' ? 'Разовый кредит' :
+                                                                        application.credit_sub_type === 'non_revolving_line' ? 'Невозобновляемая КЛ' :
+                                                                            application.credit_sub_type === 'revolving_line' ? 'Возобновляемая КЛ' :
+                                                                                application.credit_sub_type === 'overdraft' ? 'Овердрафт' :
+                                                                                    application.credit_sub_type
                                                     }
                                                 />
                                             )}
@@ -1588,6 +1849,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                     application.account_type === '44fz' ? 'Спецсчет 44-ФЗ' :
                                                         application.account_type === '223fz' ? 'Спецсчет 223-ФЗ' :
                                                             application.account_type === '615pp' ? 'Спецсчет 615-ПП' :
+                                                                application.account_type === 'specaccount' ? 'Спецсчёт' :
                                                                 application.account_type === 'special' ? 'Спецсчёт' :
                                                                     application.account_type
                                                 }
@@ -2167,6 +2429,17 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     existingDocuments={application.documents || []}
                     onDocumentsAttached={refetch}
                     getRequiredDocuments={getRequiredDocuments}
+                />
+            )}
+
+            {/* Edit Application Modal */}
+            {application && (
+                <ApplicationEditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    application={application}
+                    onSave={handleEditApplicationSave}
+                    onRecalculate={handleRecalculate}
                 />
             )}
         </div >

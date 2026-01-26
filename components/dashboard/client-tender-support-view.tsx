@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner"
 import { useApplicationMutations } from "@/hooks/use-applications"
 import { useMyCompany } from "@/hooks/use-companies"
+import { getCompanyBasicsError } from "@/lib/company-basics"
 
 // =============================================================================
 // BANK DATABASE (Real data from Условия банков)
@@ -301,8 +302,9 @@ export function ClientTenderSupportView() {
             return
         }
 
-        if (!company) {
-            toast.error("Сначала создайте компанию в профиле")
+        const companyError = getCompanyBasicsError(company)
+        if (!company || companyError) {
+            toast.error(companyError || "Для создания заявки заполните ИНН и полное наименование.")
             return
         }
 

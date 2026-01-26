@@ -16,6 +16,7 @@ import { useCRMClients, useMyCompany } from "@/hooks/use-companies"
 import { useDocuments, useDocumentMutations, formatDocumentType } from "@/hooks/use-documents"
 import { useApplicationMutations } from "@/hooks/use-applications"
 import { toast } from "sonner"
+import { getMissingCompanyBasics } from "@/lib/company-basics"
 import { AddClientModal } from "./add-client-modal"
 import { useCRMClientMutations } from "@/hooks/use-companies"
 
@@ -421,7 +422,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
 
   // 🛡️ Defense in Depth: Show empty state if CLIENT has no company
   // This catches edge cases where someone bypasses the sidebar guard
-  const clientHasNoCompany = !isAgent && !companyLoading && (!myCompany || !myCompany.id)
+  const missingBasics = !isAgent
+    ? getMissingCompanyBasics(myCompany ? { inn: myCompany.inn, name: myCompany.name } : null)
+    : []
+  const missingBasicsText = missingBasics.join(" и ")
+  const clientHasNoCompany = !isAgent && !companyLoading && missingBasics.length > 0
 
   // Get selected company data
   const getSelectedCompany = () => {
@@ -674,6 +679,14 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     const companyId = isAgent
       ? parseInt(selectedCompanyId)
       : myCompany?.id
+
+    const basicsMissing = selectedCompany
+      ? getMissingCompanyBasics({ inn: selectedCompany.inn, name: selectedCompany.name })
+      : []
+    if (basicsMissing.length > 0) {
+      toast.error(`Для создания заявки заполните ${basicsMissing.join(" и ")}.`)
+      return
+    }
 
     if (!companyId) {
       toast.error("Выберите компанию")
@@ -1153,7 +1166,7 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
               Требуется аккредитация
             </h2>
             <p className="text-muted-foreground mb-6">
-              Для создания заявки заполните базовые данные компании: название, ИНН, email и телефон в разделе «Моя компания».
+              Для создания заявки заполните {missingBasicsText || "ИНН и полное наименование"} в разделе «Моя компания».
             </p>
             <Button
               onClick={resetAndClose}

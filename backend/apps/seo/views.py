@@ -38,14 +38,13 @@ class SeoPageViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Улучшенный queryset с поддержкой приоритетов.
+        Improved queryset with proper 404 handling.
         
         For SEO managers and admins: show all pages (including drafts)
         For public: show only published pages
         
-        Priority logic:
-        1. Exact slug match first
-        2. If no exact match, return highest priority page
+        FIXED: Returns empty queryset for unknown slugs instead of fallback,
+        allowing proper 404 responses from retrieve().
         """
         # Check if user is authenticated and has SEO/admin access
         user = self.request.user
@@ -59,19 +58,19 @@ class SeoPageViewSet(viewsets.ModelViewSet):
         slug = self.kwargs.get('slug')
         
         if slug:
-            # Убираем начальный / если есть
+            # Remove leading / if present
             clean_slug = slug.lstrip('/')
             
-            # Ищем точное совпадение
+            # Look for exact match only - no fallback to priority page
+            # This ensures proper 404 for unknown slugs
             exact_match = base_queryset.filter(slug=clean_slug).first()
             if exact_match:
-                # Фильтруем только этот объект
                 return SeoPage.objects.filter(id=exact_match.id)
             
-            # Если точного совпадения нет, возвращаем страницу с наивысшим приоритетом
-            priority_page = base_queryset.order_by('-priority').first()
-            if priority_page:
-                return SeoPage.objects.filter(id=priority_page.id)
+            # SECURITY FIX: Return empty queryset for unknown slugs
+            # This allows retrieve() to return proper 404 response
+            # instead of serving wrong content for incorrect URLs
+            return SeoPage.objects.none()
         
         return base_queryset.order_by('-priority', 'slug')
     
@@ -115,21 +114,17 @@ class SeoPageViewSet(viewsets.ModelViewSet):
     
     def retrieve(self, request, *args, **kwargs):
         """
-        Override retrieve для поддержки catch-all.
+        Override retrieve for proper 404 handling.
         
-        Если slug не существует, вернуть страницу с наивысшим приоритетом (если есть)
+        FIXED: Returns 404 for unknown slugs instead of fallback to priority page.
+        This prevents serving wrong content for incorrect URLs and ensures
+        proper SEO (search engines won't index wrong URLs).
         """
         try:
             return super().retrieve(request, *args, **kwargs)
-        except:
-            # Try fallback to highest priority page
-            priority_page = self.queryset.order_by('-priority').first()
-            if priority_page:
-                serializer = self.get_serializer(priority_page)
-                return Response(serializer.data)
-            
-            # No pages found
+        except Exception:
+            # Return proper 404 - no fallback to priority page
             return Response(
-                {'error': 'Страница не найдена'},
+                {'error': 'Страница не найдена', 'detail': 'Page not found'},
                 status=404
             )
