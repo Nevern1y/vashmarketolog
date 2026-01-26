@@ -131,6 +131,33 @@ ENVEOF
     echo -e "${YELLOW}ВНИМАНИЕ: Обновите BANK_API_LOGIN и BANK_API_PASSWORD в $PROJECT_DIR/.env${NC}"
 fi
 
+# Ensure SMTP settings exist (Beget defaults)
+set_env() {
+    local key="$1"
+    local value="$2"
+    local file="$3"
+
+    if grep -q "^${key}=" "$file"; then
+        sed -i "s|^${key}=.*|${key}=${value}|" "$file"
+    else
+        echo "${key}=${value}" >> "$file"
+    fi
+}
+
+ENV_FILE="$PROJECT_DIR/.env"
+if [ -f "$ENV_FILE" ]; then
+    set_env "EMAIL_HOST" "smtp.beget.com" "$ENV_FILE"
+    set_env "EMAIL_PORT" "465" "$ENV_FILE"
+    set_env "EMAIL_USE_SSL" "True" "$ENV_FILE"
+    set_env "EMAIL_USE_TLS" "False" "$ENV_FILE"
+    set_env "EMAIL_HOST_USER" "noreply@lider-garant.ru" "$ENV_FILE"
+    set_env "EMAIL_HOST_PASSWORD" "iyLM6miL*AKV" "$ENV_FILE"
+
+    set_env "DEFAULT_FROM_EMAIL" "noreply@lider-garant.ru" "$ENV_FILE"
+    set_env "SERVER_EMAIL" "noreply@lider-garant.ru" "$ENV_FILE"
+    set_env "FRONTEND_URL" "https://lk.lider-garant.ru" "$ENV_FILE"
+fi
+
 echo -e "${GREEN}✓ Переменные окружения настроены${NC}"
 echo ""
 

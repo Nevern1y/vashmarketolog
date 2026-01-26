@@ -80,10 +80,12 @@ services:
       - BANK_API_LOGIN=${BANK_API_LOGIN:-}
       - BANK_API_PASSWORD=${BANK_API_PASSWORD:-}
       # Email Configuration
-      - EMAIL_HOST=${EMAIL_HOST:-smtp.yandex.ru}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.beget.com}
       - EMAIL_PORT=${EMAIL_PORT:-465}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-True}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-False}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@lider-garant.ru}
       - SERVER_EMAIL=${SERVER_EMAIL:-noreply@lider-garant.ru}
       - FRONTEND_URL=${FRONTEND_URL:-https://lk.lider-garant.ru}
