@@ -11,6 +11,9 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .serializers import (
     UserRegistrationSerializer,
@@ -684,6 +687,7 @@ class SendVerificationEmailView(APIView):
                 fail_silently=False,
             )
         except Exception as e:
+            logger.error(f"Verification email failed for {user.email}: {e}")
             return Response(
                 {'error': f'Ошибка отправки письма: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -770,9 +774,10 @@ class PasswordResetRequestView(APIView):
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lider-garant.ru')
             reset_url = f"{frontend_url}/reset-password/{token}"
             
-            send_mail(
-                subject='Сброс пароля - Лидер Гарант',
-                message=f'''
+            try:
+                send_mail(
+                    subject='Сброс пароля - Лидер Гарант',
+                    message=f'''
 Здравствуйте!
 
 Вы запросили сброс пароля для вашего аккаунта.
@@ -785,11 +790,16 @@ class PasswordResetRequestView(APIView):
 
 С уважением,
 Команда Лидер Гарант
-                ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+                    ''',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logger.error(f"Failed to send password reset email to {email}: {e}")
+                # We still don't raise error to user to avoid enumeration/UX issues, 
+                # but now it's logged in backend logs.
+                
         except User.DoesNotExist:
             pass  # Don't reveal if email exists
         
