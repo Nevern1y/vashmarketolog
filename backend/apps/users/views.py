@@ -44,15 +44,53 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
+        import secrets
+        from django.core.mail import send_mail
+        from django.conf import settings
+        
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        
+        # Send verification email
+        try:
+            token = secrets.token_urlsafe(32)
+            user.email_verification_token = token
+            user.email_verification_sent_at = timezone.now()
+            user.save(update_fields=['email_verification_token', 'email_verification_sent_at'])
+            
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lk.lider-garant.ru')
+            verification_url = f"{frontend_url}/verify-email/{token}"
+            
+            send_mail(
+                subject='Подтвердите email - Лидер Гарант',
+                message=f'''
+Здравствуйте, {user.first_name or 'пользователь'}!
+
+Спасибо за регистрацию в системе Лидер Гарант.
+
+Для подтверждения вашего email перейдите по ссылке:
+{verification_url}
+
+Ссылка действительна 24 часа.
+
+С уважением,
+Команда Лидер Гарант
+                ''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+            logger.info(f"Verification email sent to {user.email}")
+        except Exception as e:
+            logger.error(f"Failed to send verification email to {user.email}: {e}")
+            # Don't fail registration if email fails - user can resend later
         
         # Generate tokens for immediate login
         refresh = RefreshToken.for_user(user)
         
         return Response({
-            'message': 'Регистрация успешна',
+            'message': 'Регистрация успешна. Проверьте почту для подтверждения email.',
             'user': {
                 'id': user.id,
                 'email': user.email,
