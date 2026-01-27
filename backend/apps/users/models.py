@@ -251,3 +251,73 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.invite_token = None  # Invalidate token after use
         self.is_active = True
         self.save(update_fields=['password', 'invite_accepted_at', 'invite_token', 'is_active'])
+
+
+class EmailVerificationCode(models.Model):
+    """
+    Temporary verification codes for email confirmation during registration.
+    Codes expire after 10 minutes.
+    """
+    email = models.EmailField('Email', db_index=True)
+    code = models.CharField('Код', max_length=6)
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+    expires_at = models.DateTimeField('Истекает')
+    is_used = models.BooleanField('Использован', default=False)
+    attempts = models.IntegerField('Попытки ввода', default=0)
+
+    class Meta:
+        verbose_name = 'Код верификации email'
+        verbose_name_plural = 'Коды верификации email'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.email} - {self.code}"
+
+    @classmethod
+    def generate_code(cls):
+        """Generate a 6-digit code."""
+        import random
+        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+    @classmethod
+    def create_for_email(cls, email):
+        """Create a new verification code for the given email."""
+        from datetime import timedelta
+        
+        # Invalidate any existing codes for this email
+        cls.objects.filter(email=email.lower(), is_used=False).update(is_used=True)
+        
+        # Create new code (expires in 10 minutes)
+        code = cls.generate_code()
+        expires_at = timezone.now() + timedelta(minutes=10)
+        
+        return cls.objects.create(
+            email=email.lower(),
+            code=code,
+            expires_at=expires_at
+        )
+
+    def is_valid(self):
+        """Check if code is still valid (not used, not expired, not too many attempts)."""
+        if self.is_used:
+            return False
+        if self.attempts >= 5:  # Max 5 attempts
+            return False
+        if timezone.now() > self.expires_at:
+            return False
+        return True
+
+    def verify(self, input_code):
+        """Verify the input code. Returns True if valid, False otherwise."""
+        self.attempts += 1
+        self.save(update_fields=['attempts'])
+        
+        if not self.is_valid():
+            return False
+        
+        if self.code == input_code:
+            self.is_used = True
+            self.save(update_fields=['is_used'])
+            return True
+        
+        return False

@@ -57,6 +57,7 @@ export interface RegisterPayload {
   first_name?: string;
   last_name?: string;
   referral_id?: number | null;  // Partner ID who invited this user
+  verification_code: string;  // Required: 6-digit email verification code
 }
 
 // Token management
@@ -487,6 +488,14 @@ export const authApi = {
       new_password: newPassword,
       new_password_confirm: newPasswordConfirm,
     });
+  },
+
+  /**
+   * Send verification code to email before registration.
+   * Code is valid for 10 minutes.
+   */
+  sendRegistrationCode: async (email: string): Promise<{ message: string; email: string }> => {
+    return api.post('/auth/register/send-code/', { email });
   },
 };
 

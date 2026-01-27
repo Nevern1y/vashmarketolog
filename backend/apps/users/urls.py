@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import TokenVerifyView
 
 from .views import (
     RegisterView,
+    SendRegistrationCodeView,
     LoginView,
     RefreshTokenView,
     LogoutView,
@@ -35,6 +36,7 @@ app_name = 'users'
 urlpatterns = [
     # Public authentication endpoints
     path('register/', RegisterView.as_view(), name='register'),
+    path('register/send-code/', SendRegistrationCodeView.as_view(), name='register_send_code'),
     path('login/', LoginView.as_view(), name='login'),
     path('refresh/', RefreshTokenView.as_view(), name='token_refresh'),
     path('verify/', TokenVerifyView.as_view(), name='token_verify'),

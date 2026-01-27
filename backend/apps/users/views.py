@@ -31,6 +31,98 @@ User = get_user_model()
 
 
 @extend_schema(tags=['Authentication'])
+class SendRegistrationCodeView(APIView):
+    """
+    Send verification code to email before registration.
+    POST /api/auth/register/send-code/
+    
+    Body:
+    - email: string (required)
+    
+    Returns success if code was sent. Code expires in 10 minutes.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from django.core.mail import send_mail
+        from django.conf import settings
+        from .models import EmailVerificationCode
+        
+        email = request.data.get('email', '').strip().lower()
+        
+        if not email:
+            return Response(
+                {'error': 'Email обязателен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate email format
+        import re
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            return Response(
+                {'error': 'Некорректный формат email'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user already exists
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {'error': 'Пользователь с таким email уже существует'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Rate limiting: check if code was sent recently (1 minute cooldown)
+        from datetime import timedelta
+        recent_code = EmailVerificationCode.objects.filter(
+            email=email,
+            created_at__gte=timezone.now() - timedelta(minutes=1),
+            is_used=False
+        ).first()
+        
+        if recent_code:
+            return Response(
+                {'error': 'Код уже был отправлен. Подождите минуту перед повторной отправкой'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        
+        # Create verification code
+        verification = EmailVerificationCode.create_for_email(email)
+        
+        # Send email with code
+        try:
+            send_mail(
+                subject='Код подтверждения - Лидер Гарант',
+                message=f'''
+Здравствуйте!
+
+Ваш код подтверждения для регистрации: {verification.code}
+
+Код действителен 10 минут.
+
+Если вы не запрашивали регистрацию, проигнорируйте это письмо.
+
+С уважением,
+Команда Лидер Гарант
+                ''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            logger.info(f"Registration code sent to {email}")
+        except Exception as e:
+            logger.error(f"Failed to send registration code to {email}: {e}")
+            return Response(
+                {'error': f'Ошибка отправки письма: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        return Response({
+            'message': 'Код подтверждения отправлен на email',
+            'email': email,
+        })
+
+
+@extend_schema(tags=['Authentication'])
 class RegisterView(generics.CreateAPIView):
     """
     User registration endpoint.
@@ -38,59 +130,65 @@ class RegisterView(generics.CreateAPIView):
     
     Only allows CLIENT and AGENT roles.
     Partners are created via invite by Admin.
+    
+    Requires email verification code (sent via /api/auth/register/send-code/).
     """
     queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-        import secrets
-        from django.core.mail import send_mail
-        from django.conf import settings
+        from .models import EmailVerificationCode
         
+        # Get and validate verification code
+        email = request.data.get('email', '').strip().lower()
+        verification_code = request.data.get('verification_code', '').strip()
+        
+        if not verification_code:
+            return Response(
+                {'error': 'Код подтверждения обязателен'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Find the latest unused code for this email
+        code_record = EmailVerificationCode.objects.filter(
+            email=email,
+            is_used=False
+        ).order_by('-created_at').first()
+        
+        if not code_record:
+            return Response(
+                {'error': 'Код подтверждения не найден. Запросите новый код'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not code_record.is_valid():
+            return Response(
+                {'error': 'Код подтверждения истёк или превышено число попыток. Запросите новый код'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not code_record.verify(verification_code):
+            remaining = 5 - code_record.attempts
+            return Response(
+                {'error': f'Неверный код подтверждения. Осталось попыток: {remaining}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Code verified - proceed with registration
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        # Send verification email
-        try:
-            token = secrets.token_urlsafe(32)
-            user.email_verification_token = token
-            user.email_verification_sent_at = timezone.now()
-            user.save(update_fields=['email_verification_token', 'email_verification_sent_at'])
-            
-            frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lk.lider-garant.ru')
-            verification_url = f"{frontend_url}/verify-email/{token}"
-            
-            send_mail(
-                subject='Подтвердите email - Лидер Гарант',
-                message=f'''
-Здравствуйте, {user.first_name or 'пользователь'}!
-
-Спасибо за регистрацию в системе Лидер Гарант.
-
-Для подтверждения вашего email перейдите по ссылке:
-{verification_url}
-
-Ссылка действительна 24 часа.
-
-С уважением,
-Команда Лидер Гарант
-                ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-            logger.info(f"Verification email sent to {user.email}")
-        except Exception as e:
-            logger.error(f"Failed to send verification email to {user.email}: {e}")
-            # Don't fail registration if email fails - user can resend later
+        # Mark email as verified since they confirmed the code
+        user.email_verified = True
+        user.save(update_fields=['email_verified'])
         
         # Generate tokens for immediate login
         refresh = RefreshToken.for_user(user)
         
         return Response({
-            'message': 'Регистрация успешна. Проверьте почту для подтверждения email.',
+            'message': 'Регистрация успешна!',
             'user': {
                 'id': user.id,
                 'email': user.email,
