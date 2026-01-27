@@ -181,25 +181,27 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     // Get required documents list based on product type
     const getRequiredDocuments = (productType: string): { name: string; id: number; required: boolean }[] => {
-        // Required documents for БГ КИК и кредиты (with asterisk)
+        // Required documents for БГ КИК и кредиты (with asterisk) - SORTED: required first
+        // ID mapping synced with database (migrations 0010 + 0012):
+        // ID 200 = 30.09.2025, ID 201 = 31.12.2023, ID 202 = 31.12.2025, ID 203 = 31.12.2024, ID 204 = 30.06.2025
         const requiredDocs = [
             { name: "Карточка компании", id: 1, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 200, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025", id: 201, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 202, required: false },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС", id: 203, required: false },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 204, required: false },
-            { name: "Реестр контрактов", id: 50, required: false },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС", id: 203, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 201, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 202, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 204, required: true },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025", id: 200, required: true },
+            { name: "Реестр контрактов", id: 50, required: true },
             { name: "Паспорт руководителя (все страницы)", id: 21, required: true },
             { name: "Паспорта всех учредителей (все страницы)", id: 22, required: true },
             { name: "Устав", id: 75, required: true },
             { name: "Решение/протокол о назначении руководителя", id: 76, required: true },
-            { name: "Договор аренды с актом или свидетельство о праве собственности", id: 81, required: true },
+            { name: "Договор аренды с актом приема-передачи помещения или свидетельство о праве собственности", id: 81, required: true },
         ]
 
-        // Optional documents (without asterisk)
+        // Optional documents (without asterisk) - ALWAYS after required
         const optionalDocs = [
-            { name: "Карточка 51 счета за 24 месяца", id: 80, required: false },
+            { name: "Карточка 51 счета за 24 месяца по текущую дату", id: 80, required: false },
             { name: "Налоговая декларация на прибыль за 24 год с квитанцией ИФНС", id: 210, required: false },
             { name: "Налоговая декларация на прибыль за 25 год с квитанцией ИФНС", id: 211, required: false },
             { name: "Общая ОСВ за 1 год по всем счетам в разбивке по субсчетам", id: 220, required: false },

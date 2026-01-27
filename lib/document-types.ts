@@ -78,7 +78,7 @@ export const BG_DOCUMENT_TYPES: DocumentTypeOption[] = [
     { id: 47, productType: 'bank_guarantee', name: 'Проект контракта', source: 'agent' },
     { id: 48, productType: 'bank_guarantee', name: 'Протокол итогов', source: 'agent' },
     { id: 49, productType: 'bank_guarantee', name: 'Решение (протокол) о крупной сделке', source: 'agent' },
-    { id: 50, productType: 'bank_guarantee', name: 'Документы на сделку', source: 'agent' },
+    { id: 50, productType: 'bank_guarantee', name: 'Реестр контрактов', source: 'agent' },
     { id: 51, productType: 'bank_guarantee', name: 'Пояснение по ошибочным данным в ББ по предыдущим периодам', source: 'agent' },
     { id: 52, productType: 'bank_guarantee', name: 'Пояснение по несоответствию данных ББ с Росстат', source: 'agent' },
     { id: 53, productType: 'bank_guarantee', name: 'Перевыпуск', source: 'agent' },
@@ -120,6 +120,25 @@ export const BG_DOCUMENT_TYPES: DocumentTypeOption[] = [
     // Agent uploads - Signatory
     { id: 169, productType: 'bank_guarantee', name: 'Доверенность на подписанта', source: 'agent' },
     { id: 171, productType: 'bank_guarantee', name: 'Паспорт подписанта', source: 'agent' },
+
+    // Balance sheet documents with specific dates (ID 200-204) - SYNCED WITH DATABASE
+    // ID 200-202 from migration 0010, ID 203-204 from migration 0012
+    { id: 200, productType: 'bank_guarantee', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025', source: 'agent' },
+    { id: 201, productType: 'bank_guarantee', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС', source: 'agent' },
+    { id: 202, productType: 'bank_guarantee', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС', source: 'agent' },
+    { id: 203, productType: 'bank_guarantee', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС', source: 'agent' },
+    { id: 204, productType: 'bank_guarantee', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025', source: 'agent' },
+
+    // NEW: Additional required documents
+    { id: 22, productType: 'bank_guarantee', name: 'Паспорта всех учредителей (все страницы)', source: 'agent' },
+
+    // NEW: Optional documents (ID 210-223)
+    { id: 210, productType: 'bank_guarantee', name: 'Налоговая декларация на прибыль за 24 год с квитанцией ИФНС', source: 'agent' },
+    { id: 211, productType: 'bank_guarantee', name: 'Налоговая декларация на прибыль за 25 год с квитанцией ИФНС', source: 'agent' },
+    { id: 220, productType: 'bank_guarantee', name: 'Общая ОСВ за 1 год по всем счетам в разбивке по субсчетам', source: 'agent' },
+    { id: 221, productType: 'bank_guarantee', name: 'ОСВ 60 за 1 год в разбивке по субсчетам и контрагентам (Excel)', source: 'agent' },
+    { id: 222, productType: 'bank_guarantee', name: 'ОСВ 62 за 1 год в разбивке по субсчетам и контрагентам (Excel)', source: 'agent' },
+    { id: 223, productType: 'bank_guarantee', name: 'Выписка в формате txt за 12 месяцев', source: 'agent' },
 ];
 
 // ============================================================================
@@ -208,6 +227,25 @@ export const KIK_DOCUMENT_TYPES: DocumentTypeOption[] = [
     // Agent uploads - Signatory
     { id: 170, productType: 'contract_loan', name: 'Доверенность на подписанта', source: 'agent' },
     { id: 172, productType: 'contract_loan', name: 'Паспорт подписанта', source: 'agent' },
+
+    // Balance sheet documents with specific dates (ID 200-204) - SYNCED WITH DATABASE
+    { id: 200, productType: 'contract_loan', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025', source: 'agent' },
+    { id: 201, productType: 'contract_loan', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС', source: 'agent' },
+    { id: 202, productType: 'contract_loan', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС', source: 'agent' },
+    { id: 203, productType: 'contract_loan', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС', source: 'agent' },
+    { id: 204, productType: 'contract_loan', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025', source: 'agent' },
+
+    // NEW: Additional required documents
+    { id: 22, productType: 'contract_loan', name: 'Паспорта всех учредителей (все страницы)', source: 'agent' },
+    { id: 50, productType: 'contract_loan', name: 'Реестр контрактов', source: 'agent' },
+
+    // NEW: Optional documents (ID 210-223)
+    { id: 210, productType: 'contract_loan', name: 'Налоговая декларация на прибыль за 24 год с квитанцией ИФНС', source: 'agent' },
+    { id: 211, productType: 'contract_loan', name: 'Налоговая декларация на прибыль за 25 год с квитанцией ИФНС', source: 'agent' },
+    { id: 220, productType: 'contract_loan', name: 'Общая ОСВ за 1 год по всем счетам в разбивке по субсчетам', source: 'agent' },
+    { id: 221, productType: 'contract_loan', name: 'ОСВ 60 за 1 год в разбивке по субсчетам и контрагентам (Excel)', source: 'agent' },
+    { id: 222, productType: 'contract_loan', name: 'ОСВ 62 за 1 год в разбивке по субсчетам и контрагентам (Excel)', source: 'agent' },
+    { id: 223, productType: 'contract_loan', name: 'Выписка в формате txt за 12 месяцев', source: 'agent' },
 ];
 
 // ============================================================================
@@ -216,7 +254,7 @@ export const KIK_DOCUMENT_TYPES: DocumentTypeOption[] = [
 
 export const GENERAL_DOCUMENT_TYPES: DocumentTypeOption[] = [
     { id: 0, productType: 'general', name: 'Дополнительный документ', source: 'agent_bank' },
-    { id: 1, productType: 'general', name: 'Паспорт генерального директора', source: 'agent' },
+    { id: 1, productType: 'general', name: 'Карточка компании', source: 'agent' },
     { id: 2, productType: 'general', name: 'Бухгалтерская отчётность', source: 'agent' },
     { id: 3, productType: 'general', name: 'Налоговая декларация', source: 'agent' },
     { id: 4, productType: 'general', name: 'Устав', source: 'agent' },
@@ -225,6 +263,27 @@ export const GENERAL_DOCUMENT_TYPES: DocumentTypeOption[] = [
     { id: 7, productType: 'general', name: 'Протокол о назначении ЕИО', source: 'agent' },
     { id: 8, productType: 'general', name: 'Карточка 51 счета', source: 'agent' },
     { id: 9, productType: 'general', name: 'Другие документы', source: 'agent' },
+    // NEW: Common required documents
+    { id: 21, productType: 'general', name: 'Паспорт руководителя (все страницы)', source: 'agent' },
+    { id: 22, productType: 'general', name: 'Паспорта всех учредителей (все страницы)', source: 'agent' },
+    { id: 50, productType: 'general', name: 'Реестр контрактов', source: 'agent' },
+    { id: 75, productType: 'general', name: 'Устав', source: 'agent' },
+    { id: 76, productType: 'general', name: 'Решение/протокол о назначении руководителя', source: 'agent' },
+    { id: 80, productType: 'general', name: 'Карточка 51 счета за 24 месяца', source: 'agent' },
+    { id: 81, productType: 'general', name: 'Договор аренды с актом или свидетельство о праве собственности', source: 'agent' },
+    // Balance sheet documents - SYNCED WITH DATABASE (migrations 0010 + 0012)
+    { id: 200, productType: 'general', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025', source: 'agent' },
+    { id: 201, productType: 'general', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС', source: 'agent' },
+    { id: 202, productType: 'general', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС', source: 'agent' },
+    { id: 203, productType: 'general', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС', source: 'agent' },
+    { id: 204, productType: 'general', name: 'Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025', source: 'agent' },
+    // NEW: Optional documents
+    { id: 210, productType: 'general', name: 'Налоговая декларация на прибыль за 24 год с квитанцией ИФНС', source: 'agent' },
+    { id: 211, productType: 'general', name: 'Налоговая декларация на прибыль за 25 год с квитанцией ИФНС', source: 'agent' },
+    { id: 220, productType: 'general', name: 'Общая ОСВ за 1 год по всем счетам в разбивке по субсчетам', source: 'agent' },
+    { id: 221, productType: 'general', name: 'ОСВ 60 за 1 год в разбивке по субсчетам и контрагентам (Excel)', source: 'agent' },
+    { id: 222, productType: 'general', name: 'ОСВ 62 за 1 год в разбивке по субсчетам и контрагентам (Excel)', source: 'agent' },
+    { id: 223, productType: 'general', name: 'Выписка в формате txt за 12 месяцев', source: 'agent' },
 ];
 
 // ============================================================================
@@ -402,19 +461,34 @@ export const getGroupedDocumentTypes = () => {
     return groups;
 };
 
-// Legacy required documents mapping (will be replaced by backend reference table)
+// Required documents by product type (synchronized with application-detail-view.tsx)
+// DB ID mapping (from migrations 0010 + 0012):
+// - ID 200 = 30.09.2025
+// - ID 201 = 31.12.2023 (с квитанцией ИФНС)
+// - ID 202 = 31.12.2025 (с квитанцией ИФНС)
+// - ID 203 = 31.12.2024 (с квитанцией ИФНС) - ГЛАВНЫЙ
+// - ID 204 = 30.06.2025
+// Порядок: ID 203 первый (главный бухбаланс за 2024)
 export const REQUIRED_DOCUMENTS_BY_PRODUCT: Record<string, number[]> = {
-    common: [1, 2, 4, 5],  // Passport, Financial report, Statute, EGRUL
-    bank_guarantee: [21, 20, 24, 46, 47, 48],
-    contract_loan: [74, 70, 71, 77, 78, 79],
-    tender_loan: [74, 70, 71, 77, 78, 79],
-    factoring: [1, 2, 3],
-    leasing: [1, 2, 3],
-    ved: [1, 2, 3],
-    insurance: [1, 2],
-    rko: [1, 4, 5],
-    special_account: [1, 4, 5],
-    corporate_credit: [1, 2, 3],
+    // Common required for all products - Карточка компании
+    common: [1],
+    
+    // БГ, КИК, Кредиты - полный список обязательных документов
+    // Порядок: Карточка, Бухбаланс 2024 (главный), остальные бухбалансы, реестр, паспорта, уставные
+    bank_guarantee: [1, 203, 201, 202, 200, 204, 50, 21, 22, 75, 76, 81],
+    contract_loan: [1, 203, 201, 202, 200, 204, 50, 21, 22, 75, 76, 81],
+    tender_loan: [1, 203, 201, 202, 200, 204, 50, 21, 22, 75, 76, 81],
+    corporate_credit: [1, 203, 201, 202, 200, 204, 50, 21, 22, 75, 76, 81],
+    
+    // Факторинг - базовый список + реестр дебиторов и договоры поставки
+    factoring: [1, 203, 201, 202, 200, 204, 50, 21, 22, 75, 76, 81, 10, 11],
+    
+    // Продукты с минимальными требованиями
+    leasing: [1, 21],
+    ved: [1, 21],
+    insurance: [1, 21],
+    rko: [1, 75],
+    special_account: [1, 75],
     tender_support: [1],
 };
 
