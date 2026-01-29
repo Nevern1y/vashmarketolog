@@ -63,6 +63,7 @@ import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
 import api from "@/lib/api"
 import type { CalculatorPrefill } from "@/lib/calculator-prefill"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 import { ApplicationChat } from "./application-chat"
 import { AdditionalDocumentsModal } from "./additional-documents-modal"
 import { ApplicationEditModal } from "./application-edit-modal"
@@ -106,6 +107,43 @@ const INSURANCE_PRODUCT_LABELS: Record<string, string> = {
     hazardous_objects: "Страхование опасных объектов",
     professional_risks: "Страхование профессиональных рисков",
     quality_liability: "Страхование ответственности за качество",
+}
+
+// Helper: get product type display with fallback to local labels
+const getProductTypeDisplay = (app: { product_type_display?: string; product_type?: string }): string => {
+    return getProductTypeLabel(app.product_type, app.product_type_display)
+}
+
+// Helper: get amount display based on product type
+// Different products store their main amount in different fields
+const getAmountDisplay = (app: Application): { label: string; value: number | null } => {
+    const productType = app.product_type
+    const value = getPrimaryAmountValue({
+        product_type: productType,
+        amount: app.amount,
+        goscontract_data: app.goscontract_data as Record<string, unknown> | undefined,
+    })
+
+    switch (productType) {
+        case 'contract_loan':
+        case 'tender_loan':
+        case 'corporate_credit':
+            return { label: 'Сумма кредита', value }
+        case 'factoring':
+            return { label: 'Сумма финансирования', value }
+        case 'leasing':
+            return { label: 'Сумма лизинга', value }
+        case 'insurance':
+            return { label: 'Сумма страхования', value }
+        case 'deposits':
+            return { label: 'Сумма депозита', value }
+        case 'bank_guarantee':
+            return { label: 'Сумма БГ', value }
+        case 'ved':
+            return { label: 'Сумма платежа', value }
+        default:
+            return { label: 'Сумма', value }
+    }
 }
 
 interface ApplicationDetailViewProps {
@@ -181,15 +219,14 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     // Get required documents list based on product type
     const getRequiredDocuments = (productType: string): { name: string; id: number; required: boolean }[] => {
-        // Required documents for БГ КИК и кредиты (with asterisk) - SORTED: required first
+        // Required documents for БГ/КИК/Кредиты/Лизинг/Факторинг (with asterisk) - SORTED: required first
         // ID mapping synced with database (migrations 0010 + 0012):
         // ID 200 = 30.09.2025, ID 201 = 31.12.2023, ID 202 = 31.12.2025, ID 203 = 31.12.2024, ID 204 = 30.06.2025
+        // Обязательные: 1, 203, 200, 50, 21, 22, 75, 76, 81
+        // Необязательные (перенесены вниз): 201, 202, 204
         const requiredDocs = [
             { name: "Карточка компании", id: 1, required: true },
             { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2024 с квитанцией ИФНС", id: 203, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 201, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 202, required: true },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 204, required: true },
             { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.09.2025", id: 200, required: true },
             { name: "Реестр контрактов", id: 50, required: true },
             { name: "Паспорт руководителя (все страницы)", id: 21, required: true },
@@ -200,7 +237,11 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         ]
 
         // Optional documents (without asterisk) - ALWAYS after required
+        // Перенесены из обязательных: 201 (31.12.2023), 202 (31.12.2025), 204 (30.06.2025)
         const optionalDocs = [
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 201, required: false },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 202, required: false },
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 204, required: false },
             { name: "Карточка 51 счета за 24 месяца по текущую дату", id: 80, required: false },
             { name: "Налоговая декларация на прибыль за 24 год с квитанцией ИФНС", id: 210, required: false },
             { name: "Налоговая декларация на прибыль за 25 год с квитанцией ИФНС", id: 211, required: false },
@@ -210,22 +251,41 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             { name: "Выписка в формате txt за 12 месяцев", id: 223, required: false },
         ]
 
+        // VED - только карточка обязательна + инвойс необязательный
+        const vedDocs = [
+            { name: "Карточка компании", id: 1, required: true },
+            { name: "Инвойс", id: 230, required: false },
+        ]
+
+        // РКО - только карточка обязательна
+        const rkoDocs = [
+            { name: "Карточка компании", id: 1, required: true },
+        ]
+
+        // Страхование - карточка обязательна + договор необязательный
+        const insuranceDocs = [
+            { name: "Карточка компании", id: 1, required: true },
+            { name: "Договор страхования", id: 231, required: false },
+        ]
+
         switch (productType) {
             case 'bank_guarantee':
             case 'contract_loan':
             case 'corporate_credit':
             case 'tender_loan':
-                return [
-                    ...requiredDocs,
-                    ...optionalDocs,
-                ]
+            case 'leasing':
             case 'factoring':
                 return [
                     ...requiredDocs,
-                    { name: "Реестр дебиторов", id: 10, required: true },
-                    { name: "Договоры поставки", id: 11, required: true },
                     ...optionalDocs,
                 ]
+            case 'ved':
+                return vedDocs
+            case 'rko':
+            case 'special_account':
+                return rkoDocs
+            case 'insurance':
+                return insuranceDocs
             default:
                 return [
                     ...requiredDocs,
@@ -975,6 +1035,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const canSubmit = application.status === 'draft' && formProgress === 100 && missingSubmitFields.length === 0
     // Show calculation session number for all users if session exists
     const showCalculationSessionLink = Boolean(application.calculation_session)
+    const amountInfo = getAmountDisplay(application)
 
     return (
         <div className="space-y-4 md:space-y-6 pb-8">
@@ -1007,7 +1068,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 </button>
                             ) : (
                                 <span className="text-[#94a3b8]">
-                                    {application.product_type_display || application.product_type || 'Заявка'}
+                                    {getProductTypeDisplay(application)}
                                 </span>
                             )}
                             <span>/</span>
@@ -1089,9 +1150,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
                                 {/* 5. Amount */}
                                 <div>
-                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Сумма кредита</p>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">{amountInfo.label}</p>
                                     <p className="font-medium text-white">
-                                        {parseFloat(application.amount || '0').toLocaleString('ru-RU')} ₽
+                                        {amountInfo.value !== null ? `${amountInfo.value.toLocaleString('ru-RU')} ₽` : "—"}
                                     </p>
                                 </div>
 
@@ -1932,15 +1993,15 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                 <span className="text-sm text-[#94a3b8]">Тип продукта</span>
                                                 <CheckCircle className="h-4 w-4 text-emerald-400" />
                                             </div>
-                                            <p className="font-medium text-white">{application.product_type_display}</p>
+                                            <p className="font-medium text-white">{getProductTypeDisplay(application)}</p>
                                         </div>
                                         <div className="p-4 rounded-lg bg-[#0f2042] border border-[#1e3a5f]">
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm text-[#94a3b8]">Сумма</span>
+                                                <span className="text-sm text-[#94a3b8]">{amountInfo.label}</span>
                                                 <CheckCircle className="h-4 w-4 text-emerald-400" />
                                             </div>
                                             <p className="font-medium text-white">
-                                                {parseFloat(application.amount || '0').toLocaleString('ru-RU')} ₽
+                                                {amountInfo.value !== null ? `${amountInfo.value.toLocaleString('ru-RU')} ₽` : "—"}
                                             </p>
                                         </div>
                                     </div>

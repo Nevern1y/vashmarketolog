@@ -66,6 +66,7 @@ import { ApplicationChat } from "./application-chat"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { getStatusConfig } from "@/lib/status-mapping"
+import { getPrimaryAmountValue } from "@/lib/application-display"
 
 interface AdminApplicationDetailProps {
     applicationId: string
@@ -344,7 +345,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     const statusIcon = STATUS_ICONS[application?.status || "pending"] || STATUS_ICONS.draft
 
     const formatCurrency = (amount: string | number | null | undefined) => {
-        if (!amount) return null
+        if (amount === null || amount === undefined || amount === "") return null
         return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", maximumFractionDigits: 0 }).format(parseFloat(String(amount)))
     }
 
@@ -463,6 +464,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
 
     const documentsCount = application.documents?.length || 0
     const gd = application.goscontract_data || {}
+    const primaryAmount = getPrimaryAmountValue(application)
 
     // Check what product we're dealing with
     const isBG = application.product_type === 'bank_guarantee'
@@ -585,7 +587,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                             <div className="grid grid-cols-2 md:flex md:gap-8 border-t border-white/5 pt-4 lg:border-none lg:pt-0">
                                 <div className="text-left md:text-right">
                                     <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Сумма</p>
-                                    <p className="text-lg md:text-2xl font-bold text-[#3CE8D1]">{formatCurrency(application.amount) || "—"}</p>
+                                    <p className="text-lg md:text-2xl font-bold text-[#3CE8D1]">{formatCurrency(primaryAmount) || "—"}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wider mb-1">Срок</p>

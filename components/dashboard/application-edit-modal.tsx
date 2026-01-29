@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Calculator, Save, X } from "lucide-react"
 import { toast } from "sonner"
 import type { Application } from "@/hooks/use-applications"
+import { getProductTypeLabel } from "@/lib/application-display"
 
 // Import product-specific field components
 import { BgEditFields } from "./edit-fields/bg-edit-fields"
@@ -383,7 +384,7 @@ export function ApplicationEditModal({
     const [isRecalculating, setIsRecalculating] = useState(false)
 
     const productType = application.product_type
-    const productLabel = PRODUCT_TYPE_LABELS[productType] || productType
+    const productLabel = getProductTypeLabel(productType, PRODUCT_TYPE_LABELS[productType])
 
     // Get schema and default values based on product type
     const schema = getSchemaForProduct(productType)
@@ -471,7 +472,7 @@ export function ApplicationEditModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white w-full max-w-[calc(100vw-2rem)] sm:max-w-xl lg:max-w-2xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                         Редактирование заявки #{application.id}

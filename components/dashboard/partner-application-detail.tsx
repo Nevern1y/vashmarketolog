@@ -44,6 +44,7 @@ import { useApplication, usePartnerActions } from "@/hooks/use-applications"
 import { toast } from "sonner"
 import { ApplicationChat } from "./application-chat"
 import { cn } from "@/lib/utils"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 
 interface PartnerApplicationDetailProps {
   applicationId: string
@@ -90,17 +91,15 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
   const { submitDecision, isLoading: submitting } = usePartnerActions()
 
   // Format currency
-  const formatCurrency = (amount: string | number) => {
-    try {
-      const num = typeof amount === "string" ? parseFloat(amount) : amount
-      return new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: "RUB",
-        maximumFractionDigits: 0,
-      }).format(num)
-    } catch {
-      return amount.toString()
-    }
+  const formatCurrency = (amount: string | number | null) => {
+    if (amount === null || amount === undefined || amount === "") return "—"
+    const num = typeof amount === "string" ? parseFloat(amount) : amount
+    if (Number.isNaN(num)) return "—"
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "RUB",
+      maximumFractionDigits: 0,
+    }).format(num)
   }
 
   // Format date
@@ -212,6 +211,8 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
   const createdDate = new Date(application.created_at)
   const deadline = new Date(createdDate.getTime() + 2 * 24 * 60 * 60 * 1000)
   const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000
+  const productLabel = getProductTypeLabel(application.product_type, application.product_type_display)
+  const primaryAmount = getPrimaryAmountValue(application)
 
   // Generate composite application ID (TZ requirement)
   const getCompositeId = () => {
@@ -290,7 +291,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Продукт</p>
-                <p className="font-medium">{application.product_type_display}</p>
+                <p className="font-medium">{productLabel}</p>
                 <p className="text-xs text-muted-foreground">
                   {(() => {
                     const law = application.tender_law || (application as any).goscontract_data?.law
@@ -305,7 +306,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Сумма</p>
-                <p className="font-medium">{formatCurrency(application.amount)}</p>
+                <p className="font-medium">{formatCurrency(primaryAmount)}</p>
                 <p className="text-xs text-muted-foreground">{application.term_months} мес.</p>
               </div>
             </div>
@@ -526,13 +527,13 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                 <FileText className="h-5 w-5 text-[#3CE8D1]" />
                 Параметры продукта
               </CardTitle>
-              <CardDescription>{application.product_type_display}</CardDescription>
+              <CardDescription>{productLabel}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Basic product info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ProductInfoItem label="Тип продукта" value={application.product_type_display} />
-                <ProductInfoItem label="Сумма" value={formatCurrency(application.amount)} />
+                <ProductInfoItem label="Тип продукта" value={productLabel} />
+                <ProductInfoItem label="Сумма" value={formatCurrency(primaryAmount)} />
                 <ProductInfoItem label="Срок" value={`${application.term_months} месяцев`} />
                 {application.tender_law && (
                   <ProductInfoItem label="Закон о закупках" value={

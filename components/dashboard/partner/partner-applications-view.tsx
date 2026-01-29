@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/select"
 import { useApplications } from "@/hooks/use-applications"
 import { cn } from "@/lib/utils"
+import { getStatusConfig } from "@/lib/status-mapping"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 
 interface PartnerApplicationsViewProps {
     onOpenDetail?: (id: string) => void
@@ -44,7 +46,6 @@ interface PartnerApplicationsViewProps {
 const PRODUCT_TABS = [
     { value: "all", label: "Все", shortLabel: "Все", desc: "" },
     { value: "bank_guarantee", label: "Банковские гарантии", shortLabel: "БГ", desc: "Гарантии для тендеров и контрактов" },
-    { value: "tender_loan", label: "Кредиты для бизнеса", shortLabel: "Кредит", desc: "Тендерные кредиты и кредитование бизнеса" },
     { value: "leasing", label: "Лизинг для юрлиц", shortLabel: "Лизинг", desc: "Лизинг оборудования и транспорта" },
     { value: "factoring", label: "Факторинг для бизнеса", shortLabel: "Факторинг", desc: "Факторинговое финансирование" },
     { value: "insurance", label: "Страхование СМР", shortLabel: "Страх.", desc: "Страхование строительно-монтажных работ" },
@@ -83,31 +84,12 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
         currentPage * itemsPerPage
     )
 
+    // Use centralized status mapping from lib/status-mapping.ts
     const getStatusBadge = (status: string) => {
-        const styles: Record<string, { bg: string; text: string; border: string }> = {
-            draft: { bg: "bg-gray-500/20", text: "text-gray-400", border: "border-gray-500/30" },
-            pending: { bg: "bg-yellow-500/20", text: "text-yellow-400", border: "border-yellow-500/30" },
-            in_review: { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30" },
-            "in-review": { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30" },
-            info_requested: { bg: "bg-orange-500/20", text: "text-orange-400", border: "border-orange-500/30" },
-            approved: { bg: "bg-[#3CE8D1]/20", text: "text-[#3CE8D1]", border: "border-[#3CE8D1]/30" },
-            rejected: { bg: "bg-red-500/20", text: "text-red-400", border: "border-red-500/30" },
-            won: { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30" },
-        }
-        const labels: Record<string, string> = {
-            draft: "Черновик",
-            pending: "Создание заявки",
-            in_review: "На рассмотрении",
-            "in-review": "На рассмотрении",
-            info_requested: "Запрос информации",
-            approved: "Одобрено",
-            rejected: "Отклонено",
-            won: "Возвращена на доработку",
-        }
-        const style = styles[status] || styles.draft
+        const config = getStatusConfig(status)
         return (
-            <Badge className={cn("border text-xs", style.bg, style.text, style.border)}>
-                {labels[status] || status}
+            <Badge className={cn("border text-xs", config.bgColor, config.color, "border-current/30")}>
+                {config.label}
             </Badge>
         )
     }
@@ -128,7 +110,7 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
             special_account: "Спецсчет",
             tender_support: "Тендерное сопров."
         }
-        const productLabel = productTypeMap[app.product_type] || app.product_type_display || app.product_type
+        const productLabel = productTypeMap[app.product_type] || getProductTypeLabel(app.product_type, app.product_type_display)
         const law = app.goscontract_data?.law || app.tender_law
         if (law && (app.product_type === "bank_guarantee" || app.product_type === "tender_loan" || app.product_type === "contract_loan")) {
             // User request: Law info is low priority, don't show it
@@ -137,9 +119,18 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
         return productLabel
     }
 
+    const formatAmount = (value: number | null, options?: Intl.NumberFormatOptions): string => {
+        if (value === null) return "—"
+        return value.toLocaleString("ru-RU", options)
+    }
+
     // Mobile Application Card
-    const ApplicationCard = ({ app }: { app: typeof paginatedApps[0] }) => (
-        <div
+    const ApplicationCard = ({ app }: { app: typeof paginatedApps[0] }) => {
+        const primaryAmount = getPrimaryAmountValue(app)
+        const amountLabel = primaryAmount !== null ? `${formatAmount(primaryAmount)} ₽` : "—"
+
+        return (
+            <div
             onClick={() => onOpenDetail?.(String(app.id))}
             className="p-4 rounded-lg border border-[#1e3a5f] bg-[#0a1628] hover:bg-[#0f2042] cursor-pointer transition-colors"
         >
@@ -181,7 +172,7 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                 <div className="flex items-center gap-2">
                     <Banknote className="h-4 w-4 text-[#94a3b8]" />
                     <span className="text-white font-medium">
-                        {parseFloat(app.amount || '0').toLocaleString('ru-RU')} ₽
+                        {amountLabel}
                     </span>
                 </div>
                 <div className="flex items-center gap-2 text-[#94a3b8]">
@@ -192,8 +183,8 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
 
             {/* Agent + Bank */}
             <div className="flex items-center justify-between gap-4 mt-2 pt-2 border-t border-[#1e3a5f] text-sm">
-                {/* Hide Agent for Client */}
-                {userRole !== 'client' ? (
+                {/* Hide Agent for Client and Agent roles */}
+                {userRole !== 'client' && userRole !== 'agent' ? (
                     <div className="flex items-center gap-2 min-w-0">
                         <User className="h-4 w-4 text-[#94a3b8] shrink-0" />
                         <span className="text-[#3CE8D1] truncate">{app.created_by_name || app.created_by_email || '-'}</span>
@@ -205,8 +196,9 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                     <span className="text-[#94a3b8] truncate">{app.target_bank_name}</span>
                 )}
             </div>
-        </div>
-    )
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-4 md:space-y-6">
@@ -301,14 +293,14 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="border-[#1e3a5f] hover:bg-transparent">
-                                            <TableHead className="text-[#94a3b8] font-medium min-w-[120px]">№ заявки / № извещ.</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium min-w-[100px]">Продукт</TableHead>
-                                            <TableHead className="hidden lg:table-cell text-[#94a3b8] font-medium min-w-[100px]">Дата созд.</TableHead>
-                                            <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[120px]">МФО/Банк</TableHead>
-                                            {userRole !== 'client' && <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[120px]">Агент</TableHead>}
-                                            {userRole !== 'client' && <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[150px]">Клиент</TableHead>}
-                                            <TableHead className="hidden lg:table-cell text-[#94a3b8] font-medium min-w-[100px] text-right">Сумма, ₽</TableHead>
-                                            <TableHead className="text-[#94a3b8] font-medium min-w-[100px]">Статус</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium min-w-[100px]">№ заявки / № извещ.</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium min-w-[70px]">Продукт</TableHead>
+                                            <TableHead className="hidden lg:table-cell text-[#94a3b8] font-medium min-w-[80px]">Дата созд.</TableHead>
+                                            <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[90px]">МФО/Банк</TableHead>
+                                            {userRole !== 'client' && userRole !== 'agent' && <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[100px]">Агент</TableHead>}
+                                            {userRole !== 'client' && <TableHead className="hidden xl:table-cell text-[#94a3b8] font-medium min-w-[120px]">Клиент</TableHead>}
+                                            <TableHead className="hidden lg:table-cell text-[#94a3b8] font-medium min-w-[90px] text-right">Сумма, ₽</TableHead>
+                                            <TableHead className="text-[#94a3b8] font-medium min-w-[90px]">Статус</TableHead>
                                             <TableHead className="text-[#94a3b8] font-medium w-10"></TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -344,7 +336,7 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                                 <TableCell className="hidden xl:table-cell text-white">
                                                     {app.target_bank_name || '-'}
                                                 </TableCell>
-                                                {userRole !== 'client' && (
+                                                {userRole !== 'client' && userRole !== 'agent' && (
                                                     <TableCell className="hidden xl:table-cell">
                                                         <span className="text-[#3CE8D1]">{app.created_by_name || app.created_by_email || '-'}</span>
                                                     </TableCell>
@@ -359,7 +351,12 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                                 )}
                                                 <TableCell className="hidden lg:table-cell text-right">
                                                     <span className="text-white font-medium">
-                                                        {parseFloat(app.amount || '0').toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                                                        {(() => {
+                                                            const primaryAmount = getPrimaryAmountValue(app)
+                                                            return primaryAmount !== null
+                                                                ? `${formatAmount(primaryAmount, { minimumFractionDigits: 2 })}`
+                                                                : "—"
+                                                        })()}
                                                     </span>
                                                 </TableCell>
                                                 <TableCell>

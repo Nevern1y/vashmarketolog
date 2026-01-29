@@ -28,6 +28,7 @@ import { useMyCompany } from "@/hooks/use-companies"
 import { useDocuments, useDocumentMutations, formatDocumentType } from "@/hooks/use-documents"
 import { useApplications } from "@/hooks/use-applications"
 import { getStatusConfig } from "@/lib/status-mapping"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 import { toast } from "sonner"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -295,6 +296,7 @@ export function MyCompanyFullView({
                   <TableBody>
                     {applications.map((app) => {
                       const statusConfig = getStatusConfig(app.status)
+                      const primaryAmount = getPrimaryAmountValue(app)
                       return (
                         <TableRow
                           key={app.id}
@@ -302,9 +304,11 @@ export function MyCompanyFullView({
                           onClick={() => onApplicationClick?.(app.id)}
                         >
                           <TableCell className="text-white font-mono">#{app.id}</TableCell>
-                          <TableCell className="text-white">{app.product_type_display}</TableCell>
                           <TableCell className="text-white">
-                            {parseFloat(app.amount || "0").toLocaleString("ru-RU")} ₽
+                            {getProductTypeLabel(app.product_type, app.product_type_display)}
+                          </TableCell>
+                          <TableCell className="text-white">
+                            {primaryAmount !== null ? `${primaryAmount.toLocaleString("ru-RU")} ₽` : "—"}
                           </TableCell>
                           <TableCell>
                             <Badge

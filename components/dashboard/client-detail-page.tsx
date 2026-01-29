@@ -31,6 +31,7 @@ import { useDocuments, useDocumentMutations, formatDocumentType } from "@/hooks/
 import { useApplications } from "@/hooks/use-applications"
 import { getStatusConfig } from "@/lib/status-mapping"
 import { formatDate } from "@/lib/form-utils"
+import { getPrimaryAmountValue } from "@/lib/application-display"
 import { toast } from "sonner"
 import type { ClientDetailTab } from "@/lib/types"
 import { getCompanyBasicsError } from "@/lib/company-basics"
@@ -355,6 +356,7 @@ function ClientApplicationsTab({
             <TableBody>
               {filteredApps.map((app) => {
                 const statusConfig = getStatusConfig(app.status)
+                const primaryAmount = getPrimaryAmountValue(app)
                 return (
                   <TableRow 
                     key={app.id}
@@ -376,7 +378,7 @@ function ClientApplicationsTab({
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      {app.amount?.toLocaleString('ru-RU') || '0'}
+                      {primaryAmount !== null ? primaryAmount.toLocaleString('ru-RU') : '—'}
                     </TableCell>
                     <TableCell className="text-right font-mono">
                       {app.commission?.toLocaleString('ru-RU') || '0,00'}

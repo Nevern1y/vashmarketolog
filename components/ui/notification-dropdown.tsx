@@ -32,6 +32,7 @@ import {
     type NotificationType,
 } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
+import { getProductTypeLabel } from "@/lib/application-display"
 
 interface NotificationDropdownProps {
     onNotificationClick?: (notification: Notification) => void
@@ -218,7 +219,7 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                                                         <>
                                                             {notification.details.companyName}
                                                             {notification.details.productTypeDisplay && (
-                                                                <> • {notification.details.productTypeDisplay}</>
+                                                                <> • {getProductTypeLabel(notification.details.productTypeDisplay, notification.details.productTypeDisplay)}</>
                                                             )}
                                                         </>
                                                     )}

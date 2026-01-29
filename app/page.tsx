@@ -342,7 +342,9 @@ export default function DashboardPage() {
               )}
               {agentView === "banks" && <AgentBanksView />}
               {agentView === "profile-settings" && <ProfileSettingsView />}
-              {agentView === "victories" && <MyVictoriesView />}
+              {agentView === "victories" && (
+                <MyVictoriesView onOpenDetail={(applicationId) => openDetail(String(applicationId))} />
+              )}
               {agentView === "calculator" && (
                 <AgentCalculatorView
                   prefill={calculatorPrefill}
@@ -540,7 +542,9 @@ export default function DashboardPage() {
                   userRole="client"
                 />
               )}
-              {clientView === "victories" && <MyVictoriesView />}
+              {clientView === "victories" && (
+                <MyVictoriesView onOpenDetail={(applicationId) => openDetail(String(applicationId))} />
+              )}
               {clientView === "tender_support" && <ClientTenderSupportView />}
               {clientView === "calculator" && (
                 <ClientCalculatorView

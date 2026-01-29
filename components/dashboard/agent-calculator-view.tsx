@@ -19,10 +19,11 @@ import { Badge } from "@/components/ui/badge"
 import {
     Calculator, FileText, Landmark, CreditCard, TrendingUp, Building2,
     Wallet, HandCoins, Upload, Loader2, CheckCircle2, XCircle, AlertCircle, ArrowLeft,
-    Search, Calendar, Settings, Users
+    Search, Calendar, Settings, Users, Briefcase
 } from "lucide-react"
 import { toast } from "sonner"
 import { getCompanyBasicsError } from "@/lib/company-basics"
+import { getProductTypeLabel } from "@/lib/application-display"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany, useCRMClients, useCRMClientMutations, type CreateCompanyPayload, type CompanyListItem } from "@/hooks/use-companies"
@@ -121,6 +122,7 @@ const TAB_BY_PRODUCT: Record<string, string> = {
     rko: "rko",
     special_account: "rko",
     deposits: "deposits",
+    tender_support: "tender_support",
 }
 
 const parseOptionalNumber = (value?: string | number | null): number | undefined => {
@@ -280,6 +282,7 @@ const BANKS_DB: Bank[] = [
     { name: "Ресо Лизинг", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
     { name: "Контрол Лизинг", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], type: "leasing" },
     { name: "МГКЛ (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Средняя", laws: [], type: "leasing" },
+    { name: "Индивидуальное рассмотрение (Лизинг)", minAmount: 10000, maxAmount: 999999999, bgRate: 0, creditRate: 0, speed: "Высокая", laws: [], individual: true, type: "leasing" },
 ]
 
 // Calculate bank offers based on form data
@@ -338,6 +341,18 @@ const RKO_BANKS = [
     { name: "Сбербанк", rating: 1, sanctions: "Да", cost: "БЕСПЛАТНО" },
     { name: "Тинькофф", rating: 12, sanctions: "Нет", cost: "БЕСПЛАТНО" },
     { name: "Точка", rating: 95, sanctions: "Нет", cost: "БЕСПЛАТНО" },
+]
+
+const TENDER_SUPPORT_PURCHASE_TYPES = [
+    { id: "44fz", label: "Госзакупки по 44-ФЗ", apiValue: "gov_44" },
+    { id: "223fz", label: "Закупки по 223-ФЗ", apiValue: "gov_223" },
+    { id: "property", label: "Имущественные торги", apiValue: "property" },
+    { id: "commercial", label: "Коммерческие закупки", apiValue: "commercial" },
+]
+
+const TENDER_SUPPORT_TYPES = [
+    { id: "one_time", label: "Разовое сопровождение" },
+    { id: "full_cycle", label: "Тендерное сопровождение под ключ" },
 ]
 
 const formatNumber = (num: number): string => num.toLocaleString("ru-RU")
@@ -468,6 +483,13 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
     const [depositAmount, setDepositAmount] = useState<number | undefined>(undefined)
     const [depositTermMonths, setDepositTermMonths] = useState<number | undefined>(undefined)
     const [depositType, setDepositType] = useState("term")
+
+    // Tender Support specific
+    const [tenderSupportType, setTenderSupportType] = useState("")
+    const [tenderSupportPurchaseType, setTenderSupportPurchaseType] = useState("")
+    const [tenderSupportIndustry, setTenderSupportIndustry] = useState("")
+    const [isTenderSupportSubmitting, setIsTenderSupportSubmitting] = useState(false)
+    const isTenderSupportFormValid = Boolean(tenderSupportType && tenderSupportPurchaseType)
 
     // Unsecured loan specific
     const [fullName, setFullName] = useState("")
@@ -608,6 +630,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             case "insurance": return "insurance"
             case "ved": return "ved"
             case "rko": return "rko"
+            case "tender_support": return "tender_support"
             default: return "general"
         }
     }
@@ -1129,6 +1152,18 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             return baseData
         }
 
+        // Get the correct amount based on product type
+        const getCalculatedAmount = (): number => {
+            switch (showResults) {
+                case "kik": return creditAmount ?? amount ?? 0
+                case "leasing": return leasingAmount ?? amount ?? 0
+                case "factoring": return financingAmount ?? amount ?? 0
+                case "insurance": return insuranceAmount ?? amount ?? 0
+                case "deposits": return depositAmount ?? amount ?? 0
+                default: return amount ?? 0
+            }
+        }
+
         // Create applications for each selected bank
         const selectedBanks = Array.from(selectedOffers).map(idx => calculatedOffers.approved[idx])
         let successCount = 0
@@ -1168,8 +1203,8 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 }
 
                 // Build display title
-                const amountDisplay = formatNumber(amount ?? 0)
-                const title = `${productType === 'bank_guarantee' ? 'БГ' : productType === 'tender_loan' ? 'ТЗ' : productType} ${amountDisplay} ₽`
+                const amountDisplay = formatNumber(getCalculatedAmount())
+                const title = `${getProductTypeLabel(productType)} ${amountDisplay} ₽`
 
                 const session = await createSession({
                     company: company.id,
@@ -1201,7 +1236,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 const payload = {
                     company: company.id,
                     product_type: getProductType(),
-                    amount: (amount ?? 0).toString(),
+                    amount: getCalculatedAmount().toString(),
                     term_months: dateFrom && dateTo
                         ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24 * 30))
                         : 1,
@@ -1290,6 +1325,56 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         }
 
         setSelectedOffers(newSet)
+    }
+
+    const handleCreateTenderSupport = async () => {
+        if (!selectedClientId) {
+            toast.error("Выберите клиента")
+            return
+        }
+        if (!tenderSupportType || !tenderSupportPurchaseType) {
+            toast.error("Заполните обязательные поля: Вариант сопровождения, Тип закупки")
+            return
+        }
+
+        if (!company) {
+            toast.error("Выберите клиента")
+            return
+        }
+        const companyError = getCompanyBasicsError(company)
+        if (companyError) {
+            toast.error(companyError)
+            return
+        }
+
+        const purchaseApiValue = TENDER_SUPPORT_PURCHASE_TYPES.find(p => p.id === tenderSupportPurchaseType)?.apiValue || "gov_44"
+
+        try {
+            setIsTenderSupportSubmitting(true)
+            const payload = {
+                company: company.id,
+                product_type: "tender_support" as const,
+                amount: "0",
+                term_months: 12,
+                target_bank_name: "Индивидуальное рассмотрение",
+                tender_support_type: tenderSupportType,
+                purchase_category: purchaseApiValue,
+                industry: tenderSupportIndustry || undefined,
+            }
+
+            const result = await createApplication(payload as Parameters<typeof createApplication>[0])
+            if (result) {
+                toast.success(`Заявка №${result.id} создана`)
+                router.push("/?view=applications")
+            } else {
+                toast.error("Не удалось создать заявку")
+            }
+        } catch (err) {
+            console.error('Error creating tender support application:', err)
+            toast.error("Ошибка при создании заявки")
+        } finally {
+            setIsTenderSupportSubmitting(false)
+        }
     }
 
     // Back to form
@@ -1437,6 +1522,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         { id: "insurance", label: "Страхование", icon: Landmark, description: "Страхование СМР, имущества, ответственности" },
         { id: "ved", label: "Междунар. платежи", icon: Wallet, description: "Международные платежи и ВЭД" },
         { id: "rko", label: "РКО и спецсчет", icon: Building2, description: "Расчётно-кассовое обслуживание" },
+        { id: "tender_support", label: "Тендерное сопровождение", icon: Briefcase, description: "Разовое или под ключ" },
     ]
 
     // Legacy productTabs for tab-based navigation (when product is selected)
@@ -1451,6 +1537,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         { id: "ved", label: "Междунар. платежи", icon: Wallet },
         { id: "rko", label: "РКО и спецсчет", icon: Building2 },
         { id: "deposits", label: "Депозиты", icon: Calculator },
+        { id: "tender_support", label: "Тендерное сопров.", icon: Briefcase },
     ]
 
     // =============================================================================
@@ -3416,6 +3503,117 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                         </CardContent>
                     </Card>
                 </TabsContent >
+
+                {/* TAB: TENDER SUPPORT */}
+                <TabsContent value="tender_support">
+                    <Card className="border-[#1e3a5f] bg-[#0f1d32]/40">
+                        <CardHeader>
+                            <CardTitle>Условия заявки</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-5">
+                            <div>
+                                <Label>Клиент *</Label>
+                                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                                    <SelectTrigger className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white">
+                                        <SelectValue placeholder={clientsLoading ? "Загрузка..." : confirmedClients.length === 0 ? "Нет подтвержденных клиентов" : "Выберите клиента"} />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-[#0f2042] border-[#1e3a5f]">
+                                        {confirmedClients.map((c) => (
+                                            <SelectItem key={c.id} value={c.id.toString()} className="text-white hover:bg-[#1e3a5f]">
+                                                {c.name} ({c.inn})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {confirmedClients.length === 0 && !clientsLoading && (
+                                    <p className="text-xs text-amber-400 mt-1">У вас нет подтверждённых клиентов.</p>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl border border-[#1e3a5f] bg-[#0f1d32]/60 p-4">
+                                <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
+                                    <Building2 className="h-4 w-4" />
+                                    <span>ИНН организации-заявителя</span>
+                                </div>
+                                <div className="mt-2 flex flex-wrap items-center gap-3">
+                                    <p className="text-lg font-semibold text-[#3CE8D1]">{selectedClient?.inn || "—"}</p>
+                                    {selectedClient?.name && (
+                                        <span className="rounded-full border border-[#1e3a5f] bg-[#0f2a2f] px-2.5 py-0.5 text-xs text-[#3CE8D1]">
+                                            Данные из ЕГРЮЛ
+                                        </span>
+                                    )}
+                                </div>
+                                {selectedClient?.name && (
+                                    <p className="mt-1 text-sm text-[#94a3b8]">{selectedClient.name}</p>
+                                )}
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <Label>Вариант сопровождения *</Label>
+                                    <Select value={tenderSupportType} onValueChange={setTenderSupportType}>
+                                        <SelectTrigger className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white">
+                                            <SelectValue placeholder="Выберите вариант" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-[#0f2042] border-[#1e3a5f]">
+                                            {TENDER_SUPPORT_TYPES.map((item) => (
+                                                <SelectItem key={item.id} value={item.id} className="text-white hover:bg-[#1e3a5f]">
+                                                    {item.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Тип закупки *</Label>
+                                    <Select value={tenderSupportPurchaseType} onValueChange={setTenderSupportPurchaseType}>
+                                        <SelectTrigger className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white">
+                                            <SelectValue placeholder="Выберите тип" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-[#0f2042] border-[#1e3a5f]">
+                                            {TENDER_SUPPORT_PURCHASE_TYPES.map((item) => (
+                                                <SelectItem key={item.id} value={item.id} className="text-white hover:bg-[#1e3a5f]">
+                                                    {item.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label>Закупки в отрасли</Label>
+                                <Input
+                                    value={tenderSupportIndustry}
+                                    onChange={(e) => setTenderSupportIndustry(e.target.value)}
+                                    placeholder="Введите интересующую отрасль закупок"
+                                    className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white focus:ring-0 focus:ring-offset-0"
+                                />
+                            </div>
+
+                            {!isTenderSupportFormValid && (
+                                <div className="rounded-lg border border-[#f59e0b]/40 bg-[#f59e0b]/10 px-4 py-3 text-sm text-[#f59e0b]">
+                                    Заполните обязательные поля: Вариант сопровождения, Тип закупки
+                                </div>
+                            )}
+
+                            <div className="flex justify-start">
+                                <Button
+                                    className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                    onClick={handleCreateTenderSupport}
+                                    disabled={isTenderSupportSubmitting || isCreatingApplication}
+                                >
+                                    {isTenderSupportSubmitting || isCreatingApplication ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Calculator className="h-4 w-4 mr-2" />
+                                    )}
+                                    ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs >
 
             {/* Add Client Modal */}

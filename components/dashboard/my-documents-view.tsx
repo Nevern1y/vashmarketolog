@@ -51,6 +51,10 @@ export function MyDocumentsView() {
   const [deletingDoc, setDeletingDoc] = useState<{ id: number; name: string } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Replace document state
+  const [replacingDoc, setReplacingDoc] = useState<DocumentListItem | null>(null)
+  const replaceFileInputRef = useRef<HTMLInputElement>(null)
+
   // API Hooks
   const { documents, isLoading, error, refetch } = useDocuments()
   const { uploadDocument, deleteDocument, isLoading: uploading } = useDocumentMutations()
@@ -136,6 +140,48 @@ export function MyDocumentsView() {
     }
 
     setDeletingDoc(null)
+  }
+
+  // Handle replace document - open file picker
+  const handleReplaceClick = (doc: DocumentListItem) => {
+    setReplacingDoc(doc)
+    replaceFileInputRef.current?.click()
+  }
+
+  // Handle replace file selection
+  const handleReplaceFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !replacingDoc) {
+      setReplacingDoc(null)
+      return
+    }
+
+    // Delete old document first, then upload new one with same name and type
+    const deleteSuccess = await deleteDocument(replacingDoc.id)
+    if (!deleteSuccess) {
+      toast.error("Ошибка замены документа")
+      setReplacingDoc(null)
+      if (replaceFileInputRef.current) replaceFileInputRef.current.value = ""
+      return
+    }
+
+    // Upload new document with same name and type
+    const newDoc = await uploadDocument({
+      name: replacingDoc.name,
+      file: file,
+      document_type_id: replacingDoc.document_type_id,
+      product_type: 'general',
+    })
+
+    if (newDoc) {
+      toast.success(`Документ "${replacingDoc.name}" заменён`)
+      refetch()
+    } else {
+      toast.error("Ошибка загрузки нового документа")
+    }
+
+    setReplacingDoc(null)
+    if (replaceFileInputRef.current) replaceFileInputRef.current.value = ""
   }
 
   // Get file URL for viewing/downloading
@@ -471,6 +517,12 @@ export function MyDocumentsView() {
                             </a>
                           </DropdownMenuItem>
                           <DropdownMenuItem
+                            onClick={() => handleReplaceClick(doc)}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Заменить
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => openDeleteConfirm(doc.id, doc.name)}
                           >
@@ -487,6 +539,15 @@ export function MyDocumentsView() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Hidden input for replacing documents */}
+      <input
+        ref={replaceFileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        onChange={handleReplaceFileSelect}
+      />
     </div>
   )
 }

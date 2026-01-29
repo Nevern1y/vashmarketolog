@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Search, Inbox, Clock, CheckCircle2, AlertCircle, Eye, Building2, RefreshCw, Loader2 } from "lucide-react"
 import { useApplications, type ApplicationListItem } from "@/hooks/use-applications"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 
 interface PartnerIncomingViewProps {
   onOpenDetail: (id: string) => void
@@ -85,17 +86,15 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
   }
 
   // Format currency
-  const formatCurrency = (amount: string) => {
-    try {
-      const num = parseFloat(amount)
-      return new Intl.NumberFormat("ru-RU", {
-        style: "currency",
-        currency: "RUB",
-        maximumFractionDigits: 0,
-      }).format(num)
-    } catch {
-      return amount
-    }
+  const formatCurrency = (amount: string | number | null) => {
+    if (amount === null || amount === undefined || amount === "") return "—"
+    const num = typeof amount === "number" ? amount : parseFloat(amount)
+    if (Number.isNaN(num)) return "—"
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "RUB",
+      maximumFractionDigits: 0,
+    }).format(num)
   }
 
   // Format date
@@ -343,9 +342,9 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>{app.product_type_display}</TableCell>
+                    <TableCell>{getProductTypeLabel(app.product_type, app.product_type_display)}</TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(app.amount)}
+                      {formatCurrency(getPrimaryAmountValue(app))}
                     </TableCell>
                     <TableCell>{getStatusBadge(app.status)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

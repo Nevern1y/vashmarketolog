@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { getCompanyBasicsError } from "@/lib/company-basics"
+import { getProductTypeLabel } from "@/lib/application-display"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany } from "@/hooks/use-companies"
@@ -1112,7 +1113,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
                 // Build display title
                 const amountDisplay = formatInputNumber(amount ?? 0)
-                const title = `${productType === 'bank_guarantee' ? 'БГ' : productType === 'tender_loan' ? 'ТЗ' : productType} ${amountDisplay} ₽`
+                const title = `${getProductTypeLabel(productType)} ${amountDisplay} ₽`
 
                 const session = await createSession({
                     company: company.id,

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { getStatusConfig } from "@/lib/status-mapping"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 import {
     Search,
     Loader2,
@@ -226,7 +227,7 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
     const { application, isLoading } = useApplication(applicationId)
 
     const formatCurrency = (amount: string | number | undefined | null) => {
-        if (!amount) return "—"
+        if (amount === null || amount === undefined || amount === "") return "—"
         return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(parseFloat(String(amount))) + " ₽"
     }
 
@@ -252,8 +253,9 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
         )
     }
 
-    const productLabel = PRODUCT_TABS.find(p => p.value === application.product_type)?.label || application.product_type_display || application.product_type
+    const productLabel = PRODUCT_TABS.find(p => p.value === application.product_type)?.label || getProductTypeLabel(application.product_type, application.product_type_display)
     const statusCfg = getStatusConfig(application.status)
+    const primaryAmount = getPrimaryAmountValue(application)
 
     return (
         <div className="p-4 md:p-6 space-y-6 bg-accent/20 border-t border-border">
@@ -270,7 +272,7 @@ function ApplicationExpandedDetails({ applicationId }: { applicationId: number }
 
             {/* Main Info Section */}
             <DataSection title="Основные данные" icon={Briefcase}>
-                <DataField label="Сумма" value={formatCurrency(application.amount)} highlight icon={Banknote} />
+                <DataField label="Сумма" value={formatCurrency(primaryAmount)} highlight icon={Banknote} />
                 <DataField label="Срок (мес.)" value={application.term_months} icon={Clock} />
                 <DataField label="Целевой банк/МФО" value={application.target_bank_name} icon={Building2} />
                 <DataField label="Создано" value={formatDate(application.created_at)} icon={Calendar} />
@@ -580,10 +582,11 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
         setShowAssignDialog(false)
     }
 
-    const formatCurrency = (amount: string) => {
+    const formatCurrency = (amount: string | number | null | undefined) => {
+        if (amount === null || amount === undefined || amount === "") return null
         return new Intl.NumberFormat("ru-RU", {
             maximumFractionDigits: 0,
-        }).format(parseFloat(amount))
+        }).format(Number(amount))
     }
 
     const formatDate = (dateStr: string) => {
@@ -612,6 +615,8 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
         const statusCfg = getStatusConfig(app.status)
         const isExpanded = expandedRows.has(app.id)
         const law = getTenderLaw(app)
+        const primaryAmount = getPrimaryAmountValue(app)
+        const amountLabel = primaryAmount !== null ? `${formatCurrency(primaryAmount)} ₽` : "—"
 
         return (
             <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -659,7 +664,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                     <div className="flex items-center justify-between gap-4 text-sm">
                         <div className="flex items-center gap-2">
                             <Banknote className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{formatCurrency(app.amount)} ₽</span>
+                            <span className="font-medium">{amountLabel}</span>
                         </div>
                         <div className="flex items-center gap-2 text-muted-foreground">
                             <Calendar className="h-4 w-4" />
@@ -829,6 +834,8 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                             const statusCfg = getStatusConfig(app.status)
                                             const isExpanded = expandedRows.has(app.id)
                                             const law = getTenderLaw(app)
+                                            const primaryAmount = getPrimaryAmountValue(app)
+                                            const amountLabel = primaryAmount !== null ? `${formatCurrency(primaryAmount)} ₽` : "—"
 
                                             return (
                                                 <React.Fragment key={app.id}>
@@ -865,7 +872,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                         </td>
                                                         <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm text-foreground">
-                                                                {PRODUCT_TABS.find(p => p.value === app.product_type)?.shortLabel || app.product_type_display || app.product_type}
+                                                                {PRODUCT_TABS.find(p => p.value === app.product_type)?.shortLabel || getProductTypeLabel(app.product_type, app.product_type_display)}
                                                             </span>
                                                         </td>
                                                         <td className="hidden 2xl:table-cell p-4">
@@ -884,7 +891,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                         </td>
                                                         <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm font-medium text-foreground">
-                                                                {formatCurrency(app.amount)} ₽
+                                                                {amountLabel}
                                                             </span>
                                                         </td>
                                                         <td className="hidden 2xl:table-cell p-4">
