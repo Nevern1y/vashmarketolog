@@ -15,7 +15,6 @@ import {
     Newspaper,
     UserCheck,
     X,
-    Bell,
     Settings,
     Lock,
     User,
@@ -32,6 +31,8 @@ import { AdminNewsView } from "./admin-news-view"
 import { AdminCRMClientsView } from "./admin-crm-clients-view"
 import { AdminLeadsView } from "./admin-leads-view"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import { NotificationDropdown } from "@/components/ui/notification-dropdown"
+import type { Notification } from "@/hooks/use-notifications"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -191,9 +192,10 @@ interface AdminMobileHeaderProps {
     onProfileClick?: () => void
     activeView: AdminView
     onRequestLogout?: () => void
+    onNotificationClick?: (notification: Notification) => void
 }
 
-function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activeView, onRequestLogout }: AdminMobileHeaderProps) {
+function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activeView, onRequestLogout, onNotificationClick }: AdminMobileHeaderProps) {
     const viewLabel = NAV_ITEMS.find(item => item.id === activeView)?.label || (activeView === "profile-settings" ? "Настройки" : "Админ")
     const { user } = useAuth()
 
@@ -215,14 +217,7 @@ function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activ
             </div>
 
             <div className="flex items-center gap-2">
-                <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-[#94a3b8] hover:text-white"
-                    onClick={() => { }}
-                >
-                    <Bell className="h-5 w-5" />
-                </Button>
+                <NotificationDropdown onNotificationClick={onNotificationClick} />
 
                 {onSettingsClick && (
                     <Button
@@ -299,6 +294,31 @@ export function AdminDashboard() {
         setActiveView(view)
         handleBackFromDetail()
         setIsMobileSidebarOpen(false)
+    }
+
+    const handleNotificationClick = (notification: Notification) => {
+        if (notification.details.applicationId) {
+            handleViewChange("applications")
+            setSelectedAppId(String(notification.details.applicationId))
+            return
+        }
+
+        switch (notification.type) {
+            case "admin_new_lead":
+                handleViewChange("leads")
+                break
+            case "admin_new_agent":
+                handleViewChange("agents")
+                break
+            case "admin_new_partner":
+                handleViewChange("partners")
+                break
+            case "admin_new_application":
+                handleViewChange("applications")
+                break
+            default:
+                break
+        }
     }
 
     // Render Content
@@ -392,6 +412,7 @@ export function AdminDashboard() {
                     onProfileClick={() => handleViewChange("profile-settings")}
                     activeView={activeView}
                     onRequestLogout={handleRequestLogout}
+                    onNotificationClick={handleNotificationClick}
                 />
 
                 {/* Desktop Header */}
@@ -403,14 +424,7 @@ export function AdminDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-[#94a3b8] hover:text-white"
-                            onClick={() => { }}
-                        >
-                            <Bell className="h-5 w-5" />
-                        </Button>
+                        <NotificationDropdown onNotificationClick={handleNotificationClick} />
 
                         <Button
                             size="icon"

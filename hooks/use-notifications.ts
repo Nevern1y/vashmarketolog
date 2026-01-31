@@ -25,6 +25,10 @@ export type NotificationType =
     | 'document_requested'
     | 'chat_message'
     | 'new_application'
+    | 'admin_new_application'
+    | 'admin_new_lead'
+    | 'admin_new_agent'
+    | 'admin_new_partner'
 
 // API response interface - matches backend serializer
 export interface NotificationResponse {
@@ -55,6 +59,17 @@ export interface NotificationResponse {
         old_status?: string
         new_status?: string
         status_display?: string
+        lead_id?: number
+        lead_name?: string
+        lead_phone?: string
+        lead_email?: string
+        lead_source?: string
+        lead_source_display?: string
+        user_id?: number
+        user_email?: string
+        user_phone?: string
+        user_full_name?: string
+        user_role?: string
     }
     is_read: boolean
     created_at: string
@@ -88,6 +103,17 @@ export interface Notification {
         oldStatus?: string
         newStatus?: string
         statusDisplay?: string
+        leadId?: number
+        leadName?: string
+        leadPhone?: string
+        leadEmail?: string
+        leadSource?: string
+        leadSourceDisplay?: string
+        userId?: number
+        userEmail?: string
+        userPhone?: string
+        userName?: string
+        userRole?: string
     }
     createdAt: string
     isRead: boolean
@@ -147,6 +173,17 @@ function transformNotification(apiNotification: NotificationResponse): Notificat
             oldStatus: data.old_status,
             newStatus: data.new_status,
             statusDisplay: data.status_display,
+            leadId: data.lead_id,
+            leadName: data.lead_name,
+            leadPhone: data.lead_phone,
+            leadEmail: data.lead_email,
+            leadSource: data.lead_source,
+            leadSourceDisplay: data.lead_source_display,
+            userId: data.user_id,
+            userEmail: data.user_email,
+            userPhone: data.user_phone,
+            userName: data.user_full_name,
+            userRole: data.user_role,
         },
         createdAt: apiNotification.created_at,
         isRead: apiNotification.is_read,

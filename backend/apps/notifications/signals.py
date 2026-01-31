@@ -6,10 +6,36 @@ Signals listen to model changes and create notifications for relevant users.
 import logging
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+from django.contrib.auth import get_user_model
 
 from .models import Notification, NotificationType
+from apps.users.models import UserRole
+
+UserModel = get_user_model()
 
 logger = logging.getLogger(__name__)
+
+
+def get_admin_users():
+    """Return active admin users for admin notifications."""
+    return UserModel.objects.filter(role=UserRole.ADMIN, is_active=True)
+
+
+def notify_admins(notification_type, title, message, data=None, source_object=None):
+    """Create the same notification for all admins."""
+    admins = get_admin_users()
+    for admin in admins:
+        try:
+            Notification.create_notification(
+                user=admin,
+                notification_type=notification_type,
+                title=title,
+                message=message,
+                data=data or {},
+                source_object=source_object,
+            )
+        except Exception as e:
+            logger.error(f"Failed to create admin notification: {e}")
 
 
 def get_partner_display_name(partner):
@@ -160,6 +186,21 @@ def create_application_notifications(sender, instance, created, **kwargs):
                 logger.info(f"Created status change notification for user {application.created_by.id}")
             except Exception as e:
                 logger.error(f"Failed to create status change notification: {e}")
+
+    # Notify admins when application moves from draft to active status
+    if (old_status == 'draft' and new_status != 'draft') or (created and new_status != 'draft'):
+        data = get_application_data(application)
+        try:
+            notify_admins(
+                notification_type=NotificationType.ADMIN_NEW_APPLICATION,
+                title='Новая заявка',
+                message=f"Поступила новая заявка от {data.get('company_name', 'компании')}",
+                data=data,
+                source_object=application,
+            )
+            logger.info("Created admin notification for new application")
+        except Exception as e:
+            logger.error(f"Failed to create admin notification for application: {e}")
     
     # Handle partner assignment
     old_partner_id = getattr(instance, '_old_assigned_partner', None)
@@ -226,6 +267,74 @@ def create_document_request_notification(sender, instance, created, **kwargs):
         logger.info(f"Created document_request notification for user {request.user.id}")
     except Exception as e:
         logger.error(f"Failed to create document_request notification: {e}")
+
+
+# ==========================================
+# Admin Notifications
+# ==========================================
+
+@receiver(post_save, sender='applications.Lead')
+def create_admin_lead_notification(sender, instance, created, **kwargs):
+    """Notify admins about new leads."""
+    if not created:
+        return
+
+    lead = instance
+    data = {
+        'lead_id': lead.id,
+        'lead_name': lead.full_name,
+        'lead_phone': lead.phone,
+        'lead_email': lead.email or None,
+        'lead_source': lead.source,
+        'lead_source_display': lead.get_source_display(),
+        'product_type': lead.product_type,
+        'product_type_display': lead.get_product_type_display(),
+        'amount': str(lead.amount) if lead.amount else None,
+    }
+
+    notify_admins(
+        notification_type=NotificationType.ADMIN_NEW_LEAD,
+        title='Новый лид',
+        message=f"{lead.full_name} • {lead.phone}",
+        data=data,
+        source_object=lead,
+    )
+
+
+@receiver(post_save, sender=UserModel)
+def create_admin_user_notification(sender, instance, created, **kwargs):
+    """Notify admins about new agents or partners."""
+    if not created:
+        return
+
+    user = instance
+    if user.role not in [UserRole.AGENT, UserRole.PARTNER]:
+        return
+
+    notification_type = (
+        NotificationType.ADMIN_NEW_AGENT
+        if user.role == UserRole.AGENT
+        else NotificationType.ADMIN_NEW_PARTNER
+    )
+
+    full_name = " ".join([name for name in [user.first_name, user.last_name] if name]).strip()
+    display_name = full_name or user.email
+
+    data = {
+        'user_id': user.id,
+        'user_email': user.email,
+        'user_phone': user.phone,
+        'user_full_name': full_name or None,
+        'user_role': user.role,
+    }
+
+    notify_admins(
+        notification_type=notification_type,
+        title='Новый агент' if user.role == UserRole.AGENT else 'Новый партнёр',
+        message=display_name,
+        data=data,
+        source_object=user,
+    )
 
 
 # ==========================================

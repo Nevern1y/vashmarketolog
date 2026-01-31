@@ -27,6 +27,12 @@ class NotificationType(models.TextChoices):
     # Chat events
     CHAT_MESSAGE = 'chat_message', 'Новое сообщение'
 
+    # Admin-specific events
+    ADMIN_NEW_APPLICATION = 'admin_new_application', 'Новая заявка (админ)'
+    ADMIN_NEW_LEAD = 'admin_new_lead', 'Новый лид'
+    ADMIN_NEW_AGENT = 'admin_new_agent', 'Новый агент'
+    ADMIN_NEW_PARTNER = 'admin_new_partner', 'Новый партнёр'
+
 
 class Notification(models.Model):
     """

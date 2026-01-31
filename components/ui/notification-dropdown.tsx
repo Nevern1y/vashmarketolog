@@ -23,6 +23,9 @@ import {
     ExternalLink,
     Check,
     Loader2,
+    UserPlus,
+    Building2,
+    PhoneIncoming,
 } from "lucide-react"
 import {
     useNotifications,
@@ -59,6 +62,14 @@ function getNotificationIcon(type: NotificationType) {
             return <MessageCircle className="h-5 w-5 text-[#8b5cf6]" />
         case "new_application":
             return <FilePlus className="h-5 w-5 text-[#3CE8D1]" />
+        case "admin_new_application":
+            return <FilePlus className="h-5 w-5 text-[#3CE8D1]" />
+        case "admin_new_lead":
+            return <PhoneIncoming className="h-5 w-5 text-[#f97316]" />
+        case "admin_new_agent":
+            return <UserPlus className="h-5 w-5 text-[#3CE8D1]" />
+        case "admin_new_partner":
+            return <Building2 className="h-5 w-5 text-[#3b82f6]" />
         default:
             return <Bell className="h-5 w-5 text-muted-foreground" />
     }
@@ -72,13 +83,17 @@ function getNotificationBg(type: NotificationType, isRead: boolean) {
         case "decision_approved":
         case "document_verified":
         case "new_application":
+        case "admin_new_application":
+        case "admin_new_agent":
             return "bg-[#3CE8D1]/5"
         case "decision_rejected":
         case "document_rejected":
             return "bg-red-500/5"
         case "decision_info_requested":
+        case "admin_new_lead":
             return "bg-[#f97316]/5"
         case "status_change":
+        case "admin_new_partner":
             return "bg-[#3b82f6]/5"
         case "document_requested":
             return "bg-[#eab308]/5"
@@ -97,7 +112,14 @@ function getActionText(type: NotificationType) {
         case "decision_info_requested":
         case "status_change":
         case "new_application":
+        case "admin_new_application":
             return "Открыть заявку"
+        case "admin_new_lead":
+            return "Открыть лиды"
+        case "admin_new_agent":
+            return "Открыть агентов"
+        case "admin_new_partner":
+            return "Открыть партнёров"
         case "document_verified":
         case "document_rejected":
             return "Открыть документ"
@@ -208,13 +230,36 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                                             </div>
 
                                             {/* Context info based on notification type */}
-                                            {(notification.details.companyName || notification.details.documentName) && (
+                                            {(notification.details.companyName ||
+                                                notification.details.documentName ||
+                                                notification.details.documentTypeName ||
+                                                notification.details.leadName ||
+                                                notification.details.userName ||
+                                                notification.details.userEmail) && (
                                                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                                                    {notification.type === 'document_verified' || 
+                                                    {notification.type === 'document_verified' ||
                                                      notification.type === 'document_rejected' ? (
                                                         notification.details.documentName
                                                     ) : notification.type === 'document_requested' ? (
                                                         notification.details.documentTypeName
+                                                    ) : notification.type === 'admin_new_lead' ? (
+                                                        <>
+                                                            {notification.details.leadName}
+                                                            {notification.details.leadPhone && (
+                                                                <> • {notification.details.leadPhone}</>
+                                                            )}
+                                                            {notification.details.leadSourceDisplay && (
+                                                                <> • {notification.details.leadSourceDisplay}</>
+                                                            )}
+                                                        </>
+                                                    ) : notification.type === 'admin_new_agent' ||
+                                                      notification.type === 'admin_new_partner' ? (
+                                                        <>
+                                                            {notification.details.userName || notification.details.userEmail}
+                                                            {notification.details.userPhone && (
+                                                                <> • {notification.details.userPhone}</>
+                                                            )}
+                                                        </>
                                                     ) : (
                                                         <>
                                                             {notification.details.companyName}
