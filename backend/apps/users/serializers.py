@@ -61,6 +61,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'password_confirm': 'Пароли не совпадают.'
             })
+        if attrs.get('referral_id') and attrs.get('role') != 'agent':
+            raise serializers.ValidationError({
+                'role': 'Регистрация по реферальной ссылке доступна только для роли агент.'
+            })
         return attrs
 
     def validate_referral_id(self, value):

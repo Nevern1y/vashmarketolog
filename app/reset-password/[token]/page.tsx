@@ -54,7 +54,15 @@ export default function ResetPasswordPage() {
 
         } catch (err: unknown) {
             const apiError = err as { message?: string; status?: number }
-            if (apiError.status === 410 || apiError.message?.includes("expired") || apiError.message?.includes("Invalid")) {
+            const normalizedMessage = apiError.message?.toLowerCase() || ""
+            const isExpired = apiError.status === 410
+                || normalizedMessage.includes("expired")
+                || normalizedMessage.includes("invalid")
+                || normalizedMessage.includes("истек")
+                || normalizedMessage.includes("истёк")
+                || normalizedMessage.includes("устар")
+
+            if (isExpired) {
                 setError("Ссылка для сброса пароля устарела или недействительна. Запросите новую.")
             } else {
                 setError(apiError.message || "Не удалось сбросить пароль. Попробуйте снова.")

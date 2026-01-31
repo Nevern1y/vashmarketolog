@@ -87,7 +87,7 @@ export default function InvitedRegisterPage() {
             })
 
             setTimeout(() => {
-                router.push("/")
+                router.replace("/")
             }, 2000)
         } catch (err: unknown) {
             const apiError = err as { message?: string }

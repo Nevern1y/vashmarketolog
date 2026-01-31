@@ -3,6 +3,15 @@ API Serializers for Company Profile.
 """
 from rest_framework import serializers
 from .models import CompanyProfile
+from apps.applications.models import ApplicationStatus
+
+
+ACTIVE_APPLICATION_STATUSES = {
+    ApplicationStatus.DRAFT,
+    ApplicationStatus.PENDING,
+    ApplicationStatus.IN_REVIEW,
+    ApplicationStatus.INFO_REQUESTED,
+}
 
 
 class CompanyProfileSerializer(serializers.ModelSerializer):
@@ -212,15 +221,24 @@ class CompanyProfileListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for listing companies.
     """
+    owner = serializers.IntegerField(source='owner_id', read_only=True)
+    email = serializers.EmailField(source='contact_email', read_only=True)
+    phone = serializers.CharField(source='contact_phone', read_only=True)
+    applications_count = serializers.SerializerMethodField()
+
     class Meta:
         model = CompanyProfile
         fields = [
             'id',
+            'owner',
             'inn',
             'name',
             'short_name',
             'region',
             'contact_person',
+            'email',
+            'phone',
+            'applications_count',
             'is_crm_client',
             'client_status',
             'invitation_email',
@@ -229,16 +247,25 @@ class CompanyProfileListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    def get_applications_count(self, obj):
+        return obj.applications.filter(status__in=ACTIVE_APPLICATION_STATUSES).count()
+
 
 class CRMClientSerializer(serializers.ModelSerializer):
     """
     Serializer for Agent's CRM clients.
     Always sets is_crm_client=True.
     """
+    owner = serializers.IntegerField(source='owner_id', read_only=True)
+    email = serializers.EmailField(source='contact_email', read_only=True)
+    phone = serializers.CharField(source='contact_phone', read_only=True)
+    applications_count = serializers.SerializerMethodField()
+
     class Meta:
         model = CompanyProfile
         fields = [
             'id',
+            'owner',
             'inn',
             'kpp',
             'ogrn',
@@ -318,6 +345,9 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'contact_person',
             'contact_phone',
             'contact_email',
+            'email',
+            'phone',
+            'applications_count',
             'website',
             # MCHD (Machine-Readable Power of Attorney)
             'is_mchd',
@@ -330,6 +360,9 @@ class CRMClientSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'client_status', 'created_at', 'updated_at']
+
+    def get_applications_count(self, obj):
+        return obj.applications.filter(status__in=ACTIVE_APPLICATION_STATUSES).count()
 
     def create(self, validated_data):
         """Set owner and is_crm_client for CRM clients."""

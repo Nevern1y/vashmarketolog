@@ -57,7 +57,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useApplication, useApplicationMutations, type Application } from "@/hooks/use-applications"
+import { useApplication, useApplicationMutations, usePartnerActions, type Application } from "@/hooks/use-applications"
 import { useDocumentMutations, type DocumentListItem, type PaginatedResponse } from "@/hooks/use-documents"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
@@ -164,7 +164,8 @@ interface ApplicationDetailViewProps {
  */
 export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalculationSession, onNavigateToCalculator }: ApplicationDetailViewProps) {
     const { application, isLoading, error, refetch, setApplication, startPolling, stopPolling } = useApplication(applicationId)
-    const { submitApplication, updateApplication, deleteApplication, isLoading: isSubmitting } = useApplicationMutations()
+    const { updateApplication, deleteApplication } = useApplicationMutations()
+    const { sendToBank, isLoading: isSubmitting } = usePartnerActions()
     const { uploadDocument, deleteDocument, getLastError: getDocumentError } = useDocumentMutations()
     const { user } = useAuth()
 
@@ -631,8 +632,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             return
         }
 
-        const result = await submitApplication(application.id)
-        if (result) {
+        const result = await sendToBank(application.id)
+        if (result?.application) {
+            setApplication(result.application)
             // Trigger success animation with confetti
             triggerSubmitSuccess()
             toast.success('Заявка отправлена в банк')
@@ -643,7 +645,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 description: 'Проверьте, что все обязательные документы загружены и данные заполнены'
             })
         }
-    }, [application, submitApplication, refetch, triggerSubmitSuccess])
+    }, [application, sendToBank, refetch, triggerSubmitSuccess, setApplication])
 
     // Handle edit application save - polymorphic for all product types
     const handleEditApplicationSave = useCallback(async (data: Record<string, unknown>): Promise<boolean> => {

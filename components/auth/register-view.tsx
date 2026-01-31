@@ -183,7 +183,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
           : "Добро пожаловать в Лидер Гарант!",
       })
 
-      router.push("/")
+      router.replace("/")
     } catch (err) {
       const apiError = err as { message?: string; status?: number }
       console.error("Registration failed:", apiError.message || 'Unknown error', apiError)
@@ -256,14 +256,14 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
 
         {/* Referral Banner */}
         {referralId && (
-          <div className="flex items-center gap-2 rounded-lg bg-[#3CE8D1]/10 p-3 text-sm text-[#0a1628]">
+          <div className="flex items-center gap-2 rounded-lg border border-[#3CE8D1]/30 bg-[#0f2042] p-3 text-sm text-white">
             <UserPlus className="h-5 w-5 text-[#3CE8D1]" />
             <span>Вы регистрируетесь по приглашению партнёра</span>
           </div>
         )}
 
         {/* Role Selector - only on first step */}
-        {step === "email" && (
+        {step === "email" && !referralId && (
           <div className="flex rounded-lg border border-border p-1">
             <button
               type="button"

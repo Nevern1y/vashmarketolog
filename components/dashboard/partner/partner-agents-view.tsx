@@ -106,7 +106,8 @@ export function PartnerAgentsView() {
             return
         }
 
-        const referralUrl = `${window.location.origin}/auth?ref=${user.id}`
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+        const referralUrl = `${baseUrl}/auth?ref=${user.id}`
 
         try {
             await navigator.clipboard.writeText(referralUrl)

@@ -1,14 +1,17 @@
 "use client"
 
 import { useState, Suspense, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { LoginView } from "@/components/auth/login-view"
 import { RegisterView } from "@/components/auth/register-view"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 // Wrapper component to handle Suspense for useSearchParams
 function AuthContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
   const refParam = searchParams.get("ref")
 
   // If user came from a referral link, show registration form immediately
@@ -20,6 +23,20 @@ function AuthContent() {
       setView("register")
     }
   }, [refParam])
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace("/")
+    }
+  }, [isLoading, isAuthenticated, router])
+
+  if (isLoading) {
+    return <AuthLoading />
+  }
+
+  if (isAuthenticated) {
+    return null
+  }
 
   return (
     <div className="w-full max-w-md">

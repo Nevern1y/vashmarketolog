@@ -315,8 +315,29 @@ export interface CreateCompanyPayload {
     contact_email?: string;
     website?: string;
     email?: string;  // Added for accreditation form
-    acts_on_basis?: string;  // "Устава" / "Доверенности"
+    signatory_basis?: 'charter' | 'power_of_attorney';
+    acts_on_basis?: string;  // Legacy field: "Устава" / "Доверенности"
 }
+
+const normalizeCompanyPayload = (payload: Partial<CreateCompanyPayload>) => {
+    const normalized = { ...payload } as Partial<CreateCompanyPayload> & {
+        signatory_basis?: 'charter' | 'power_of_attorney' | string;
+        acts_on_basis?: string;
+    };
+
+    if (normalized.acts_on_basis && !normalized.signatory_basis) {
+        const basisValue = String(normalized.acts_on_basis).toLowerCase();
+        if (basisValue.includes('устав') || basisValue === 'charter') {
+            normalized.signatory_basis = 'charter';
+        } else if (basisValue.includes('довер') || basisValue === 'power_of_attorney') {
+            normalized.signatory_basis = 'power_of_attorney';
+        }
+    }
+
+    delete normalized.acts_on_basis;
+
+    return normalized;
+};
 
 export interface PaginatedResponse<T> {
     count: number;
@@ -367,8 +388,9 @@ export function useMyCompany() {
         setError(null);
 
         try {
-            console.log("[DEBUG] updateCompany payload:", data);
-            const response = await api.patch<Company>('/companies/me/', data);
+            const payload = normalizeCompanyPayload(data);
+            console.log("[DEBUG] updateCompany payload:", payload);
+            const response = await api.patch<Company>('/companies/me/', payload);
             console.log("[DEBUG] updateCompany success:", response);
             setCompany(response);
             return response;
@@ -421,9 +443,10 @@ export function useMyCompany() {
         setError(null);
 
         try {
-            console.log("[DEBUG] createCompany (using PATCH) payload:", data);
+            const payload = normalizeCompanyPayload(data);
+            console.log("[DEBUG] createCompany (using PATCH) payload:", payload);
             // Use PATCH instead of POST - backend auto-creates via get_or_create
-            const response = await api.patch<Company>('/companies/me/', data);
+            const response = await api.patch<Company>('/companies/me/', payload);
             console.log("[DEBUG] createCompany success:", response);
             setCompany(response);
             return response;
@@ -574,7 +597,8 @@ export function useCRMClientMutations() {
         setError(null);
 
         try {
-            const response = await api.post<Company>('/companies/crm/', data);
+            const payload = normalizeCompanyPayload(data);
+            const response = await api.post<Company>('/companies/crm/', payload);
             return response;
         } catch (err) {
             const apiError = err as ApiError;
@@ -590,7 +614,8 @@ export function useCRMClientMutations() {
         setError(null);
 
         try {
-            const response = await api.patch<Company>(`/companies/crm/${id}/`, data);
+            const payload = normalizeCompanyPayload(data);
+            const response = await api.patch<Company>(`/companies/crm/${id}/`, payload);
             return response;
         } catch (err) {
             const apiError = err as ApiError;

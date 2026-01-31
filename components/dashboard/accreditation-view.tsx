@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, Clock, AlertCircle, Upload, FileText, Building2, Users, CreditCard, Shield, Loader2 } from "lucide-react"
+import { CheckCircle2, Clock, AlertCircle, Upload, FileText, Building2, Users, CreditCard, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useMyCompany } from "@/hooks/use-companies"
 import { useDocuments, useDocumentMutations } from "@/hooks/use-documents"
@@ -153,10 +153,6 @@ export function AccreditationView() {
     ]
 
 
-    // Step 5: Verification (requires all previous + admin approval)
-    const allPreviousComplete = hasCompanyBasic && hasDirector && hasBankDetails && hasDocuments
-    const verificationStatus: AccreditationStep["status"] = "pending" // Always pending until admin verifies
-
     return [
       {
         id: "company",
@@ -187,13 +183,6 @@ export function AccreditationView() {
         icon: FileText,
         status: documentsStatus,
         documents: documentsStatus === "in-progress" ? documentsList : undefined,
-      },
-      {
-        id: "verification",
-        title: "Верификация",
-        description: "Проверка данных модератором",
-        icon: Shield,
-        status: allPreviousComplete ? "in-progress" : verificationStatus,
       },
     ]
   }, [company, documents])
@@ -241,21 +230,6 @@ export function AccreditationView() {
         <h1 className="text-2xl font-bold text-foreground">Аккредитация</h1>
         <p className="text-muted-foreground">Пройдите все этапы для получения аккредитации</p>
       </div>
-
-      {/* Accreditation Status Banner */}
-      {completedSteps === steps.length - 1 && (
-        <Card className="shadow-sm border-[#f97316] bg-[#f97316]/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Clock className="h-6 w-6 text-[#f97316]" />
-              <div>
-                <p className="font-medium text-[#f97316]">Ожидает проверки модератором</p>
-                <p className="text-sm text-muted-foreground">Все данные заполнены. Аккредитация на рассмотрении.</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {completedSteps === steps.length && (
         <Card className="shadow-sm border-[#3CE8D1] bg-[#3CE8D1]/5">

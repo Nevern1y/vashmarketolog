@@ -25,7 +25,14 @@ export default function VerifyEmailPage() {
                 setMessage(response.message || "Email успешно подтверждён!")
             } catch (err: unknown) {
                 const apiError = err as { message?: string; status?: number }
-                if (apiError.status === 410 || apiError.message?.includes("expired")) {
+                const normalizedMessage = apiError.message?.toLowerCase() || ""
+                const isExpired = apiError.status === 410
+                    || normalizedMessage.includes("expired")
+                    || normalizedMessage.includes("истек")
+                    || normalizedMessage.includes("истёк")
+                    || normalizedMessage.includes("устар")
+
+                if (isExpired) {
                     setStatus("expired")
                     setMessage("Ссылка для подтверждения устарела. Запросите новое письмо.")
                 } else {

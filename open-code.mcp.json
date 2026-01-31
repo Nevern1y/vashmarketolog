@@ -46,6 +46,16 @@
         "SENTRY_AUTH_TOKEN": "YOUR_SENTRY_AUTH_TOKEN"
       }
     },
+    "brightdata": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@brightdata/mcp"
+      ],
+      "env": {
+        "API_TOKEN": "ca5fc022-1de2-4bda-ba4b-32974644e864"
+      }
+    },
     "openapi": {
       "command": "npx",
       "args": [

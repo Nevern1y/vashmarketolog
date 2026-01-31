@@ -59,8 +59,8 @@ export function ProfileSettingsView() {
     const { user, refreshUser } = useAuth()
     const [isLinkCopied, setIsLinkCopied] = useState(false)
 
-    // Role check - agents see Referrals tab, clients don't
-    const isAgent = user?.role === "agent" || user?.role === "partner"
+    // Role check - partners see Referrals tab, clients don't
+    const isPartner = user?.role === "partner"
     const isClient = user?.role === "client"
 
     // Profile editing state
@@ -142,7 +142,8 @@ export function ProfileSettingsView() {
 
 
     // Generate referral link
-    const referralLink = `https://vashmarketolog.ru/register?ref=${user?.id || 'AGENT123'}`
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const referralLink = `${siteUrl}/auth?ref=${user?.id || 'AGENT123'}`
 
     const copyReferralLink = async () => {
         try {
@@ -290,7 +291,7 @@ export function ProfileSettingsView() {
                 <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 scrollbar-hide">
                     <TabsList className={`inline-flex min-w-max w-full bg-muted/50 ${isClient
                         ? 'md:grid md:grid-cols-4'
-                        : isAgent
+                        : isPartner
                             ? 'md:grid md:grid-cols-6'
                             : 'md:grid md:grid-cols-5'
                         }`}>
@@ -310,7 +311,7 @@ export function ProfileSettingsView() {
                             <Phone className="h-4 w-4" />
                             <span className="hidden lg:inline">Контакты</span>
                         </TabsTrigger>
-                        {isAgent && (
+                        {isPartner && (
                             <TabsTrigger value="referrals" className="flex items-center gap-1 px-3 text-xs md:text-sm">
                                 <Share2 className="h-4 w-4" />
                                 <span className="hidden lg:inline">Рефералы</span>
@@ -438,15 +439,15 @@ export function ProfileSettingsView() {
                                 Реферальная программа
                             </CardTitle>
                             <CardDescription>
-                                Приглашайте клиентов и получайте вознаграждение
+                                Приглашайте агентов и отслеживайте их активность
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             {/* Info Box */}
                             <div className="rounded-lg bg-[#3CE8D1]/10 border border-[#3CE8D1]/30 p-4">
                                 <p className="text-sm">
-                                    За клиентов, пришедших и зарегистрировавшихся по вашей реферальной ссылке,
-                                    вы будете получать <span className="font-semibold text-[#3CE8D1]">комиссионное вознаграждение</span> с каждой их сделки.
+                                    За агентов, пришедших и зарегистрировавшихся по вашей реферальной ссылке,
+                                    вы сможете отслеживать их активность и заявки в системе.
                                 </p>
                             </div>
 

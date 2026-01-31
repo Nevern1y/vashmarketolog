@@ -48,7 +48,7 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
     try {
       await login(email, password)
       toast.success("Вход выполнен успешно!")
-      router.push("/")
+      router.replace("/")
     } catch (err) {
       // Error is already displayed via authError
       const apiError = err as { message?: string };

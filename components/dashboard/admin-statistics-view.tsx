@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { PRODUCT_TYPE_LABELS } from "@/lib/application-display"
 import { FileText, Users, CheckCircle, XCircle, Clock, BarChart3, RefreshCw, TrendingUp, TrendingDown } from "lucide-react"
 import { useApplications } from "@/hooks/use-applications"
 
@@ -30,14 +31,15 @@ export function AdminStatisticsView() {
         { title: "Отклонено", value: stats.rejected, icon: XCircle, color: "text-rose-500", bgColor: "bg-rose-500/10", change: "-3%" },
     ]
 
-    const products = [
-        { key: "bank_guarantee", label: "Банковская гарантия" },
-        { key: "tender_loan", label: "Тендерный кредит" },
-        { key: "contract_loan", label: "КИК" },
-        { key: "factoring", label: "Факторинг" },
-        { key: "leasing", label: "Лизинг" },
-        { key: "ved", label: "ВЭД" },
-    ]
+    const products = useMemo(() => {
+        const knownKeys = Object.keys(PRODUCT_TYPE_LABELS)
+        const extraKeys = Object.keys(stats.byProduct).filter((key) => !knownKeys.includes(key))
+
+        return [...knownKeys, ...extraKeys].map((key) => ({
+            key,
+            label: PRODUCT_TYPE_LABELS[key] || key,
+        }))
+    }, [stats.byProduct])
 
     return (
         <div className="space-y-6">

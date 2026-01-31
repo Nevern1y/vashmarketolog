@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
@@ -77,13 +78,15 @@ class DocumentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(status=doc_status)
         
         company_id = self.request.query_params.get('company')
-        if company_id:
+        include_unassigned = self.request.query_params.get('includeUnassigned')
+        if company_id and include_unassigned == 'true':
+            qs = qs.filter(Q(company_id=company_id) | Q(company__isnull=True)).distinct()
+        elif company_id:
             qs = qs.filter(company_id=company_id)
         
-        # include_unassigned: show documents not attached to any application
-        include_unassigned = self.request.query_params.get('includeUnassigned')
-        if include_unassigned == 'true':
-            qs = qs.filter(applications__isnull=True)
+        # include_unassigned: include docs without company or without application
+        if include_unassigned == 'true' and not company_id:
+            qs = qs.filter(Q(company__isnull=True) | Q(applications__isnull=True)).distinct()
         
         return qs
 

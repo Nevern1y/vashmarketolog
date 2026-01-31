@@ -103,13 +103,13 @@ export function ClientTenderSupportView() {
             </div>
 
             {/* Form Card */}
-            <Card className="border border-[#2a3a5c]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425] shadow-2xl overflow-hidden">
-                <CardHeader className="relative pb-4 border-b border-[#2a3a5c]/30">
+            <Card className="border border-[#2a3a5c]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425] shadow-2xl overflow-hidden gap-4 py-4">
+                <CardHeader className="relative border-b border-[#2a3a5c]/30 py-5 pb-4">
                     <div className="absolute inset-0 bg-gradient-to-r from-[#3CE8D1]/5 via-transparent to-[#3CE8D1]/5" />
                     <CardTitle className="relative text-lg">Условия заявки</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6">
-                    <div className="rounded-xl border border-[#1e3a5f] bg-[#0f1d32]/60 p-4">
+                <CardContent className="space-y-6 pt-5 pb-6">
+                    <div className="rounded-xl border border-[#1e3a5f] bg-[#0f1d32]/60 p-5">
                         <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
                             <Building2 className="h-4 w-4" />
                             <span>ИНН организации-заявителя</span>
@@ -127,8 +127,8 @@ export function ClientTenderSupportView() {
                         )}
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
                             <Label>Вариант сопровождения *</Label>
                             <Select value={supportType} onValueChange={setSupportType}>
                                 <SelectTrigger className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white">
@@ -143,7 +143,7 @@ export function ClientTenderSupportView() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
+                        <div className="space-y-2">
                             <Label>Тип закупки *</Label>
                             <Select value={purchaseType} onValueChange={setPurchaseType}>
                                 <SelectTrigger className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white">
@@ -160,7 +160,7 @@ export function ClientTenderSupportView() {
                         </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-2">
                         <Label>Закупки в отрасли</Label>
                         <Input
                             value={industry}

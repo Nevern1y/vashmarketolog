@@ -574,6 +574,10 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             
             # Refresh application from db
             application.refresh_from_db()
+
+            if not application.submitted_at:
+                application.submitted_at = timezone.now()
+                application.save(update_fields=['submitted_at'])
             
             logger.info(f"Application {pk} sent to bank successfully. Ticket ID: {result['ticket_id']}")
             

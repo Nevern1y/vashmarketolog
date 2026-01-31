@@ -12,6 +12,16 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -41,6 +51,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
     const { company, isLoading: companyLoading } = useMyCompany()
     const [showContactPopup, setShowContactPopup] = useState(false)
     const [showSupportModal, setShowSupportModal] = useState(false)
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false)
 
     // Role label for display
     const roleLabel = user?.role === "client" ? "Клиент" :
@@ -52,6 +63,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
 
     // Handle logout
     const handleLogout = async () => {
+        setShowLogoutDialog(false)
         await logout()
     }
 
@@ -141,7 +153,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-[#2a3547]" />
                             <DropdownMenuItem
-                                onClick={handleLogout}
+                                onClick={() => setShowLogoutDialog(true)}
                                 className="cursor-pointer text-red-400 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-400"
                             >
                                 <LogOut className="mr-2 h-4 w-4" />
@@ -258,6 +270,28 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Выйти из аккаунта?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-[#94a3b8]">
+                            Вы уверены, что хотите выйти из личного кабинета?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-transparent border-[#1e3a5f] text-white hover:bg-[#1e3a5f]">
+                            Отмена
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleLogout}
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                        >
+                            Выйти
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     )
 }

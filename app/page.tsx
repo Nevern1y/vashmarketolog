@@ -569,6 +569,12 @@ export default function DashboardPage() {
       )
 
     // =====================================
+    // PARTNER ROLE
+    // =====================================
+    case "partner":
+      return <PartnerLayout />
+
+    // =====================================
     // UNKNOWN ROLE - Show error message
     // =====================================
     default:

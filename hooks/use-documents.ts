@@ -90,8 +90,8 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
             }
             if (params?.product_type) queryParams.product_type = params.product_type;
             if (params?.status) queryParams.status = params.status;
-            const shouldFilterByCompany = params?.company !== undefined && !params?.includeUnassigned;
-            if (shouldFilterByCompany) {
+            const hasCompany = params?.company !== undefined;
+            if (hasCompany) {
                 queryParams.company = String(params.company);
             }
             // Pass includeUnassigned to backend for proper filtering
@@ -101,7 +101,7 @@ export function useDocuments(params?: { document_type_id?: number; product_type?
 
             const response = await api.get<PaginatedResponse<DocumentListItem>>('/documents/', queryParams);
             const results = response.results;
-            if (params?.company !== undefined && params?.includeUnassigned) {
+            if (hasCompany && params?.includeUnassigned) {
                 const filtered = results.filter(
                     (doc) => doc.company === params.company || doc.company === null
                 );

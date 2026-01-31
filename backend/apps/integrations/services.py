@@ -664,13 +664,20 @@ class BankIntegrationService:
         """
         errors = []
         
+        phase1_mode = getattr(settings, 'BANK_API_PHASE1_MODE', True)
+
         # Required fields
         required = [
-            'login',
-            'password',
             'ticket[product_id]',
             'client[inn]',
         ]
+
+        if not phase1_mode:
+            required = [
+                'login',
+                'password',
+                *required,
+            ]
         
         for field in required:
             if not payload.get(field):
@@ -747,9 +754,9 @@ class BankIntegrationService:
                 application = Application.objects.get(id=application_id)
                 application.external_id = ticket_id_str
                 application.bank_status = 'Отправлено (Phase 1)'
-                # Update status to pending if still draft
-                if application.status == ApplicationStatus.DRAFT:
-                    application.status = ApplicationStatus.PENDING
+                # Update status to in_review after sending to bank
+                if application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                    application.status = ApplicationStatus.IN_REVIEW
                 
                 # Save client data snapshot (Phase 2 enhancement)
                 # This preserves the company data at the time of submission
@@ -809,9 +816,9 @@ class BankIntegrationService:
             application = Application.objects.get(id=application_id)
             application.external_id = ticket_id_str
             application.bank_status = 'sent'
-            # Optionally update status to pending if still draft
-            if application.status == ApplicationStatus.DRAFT:
-                application.status = ApplicationStatus.PENDING
+            # Update status to in_review after sending to bank
+            if application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                application.status = ApplicationStatus.IN_REVIEW
             application.save()
             logger.info(f"Application {application_id} saved with external_id={ticket_id_str}")
         except Exception as e:

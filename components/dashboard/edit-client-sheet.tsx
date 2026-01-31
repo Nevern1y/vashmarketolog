@@ -614,10 +614,10 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                     corr_account: (b as unknown as { corr_account?: string }).corr_account || "",
                 }))
 
-            // Map leadership from backend (may not exist on type yet)
+            // Map leadership from backend
             const clientAny = client as unknown as Record<string, unknown>
             const mappedLeadership: z.infer<typeof leaderSchema>[] =
-                (Array.isArray(clientAny.leadership) ? clientAny.leadership : []).map((l: LeaderData) => ({
+                (client.leadership_data || []).map((l: LeaderData) => ({
                     position: l.position || "",
                     full_name: l.full_name || "",
                     share_percent: l.share_percent || 0,
@@ -636,9 +636,9 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                     } : undefined,
                 }))
 
-            // Map legal_founders from backend (may not exist on type yet)
+            // Map legal_founders from backend
             const mappedLegalFounders: z.infer<typeof legalFounderSchema>[] =
-                (Array.isArray(clientAny.legal_founders) ? clientAny.legal_founders : []).map((lf: LegalFounderData) => ({
+                (client.legal_founders_data || []).map((lf: LegalFounderData) => ({
                     share_relative: lf.share_relative || 0,
                     inn: lf.inn || "",
                     ogrn: lf.ogrn || "",
@@ -682,7 +682,9 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 okopf: safeString(clientAny.okopf as string),
                 okved: safeString(clientAny.okved as string),
                 registration_date: safeString(clientAny.registration_date as string),
-                authorized_capital: (clientAny.authorized_capital as number) ?? 0,
+                authorized_capital: client.authorized_capital_declared
+                    ? Number(client.authorized_capital_declared)
+                    : 0,
                 // Signatory
                 signatory_basis: (client.signatory_basis as "charter" | "power_of_attorney") || "charter",
                 is_mchd: client.is_mchd ?? false,
@@ -693,8 +695,8 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 // Director + Extended fields (use clientAny for new fields)
                 director_name: safeString(client.director_name),
                 director_position: safeString(client.director_position),
-                director_share: (clientAny.director_share as number) ?? 0,
-                director_citizen: safeString(clientAny.director_citizen as string) || "РФ",
+                director_share: 0,
+                director_citizen: "РФ",
                 director_birth_date: safeString(clientAny.director_birth_date as string),
                 director_birth_place: safeString(clientAny.director_birth_place as string),
                 director_email: safeString(clientAny.director_email as string),
@@ -711,10 +713,10 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 bank_accounts: mappedBankAccounts,
                 leadership: mappedLeadership,
                 legal_founders: mappedLegalFounders,
-                activities: (clientAny.activities_data as z.infer<typeof activitySchema>[]) || [],
-                licenses: (clientAny.licenses_data as z.infer<typeof licenseSchema>[]) || [],
-                etp_accounts: (clientAny.etp_accounts_data as z.infer<typeof etpAccountSchema>[]) || [],
-                contact_persons: (clientAny.contact_persons_data as z.infer<typeof contactPersonSchema>[]) || [],
+                activities: (client.activities_data as z.infer<typeof activitySchema>[]) || [],
+                licenses: (client.licenses_data as z.infer<typeof licenseSchema>[]) || [],
+                etp_accounts: (client.etp_accounts_data as z.infer<typeof etpAccountSchema>[]) || [],
+                contact_persons: (client.contact_persons_data as z.infer<typeof contactPersonSchema>[]) || [],
                 // Legacy bank fields
                 bank_name: safeString(client.bank_name),
                 bank_bic: safeString(client.bank_bic),
@@ -901,16 +903,15 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
             okpo: data.okpo || undefined,
             okfs: data.okfs || undefined,
             okogu: data.okogu || undefined,
-            okopf: data.okopf || undefined,
             okved: data.okved || undefined,
             registration_date: data.registration_date || undefined,
-            authorized_capital: data.authorized_capital || undefined,
+            authorized_capital_declared: data.authorized_capital !== undefined
+                ? String(data.authorized_capital)
+                : undefined,
             
             // Director
             director_name: data.director_name || undefined,
             director_position: data.director_position || undefined,
-            director_share: data.director_share || undefined,
-            director_citizen: data.director_citizen || undefined,
             director_birth_date: data.director_birth_date || undefined,
             director_birth_place: data.director_birth_place || undefined,
             director_email: data.director_email || undefined,
@@ -935,12 +936,12 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
             // Dynamic arrays
             founders_data: foundersData.length > 0 ? foundersData : undefined,
             bank_accounts_data: bankAccountsData.length > 0 ? bankAccountsData : undefined,
-            leadership: leadershipData.length > 0 ? leadershipData : undefined,
-            legal_founders: legalFoundersData.length > 0 ? legalFoundersData : undefined,
-            activities: activitiesData.length > 0 ? activitiesData : undefined,
-            licenses: licensesData.length > 0 ? licensesData : undefined,
-            etp_accounts: etpAccountsData.length > 0 ? etpAccountsData : undefined,
-            contact_persons: contactPersonsData.length > 0 ? contactPersonsData : undefined,
+            leadership_data: leadershipData.length > 0 ? leadershipData : undefined,
+            legal_founders_data: legalFoundersData.length > 0 ? legalFoundersData : undefined,
+            activities_data: activitiesData.length > 0 ? activitiesData : undefined,
+            licenses_data: licensesData.length > 0 ? licensesData : undefined,
+            etp_accounts_data: etpAccountsData.length > 0 ? etpAccountsData : undefined,
+            contact_persons_data: contactPersonsData.length > 0 ? contactPersonsData : undefined,
             
             // Legacy bank fields
             bank_name: data.bank_name || undefined,

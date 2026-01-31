@@ -33,6 +33,16 @@ import { AdminCRMClientsView } from "./admin-crm-clients-view"
 import { AdminLeadsView } from "./admin-leads-view"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
@@ -70,10 +80,17 @@ interface AdminSidebarProps {
     onToggleCollapse?: () => void
     onClose?: () => void
     isMobile?: boolean
+    onRequestLogout?: () => void
 }
 
-function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onToggleCollapse, onClose, isMobile = false }: AdminSidebarProps) {
-    const { user, logout } = useAuth()
+function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onToggleCollapse, onClose, isMobile = false, onRequestLogout }: AdminSidebarProps) {
+    const { user } = useAuth()
+
+    const handleLogoutClick = () => {
+        if (onRequestLogout) {
+            onRequestLogout()
+        }
+    }
 
     return (
         <>
@@ -144,7 +161,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => logout()}
+                            onClick={handleLogoutClick}
                             className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 shrink-0"
                         >
                             <LogOut className="h-4 w-4" />
@@ -154,7 +171,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => logout()}
+                        onClick={handleLogoutClick}
                         className="w-full h-10 text-slate-400 hover:text-white hover:bg-slate-800"
                     >
                         <LogOut className="h-4 w-4" />
@@ -173,11 +190,12 @@ interface AdminMobileHeaderProps {
     onSettingsClick?: () => void
     onProfileClick?: () => void
     activeView: AdminView
+    onRequestLogout?: () => void
 }
 
-function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activeView }: AdminMobileHeaderProps) {
+function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activeView, onRequestLogout }: AdminMobileHeaderProps) {
     const viewLabel = NAV_ITEMS.find(item => item.id === activeView)?.label || (activeView === "profile-settings" ? "Настройки" : "Админ")
-    const { user, logout } = useAuth()
+    const { user } = useAuth()
 
     return (
         <header className="flex items-center justify-between border-b border-border bg-slate-900 px-4 py-3 lg:hidden sticky top-0 z-40">
@@ -239,7 +257,7 @@ function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activ
                             Сменить пароль
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => logout()} className="text-red-400 focus:text-red-400">
+                        <DropdownMenuItem onClick={onRequestLogout} className="text-red-400 focus:text-red-400">
                             <LogOut className="h-4 w-4 mr-2" />
                             Выйти
                         </DropdownMenuItem>
@@ -260,7 +278,17 @@ export function AdminDashboard() {
     const { appId: selectedAppId, openDetail: setSelectedAppId, closeDetail: handleBackFromDetail } = usePersistedAppDetail()
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false)
     const { user, logout } = useAuth()
+
+    const handleRequestLogout = () => {
+        setShowLogoutDialog(true)
+    }
+
+    const handleConfirmLogout = async () => {
+        setShowLogoutDialog(false)
+        await logout()
+    }
 
     // Handlers
     const handleSelectApplication = (appId: string) => {
@@ -326,6 +354,7 @@ export function AdminDashboard() {
                     onViewChange={handleViewChange}
                     collapsed={sidebarCollapsed}
                     onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    onRequestLogout={handleRequestLogout}
                 />
             </aside>
 
@@ -343,6 +372,7 @@ export function AdminDashboard() {
                         onViewChange={handleViewChange}
                         isMobile={true}
                         onClose={() => setIsMobileSidebarOpen(false)}
+                        onRequestLogout={handleRequestLogout}
                     />
                 </SheetContent>
             </Sheet>
@@ -361,6 +391,7 @@ export function AdminDashboard() {
                     onSettingsClick={() => handleViewChange("statistics")}
                     onProfileClick={() => handleViewChange("profile-settings")}
                     activeView={activeView}
+                    onRequestLogout={handleRequestLogout}
                 />
 
                 {/* Desktop Header */}
@@ -413,7 +444,7 @@ export function AdminDashboard() {
                                     Сменить пароль
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => logout()} className="text-red-400 focus:text-red-400">
+                                <DropdownMenuItem onClick={handleRequestLogout} className="text-red-400 focus:text-red-400">
                                     <LogOut className="h-4 w-4 mr-2" />
                                     Выйти
                                 </DropdownMenuItem>
@@ -429,6 +460,27 @@ export function AdminDashboard() {
                     </div>
                 </main>
             </div>
+            <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+                <AlertDialogContent className="bg-slate-900 border-slate-800 text-white">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Выйти из аккаунта?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-400">
+                            Вы уверены, что хотите выйти из админ-панели?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-transparent border-slate-700 text-white hover:bg-slate-800">
+                            Отмена
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmLogout}
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                        >
+                            Выйти
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }
