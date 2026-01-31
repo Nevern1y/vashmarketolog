@@ -328,13 +328,13 @@ function SectionDivider({ label }: { label: string }) {
 
 export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicationDetailProps) {
     const { application, isLoading, refetch } = useApplication(applicationId)
-    const { approveApplication, rejectApplication, restoreApplication, requestInfo, saveNotes, sendToBank, syncBankStatus, isLoading: isActioning } = usePartnerActions()
+    const { approveApplication, rejectApplication, restoreApplication, requestInfo, markIssued, markNotIssued, saveNotes, sendToBank, syncBankStatus, isLoading: isActioning } = usePartnerActions()
 
     const [showApproveDialog, setShowApproveDialog] = useState(false)
     const [showRejectDialog, setShowRejectDialog] = useState(false)
-    const [showRequestDialog, setShowRequestDialog] = useState(false)
+    const [showIssueDialog, setShowIssueDialog] = useState(false)
+    const [showNotIssuedDialog, setShowNotIssuedDialog] = useState(false)
     const [rejectReason, setRejectReason] = useState("")
-    const [requestMessage, setRequestMessage] = useState("")
     const [isEditingNotes, setIsEditingNotes] = useState(false)
     const [editedNotes, setEditedNotes] = useState("")
     const [isSavingNotes, setIsSavingNotes] = useState(false)
@@ -375,13 +375,29 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     }
 
     const handleRequestInfo = async () => {
-        const result = await requestInfo(parseInt(applicationId), requestMessage)
+        const result = await requestInfo(parseInt(applicationId), "")
         if (result) {
-            toast.success("Запрос отправлен")
+            toast.success("Возвращено на доработку")
             refetch()
         }
-        setShowRequestDialog(false)
-        setRequestMessage("")
+    }
+
+    const handleMarkIssued = async () => {
+        const result = await markIssued(parseInt(applicationId))
+        if (result) {
+            toast.success("Заявка выдана")
+            refetch()
+        }
+        setShowIssueDialog(false)
+    }
+
+    const handleMarkNotIssued = async () => {
+        const result = await markNotIssued(parseInt(applicationId))
+        if (result) {
+            toast.success("Заявка не выдана")
+            refetch()
+        }
+        setShowNotIssuedDialog(false)
     }
 
     const handleRestore = async () => {
@@ -491,16 +507,37 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                     </Button>
                     
                     <div className="flex flex-wrap items-center gap-2">
-                        {(application.status === 'pending' || application.status === 'in_review' || application.status === 'info_requested') && (
+                        {(application.status === 'pending' || application.status === 'in_review') && (
                             <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => setShowRequestDialog(true)}
+                                onClick={handleRequestInfo}
                                 disabled={isActioning}
                                 className="flex-1 sm:flex-none h-9 text-xs"
                             >
-                                <MessageSquare className="h-4 w-4 mr-1.5" />Запросить инфо
+                                <MessageSquare className="h-4 w-4 mr-1.5" />Вернуть на доработку
                             </Button>
+                        )}
+                        {application.status === 'approved' && (
+                            <>
+                                <Button
+                                    size="sm"
+                                    onClick={() => setShowIssueDialog(true)}
+                                    disabled={isActioning}
+                                    className="flex-1 sm:flex-none h-9 text-xs bg-emerald-500 hover:bg-emerald-600 text-white"
+                                >
+                                    <CheckCircle className="h-4 w-4 mr-1.5" />Выдан
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowNotIssuedDialog(true)}
+                                    disabled={isActioning}
+                                    className="flex-1 sm:flex-none h-9 text-xs text-rose-400 border-rose-500/30 hover:text-rose-400 hover:bg-rose-500/10"
+                                >
+                                    <XCircle className="h-4 w-4 mr-1.5" />Не выдан
+                                </Button>
+                            </>
                         )}
                         {application.status !== 'rejected' && application.status !== 'lost' &&
                             application.status !== 'approved' && application.status !== 'won' && (
@@ -1712,24 +1749,35 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
+            <AlertDialog open={showIssueDialog} onOpenChange={setShowIssueDialog}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Запросить информацию</AlertDialogTitle>
+                        <AlertDialogTitle>Отметить как «Выдан»?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Клиент получит уведомление о необходимости предоставить дополнительную информацию.
+                            Заявка #{application.id} будет переведена в статус «Выдан».
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <Textarea
-                        placeholder="Какая информация нужна?..."
-                        value={requestMessage}
-                        onChange={(e) => setRequestMessage(e.target.value)}
-                        className="mt-4"
-                    />
                     <AlertDialogFooter>
                         <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleRequestInfo}>
-                            <MessageSquare className="h-4 w-4 mr-1.5" />Отправить
+                        <AlertDialogAction onClick={handleMarkIssued} className="bg-emerald-500 hover:bg-emerald-600">
+                            <CheckCircle className="h-4 w-4 mr-1.5" />Выдан
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={showNotIssuedDialog} onOpenChange={setShowNotIssuedDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Отметить как «Не выдан»?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Заявка #{application.id} будет переведена в статус «Не выдан».
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMarkNotIssued} className="bg-rose-500 hover:bg-rose-600">
+                            <XCircle className="h-4 w-4 mr-1.5" />Не выдан
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

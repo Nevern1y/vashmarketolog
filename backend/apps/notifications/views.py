@@ -6,15 +6,18 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from .models import Notification
+from apps.users.permissions import IsAdmin
+from .models import Notification, LeadNotificationSettings
 from .serializers import (
     NotificationSerializer,
     NotificationListSerializer,
     UnreadCountSerializer,
     MarkReadSerializer,
     MarkAllReadSerializer,
+    LeadNotificationSettingsSerializer,
 )
 
 
@@ -102,3 +105,46 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         count = Notification.get_unread_count(request.user)
         return Response({'unread_count': count})
+
+
+@extend_schema(tags=['Admin Settings'])
+class LeadNotificationSettingsView(APIView):
+    """
+    API view for lead notification settings.
+    
+    Admin-only endpoint to get and update lead email notification settings.
+    
+    GET /api/admin/settings/lead-notifications/
+    PUT /api/admin/settings/lead-notifications/
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    @extend_schema(
+        responses={200: LeadNotificationSettingsSerializer},
+        description='Get current lead notification settings'
+    )
+    def get(self, request):
+        """Get current settings."""
+        settings_obj = LeadNotificationSettings.get_settings()
+        serializer = LeadNotificationSettingsSerializer(settings_obj)
+        return Response(serializer.data)
+    
+    @extend_schema(
+        request=LeadNotificationSettingsSerializer,
+        responses={200: LeadNotificationSettingsSerializer},
+        description='Update lead notification settings'
+    )
+    def put(self, request):
+        """Update settings."""
+        settings_obj = LeadNotificationSettings.get_settings()
+        serializer = LeadNotificationSettingsSerializer(
+            settings_obj, 
+            data=request.data, 
+            partial=True
+        )
+        
+        if serializer.is_valid():
+            serializer.save(updated_by=request.user)
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

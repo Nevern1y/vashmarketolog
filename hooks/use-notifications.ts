@@ -29,6 +29,7 @@ export type NotificationType =
     | 'admin_new_lead'
     | 'admin_new_agent'
     | 'admin_new_partner'
+    | 'admin_application_sent'
 
 // API response interface - matches backend serializer
 export interface NotificationResponse {

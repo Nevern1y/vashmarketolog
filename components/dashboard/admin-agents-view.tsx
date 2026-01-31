@@ -30,6 +30,9 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { getStatusConfig } from "@/lib/status-mapping"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
+import { useApplications } from "@/hooks/use-applications"
 import {
     Clock,
     Loader2,
@@ -151,13 +154,19 @@ type StatusFilter = 'all' | 'approved' | 'pending' | 'rejected' | 'none'
 // COMPONENT
 // =============================================================================
 
-export function AdminAgentsView() {
+interface AdminAgentsViewProps {
+    onOpenApplication?: (applicationId: number) => void
+}
+
+export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
     const [agents, setAgents] = useState<Agent[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
     const [isModalOpen, setIsModalOpen] = useState(false)
+
+    const { applications, isLoading: isAppsLoading } = useApplications()
 
     // Modal state
     const [activeTab, setActiveTab] = useState('info')
@@ -291,6 +300,11 @@ export function AdminAgentsView() {
         return new Date(date).toLocaleDateString('ru-RU')
     }
 
+    const formatAmount = (amount?: string | number | null) => {
+        if (amount === null || amount === undefined || amount === '') return '—'
+        return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(amount)) + ' ₽'
+    }
+
     const toggleSection = (section: string) => {
         setOpenSections(prev => ({ ...prev, [section]: !prev[section] }))
     }
@@ -362,6 +376,11 @@ export function AdminAgentsView() {
         rejected: agents.filter(a => a.accreditation_status === 'rejected').length,
         none: agents.filter(a => a.accreditation_status === 'none').length,
     }), [agents])
+
+    const agentApplications = useMemo(() => {
+        if (!selectedAgent) return []
+        return (applications || []).filter(app => app.created_by === selectedAgent.id)
+    }, [applications, selectedAgent])
 
     // Loading
     if (isLoading) {
@@ -489,7 +508,7 @@ export function AdminAgentsView() {
 
             {/* Agent Detail Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="w-full max-w-4xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
+                <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
                     <div className="sr-only">
                         <DialogTitle>{selectedAgent ? getName(selectedAgent) : "Детали агента"}</DialogTitle>
                         <DialogDescription>Информация об агенте и его документах</DialogDescription>
@@ -514,14 +533,31 @@ export function AdminAgentsView() {
                             </DialogHeader>
 
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="info">
-                                        <Building2 className="h-4 w-4 mr-2" />
-                                        Информация
+                                <TabsList className="flex w-full">
+                                    <TabsTrigger value="info" className="flex-1 min-w-0 gap-1.5 px-2 sm:px-4">
+                                        <Building2 className="h-4 w-4 shrink-0" />
+                                        <span className="hidden sm:inline">Информация</span>
+                                        <span className="sm:hidden">Инфо</span>
                                     </TabsTrigger>
-                                    <TabsTrigger value="documents">
-                                        <FileText className="h-4 w-4 mr-2" />
-                                        Документы ({selectedAgent.documents?.length || 0})
+                                    <TabsTrigger value="documents" className="flex-1 min-w-0 gap-1.5 px-2 sm:px-4">
+                                        <FileText className="h-4 w-4 shrink-0" />
+                                        <span className="hidden sm:inline">Документы</span>
+                                        <span className="sm:hidden">Доки</span>
+                                        {(selectedAgent.documents?.length || 0) > 0 && (
+                                            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                                                {selectedAgent.documents?.length}
+                                            </Badge>
+                                        )}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="applications" className="flex-1 min-w-0 gap-1.5 px-2 sm:px-4">
+                                        <FileText className="h-4 w-4 shrink-0" />
+                                        <span className="hidden sm:inline">Заявки</span>
+                                        <span className="sm:hidden">Заяв</span>
+                                        {agentApplications.length > 0 && (
+                                            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">
+                                                {agentApplications.length}
+                                            </Badge>
+                                        )}
                                     </TabsTrigger>
                                 </TabsList>
 
@@ -813,6 +849,63 @@ export function AdminAgentsView() {
                                             </div>
                                         </TabsContent>
                                     </Tabs>
+                                </TabsContent>
+
+                                <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
+                                    {isAppsLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                        </div>
+                                    ) : agentApplications.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {agentApplications.map((app) => {
+                                                const statusCfg = getStatusConfig(app.status)
+                                                const amount = getPrimaryAmountValue(app)
+                                                return (
+                                                    <div
+                                                        key={app.id}
+                                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-mono text-[#3CE8D1]">#{app.id}</span>
+                                                                <Badge className={cn("text-xs", statusCfg.bgColor, statusCfg.color)}>
+                                                                    {statusCfg.label}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-sm font-medium text-foreground truncate mt-1">
+                                                                {app.company_name || "—"}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {getProductTypeLabel(app.product_type, app.product_type_display)}
+                                                                {amount ? ` • ${formatAmount(amount)}` : ""}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="text-xs text-muted-foreground">Создано: {formatDate(app.created_at)}</div>
+                                                            {onOpenApplication && (
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        setIsModalOpen(false)
+                                                                        onOpenApplication(app.id)
+                                                                    }}
+                                                                >
+                                                                    Открыть
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12">
+                                            <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                                            <p className="text-muted-foreground">У агента нет заявок</p>
+                                        </div>
+                                    )}
                                 </TabsContent>
                             </Tabs>
                         </>

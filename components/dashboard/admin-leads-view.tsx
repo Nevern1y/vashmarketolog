@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import api, { type ApiError } from "@/lib/api"
 import {
     Search,
     Loader2,
@@ -19,12 +20,16 @@ import {
     MoreHorizontal,
     MessageSquare,
     FileText,
+    Building2,
     UserPlus,
     ExternalLink,
     Trash2,
     CheckCircle2,
 } from "lucide-react"
-import { useLeads, useLeadActions, LEAD_STATUS_CONFIG, LEAD_SOURCE_CONFIG } from "@/hooks/use-leads"
+import { useLeads, useLeadActions, useLeadComments, useLeadNotificationSettings, LEAD_STATUS_CONFIG, LEAD_SOURCE_CONFIG } from "@/hooks/use-leads"
+import type { Lead, LeadComment } from "@/hooks/use-leads"
+import { useAdminUsers, getAdminDisplayName } from "@/hooks/use-admin-users"
+import { ArrowRightCircle, UserCog, Send, Settings, X, Plus, Download } from "lucide-react"
 import {
     Select,
     SelectContent,
@@ -59,6 +64,7 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 
 // ============================================
@@ -80,20 +86,91 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 }
 
 // ============================================
+// Form Name Labels (mapping technical names to readable)
+// ============================================
+const FORM_NAME_LABELS: Record<string, string> = {
+    // Calculator forms
+    calculator_bg: "Калькулятор БГ",
+    calculator_credit: "Калькулятор кредита",
+    calculator_guarantee: "Калькулятор гарантии",
+    
+    // Contact forms
+    contact_form: "Контактная форма",
+    callback_form: "Обратный звонок",
+    consultation_form: "Консультация",
+    question_form: "Вопрос специалисту",
+    
+    // Product forms
+    bank_guarantee_form: "Заявка на БГ",
+    tender_loan_form: "Заявка на тендерный кредит",
+    credit_form: "Заявка на кредит",
+    factoring_form: "Заявка на факторинг",
+    leasing_form: "Заявка на лизинг",
+    rko_form: "Заявка на РКО",
+    
+    // Landing pages
+    landing_bg: "Лендинг БГ",
+    landing_credit: "Лендинг кредит",
+    landing_main: "Главный лендинг",
+    
+    // Other
+    footer_form: "Форма в футере",
+    popup_form: "Всплывающая форма",
+    sidebar_form: "Боковая форма",
+}
+
+/**
+ * Get readable form name or return original if not found
+ */
+function getFormNameLabel(formName: string | null | undefined): string {
+    if (!formName) return "—"
+    return FORM_NAME_LABELS[formName] || formName
+}
+
+// ============================================
 // Main Component
 // ============================================
 export function AdminLeadsView() {
     const { leads, isLoading, refetch } = useLeads()
-    const { updateLead, deleteLead, isLoading: isActionLoading } = useLeadActions()
+    const { updateLead, deleteLead, convertToApplication, isLoading: isActionLoading } = useLeadActions()
+    const { admins, isLoading: isLoadingAdmins } = useAdminUsers()
+
+    // Notification settings
+    const { 
+        settings: notificationSettings, 
+        isLoading: isLoadingSettings, 
+        updateSettings 
+    } = useLeadNotificationSettings()
 
     // State
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState<string>("all")
     const [sourceFilter, setSourceFilter] = useState<string>("all")
     const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+    const [showConvertDialog, setShowConvertDialog] = useState(false)
     const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null)
     const [showNotesDialog, setShowNotesDialog] = useState(false)
     const [notesValue, setNotesValue] = useState("")
+    const [showDetailsDialog, setShowDetailsDialog] = useState(false)
+    const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+    const [showAssignDialog, setShowAssignDialog] = useState(false)
+    const [selectedManagerId, setSelectedManagerId] = useState<string>("")
+    const [newCommentText, setNewCommentText] = useState("")
+    const [isExporting, setIsExporting] = useState(false)
+    
+    // Settings dialog state
+    const [showSettingsDialog, setShowSettingsDialog] = useState(false)
+    const [emailEnabled, setEmailEnabled] = useState(true)
+    const [emailList, setEmailList] = useState<string[]>([])
+    const [newEmail, setNewEmail] = useState("")
+
+    // Comments for selected lead
+    const { 
+        comments, 
+        isLoading: isLoadingComments, 
+        addComment, 
+        refetch: refetchComments 
+    } = useLeadComments(selectedLead?.id ?? null)
 
     // Filtered leads
     const filteredLeads = useMemo(() => {
@@ -102,11 +179,20 @@ export function AdminLeadsView() {
             if (sourceFilter !== "all" && lead.source !== sourceFilter) return false
             const query = searchQuery.toLowerCase()
             if (query) {
+                const email = lead.email || ""
+                const inn = lead.inn || ""
+                const message = lead.message || ""
+                const formName = lead.form_name || ""
+                const pageUrl = lead.page_url || ""
                 return (
                     lead.id.toString().includes(query) ||
                     lead.full_name.toLowerCase().includes(query) ||
                     lead.phone.toLowerCase().includes(query) ||
-                    lead.email.toLowerCase().includes(query)
+                    email.toLowerCase().includes(query) ||
+                    inn.toLowerCase().includes(query) ||
+                    message.toLowerCase().includes(query) ||
+                    formName.toLowerCase().includes(query) ||
+                    pageUrl.toLowerCase().includes(query)
                 )
             }
             return true
@@ -148,6 +234,126 @@ export function AdminLeadsView() {
         setSelectedLeadId(null)
     }
 
+    const handleConvertConfirm = async () => {
+        if (!selectedLeadId) return
+        const result = await convertToApplication(selectedLeadId)
+        if (result) {
+            toast.success(`Лид конвертирован в заявку`)
+            refetch()
+        } else {
+            toast.error("Ошибка конвертации")
+        }
+        setShowConvertDialog(false)
+        setSelectedLeadId(null)
+    }
+
+    const openConvertDialog = (lead: Lead) => {
+        if (lead.converted_application) {
+            toast.error("Этот лид уже конвертирован в заявку")
+            return
+        }
+        setSelectedLeadId(lead.id)
+        setShowConvertDialog(true)
+    }
+
+    const openAssignDialog = (lead: Lead) => {
+        setSelectedLeadId(lead.id)
+        setSelectedManagerId(lead.assigned_to?.toString() || "")
+        setShowAssignDialog(true)
+    }
+
+    const handleAssignManager = async () => {
+        if (!selectedLeadId) return
+        const assignedTo = selectedManagerId ? parseInt(selectedManagerId) : null
+        const result = await updateLead(selectedLeadId, { assigned_to: assignedTo })
+        if (result) {
+            toast.success(assignedTo ? "Менеджер назначен" : "Менеджер снят")
+            refetch()
+        } else {
+            toast.error("Ошибка назначения")
+        }
+        setShowAssignDialog(false)
+        setSelectedLeadId(null)
+        setSelectedManagerId("")
+    }
+
+    const handleAddComment = async () => {
+        if (!newCommentText.trim()) {
+            toast.error("Введите текст комментария")
+            return
+        }
+        const result = await addComment(newCommentText.trim())
+        if (result) {
+            toast.success("Комментарий добавлен")
+            setNewCommentText("")
+        } else {
+            toast.error("Ошибка добавления комментария")
+        }
+    }
+
+    const handleExportCsv = async () => {
+        try {
+            setIsExporting(true)
+            const { blob, filename } = await api.getBlob("/applications/admin/leads/export_csv/")
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = downloadUrl
+            link.download = filename || "leads_export.csv"
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(downloadUrl)
+            toast.success("Экспорт CSV начат")
+        } catch (err) {
+            const apiError = err as ApiError
+            toast.error(apiError.message || "Ошибка экспорта CSV")
+        } finally {
+            setIsExporting(false)
+        }
+    }
+
+    // Settings dialog handlers
+    const openSettingsDialog = () => {
+        if (notificationSettings) {
+            setEmailEnabled(notificationSettings.email_enabled)
+            setEmailList(notificationSettings.recipient_emails || [])
+        }
+        setNewEmail("")
+        setShowSettingsDialog(true)
+    }
+
+    const handleAddEmail = () => {
+        const email = newEmail.trim()
+        if (!email) return
+        if (!email.includes("@") || !email.includes(".")) {
+            toast.error("Некорректный email адрес")
+            return
+        }
+        if (emailList.includes(email)) {
+            toast.error("Этот email уже в списке")
+            return
+        }
+        setEmailList([...emailList, email])
+        setNewEmail("")
+    }
+
+    const handleRemoveEmail = (email: string) => {
+        setEmailList(emailList.filter(e => e !== email))
+    }
+
+    const handleSaveSettings = async () => {
+        const result = await updateSettings({
+            email_enabled: emailEnabled,
+            recipient_emails: emailList,
+        })
+        if (result) {
+            toast.success("Настройки сохранены")
+            setShowSettingsDialog(false)
+        } else {
+            toast.error("Ошибка сохранения настроек")
+        }
+    }
+
     const handleSaveNotes = async () => {
         if (!selectedLeadId) return
         const result = await updateLead(selectedLeadId, { notes: notesValue })
@@ -162,10 +368,15 @@ export function AdminLeadsView() {
         setNotesValue("")
     }
 
-    const openNotesDialog = (lead: typeof leads[0]) => {
+    const openNotesDialog = (lead: Lead) => {
         setSelectedLeadId(lead.id)
         setNotesValue(lead.notes || "")
         setShowNotesDialog(true)
+    }
+
+    const openDetailsDialog = (lead: Lead) => {
+        setSelectedLead(lead)
+        setShowDetailsDialog(true)
     }
 
     const formatCurrency = (amount: string | null) => {
@@ -188,6 +399,17 @@ export function AdminLeadsView() {
         return phone.replace(/\D/g, "")
     }
 
+    const formatPagePath = (url?: string) => {
+        if (!url) return ""
+        try {
+            const parsed = new URL(url)
+            const path = `${parsed.pathname}${parsed.search}`
+            return path || parsed.pathname || url
+        } catch {
+            return url
+        }
+    }
+
     // Loading state
     if (isLoading) {
         return (
@@ -207,10 +429,30 @@ export function AdminLeadsView() {
                         {stats.total} всего • {stats.new} новых • {stats.contacted} в работе • {stats.converted} конвертировано
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => refetch()} className="w-full sm:w-auto">
-                    <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-                    Обновить
-                </Button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <Button variant="outline" size="sm" onClick={openSettingsDialog} className="flex-1 sm:flex-none">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Настройки
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleExportCsv}
+                        disabled={isExporting}
+                        className="flex-1 sm:flex-none"
+                    >
+                        {isExporting ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Download className="h-4 w-4 mr-2" />
+                        )}
+                        Экспорт CSV
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} className="flex-1 sm:flex-none">
+                        <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+                        Обновить
+                    </Button>
+                </div>
             </div>
 
             {/* Status Tabs */}
@@ -351,6 +593,12 @@ export function AdminLeadsView() {
                                                         <FileText className="h-3.5 w-3.5" />
                                                         {PRODUCT_TYPE_LABELS[lead.product_type] || lead.product_type}
                                                     </span>
+                                                    {lead.inn && (
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Building2 className="h-3.5 w-3.5" />
+                                                            ИНН: {lead.inn}
+                                                        </span>
+                                                    )}
                                                     {lead.amount && (
                                                         <span className="flex items-center gap-1.5">
                                                             <Banknote className="h-3.5 w-3.5" />
@@ -364,6 +612,39 @@ export function AdminLeadsView() {
                                                         </span>
                                                     )}
                                                 </div>
+
+                                                {lead.message && (
+                                                    <p className="mt-2 text-xs text-muted-foreground line-clamp-2 italic">
+                                                        Сообщение: {lead.message}
+                                                    </p>
+                                                )}
+
+                                                {(lead.form_name || lead.page_url) && (
+                                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                                                        {lead.form_name && (
+                                                            <span>Форма: {getFormNameLabel(lead.form_name)}</span>
+                                                        )}
+                                                        {lead.page_url && (
+                                                            <a
+                                                                href={lead.page_url}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="text-[#4F7DF3] hover:underline"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                Страница: {formatPagePath(lead.page_url)}
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Assigned manager preview */}
+                                                {lead.assigned_to_email && (
+                                                    <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1.5">
+                                                        <UserCog className="h-3 w-3" />
+                                                        Менеджер: {lead.assigned_to_email}
+                                                    </p>
+                                                )}
 
                                                 {/* Notes preview */}
                                                 {lead.notes && (
@@ -406,9 +687,17 @@ export function AdminLeadsView() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onClick={() => openDetailsDialog(lead)}>
+                                                            <ExternalLink className="h-4 w-4 mr-2" />
+                                                            Детали заявки
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => openNotesDialog(lead)}>
                                                             <MessageSquare className="h-4 w-4 mr-2" />
                                                             Добавить заметку
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => openAssignDialog(lead)}>
+                                                            <UserCog className="h-4 w-4 mr-2" />
+                                                            Назначить менеджера
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
                                                             onClick={() => window.open(`tel:+${formatPhone(lead.phone)}`)}
@@ -422,6 +711,22 @@ export function AdminLeadsView() {
                                                             >
                                                                 <Mail className="h-4 w-4 mr-2" />
                                                                 Написать
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        <DropdownMenuSeparator />
+                                                        {!lead.converted_application && (
+                                                            <DropdownMenuItem
+                                                                onClick={() => openConvertDialog(lead)}
+                                                                className="text-[#3CE8D1] focus:text-[#3CE8D1]"
+                                                            >
+                                                                <ArrowRightCircle className="h-4 w-4 mr-2" />
+                                                                Конвертировать в заявку
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {lead.converted_application && (
+                                                            <DropdownMenuItem disabled className="text-muted-foreground">
+                                                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                                                Уже конвертирован
                                                             </DropdownMenuItem>
                                                         )}
                                                         <DropdownMenuSeparator />
@@ -468,6 +773,68 @@ export function AdminLeadsView() {
                 </AlertDialogContent>
             </AlertDialog>
 
+            {/* Convert to Application Confirmation Dialog */}
+            <AlertDialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Конвертировать лид в заявку?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Будет создана новая заявка на основе данных этого лида. 
+                            Лид получит статус "Конвертирован" и будет связан с созданной заявкой.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConvertConfirm}
+                            className="bg-[#3CE8D1] text-black hover:bg-[#3CE8D1]/90"
+                        >
+                            {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Конвертировать"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Assign Manager Dialog */}
+            <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Назначить менеджера</DialogTitle>
+                        <DialogDescription>
+                            Выберите менеджера, ответственного за работу с этим лидом
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label>Менеджер</Label>
+                        <Select 
+                            value={selectedManagerId} 
+                            onValueChange={setSelectedManagerId}
+                        >
+                            <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Выберите менеджера" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Не назначен</SelectItem>
+                                {admins.map((admin) => (
+                                    <SelectItem key={admin.id} value={admin.id.toString()}>
+                                        {getAdminDisplayName(admin)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
+                            Отмена
+                        </Button>
+                        <Button onClick={handleAssignManager} disabled={isActionLoading || isLoadingAdmins}>
+                            {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Назначить
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Notes Dialog */}
             <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
                 <DialogContent>
@@ -494,6 +861,329 @@ export function AdminLeadsView() {
                         </Button>
                         <Button onClick={handleSaveNotes} disabled={isActionLoading}>
                             {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Сохранить
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Details Dialog */}
+            <Dialog
+                open={showDetailsDialog}
+                onOpenChange={(open) => {
+                    setShowDetailsDialog(open)
+                    if (!open) setSelectedLead(null)
+                }}
+            >
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Детали заявки</DialogTitle>
+                        <DialogDescription>Все введенные данные и источник заявки</DialogDescription>
+                    </DialogHeader>
+                    {selectedLead && (
+                        <div className="space-y-4">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <Label>ФИО</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.full_name}</p>
+                                </div>
+                                <div>
+                                    <Label>Телефон</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.phone}</p>
+                                </div>
+                                <div>
+                                    <Label>Email</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.email || "—"}</p>
+                                </div>
+                                <div>
+                                    <Label>ИНН</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.inn || "—"}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <Label>Продукт</Label>
+                                    <p className="mt-1 text-sm">
+                                        {selectedLead.product_type_display || PRODUCT_TYPE_LABELS[selectedLead.product_type] || selectedLead.product_type}
+                                    </p>
+                                </div>
+                                <div>
+                                    <Label>Тип гарантии</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.guarantee_type_display || "—"}</p>
+                                </div>
+                                <div>
+                                    <Label>Сумма</Label>
+                                    <p className="mt-1 text-sm">{formatCurrency(selectedLead.amount)}</p>
+                                </div>
+                                <div>
+                                    <Label>Срок</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.term_months ? `${selectedLead.term_months} мес.` : "—"}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label>Сообщение клиента</Label>
+                                <p className="mt-1 text-sm whitespace-pre-wrap">{selectedLead.message || "—"}</p>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <Label>Источник</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.source_display || (LEAD_SOURCE_CONFIG[selectedLead.source] || LEAD_SOURCE_CONFIG.other).label}</p>
+                                </div>
+                                <div>
+                                    <Label>Форма</Label>
+                                    <p className="mt-1 text-sm">{getFormNameLabel(selectedLead.form_name)}</p>
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <Label>Страница</Label>
+                                    {selectedLead.page_url ? (
+                                        <a
+                                            href={selectedLead.page_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-1 block text-sm text-[#4F7DF3] hover:underline"
+                                        >
+                                            {selectedLead.page_url}
+                                        </a>
+                                    ) : (
+                                        <p className="mt-1 text-sm">—</p>
+                                    )}
+                                </div>
+                                <div className="sm:col-span-2">
+                                    <Label>Реферер</Label>
+                                    {selectedLead.referrer ? (
+                                        <a
+                                            href={selectedLead.referrer}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-1 block text-sm text-[#4F7DF3] hover:underline"
+                                        >
+                                            {selectedLead.referrer}
+                                        </a>
+                                    ) : (
+                                        <p className="mt-1 text-sm">—</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label>UTM</Label>
+                                <p className="mt-1 text-sm">
+                                    {(selectedLead.utm_source || "—")} / {(selectedLead.utm_medium || "—")} / {(selectedLead.utm_campaign || "—")}
+                                </p>
+                                {(selectedLead.utm_term || selectedLead.utm_content) && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        term: {selectedLead.utm_term || "—"} • content: {selectedLead.utm_content || "—"}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <Label>Заметка менеджера</Label>
+                                <p className="mt-1 text-sm whitespace-pre-wrap">{selectedLead.notes || "—"}</p>
+                            </div>
+
+                            {/* Comments Section */}
+                            <div className="border-t pt-4">
+                                <Label className="flex items-center gap-2 mb-3">
+                                    <MessageSquare className="h-4 w-4" />
+                                    Комментарии ({comments.length})
+                                </Label>
+                                
+                                {/* Add Comment Form */}
+                                <div className="flex gap-2 mb-4">
+                                    <Textarea
+                                        value={newCommentText}
+                                        onChange={(e) => setNewCommentText(e.target.value)}
+                                        placeholder="Добавить комментарий..."
+                                        className="min-h-[60px] resize-none"
+                                        rows={2}
+                                    />
+                                    <Button 
+                                        type="button"
+                                        onClick={handleAddComment}
+                                        disabled={!newCommentText.trim() || isLoadingComments}
+                                        className="h-[60px] px-4 shrink-0"
+                                    >
+                                        {isLoadingComments ? (
+                                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        ) : (
+                                            <Send className="h-4 w-4 mr-2" />
+                                        )}
+                                        Добавить
+                                    </Button>
+                                </div>
+
+                                {/* Comments List */}
+                                <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                                    {isLoadingComments ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                        </div>
+                                    ) : comments.length === 0 ? (
+                                        <p className="text-sm text-muted-foreground text-center py-3">
+                                            Комментариев пока нет
+                                        </p>
+                                    ) : (
+                                        comments.map((comment) => {
+                                            const authorName = comment.author_name?.trim() || "Менеджер"
+                                            const authorInitial = authorName.charAt(0).toUpperCase() || "М"
+
+                                            return (
+                                                <div 
+                                                    key={comment.id} 
+                                                    className="bg-muted/50 rounded-lg p-3"
+                                                >
+                                                    <div className="flex gap-3">
+                                                        <div className="h-8 w-8 rounded-full bg-[#3CE8D1]/15 text-[#3CE8D1] flex items-center justify-center text-xs font-semibold shrink-0">
+                                                            {authorInitial}
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="text-sm font-medium text-foreground">
+                                                                    {authorName}
+                                                                </span>
+                                                                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                                                    {formatDate(comment.created_at)}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                                                                {comment.text}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <Label>Назначенный менеджер</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.assigned_to_email || "Не назначен"}</p>
+                                </div>
+                                <div>
+                                    <Label>Конвертирован в заявку</Label>
+                                    <p className="mt-1 text-sm">
+                                        {selectedLead.converted_application 
+                                            ? `#${selectedLead.converted_application}` 
+                                            : "Нет"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div>
+                                    <Label>Создан</Label>
+                                    <p className="mt-1 text-sm">{formatDate(selectedLead.created_at)}</p>
+                                </div>
+                                <div>
+                                    <Label>Связались</Label>
+                                    <p className="mt-1 text-sm">{selectedLead.contacted_at ? formatDate(selectedLead.contacted_at) : "—"}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                            Закрыть
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Settings Dialog */}
+            <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Настройки оповещений</DialogTitle>
+                        <DialogDescription>
+                            Настройте email-уведомления о новых лидах с сайта
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {/* Email enabled toggle */}
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label htmlFor="email-enabled" className="text-sm font-medium">
+                                    Email-уведомления
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    Отправлять email при получении нового лида
+                                </p>
+                            </div>
+                            <Switch
+                                id="email-enabled"
+                                checked={emailEnabled}
+                                onCheckedChange={setEmailEnabled}
+                            />
+                        </div>
+
+                        {/* Email recipients */}
+                        <div className="space-y-2">
+                            <Label>Получатели уведомлений</Label>
+                            <p className="text-xs text-muted-foreground">
+                                Если список пуст — уведомления получат все администраторы
+                            </p>
+                            
+                            {/* Add email form */}
+                            <div className="flex gap-2">
+                                <Input
+                                    type="email"
+                                    placeholder="email@example.com"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault()
+                                            handleAddEmail()
+                                        }
+                                    }}
+                                />
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="icon"
+                                    onClick={handleAddEmail}
+                                >
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            {/* Email list */}
+                            {emailList.length > 0 && (
+                                <div className="space-y-1 mt-2">
+                                    {emailList.map((email) => (
+                                        <div
+                                            key={email}
+                                            className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-1.5"
+                                        >
+                                            <span className="text-sm">{email}</span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6"
+                                                onClick={() => handleRemoveEmail(email)}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowSettingsDialog(false)}>
+                            Отмена
+                        </Button>
+                        <Button onClick={handleSaveSettings} disabled={isLoadingSettings}>
+                            {isLoadingSettings ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                             Сохранить
                         </Button>
                     </DialogFooter>

@@ -13,6 +13,7 @@ from .views import (
     CalculationSessionViewSet,
     PublicLeadCreateView,
     LeadViewSet,
+    LeadCommentViewSet,
 )
 
 # Main applications router
@@ -36,6 +37,11 @@ decisions_router.register(r'', PartnerDecisionViewSet, basename='decision')
 leads_router = DefaultRouter()
 leads_router.register(r'', LeadViewSet, basename='lead')
 
+# Nested router for comments under leads
+# Creates: /admin/leads/{lead_pk}/comments/
+lead_comments_router = nested_routers.NestedDefaultRouter(leads_router, r'', lookup='lead')
+lead_comments_router.register(r'comments', LeadCommentViewSet, basename='lead-comments')
+
 app_name = 'applications'
 
 urlpatterns = [
@@ -53,6 +59,9 @@ urlpatterns = [
     
     # Admin leads management
     path('admin/leads/', include(leads_router.urls)),
+    
+    # Nested lead comments routes
+    path('admin/leads/', include(lead_comments_router.urls)),
     
     # Standard CRUD + custom actions (MUST BE BEFORE nested routes to allow POST)
     path('', include(router.urls)),

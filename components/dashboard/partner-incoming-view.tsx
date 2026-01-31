@@ -77,7 +77,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
         return (
           <Badge className="bg-[#f97316]/10 text-[#f97316] gap-1">
             <AlertCircle className="h-3 w-3" />
-            Запрос информации
+            Возвращение на доработку
           </Badge>
         )
       default:
@@ -252,7 +252,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                 ) : (
                   <p className="text-2xl font-bold">{stats.infoRequested}</p>
                 )}
-                <p className="text-sm text-muted-foreground">Запрос информации</p>
+                <p className="text-sm text-muted-foreground">Возвращение на доработку</p>
               </div>
             </div>
           </CardContent>
@@ -282,7 +282,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
                   <SelectItem value="all">Все статусы</SelectItem>
                   <SelectItem value="pending">Новые</SelectItem>
                   <SelectItem value="in_review">На рассмотрении</SelectItem>
-                  <SelectItem value="info_requested">Запрос информации</SelectItem>
+                  <SelectItem value="info_requested">Возвращение на доработку</SelectItem>
                 </SelectContent>
               </Select>
             </div>

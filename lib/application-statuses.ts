@@ -123,11 +123,11 @@ export const GENERAL_STATUSES: ApplicationStatusOption[] = [
     { id: 1, productType: 'general', name: 'Черновик', internalStatus: 'draft', order: 1, isTerminal: false },
     { id: 2, productType: 'general', name: 'На рассмотрении', internalStatus: 'pending', order: 2, isTerminal: false },
     { id: 3, productType: 'general', name: 'В работе', internalStatus: 'in_review', order: 3, isTerminal: false },
-    { id: 4, productType: 'general', name: 'Запрошена информация', internalStatus: 'info_requested', order: 4, isTerminal: false },
-    { id: 5, productType: 'general', name: 'Одобрено', internalStatus: 'approved', order: 5, isTerminal: false },
-    { id: 6, productType: 'general', name: 'Выигран', internalStatus: 'won', order: 6, isTerminal: true },
-    { id: 7, productType: 'general', name: 'Отклонено', internalStatus: 'rejected', order: 100, isTerminal: true },
-    { id: 8, productType: 'general', name: 'Проигран', internalStatus: 'lost', order: 101, isTerminal: true },
+    { id: 4, productType: 'general', name: 'Возвращение на доработку', internalStatus: 'info_requested', order: 4, isTerminal: false },
+    { id: 5, productType: 'general', name: 'Одобрен', internalStatus: 'approved', order: 5, isTerminal: false },
+    { id: 6, productType: 'general', name: 'Выдан', internalStatus: 'won', order: 6, isTerminal: true },
+    { id: 7, productType: 'general', name: 'Отказано', internalStatus: 'rejected', order: 100, isTerminal: true },
+    { id: 8, productType: 'general', name: 'Не выдан', internalStatus: 'lost', order: 101, isTerminal: true },
 ];
 
 // ============================================================================
@@ -267,11 +267,11 @@ export const INTERNAL_STATUS_LABELS: Record<string, string> = {
     draft: 'Черновик',
     pending: 'На рассмотрении',
     in_review: 'В работе',
-    info_requested: 'Запрошена информация',
-    approved: 'Одобрено',
-    rejected: 'Отклонено',
-    won: 'Выигран',
-    lost: 'Проигран',
+    info_requested: 'Возвращение на доработку',
+    approved: 'Одобрен',
+    rejected: 'Отказано',
+    won: 'Выдан',
+    lost: 'Не выдан',
 };
 
 export const INTERNAL_STATUS_COLORS: Record<string, string> = {

@@ -26,6 +26,7 @@ import {
     UserPlus,
     Building2,
     PhoneIncoming,
+    Send,
 } from "lucide-react"
 import {
     useNotifications,
@@ -70,6 +71,8 @@ function getNotificationIcon(type: NotificationType) {
             return <UserPlus className="h-5 w-5 text-[#3CE8D1]" />
         case "admin_new_partner":
             return <Building2 className="h-5 w-5 text-[#3b82f6]" />
+        case "admin_application_sent":
+            return <Send className="h-5 w-5 text-[#3CE8D1]" />
         default:
             return <Bell className="h-5 w-5 text-muted-foreground" />
     }
@@ -85,6 +88,7 @@ function getNotificationBg(type: NotificationType, isRead: boolean) {
         case "new_application":
         case "admin_new_application":
         case "admin_new_agent":
+        case "admin_application_sent":
             return "bg-[#3CE8D1]/5"
         case "decision_rejected":
         case "document_rejected":
@@ -127,6 +131,8 @@ function getActionText(type: NotificationType) {
             return "Загрузить документ"
         case "chat_message":
             return "Открыть чат"
+        case "admin_application_sent":
+            return "Открыть заявку"
         default:
             return "Подробнее"
     }

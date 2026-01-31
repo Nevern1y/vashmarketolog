@@ -1,8 +1,8 @@
 
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { api } from "../../lib/api";
-import { SeoPage } from "../../components/seo/seo-page-editor";
+import { getSeoPage } from "@/lib/seo-api";
+import { generateMetadataFromSeoPage } from "@/utils/metadata";
 
 interface Props {
     params: Promise<{
@@ -15,23 +15,6 @@ const getSlugString = (slugArray: string[]) => {
     return slugArray.join("/");
 };
 
-async function getSeoPage(slug: string): Promise<SeoPage | null> {
-    try {
-        // Attempt to fetch the page by slug.
-        // We assume the backend accepts the slug path exactly as provided.
-        // URL encoding is important for slugs with special characters.
-        const response = await api.get<SeoPage>(`/seo/pages/${encodeURIComponent(slug)}/`);
-        return response;
-    } catch (error) {
-        // If 404, return null to trigger notFound()
-        if ((error as any).status === 404) {
-            return null;
-        }
-        console.error(`Failed to fetch SEO page for slug: ${slug}`, error);
-        return null;
-    }
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug: slugArray } = await params;
     const slug = getSlugString(slugArray);
@@ -43,22 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         };
     }
 
-    const canonicalPath = `/${slug}`;
-    
-    return {
-        title: page.meta_title || page.h1_title,
-        description: page.meta_description,
-        keywords: page.meta_keywords,
-        alternates: {
-            canonical: canonicalPath,
-        },
-        openGraph: {
-            title: page.meta_title || page.h1_title,
-            description: page.meta_description,
-            url: canonicalPath,
-            type: "article",
-        },
-    };
+    return generateMetadataFromSeoPage(page, slug);
 }
 
 export default async function DynamicSeoPage({ params }: Props) {
@@ -72,7 +40,9 @@ export default async function DynamicSeoPage({ params }: Props) {
 
     const bankOffers = page.bank_offers || [];
     const faqItems = page.faq || [];
-    const popularSearches = page.popular_searches || [];
+    const popularSearches = (page.popular_searches || []).map((item) =>
+        typeof item === "string" ? { text: item } : item
+    );
 
     return (
         <div className="container mx-auto px-4 py-8 lg:py-12">

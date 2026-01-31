@@ -374,7 +374,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         # Can only request info for pending/in_review applications
         if application.status not in [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW]:
             return Response(
-                {'error': 'Запросить информацию можно только для заявок на рассмотрении'},
+                {'error': 'Вернуть на доработку можно только для заявок на рассмотрении'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -411,6 +411,56 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         application.status = ApplicationStatus.APPROVED
         application.save()
         
+        return Response(ApplicationSerializer(application, context={'request': request}).data)
+
+    @extend_schema(
+        request=None,
+        responses={200: ApplicationSerializer}
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
+    def mark_issued(self, request, pk=None):
+        """
+        Mark application as issued (Admin only).
+        POST /api/applications/{id}/mark_issued/
+        
+        Sets status to WON ("Выдан").
+        """
+        application = self.get_object()
+
+        if application.status != ApplicationStatus.APPROVED:
+            return Response(
+                {'error': 'Отметить как выданную можно только после статуса «Одобрен»'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        application.status = ApplicationStatus.WON
+        application.save()
+
+        return Response(ApplicationSerializer(application, context={'request': request}).data)
+
+    @extend_schema(
+        request=None,
+        responses={200: ApplicationSerializer}
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
+    def mark_not_issued(self, request, pk=None):
+        """
+        Mark application as not issued (Admin only).
+        POST /api/applications/{id}/mark_not_issued/
+        
+        Sets status to LOST ("Не выдан").
+        """
+        application = self.get_object()
+
+        if application.status != ApplicationStatus.APPROVED:
+            return Response(
+                {'error': 'Отметить как не выданную можно только после статуса «Одобрен»'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        application.status = ApplicationStatus.LOST
+        application.save()
+
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -578,6 +628,28 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if not application.submitted_at:
                 application.submitted_at = timezone.now()
                 application.save(update_fields=['submitted_at'])
+
+            try:
+                from apps.notifications.signals import notify_admins
+                from apps.notifications.models import NotificationType
+
+                data = {
+                    'application_id': application.id,
+                    'company_name': application.company.short_name or application.company.name if application.company else 'Не указана',
+                    'product_type': application.product_type,
+                    'product_type_display': application.get_product_type_display(),
+                    'amount': str(application.amount) if application.amount else None,
+                }
+
+                notify_admins(
+                    notification_type=NotificationType.ADMIN_APPLICATION_SENT,
+                    title='Заявка отправлена в банк',
+                    message=f"Заявка #{application.id} отправлена в банк",
+                    data=data,
+                    source_object=application,
+                )
+            except Exception as e:
+                logger.error(f"Failed to notify admins about bank submission: {e}")
             
             logger.info(f"Application {pk} sent to bank successfully. Ticket ID: {result['ticket_id']}")
             
@@ -923,6 +995,19 @@ class LeadViewSet(viewsets.ModelViewSet):
     
     def get_serializer_class(self):
         return LeadSerializer
+
+    def perform_update(self, serializer):
+        lead = self.get_object()
+        new_status = serializer.validated_data.get('status')
+
+        if new_status and new_status != lead.status:
+            from .models import LeadStatus
+
+            if new_status != LeadStatus.NEW and not lead.contacted_at:
+                serializer.save(contacted_at=timezone.now())
+                return
+
+        serializer.save()
     
     @extend_schema(
         request=None,
@@ -974,4 +1059,114 @@ class LeadViewSet(viewsets.ModelViewSet):
             'application_id': application.id,
             'lead': LeadSerializer(lead).data,
         })
+
+    @extend_schema(
+        request=None,
+        responses={200: {'type': 'string', 'format': 'binary'}},
+        description='Export leads to CSV file'
+    )
+    @action(detail=False, methods=['get'])
+    def export_csv(self, request):
+        """
+        Export all leads to CSV.
+        GET /api/admin/leads/export_csv/
+        
+        Returns CSV file with all leads data.
+        """
+        import csv
+        from django.http import HttpResponse
+        
+        leads = self.get_queryset().order_by('-created_at')
+        
+        # Create response with CSV content type
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="leads_export.csv"'
+        
+        # Add BOM for Excel UTF-8 support
+        response.write('\ufeff')
+        
+        writer = csv.writer(response)
+        
+        # Write header
+        writer.writerow([
+            'ID',
+            'ФИО',
+            'Телефон',
+            'Email',
+            'ИНН',
+            'Продукт',
+            'Тип гарантии',
+            'Сумма',
+            'Срок (мес)',
+            'Статус',
+            'Источник',
+            'Форма',
+            'Страница',
+            'UTM Source',
+            'UTM Medium',
+            'UTM Campaign',
+            'Сообщение',
+            'Менеджер',
+            'Заметки',
+            'Конвертирован в заявку',
+            'Дата создания',
+            'Дата контакта',
+        ])
+        
+        # Write data rows
+        for lead in leads:
+            writer.writerow([
+                lead.id,
+                lead.full_name,
+                lead.phone,
+                lead.email or '',
+                lead.inn or '',
+                lead.get_product_type_display(),
+                lead.get_guarantee_type_display() if lead.guarantee_type else '',
+                str(lead.amount) if lead.amount else '',
+                lead.term_months or '',
+                lead.get_status_display(),
+                lead.get_source_display(),
+                lead.form_name or '',
+                lead.page_url or '',
+                lead.utm_source or '',
+                lead.utm_medium or '',
+                lead.utm_campaign or '',
+                lead.message or '',
+                lead.assigned_to.email if lead.assigned_to else '',
+                lead.notes or '',
+                lead.converted_application_id or '',
+                lead.created_at.strftime('%d.%m.%Y %H:%M'),
+                lead.contacted_at.strftime('%d.%m.%Y %H:%M') if lead.contacted_at else '',
+            ])
+        
+        return response
+
+
+@extend_schema(tags=['Lead Comments'])
+class LeadCommentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing lead comments (Admin only).
+    
+    Endpoints:
+    - GET /api/admin/leads/{lead_id}/comments/ - list comments for a lead
+    - POST /api/admin/leads/{lead_id}/comments/ - add comment to a lead
+    - DELETE /api/admin/leads/{lead_id}/comments/{id}/ - delete comment
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_queryset(self):
+        from .models import LeadComment
+        lead_id = self.kwargs.get('lead_pk')
+        return LeadComment.objects.filter(lead_id=lead_id).select_related('author')
+    
+    def get_serializer_class(self):
+        from .serializers import LeadCommentSerializer, LeadCommentCreateSerializer
+        if self.action == 'create':
+            return LeadCommentCreateSerializer
+        return LeadCommentSerializer
+    
+    def perform_create(self, serializer):
+        lead_id = self.kwargs.get('lead_pk')
+        serializer.save(author=self.request.user, lead_id=lead_id)
 

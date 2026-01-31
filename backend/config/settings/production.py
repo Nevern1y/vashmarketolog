@@ -87,7 +87,7 @@ X_FRAME_OPTIONS = 'DENY'
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS',
-    'https://lk.lider-garant.ru,https://www.lider-garant.ru'
+    'https://lk.lider-garant.ru,https://lider-garant.ru,https://www.lider-garant.ru'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 

@@ -14,6 +14,7 @@ export interface Lead {
     full_name: string;
     phone: string;
     email: string;
+    inn?: string;
     product_type: string;
     product_type_display: string;
     guarantee_type: string;
@@ -25,6 +26,12 @@ export interface Lead {
     utm_source: string;
     utm_medium: string;
     utm_campaign: string;
+    utm_term: string;
+    utm_content: string;
+    page_url: string;
+    referrer: string;
+    form_name: string;
+    message: string;
     status: 'new' | 'contacted' | 'qualified' | 'converted' | 'rejected';
     status_display: string;
     assigned_to: number | null;
@@ -156,4 +163,192 @@ export function useLeadActions() {
     }, []);
 
     return { updateLead, convertToApplication, deleteLead, isLoading, error };
+}
+
+// Lead comment types
+export interface LeadComment {
+    id: number;
+    lead: number;
+    author: number;
+    author_email: string;
+    author_name: string;
+    text: string;
+    created_at: string;
+}
+
+/**
+ * Hook for fetching and managing lead comments
+ */
+export function useLeadComments(leadId: number | null) {
+    const [comments, setComments] = useState<LeadComment[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const isMounted = useRef(true);
+
+    const fetchComments = useCallback(async () => {
+        if (!leadId) return;
+        
+        try {
+            setIsLoading(true);
+            setError(null);
+            const response = await api.get<LeadComment[] | { results: LeadComment[] }>(
+                `/applications/admin/leads/${leadId}/comments/`
+            );
+            if (isMounted.current) {
+                const data = Array.isArray(response) ? response : (response?.results || []);
+                setComments(data);
+            }
+        } catch (err) {
+            const apiError = err as ApiError;
+            if (isMounted.current) {
+                setError(apiError.message || 'Ошибка загрузки комментариев');
+            }
+        } finally {
+            if (isMounted.current) {
+                setIsLoading(false);
+            }
+        }
+    }, [leadId]);
+
+    const addComment = useCallback(async (text: string): Promise<LeadComment | null> => {
+        if (!leadId) return null;
+        
+        try {
+            setIsLoading(true);
+            setError(null);
+            const response = await api.post<LeadComment>(
+                `/applications/admin/leads/${leadId}/comments/`,
+                { text }
+            );
+            if (isMounted.current) {
+                setComments(prev => [response, ...prev]);
+            }
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            if (isMounted.current) {
+                setError(apiError.message || 'Ошибка добавления комментария');
+            }
+            return null;
+        } finally {
+            if (isMounted.current) {
+                setIsLoading(false);
+            }
+        }
+    }, [leadId]);
+
+    const deleteComment = useCallback(async (commentId: number): Promise<boolean> => {
+        if (!leadId) return false;
+        
+        try {
+            setIsLoading(true);
+            setError(null);
+            await api.delete(`/applications/admin/leads/${leadId}/comments/${commentId}/`);
+            if (isMounted.current) {
+                setComments(prev => prev.filter(c => c.id !== commentId));
+            }
+            return true;
+        } catch (err) {
+            const apiError = err as ApiError;
+            if (isMounted.current) {
+                setError(apiError.message || 'Ошибка удаления комментария');
+            }
+            return false;
+        } finally {
+            if (isMounted.current) {
+                setIsLoading(false);
+            }
+        }
+    }, [leadId]);
+
+    useEffect(() => {
+        isMounted.current = true;
+        if (leadId) {
+            fetchComments();
+        } else {
+            setComments([]);
+        }
+        return () => {
+            isMounted.current = false;
+        };
+    }, [leadId, fetchComments]);
+
+    return { comments, isLoading, error, refetch: fetchComments, addComment, deleteComment };
+}
+
+// Lead notification settings types
+export interface LeadNotificationSettings {
+    email_enabled: boolean;
+    recipient_emails: string[];
+    updated_at: string;
+    updated_by_email: string | null;
+}
+
+/**
+ * Hook for managing lead notification settings (Admin only)
+ */
+export function useLeadNotificationSettings() {
+    const [settings, setSettings] = useState<LeadNotificationSettings | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const isMounted = useRef(true);
+
+    const fetchSettings = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const response = await api.get<LeadNotificationSettings>(
+                '/notifications/admin/settings/lead-notifications/'
+            );
+            if (isMounted.current) {
+                setSettings(response);
+            }
+        } catch (err) {
+            const apiError = err as ApiError;
+            if (isMounted.current) {
+                setError(apiError.message || 'Ошибка загрузки настроек');
+            }
+        } finally {
+            if (isMounted.current) {
+                setIsLoading(false);
+            }
+        }
+    }, []);
+
+    const updateSettings = useCallback(async (
+        data: Partial<Pick<LeadNotificationSettings, 'email_enabled' | 'recipient_emails'>>
+    ): Promise<LeadNotificationSettings | null> => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            const response = await api.put<LeadNotificationSettings>(
+                '/notifications/admin/settings/lead-notifications/',
+                data
+            );
+            if (isMounted.current) {
+                setSettings(response);
+            }
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            if (isMounted.current) {
+                setError(apiError.message || 'Ошибка сохранения настроек');
+            }
+            return null;
+        } finally {
+            if (isMounted.current) {
+                setIsLoading(false);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        isMounted.current = true;
+        fetchSettings();
+        return () => {
+            isMounted.current = false;
+        };
+    }, [fetchSettings]);
+
+    return { settings, isLoading, error, refetch: fetchSettings, updateSettings };
 }

@@ -1,11 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useAdminCRMClients, type AdminCRMClient } from "@/hooks/use-admin-crm-clients"
+import { useApplications } from "@/hooks/use-applications"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -32,11 +35,29 @@ import {
     Loader2,
     Building2,
     User,
-    RefreshCw
+    RefreshCw,
+    FileText,
+    Eye
 } from "lucide-react"
 import { toast } from "sonner"
+import { getStatusConfig } from "@/lib/status-mapping"
+import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
+import { cn } from "@/lib/utils"
 
-export function AdminCRMClientsView() {
+function InfoRow({ label, value }: { label: string; value?: string | null }) {
+    return (
+        <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-sm font-medium">{value || "—"}</p>
+        </div>
+    )
+}
+
+interface AdminCRMClientsViewProps {
+    onOpenApplication?: (applicationId: number) => void
+}
+
+export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewProps) {
     const {
         clients,
         isLoading,
@@ -51,6 +72,12 @@ export function AdminCRMClientsView() {
     const [processingId, setProcessingId] = useState<number | null>(null)
     const [duplicateClient, setDuplicateClient] = useState<AdminCRMClient | null>(null)
     const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
+
+    const [selectedClient, setSelectedClient] = useState<AdminCRMClient | null>(null)
+    const [isClientModalOpen, setIsClientModalOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<'info' | 'applications'>('info')
+
+    const { applications, isLoading: isAppsLoading } = useApplications()
 
     const confirmClientAction = async (client: AdminCRMClient) => {
         setProcessingId(client.id)
@@ -108,6 +135,30 @@ export function AdminCRMClientsView() {
 
     const pendingCount = clients.filter(c => c.client_status === 'pending').length
     const confirmedCount = clients.filter(c => c.client_status === 'confirmed').length
+
+    const clientApplications = useMemo(() => {
+        if (!selectedClient) return []
+        return (applications || []).filter(app => app.company === selectedClient.id)
+    }, [applications, selectedClient])
+
+    const openClientModal = (client: AdminCRMClient) => {
+        setSelectedClient(client)
+        setActiveTab('info')
+        setIsClientModalOpen(true)
+    }
+
+    const formatDate = (dateStr: string) => {
+        try {
+            return new Date(dateStr).toLocaleDateString("ru-RU")
+        } catch {
+            return dateStr
+        }
+    }
+
+    const formatAmount = (amount?: string | number | null) => {
+        if (amount === null || amount === undefined || amount === '') return '—'
+        return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(amount)) + ' ₽'
+    }
 
     if (isLoading) {
         return (
@@ -283,6 +334,15 @@ export function AdminCRMClientsView() {
                                     )}
                                     {/* Actions */}
                                     <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="flex-1 gap-1"
+                                            onClick={() => openClientModal(client)}
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                            Профиль
+                                        </Button>
                                         {client.client_status === 'pending' ? (
                                             <Button
                                                 size="sm"
@@ -398,6 +458,15 @@ export function AdminCRMClientsView() {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="gap-1"
+                                                        onClick={() => openClientModal(client)}
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                        Профиль
+                                                    </Button>
                                                     {client.client_status === 'pending' ? (
                                                         <Button
                                                             size="sm"
@@ -439,6 +508,114 @@ export function AdminCRMClientsView() {
                 </CardContent>
             </Card>
             </div>
+
+            <Dialog
+                open={isClientModalOpen}
+                onOpenChange={(open) => {
+                    setIsClientModalOpen(open)
+                    if (!open) setSelectedClient(null)
+                }}
+            >
+                <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
+                    {selectedClient && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>{selectedClient.short_name || selectedClient.name || "Клиент"}</DialogTitle>
+                                <DialogDescription className="flex items-center gap-2">
+                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">ИНН {selectedClient.inn || "—"}</code>
+                                    {selectedClient.client_status === 'confirmed' ? (
+                                        <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs">Закреплён</Badge>
+                                    ) : (
+                                        <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs">На рассмотрении</Badge>
+                                    )}
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 overflow-hidden flex flex-col">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="info">
+                                        <Building2 className="h-4 w-4 mr-2" />
+                                        Информация
+                                    </TabsTrigger>
+                                    <TabsTrigger value="applications">
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Заявки
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <InfoRow label="Компания" value={selectedClient.name} />
+                                        <InfoRow label="Краткое название" value={selectedClient.short_name} />
+                                        <InfoRow label="ИНН" value={selectedClient.inn} />
+                                        <InfoRow label="ОГРН" value={selectedClient.ogrn} />
+                                        <InfoRow label="КПП" value={selectedClient.kpp} />
+                                        <InfoRow label="Регион" value={selectedClient.region} />
+                                        <InfoRow label="Руководитель" value={selectedClient.director_name} />
+                                        <InfoRow label="Контактное лицо" value={selectedClient.contact_person} />
+                                        <InfoRow label="Телефон" value={selectedClient.contact_phone} />
+                                        <InfoRow label="Email" value={selectedClient.contact_email} />
+                                        <InfoRow label="Агент" value={selectedClient.agent_name || selectedClient.agent_email} />
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
+                                    {isAppsLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                        </div>
+                                    ) : clientApplications.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {clientApplications.map((app) => {
+                                                const statusCfg = getStatusConfig(app.status)
+                                                const amount = getPrimaryAmountValue(app)
+                                                return (
+                                                    <div
+                                                        key={app.id}
+                                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-mono text-[#3CE8D1]">#{app.id}</span>
+                                                                <Badge className={cn("text-xs", statusCfg.bgColor, statusCfg.color)}>
+                                                                    {statusCfg.label}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-sm font-medium text-foreground truncate mt-1">
+                                                                {getProductTypeLabel(app.product_type, app.product_type_display)}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {amount ? formatAmount(amount) : "—"} • {formatDate(app.created_at)}
+                                                            </p>
+                                                        </div>
+                                                        {onOpenApplication && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    setIsClientModalOpen(false)
+                                                                    onOpenApplication(app.id)
+                                                                }}
+                                                            >
+                                                                Открыть
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12">
+                                            <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                                            <p className="text-muted-foreground">У клиента нет заявок</p>
+                                        </div>
+                                    )}
+                                </TabsContent>
+                            </Tabs>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog
                 open={isDuplicateDialogOpen}

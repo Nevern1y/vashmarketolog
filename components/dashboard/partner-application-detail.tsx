@@ -82,7 +82,7 @@ const TENDER_LAW_LABELS: Record<string, string> = {
 }
 
 export function PartnerApplicationDetail({ applicationId, onBack }: PartnerApplicationDetailProps) {
-  const [decisionModal, setDecisionModal] = useState<"approve" | "reject" | "request-info" | null>(null)
+  const [decisionModal, setDecisionModal] = useState<"approve" | "reject" | null>(null)
   const [comment, setComment] = useState("")
   const [offeredRate, setOfferedRate] = useState("")
 
@@ -118,13 +118,13 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
   }
 
   // Handle decision submission
-  const handleDecision = async (type: "approve" | "reject" | "request-info") => {
+  const handleDecision = async (type: "approve" | "reject") => {
     const payload: {
       decision: "approved" | "rejected" | "info_requested";
       comment?: string;
       offered_rate?: number;
     } = {
-      decision: type === "approve" ? "approved" : type === "reject" ? "rejected" : "info_requested",
+      decision: type === "approve" ? "approved" : "rejected",
       comment: comment,
     }
 
@@ -139,7 +139,6 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
       const messages = {
         approve: "Заявка одобрена",
         reject: "Заявка отклонена",
-        "request-info": "Запрос информации отправлен",
       }
       toast.success(messages[type])
       setDecisionModal(null)
@@ -151,6 +150,22 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
     }
   }
 
+  const handleRequestInfo = async () => {
+    const result = await submitDecision(parseInt(applicationId), {
+      decision: "info_requested",
+      comment: "",
+    })
+
+    if (result) {
+      toast.success("Возвращено на доработку")
+      setComment("")
+      setOfferedRate("")
+      onBack()
+    } else {
+      toast.error("Ошибка при смене статуса")
+    }
+  }
+
   // Get status badge
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
@@ -158,7 +173,7 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
       in_review: { label: "На рассмотрении", className: "bg-blue-500/10 text-blue-500" },
       approved: { label: "Одобрена", className: "bg-[#3CE8D1]/10 text-[#3CE8D1]" },
       rejected: { label: "Отклонена", className: "bg-red-500/10 text-red-500" },
-      info_requested: { label: "Запрос информации", className: "bg-[#f97316]/10 text-[#f97316]" },
+      info_requested: { label: "Возвращение на доработку", className: "bg-[#f97316]/10 text-[#f97316]" },
     }
     const config = statusMap[status] || { label: status, className: "bg-gray-100 text-gray-600" }
     return <Badge className={`${config.className} text-sm px-3 py-1`}>{config.label}</Badge>
@@ -966,11 +981,11 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                 size="lg"
                 variant="outline"
                 className="gap-2 border-[#f97316] text-[#f97316] hover:bg-[#f97316] hover:text-white bg-transparent"
-                onClick={() => setDecisionModal("request-info")}
+                onClick={handleRequestInfo}
                 disabled={submitting}
               >
                 <HelpCircle className="h-5 w-5" />
-                Запросить информацию
+                Вернуть на доработку
               </Button>
             </div>
           </CardContent>
@@ -1079,49 +1094,6 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
         </DialogContent>
       </Dialog>
 
-      <Dialog open={decisionModal === "request-info"} onOpenChange={() => setDecisionModal(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-[#f97316]" />
-              Запросить информацию
-            </DialogTitle>
-            <DialogDescription>
-              Укажите, какая дополнительная информация или документы требуются для рассмотрения заявки.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Запрос *</Label>
-              <Textarea
-                placeholder="Опишите, какая информация или документы требуются..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDecisionModal(null)} disabled={submitting}>
-              Отмена
-            </Button>
-            <Button
-              className="bg-[#f97316] text-white hover:bg-[#ea580c]"
-              onClick={() => handleDecision("request-info")}
-              disabled={!comment || submitting}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Отправка...
-                </>
-              ) : (
-                "Отправить запрос"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

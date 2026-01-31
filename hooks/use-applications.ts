@@ -205,6 +205,7 @@ export interface Application {
     created_by: number;
     created_by_email: string;
     created_by_name?: string;
+    created_by_role?: string;
     company: number;
     company_name: string;
     company_inn: string;
@@ -371,6 +372,8 @@ export interface ApplicationListItem {
     company_inn?: string;
     product_type: string;
     product_type_display: string;
+    created_by?: number;
+    created_by_role?: string;
     amount: string;
     term_months: number;
     target_bank_name: string;
@@ -828,6 +831,38 @@ export function usePartnerActions() {
         }
     }, []);
 
+    const markIssued = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/mark_issued/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка смены статуса');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    const markNotIssued = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/mark_not_issued/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка смены статуса');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     const saveNotes = useCallback(async (applicationId: number, notes: string): Promise<Application | null> => {
         setIsLoading(true);
         setError(null);
@@ -922,6 +957,8 @@ export function usePartnerActions() {
         submitDecision,
         requestInfo,
         approveApplication,
+        markIssued,
+        markNotIssued,
         rejectApplication,
         restoreApplication,
         saveNotes,

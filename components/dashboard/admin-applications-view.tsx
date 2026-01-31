@@ -509,6 +509,8 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState<string>("all")
     const [productFilter, setProductFilter] = useState<string>("all")
+    const [creatorFilter, setCreatorFilter] = useState<number | null>(null)
+    const [creatorLabel, setCreatorLabel] = useState<string>("")
     const [showAssignDialog, setShowAssignDialog] = useState(false)
     const [selectedAppForAssign, setSelectedAppForAssign] = useState<number | null>(null)
     const [selectedPartnerId, setSelectedPartnerId] = useState<string>("")
@@ -519,6 +521,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
         return (applications || []).filter((app) => {
             if (statusFilter !== "all" && app.status !== statusFilter) return false
             if (productFilter !== "all" && app.product_type !== productFilter) return false
+            if (creatorFilter && app.created_by !== creatorFilter) return false
             const query = searchQuery.toLowerCase()
             if (query) {
                 return (
@@ -533,7 +536,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
             }
             return true
         }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    }, [applications, statusFilter, productFilter, searchQuery])
+    }, [applications, statusFilter, productFilter, creatorFilter, searchQuery])
 
     // Stats
     const stats = useMemo(() => {
@@ -550,6 +553,25 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
         if (onSelectApplication) {
             onSelectApplication(appId.toString())
         }
+    }
+
+    const handleCreatorClick = (app: typeof filteredApplications[0], e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!app.created_by) return
+
+        if (creatorFilter === app.created_by) {
+            setCreatorFilter(null)
+            setCreatorLabel("")
+            return
+        }
+
+        setCreatorFilter(app.created_by)
+        setCreatorLabel(app.created_by_name || app.created_by_email || `ID ${app.created_by}`)
+    }
+
+    const clearCreatorFilter = () => {
+        setCreatorFilter(null)
+        setCreatorLabel("")
     }
 
     const toggleExpand = (appId: number, e: React.MouseEvent) => {
@@ -595,6 +617,23 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
 
     const getProductPrefix = (productType: string) => {
         return PRODUCT_TABS.find(p => p.value === productType)?.prefix || "ЗА"
+    }
+
+    const getCreatorBadge = (role?: string) => {
+        if (!role) return null
+        const config: Record<string, { label: string; className: string }> = {
+            agent: { label: "А", className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border-[#4F7DF3]/30" },
+            client: { label: "К", className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border-[#3CE8D1]/30" },
+            admin: { label: "ADM", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" },
+            partner: { label: "П", className: "bg-[#E03E9D]/10 text-[#E03E9D] border-[#E03E9D]/30" },
+        }
+        const badge = config[role] || { label: role.toUpperCase(), className: "bg-muted text-muted-foreground border-border" }
+
+        return (
+            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", badge.className)}>
+                {badge.label}
+            </Badge>
+        )
     }
 
     const getTenderLaw = (app: typeof filteredApplications[0]) => {
@@ -674,9 +713,17 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
 
                     {/* Creator + Bank */}
                     <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground min-w-0">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
                             <User className="h-3 w-3 shrink-0" />
-                            <span className="truncate">{app.created_by_name || app.created_by_email || "—"}</span>
+                            {getCreatorBadge(app.created_by_role)}
+                            <button
+                                type="button"
+                                onClick={(e) => handleCreatorClick(app, e)}
+                                className="truncate hover:underline"
+                                title="Фильтр по создателю"
+                            >
+                                {app.created_by_name || app.created_by_email || "—"}
+                            </button>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                             <Button
@@ -781,7 +828,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                 <SelectItem value="draft">Создание заявки</SelectItem>
                                 <SelectItem value="pending">Отправка на скоринг</SelectItem>
                                 <SelectItem value="in_review">На рассмотрении в банке</SelectItem>
-                                <SelectItem value="info_requested">На доработке</SelectItem>
+                                <SelectItem value="info_requested">Возвращение на доработку</SelectItem>
                                 <SelectItem value="approved">Одобрен</SelectItem>
                                 <SelectItem value="rejected">Отказано</SelectItem>
                                 <SelectItem value="won">Выдан</SelectItem>
@@ -791,6 +838,17 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                     </div>
                 </CardContent>
             </Card>
+
+            {creatorFilter && (
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline" className="text-xs">
+                        Фильтр по создателю: {creatorLabel}
+                    </Badge>
+                    <Button variant="ghost" size="sm" className="h-7 px-2" onClick={clearCreatorFilter}>
+                        Сбросить
+                    </Button>
+                </div>
+            )}
 
             {/* Applications List */}
             <Card className="border-border">
@@ -895,10 +953,18 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                             </span>
                                                         </td>
                                                         <td className="hidden 2xl:table-cell p-4">
-                                                            <div className="max-w-[150px]">
-                                                                <p className="text-sm text-foreground truncate">
-                                                                    {app.created_by_name || "—"}
-                                                                </p>
+                                                            <div className="max-w-[180px] space-y-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    {getCreatorBadge(app.created_by_role)}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => handleCreatorClick(app, e)}
+                                                                        className="text-sm text-foreground truncate hover:underline"
+                                                                        title="Фильтр по создателю"
+                                                                    >
+                                                                        {app.created_by_name || "—"}
+                                                                    </button>
+                                                                </div>
                                                                 {app.created_by_email && (
                                                                     <p className="text-xs text-muted-foreground truncate">
                                                                         {app.created_by_email}

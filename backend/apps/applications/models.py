@@ -678,7 +678,7 @@ class PartnerDecision(models.Model):
     class DecisionType(models.TextChoices):
         APPROVED = 'approved', 'Одобрено'
         REJECTED = 'rejected', 'Отклонено'
-        INFO_REQUESTED = 'info_requested', 'Запрошена информация'
+        INFO_REQUESTED = 'info_requested', 'Возвращение на доработку'
 
     application = models.ForeignKey(
         Application,
@@ -823,6 +823,13 @@ class Lead(models.Model):
         blank=True,
         default=''
     )
+
+    inn = models.CharField(
+        'ИНН',
+        max_length=12,
+        blank=True,
+        default=''
+    )
     
     # Product info from calculator
     product_type = models.CharField(
@@ -876,6 +883,18 @@ class Lead(models.Model):
         blank=True,
         default=''
     )
+    utm_term = models.CharField(
+        'UTM Term',
+        max_length=100,
+        blank=True,
+        default=''
+    )
+    utm_content = models.CharField(
+        'UTM Content',
+        max_length=100,
+        blank=True,
+        default=''
+    )
     
     # Processing
     status = models.CharField(
@@ -896,6 +915,37 @@ class Lead(models.Model):
         'Заметки',
         blank=True,
         default=''
+    )
+    
+    # Page tracking - откуда пришла заявка
+    page_url = models.URLField(
+        'URL страницы',
+        max_length=500,
+        blank=True,
+        default='',
+        help_text='Полный URL страницы, с которой отправлена заявка'
+    )
+    referrer = models.URLField(
+        'Реферер',
+        max_length=500,
+        blank=True,
+        default='',
+        help_text='Предыдущая страница (откуда пришёл пользователь)'
+    )
+    form_name = models.CharField(
+        'Название формы',
+        max_length=100,
+        blank=True,
+        default='',
+        help_text='Идентификатор формы (calculator, header_form, callback_modal и т.д.)'
+    )
+    
+    # Message from client
+    message = models.TextField(
+        'Сообщение клиента',
+        blank=True,
+        default='',
+        help_text='Комментарий или вопрос от клиента'
     )
     
     # Conversion tracking
@@ -929,3 +979,33 @@ class Lead(models.Model):
     def is_convertible(self):
         """Can convert to application if qualified and not yet converted."""
         return self.status == LeadStatus.QUALIFIED and not self.converted_application
+
+
+class LeadComment(models.Model):
+    """
+    Comment/note on a Lead.
+    
+    Allows tracking communication history and notes by different managers.
+    """
+    lead = models.ForeignKey(
+        Lead,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Лид'
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='lead_comments',
+        verbose_name='Автор'
+    )
+    text = models.TextField('Текст комментария')
+    created_at = models.DateTimeField('Дата создания', auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Комментарий к лиду'
+        verbose_name_plural = 'Комментарии к лидам'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Комментарий к лиду #{self.lead_id} от {self.author.email}"

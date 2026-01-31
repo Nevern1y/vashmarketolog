@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Image from "next/image";
 import { toast } from "sonner";
+import { submitLead, PRODUCT_TYPE_MAP } from "@/lib/leads";
 import {
   Form,
   FormControl,
@@ -61,8 +62,24 @@ export default function ApplicationFormSection() {
     mode: "onChange",
   });
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     const amountNum = Number(values.amount.replace(/\s/g, ""));
+    const productType = PRODUCT_TYPE_MAP[values.product] || "bank_guarantee";
+
+    const result = await submitLead({
+      full_name: values.name.trim(),
+      phone: values.phone,
+      product_type: productType,
+      amount: amountNum,
+      inn: values.inn,
+      source: "website_form",
+      form_name: "application_form_section",
+    });
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
 
     toast.success("Заявка отправлена", {
       description: `${values.name}, ${
@@ -235,6 +252,7 @@ export default function ApplicationFormSection() {
                   <Button
                     type="submit"
                     className="h-12 btn-three px-6 text-sm font-semibold"
+                    disabled={form.formState.isSubmitting}
                   >
                     Оставить заявку
                   </Button>

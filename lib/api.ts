@@ -289,6 +289,46 @@ class ApiClient {
     return this.handleResponse<T>(response);
   }
 
+  async getBlob(
+    endpoint: string,
+    params?: Record<string, string>
+  ): Promise<{ blob: Blob; filename: string | null; contentType: string | null }> {
+    let url = `${this.baseUrl}${endpoint}`;
+
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      url += `?${searchParams.toString()}`;
+    }
+
+    const response = await fetchWithAuth(url, { method: 'GET' });
+
+    if (!response.ok) {
+      await this.handleResponse(response);
+    }
+
+    const disposition = response.headers.get('Content-Disposition');
+    let filename: string | null = null;
+
+    if (disposition) {
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const asciiMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const match = utf8Match || asciiMatch;
+
+      if (match?.[1]) {
+        try {
+          filename = decodeURIComponent(match[1]);
+        } catch {
+          filename = match[1];
+        }
+      }
+    }
+
+    const contentType = response.headers.get('Content-Type');
+    const blob = await response.blob();
+
+    return { blob, filename, contentType };
+  }
+
   // POST request
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
     const response = await fetchWithAuth(`${this.baseUrl}${endpoint}`, {

@@ -896,15 +896,17 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             approved: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
             rejected: "bg-red-500/20 text-red-400 border-red-500/30",
             won: "bg-[#3CE8D1]/20 text-[#3CE8D1] border-[#3CE8D1]/30",
+            lost: "bg-[#FF521D]/20 text-[#FF521D] border-[#FF521D]/30",
         }
         const labels: Record<string, string> = {
-            draft: "Черновик",
-            pending: "Ожидает",
-            in_review: "На рассмотрении",
-            info_requested: "Запрос информации",
-            approved: "Одобрено",
-            rejected: "Отклонено",
-            won: "Выигран",
+            draft: "Создание заявки",
+            pending: "Отправка на скоринг",
+            in_review: "На рассмотрении в банке",
+            info_requested: "Возвращение на доработку",
+            approved: "Одобрен",
+            rejected: "Отказано",
+            won: "Выдан",
+            lost: "Не выдан",
         }
         return (
             <Badge className={cn("border", styles[status] || styles.draft)}>

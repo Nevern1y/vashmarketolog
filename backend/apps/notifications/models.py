@@ -13,7 +13,7 @@ class NotificationType(models.TextChoices):
     # Partner decisions
     DECISION_APPROVED = 'decision_approved', 'Заявка одобрена'
     DECISION_REJECTED = 'decision_rejected', 'Заявка отклонена'
-    DECISION_INFO_REQUESTED = 'decision_info_requested', 'Запрошена информация'
+    DECISION_INFO_REQUESTED = 'decision_info_requested', 'Возвращение на доработку'
     
     # Application events
     STATUS_CHANGE = 'status_change', 'Изменение статуса заявки'
@@ -32,6 +32,7 @@ class NotificationType(models.TextChoices):
     ADMIN_NEW_LEAD = 'admin_new_lead', 'Новый лид'
     ADMIN_NEW_AGENT = 'admin_new_agent', 'Новый агент'
     ADMIN_NEW_PARTNER = 'admin_new_partner', 'Новый партнёр'
+    ADMIN_APPLICATION_SENT = 'admin_application_sent', 'Заявка отправлена в банк'
 
 
 class Notification(models.Model):
@@ -164,3 +165,72 @@ class Notification(models.Model):
         if not self.is_read:
             self.is_read = True
             self.save(update_fields=['is_read'])
+
+
+class LeadNotificationSettings(models.Model):
+    """
+    Settings for lead email notifications.
+    
+    Singleton pattern - only one record exists.
+    Stores list of emails and enabled/disabled flag for lead notifications.
+    """
+    
+    # Whether email notifications are enabled
+    email_enabled = models.BooleanField(
+        'Email-уведомления включены',
+        default=True,
+        help_text='Включить/выключить отправку email при получении нового лида'
+    )
+    
+    # List of email recipients (stored as JSON array)
+    recipient_emails = models.JSONField(
+        'Email-адреса получателей',
+        default=list,
+        blank=True,
+        help_text='Список email адресов для уведомлений о новых лидах. Если пусто - отправляется всем админам.'
+    )
+    
+    # Timestamps
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='lead_notification_settings_updates',
+        verbose_name='Обновлено пользователем'
+    )
+    
+    class Meta:
+        verbose_name = 'Настройки уведомлений о лидах'
+        verbose_name_plural = 'Настройки уведомлений о лидах'
+    
+    def __str__(self):
+        status = 'вкл.' if self.email_enabled else 'выкл.'
+        count = len(self.recipient_emails) if self.recipient_emails else 0
+        return f"Email-уведомления о лидах: {status}, получателей: {count}"
+    
+    @classmethod
+    def get_settings(cls):
+        """Get or create the singleton settings instance."""
+        settings_obj, _ = cls.objects.get_or_create(pk=1)
+        return settings_obj
+    
+    @classmethod
+    def is_email_enabled(cls):
+        """Check if email notifications are enabled."""
+        return cls.get_settings().email_enabled
+    
+    @classmethod
+    def get_recipient_emails(cls):
+        """
+        Get list of recipient emails.
+        
+        If no custom emails configured, returns None to indicate
+        that caller should fall back to all admin emails.
+        """
+        settings_obj = cls.get_settings()
+        emails = settings_obj.recipient_emails
+        if emails and isinstance(emails, list):
+            return [email.strip() for email in emails if email and email.strip()]
+        return None

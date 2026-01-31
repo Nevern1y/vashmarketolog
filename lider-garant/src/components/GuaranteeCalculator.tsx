@@ -8,17 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import FadeIn from "@/components/FadeIn";
-
-// API URL for lead submission
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://lk.lider-garant.ru/api";
-
-// Map frontend guarantee types to backend enum values
-const guaranteeTypeMapping: Record<string, string> = {
-  tender: "application_security",
-  contract: "contract_execution",
-  warranty: "warranty_obligations",
-  advance: "advance_return",
-};
+import { submitLead, GUARANTEE_TYPE_MAP } from "@/lib/leads";
 
 const guaranteeTypes = [
   { value: "application_security", label: "Участие в тендере" },
@@ -28,7 +18,7 @@ const guaranteeTypes = [
 ];
 
 export default function GuaranteeCalculator() {
-  const [guaranteeType, setGuaranteeType] = useState("tender");
+  const [guaranteeType, setGuaranteeType] = useState("application_security");
   const [amount, setAmount] = useState(1000000);
   const [months, setMonths] = useState(10);
   const [discount, setDiscount] = useState(true);
@@ -77,44 +67,22 @@ export default function GuaranteeCalculator() {
     setIsSubmitting(true);
     
     try {
-      // Prepare lead data for API
-      const leadData = {
+      const result = await submitLead({
         full_name: fullname.trim(),
-        phone: phone.replace(/\D/g, ""), // Strip non-digits
+        phone,
         product_type: "bank_guarantee",
-        guarantee_type: guaranteeTypeMapping[guaranteeType] || "application_security",
-        amount: amount,
+        guarantee_type:
+          GUARANTEE_TYPE_MAP[guaranteeType] || "application_security",
+        amount,
         term_months: months,
         source: "website_calculator",
-        // UTM parameters from URL if present
-        utm_source: typeof window !== "undefined" 
-          ? new URLSearchParams(window.location.search).get("utm_source") || ""
-          : "",
-        utm_medium: typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("utm_medium") || ""
-          : "",
-        utm_campaign: typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("utm_campaign") || ""
-          : "",
-      };
-      
-      const response = await fetch(`${API_URL}/applications/leads/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(leadData),
+        form_name: "guarantee_calculator",
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.phone?.[0] 
-          || errorData.full_name?.[0] 
-          || errorData.detail 
-          || "Ошибка при отправке заявки";
-        throw new Error(errorMessage);
+
+      if (!result.ok) {
+        throw new Error(result.error);
       }
-      
+
       // Success - reset form
       setFullname("");
       setPhone("");

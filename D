@@ -1,0 +1,98 @@
+import api, { type ApiError } from "@/lib/api"
+
+export type LeadSource =
+  | "website_calculator"
+  | "website_form"
+  | "landing_page"
+  | "phone"
+  | "other"
+
+export interface LeadPayload {
+  full_name: string
+  phone: string
+  email?: string
+  product_type?: string
+  guarantee_type?: string
+  amount?: number
+  term_months?: number
+  source?: LeadSource
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  inn?: string
+}
+
+export interface LeadResponse {
+  id: number
+  full_name: string
+  phone: string
+  email: string
+  product_type: string
+  guarantee_type: string
+  amount: string | null
+  term_months: number | null
+  source: string
+  utm_source: string
+  utm_medium: string
+  utm_campaign: string
+  inn?: string
+  created_at?: string
+}
+
+export const GUARANTEE_TYPE_MAP: Record<string, string> = {
+  tender: "application_security",
+  contract: "contract_execution",
+  warranty: "warranty_obligations",
+  advance: "advance_return",
+  application_security: "application_security",
+  contract_execution: "contract_execution",
+  warranty_obligations: "warranty_obligations",
+  advance_return: "advance_return",
+}
+
+export const PRODUCT_TYPE_MAP: Record<string, string> = {
+  "Кредиты": "corporate_credit",
+  "Банковская гарантия": "bank_guarantee",
+  "ВЭД": "ved",
+  "Лизинг": "leasing",
+  "Страхование": "insurance",
+}
+
+const normalizePhone = (phone: string) => phone.replace(/\D/g, "")
+
+const normalizeInn = (inn: string) => inn.replace(/\D/g, "").slice(0, 12)
+
+const getUtmParams = () => {
+  if (typeof window === "undefined") {
+    return {}
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  return {
+    utm_source: params.get("utm_source") || "",
+    utm_medium: params.get("utm_medium") || "",
+    utm_campaign: params.get("utm_campaign") || "",
+  }
+}
+
+export async function submitLead(
+  payload: LeadPayload
+): Promise<{ ok: true; lead: LeadResponse } | { ok: false; error: string }> {
+  try {
+    const leadPayload: LeadPayload = {
+      ...payload,
+      phone: normalizePhone(payload.phone),
+      inn: payload.inn ? normalizeInn(payload.inn) : undefined,
+      ...getUtmParams(),
+    }
+
+    const lead = await api.post<LeadResponse>("/applications/leads/", leadPayload)
+    return { ok: true, lead }
+  } catch (err) {
+    const apiError = err as ApiError
+    return {
+      ok: false,
+      error: apiError.message || "Ошибка при отправке заявки",
+    }
+  }
+}

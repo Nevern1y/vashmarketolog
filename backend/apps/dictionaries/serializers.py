@@ -53,10 +53,10 @@ class ApplicationStatusDefinitionSerializer(serializers.ModelSerializer):
             'draft': 'Черновик',
             'pending': 'На рассмотрении',
             'in_review': 'В работе',
-            'info_requested': 'Запрошена информация',
-            'approved': 'Одобрено',
-            'rejected': 'Отклонено',
-            'won': 'Выигран',
-            'lost': 'Проигран',
+            'info_requested': 'Возвращение на доработку',
+            'approved': 'Одобрен',
+            'rejected': 'Отказано',
+            'won': 'Выдан',
+            'lost': 'Не выдан',
         }
         return status_labels.get(obj.internal_status, obj.internal_status)

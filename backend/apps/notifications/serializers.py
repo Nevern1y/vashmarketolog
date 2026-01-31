@@ -2,7 +2,7 @@
 Notification serializers for API.
 """
 from rest_framework import serializers
-from .models import Notification, NotificationType
+from .models import Notification, NotificationType, LeadNotificationSettings
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -71,3 +71,43 @@ class MarkAllReadSerializer(serializers.Serializer):
     """Serializer for mark all as read response."""
     success = serializers.BooleanField()
     count = serializers.IntegerField(help_text='Number of notifications marked as read')
+
+
+class LeadNotificationSettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for LeadNotificationSettings.
+    
+    Handles GET/PUT for lead email notification settings.
+    """
+    updated_by_email = serializers.EmailField(source='updated_by.email', read_only=True)
+    
+    class Meta:
+        model = LeadNotificationSettings
+        fields = [
+            'email_enabled',
+            'recipient_emails',
+            'updated_at',
+            'updated_by_email',
+        ]
+        read_only_fields = ['updated_at', 'updated_by_email']
+    
+    def validate_recipient_emails(self, value):
+        """Validate that all items are valid email addresses."""
+        if not value:
+            return []
+        
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Должен быть список email адресов')
+        
+        validated_emails = []
+        for email in value:
+            if not email or not isinstance(email, str):
+                continue
+            email = email.strip()
+            if email:
+                # Basic email validation
+                if '@' not in email or '.' not in email.split('@')[-1]:
+                    raise serializers.ValidationError(f'Некорректный email: {email}')
+                validated_emails.append(email)
+        
+        return validated_emails

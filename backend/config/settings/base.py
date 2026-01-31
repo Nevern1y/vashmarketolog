@@ -216,6 +216,14 @@ CORS_ALLOW_CREDENTIALS = True
 # Default email settings (overridden in production/development)
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru')
 
+# Lead email notifications
+LEAD_NOTIFICATION_EMAIL_ENABLED = os.getenv('LEAD_NOTIFICATION_EMAIL_ENABLED', 'True').lower() == 'true'
+LEAD_NOTIFICATION_EMAILS = [
+    email.strip()
+    for email in os.getenv('LEAD_NOTIFICATION_EMAILS', '').split(',')
+    if email.strip()
+]
+
 
 # Django Channels (WebSocket)
 CHANNEL_LAYERS = {

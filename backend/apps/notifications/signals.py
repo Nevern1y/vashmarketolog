@@ -7,8 +7,10 @@ import logging
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.core.mail import send_mail
 
-from .models import Notification, NotificationType
+from .models import Notification, NotificationType, LeadNotificationSettings
 from apps.users.models import UserRole
 
 UserModel = get_user_model()
@@ -36,6 +38,52 @@ def notify_admins(notification_type, title, message, data=None, source_object=No
             )
         except Exception as e:
             logger.error(f"Failed to create admin notification: {e}")
+
+
+def get_lead_notification_emails():
+    """
+    Get list of emails for lead notifications.
+    
+    Priority:
+    1. Custom emails from LeadNotificationSettings in DB
+    2. Fallback to settings.LEAD_NOTIFICATION_EMAILS 
+    3. Fallback to all admin emails
+    """
+    # Try to get from database settings first
+    try:
+        db_emails = LeadNotificationSettings.get_recipient_emails()
+        if db_emails:
+            return db_emails
+    except Exception as e:
+        logger.warning(f"Failed to get lead notification emails from DB: {e}")
+    
+    # Fallback to settings.py
+    emails = getattr(settings, 'LEAD_NOTIFICATION_EMAILS', [])
+    if emails:
+        return [email for email in emails if email]
+    
+    # Fallback to all admin emails
+    return list(
+        get_admin_users()
+        .exclude(email='')
+        .values_list('email', flat=True)
+    )
+
+
+def is_lead_email_enabled():
+    """
+    Check if lead email notifications are enabled.
+    
+    Priority:
+    1. LeadNotificationSettings in DB
+    2. Fallback to settings.LEAD_NOTIFICATION_EMAIL_ENABLED
+    """
+    try:
+        return LeadNotificationSettings.is_email_enabled()
+    except Exception as e:
+        logger.warning(f"Failed to check lead email enabled from DB: {e}")
+    
+    return getattr(settings, 'LEAD_NOTIFICATION_EMAIL_ENABLED', True)
 
 
 def get_partner_display_name(partner):
@@ -92,7 +140,7 @@ def create_decision_notification(sender, instance, created, **kwargs):
     title_map = {
         NotificationType.DECISION_APPROVED: 'Заявка одобрена',
         NotificationType.DECISION_REJECTED: 'Заявка отклонена',
-        NotificationType.DECISION_INFO_REQUESTED: 'Запрошена информация',
+        NotificationType.DECISION_INFO_REQUESTED: 'Возвращение на доработку',
     }
     
     title = title_map.get(notification_type, 'Решение по заявке')
@@ -102,7 +150,7 @@ def create_decision_notification(sender, instance, created, **kwargs):
     elif notification_type == NotificationType.DECISION_REJECTED:
         message = decision.comment or "Причина не указана"
     else:  # info_requested
-        message = decision.comment or "Требуется дополнительная информация"
+        message = decision.comment or "Заявка возвращена на доработку"
     
     # Build data payload
     data = get_application_data(application)
@@ -290,6 +338,15 @@ def create_admin_lead_notification(sender, instance, created, **kwargs):
         'product_type': lead.product_type,
         'product_type_display': lead.get_product_type_display(),
         'amount': str(lead.amount) if lead.amount else None,
+        'page_url': lead.page_url or None,
+        'referrer': lead.referrer or None,
+        'form_name': lead.form_name or None,
+        'utm_source': lead.utm_source or None,
+        'utm_medium': lead.utm_medium or None,
+        'utm_campaign': lead.utm_campaign or None,
+        'utm_term': lead.utm_term or None,
+        'utm_content': lead.utm_content or None,
+        'message': lead.message or None,
     }
 
     notify_admins(
@@ -299,6 +356,60 @@ def create_admin_lead_notification(sender, instance, created, **kwargs):
         data=data,
         source_object=lead,
     )
+
+    if not is_lead_email_enabled():
+        return
+
+    recipients = get_lead_notification_emails()
+    if not recipients:
+        return
+
+    subject_prefix = getattr(settings, 'EMAIL_SUBJECT_PREFIX', '')
+    subject = f"{subject_prefix}Новый лид"
+    lines = [
+        'Новый лид с сайта',
+        f"Имя: {lead.full_name}",
+        f"Телефон: {lead.phone}",
+        f"Email: {lead.email or 'не указан'}",
+        f"Источник: {lead.get_source_display()}",
+    ]
+
+    if lead.product_type:
+        lines.append(f"Продукт: {lead.get_product_type_display()}")
+    if lead.guarantee_type:
+        lines.append(f"Тип гарантии: {lead.get_guarantee_type_display()}")
+    if lead.amount:
+        lines.append(f"Сумма: {lead.amount}")
+    if lead.term_months:
+        lines.append(f"Срок: {lead.term_months} мес.")
+    if lead.form_name:
+        lines.append(f"Форма: {lead.form_name}")
+    if lead.page_url:
+        lines.append(f"Страница: {lead.page_url}")
+    if lead.referrer:
+        lines.append(f"Реферер: {lead.referrer}")
+    if lead.utm_source or lead.utm_medium or lead.utm_campaign:
+        lines.append(
+            "UTM: "
+            f"{lead.utm_source or '-'} / {lead.utm_medium or '-'} / {lead.utm_campaign or '-'}"
+        )
+    if lead.utm_term:
+        lines.append(f"UTM term: {lead.utm_term}")
+    if lead.utm_content:
+        lines.append(f"UTM content: {lead.utm_content}")
+    if lead.message:
+        lines.append(f"Сообщение: {lead.message}")
+
+    try:
+        send_mail(
+            subject=subject,
+            message="\n".join(lines),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send lead email notification: {e}")
 
 
 @receiver(post_save, sender=UserModel)
@@ -404,6 +515,24 @@ def create_chat_message_notification(sender, instance, created, **kwargs):
         except Exception as e:
             logger.error(f"Failed to create chat notification for user {user.id}: {e}")
 
+    # Notify all admins (even if not participants)
+    admin_users = get_admin_users()
+    for admin in admin_users:
+        if admin in participants:
+            continue
+        try:
+            Notification.create_notification(
+                user=admin,
+                notification_type=NotificationType.CHAT_MESSAGE,
+                title='Новое сообщение',
+                message=f"{sender_name}: {preview}",
+                data=data,
+                source_object=message
+            )
+            logger.info(f"Created admin chat notification for user {admin.id}")
+        except Exception as e:
+            logger.error(f"Failed to create admin chat notification for user {admin.id}: {e}")
+
 
 # Also handle TicketMessage from applications app
 @receiver(post_save, sender='applications.TicketMessage')
@@ -463,3 +592,20 @@ def create_ticket_message_notification(sender, instance, created, **kwargs):
             logger.info(f"Created ticket notification for user {user.id}")
         except Exception as e:
             logger.error(f"Failed to create ticket notification for user {user.id}: {e}")
+
+    admin_users = get_admin_users()
+    for admin in admin_users:
+        if admin in participants:
+            continue
+        try:
+            Notification.create_notification(
+                user=admin,
+                notification_type=NotificationType.CHAT_MESSAGE,
+                title='Новое сообщение',
+                message=f"{sender_name}: {preview}",
+                data=data,
+                source_object=message
+            )
+            logger.info(f"Created admin ticket notification for user {admin.id}")
+        except Exception as e:
+            logger.error(f"Failed to create admin ticket notification for user {admin.id}: {e}")

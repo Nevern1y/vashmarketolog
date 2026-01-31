@@ -12,13 +12,23 @@ export interface SeoPageData {
     meta_description: string;
     meta_keywords: string;
     h1_title: string;
+    h2_title?: string;
+    h3_title?: string;
+    hero_image?: string | null;
     main_description: string;
     page_type: 'landing' | 'product' | 'custom';
     template_name: string;
     is_published: boolean;
     priority: number;
     faq?: Array<{ question: string; answer: string }>;
-    popular_searches?: string[];
+    popular_searches?: Array<{ text: string; href?: string } | string>;
+    bank_offers?: Array<{
+        bank_id?: number;
+        bank_name?: string;
+        custom_rate?: string;
+        custom_text?: string;
+        rate?: string;
+    }>;
     banks?: Array<{
         id: number;
         name: string;

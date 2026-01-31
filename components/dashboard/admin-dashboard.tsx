@@ -19,6 +19,7 @@ import {
     Lock,
     User,
     PhoneIncoming,
+    MessageCircle,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
@@ -28,11 +29,12 @@ import { AdminAgentsView } from "./admin-agents-view"
 import { AdminStatisticsView } from "./admin-statistics-view"
 import { AdminApplicationDetail } from "./admin-application-detail"
 import { AdminNewsView } from "./admin-news-view"
+import { AdminChatView } from "./admin-chat-view"
 import { AdminCRMClientsView } from "./admin-crm-clients-view"
 import { AdminLeadsView } from "./admin-leads-view"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { NotificationDropdown } from "@/components/ui/notification-dropdown"
-import type { Notification } from "@/hooks/use-notifications"
+import { useNotifications, type Notification } from "@/hooks/use-notifications"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -57,7 +59,7 @@ import { ProfileSettingsView } from "./profile-settings-view"
 // Sidebar Navigation Items
 // ============================================
 
-type AdminView = "applications" | "leads" | "agents" | "clients" | "partners" | "statistics" | "news" | "profile-settings"
+type AdminView = "applications" | "leads" | "agents" | "clients" | "partners" | "statistics" | "chat" | "news" | "profile-settings"
 
 const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "applications", label: "Заявки", icon: FileText },
@@ -67,9 +69,10 @@ const NAV_ITEMS: { id: AdminView; label: string; icon: typeof FileText }[] = [
     { id: "news", label: "Новости", icon: Newspaper },
     { id: "partners", label: "Партнёры", icon: Building2 },
     { id: "statistics", label: "Статистика", icon: BarChart3 },
+    { id: "chat", label: "Чат", icon: MessageCircle },
 ]
 
-const ADMIN_VIEWS: AdminView[] = ["applications", "leads", "agents", "clients", "partners", "statistics", "news", "profile-settings"]
+const ADMIN_VIEWS: AdminView[] = ["applications", "leads", "agents", "clients", "partners", "statistics", "chat", "news", "profile-settings"]
 
 // ============================================
 // Admin Sidebar Component (reusable for desktop & mobile)
@@ -82,9 +85,10 @@ interface AdminSidebarProps {
     onClose?: () => void
     isMobile?: boolean
     onRequestLogout?: () => void
+    unreadChatCount?: number
 }
 
-function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onToggleCollapse, onClose, isMobile = false, onRequestLogout }: AdminSidebarProps) {
+function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onToggleCollapse, onClose, isMobile = false, onRequestLogout, unreadChatCount = 0 }: AdminSidebarProps) {
     const { user } = useAuth()
 
     const handleLogoutClick = () => {
@@ -128,19 +132,30 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                 {NAV_ITEMS.map((item) => {
                     const Icon = item.icon
                     const isActive = activeView === item.id
+                    const showChatBadge = item.id === "chat" && unreadChatCount > 0
                     return (
                         <button
                             key={item.id}
                             onClick={() => onViewChange(item.id)}
                             className={cn(
-                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                                "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                                 isActive
                                     ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
                                     : "text-slate-400 hover:text-white hover:bg-slate-800"
                             )}
                         >
                             <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-[#3CE8D1]")} />
-                            {(!collapsed || isMobile) && <span>{item.label}</span>}
+                            {(!collapsed || isMobile) && (
+                                <span className="flex-1 text-left">{item.label}</span>
+                            )}
+                            {showChatBadge && (!collapsed || isMobile) && (
+                                <Badge className="bg-[#3CE8D1] text-[#0a1628] text-[10px] h-5 min-w-5 px-1.5">
+                                    {unreadChatCount > 99 ? "99+" : unreadChatCount}
+                                </Badge>
+                            )}
+                            {showChatBadge && collapsed && !isMobile && (
+                                <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#3CE8D1]" />
+                            )}
                         </button>
                     )
                 })}
@@ -276,6 +291,10 @@ export function AdminDashboard() {
     const [showLogoutDialog, setShowLogoutDialog] = useState(false)
     const { user, logout } = useAuth()
 
+    // Get notifications to count unread chats
+    const { notifications } = useNotifications()
+    const unreadChatCount = notifications.filter(n => n.type === "chat_message" && !n.isRead).length
+
     const handleRequestLogout = () => {
         setShowLogoutDialog(true)
     }
@@ -288,6 +307,12 @@ export function AdminDashboard() {
     // Handlers
     const handleSelectApplication = (appId: string) => {
         setSelectedAppId(appId)
+    }
+
+    const handleOpenApplicationFromOtherView = (appId: number) => {
+        setActiveView("applications")
+        setSelectedAppId(String(appId))
+        setIsMobileSidebarOpen(false)
     }
 
     const handleViewChange = (view: AdminView) => {
@@ -340,15 +365,17 @@ export function AdminDashboard() {
             case "leads":
                 return <AdminLeadsView />
             case "agents":
-                return <AdminAgentsView />
+                return <AdminAgentsView onOpenApplication={handleOpenApplicationFromOtherView} />
             case "clients":
-                return <AdminCRMClientsView />
+                return <AdminCRMClientsView onOpenApplication={handleOpenApplicationFromOtherView} />
             case "news":
                 return <AdminNewsView />
             case "partners":
                 return <PartnersTab />
             case "statistics":
                 return <AdminStatisticsView />
+            case "chat":
+                return <AdminChatView onOpenApplication={handleOpenApplicationFromOtherView} />
             case "profile-settings":
                 return <ProfileSettingsView />
             default:
@@ -375,6 +402,7 @@ export function AdminDashboard() {
                     collapsed={sidebarCollapsed}
                     onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
                     onRequestLogout={handleRequestLogout}
+                    unreadChatCount={unreadChatCount}
                 />
             </aside>
 
@@ -393,6 +421,7 @@ export function AdminDashboard() {
                         isMobile={true}
                         onClose={() => setIsMobileSidebarOpen(false)}
                         onRequestLogout={handleRequestLogout}
+                        unreadChatCount={unreadChatCount}
                     />
                 </SheetContent>
             </Sheet>

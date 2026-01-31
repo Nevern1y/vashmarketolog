@@ -79,7 +79,7 @@ class Command(BaseCommand):
             title_map = {
                 NotificationType.DECISION_APPROVED: 'Заявка одобрена',
                 NotificationType.DECISION_REJECTED: 'Заявка отклонена',
-                NotificationType.DECISION_INFO_REQUESTED: 'Запрошена информация',
+                NotificationType.DECISION_INFO_REQUESTED: 'Возвращение на доработку',
             }
             title = title_map.get(notification_type, 'Решение по заявке')
             
@@ -89,7 +89,7 @@ class Command(BaseCommand):
             elif notification_type == NotificationType.DECISION_REJECTED:
                 message = decision.comment or "Причина не указана"
             else:
-                message = decision.comment or "Требуется дополнительная информация"
+                message = decision.comment or "Заявка возвращена на доработку"
             
             # Get partner name
             partner = decision.partner

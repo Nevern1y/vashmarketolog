@@ -13,6 +13,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
     - Banks ManyToMany (read-only display)
     """
     banks = BankSerializer(many=True, read_only=True)
+    hero_image = serializers.CharField(allow_blank=True, allow_null=True, required=False)
 
     class Meta:
         model = SeoPage
@@ -23,6 +24,15 @@ class SeoPageSerializer(serializers.ModelSerializer):
             'page_type', 'template_name', 'priority', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'banks']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.hero_image:
+            try:
+                data['hero_image'] = instance.hero_image.url
+            except Exception:
+                data['hero_image'] = str(instance.hero_image)
+        return data
     
     def validate_faq(self, value):
         """Ensure FAQ is a list of {question, answer} objects."""
@@ -105,4 +115,3 @@ class SeoPageSerializer(serializers.ModelSerializer):
             result.append(normalized)
         
         return result
-

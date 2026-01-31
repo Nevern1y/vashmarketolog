@@ -215,6 +215,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     """
     created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
     created_by_name = serializers.SerializerMethodField()
+    created_by_role = serializers.CharField(source='created_by.role', read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True)
     company_inn = serializers.CharField(source='company.inn', read_only=True)
     # Nested company data - uses full_client_data snapshot or live company profile
@@ -239,6 +240,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'created_by',
             'created_by_email',
             'created_by_name',
+            'created_by_role',
             'company',
             'company_name',
             'company_inn',
@@ -297,6 +299,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
             'created_by',
             'created_by_email',
             'created_by_name',
+            'created_by_role',
             'company_data',
             'status',
             'status_display',
@@ -542,11 +545,13 @@ class ApplicationListSerializer(serializers.ModelSerializer):
     # Agent/creator info
     created_by_email = serializers.EmailField(source='created_by.email', read_only=True)
     created_by_name = serializers.SerializerMethodField()
+    created_by_role = serializers.CharField(source='created_by.role', read_only=True)
 
     class Meta:
         model = Application
         fields = [
             'id',
+            'created_by',
             'company_name',
             'company_inn',
             'product_type',
@@ -561,6 +566,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
             # Agent info
             'created_by_email',
             'created_by_name',
+            'created_by_role',
             # Tender info
             'tender_number',
             'tender_law',
@@ -828,6 +834,7 @@ class LeadSerializer(serializers.ModelSerializer):
             'full_name',
             'phone',
             'email',
+            'inn',
             'product_type',
             'product_type_display',
             'guarantee_type',
@@ -839,11 +846,20 @@ class LeadSerializer(serializers.ModelSerializer):
             'utm_source',
             'utm_medium',
             'utm_campaign',
+            'utm_term',
+            'utm_content',
+            # Page tracking
+            'page_url',
+            'referrer',
+            'form_name',
+            # Message and comments
+            'message',
+            'notes',
+            # Status and assignment
             'status',
             'status_display',
             'assigned_to',
             'assigned_to_email',
-            'notes',
             'converted_application',
             'created_at',
             'updated_at',
@@ -859,12 +875,17 @@ class LeadCreateSerializer(serializers.ModelSerializer):
     
     Minimal validation to accept as many leads as possible.
     """
+    # Accept 'name' as alias for 'full_name' (frontend compatibility)
+    name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    
     class Meta:
         model = Lead
         fields = [
             'full_name',
+            'name',  # alias for full_name
             'phone',
             'email',
+            'inn',
             'product_type',
             'guarantee_type',
             'amount',
@@ -873,7 +894,18 @@ class LeadCreateSerializer(serializers.ModelSerializer):
             'utm_source',
             'utm_medium',
             'utm_campaign',
+            'utm_term',
+            'utm_content',
+            # Page tracking
+            'page_url',
+            'referrer',
+            'form_name',
+            # Message
+            'message',
         ]
+        extra_kwargs = {
+            'full_name': {'required': False},
+        }
     
     def validate_phone(self, value):
         """Basic phone validation - strip spaces and check length."""
@@ -886,4 +918,68 @@ class LeadCreateSerializer(serializers.ModelSerializer):
         """Ensure name is not empty."""
         if not value or len(value.strip()) < 2:
             raise serializers.ValidationError('Укажите ФИО')
+        return value.strip()
+
+    def validate_inn(self, value):
+        """Basic INN validation - keep digits and allow empty."""
+        if not value:
+            return ''
+        cleaned = ''.join(c for c in value if c.isdigit())
+        if cleaned and len(cleaned) not in (10, 12):
+            raise serializers.ValidationError('ИНН должен содержать 10 или 12 цифр')
+        return cleaned
+
+    def validate(self, attrs):
+        """Handle 'name' -> 'full_name' mapping."""
+        name = attrs.pop('name', None)
+        if name and not attrs.get('full_name'):
+            attrs['full_name'] = name.strip()
+        
+        # Ensure full_name is present
+        if not attrs.get('full_name'):
+            raise serializers.ValidationError({'full_name': 'Укажите ФИО'})
+        
+        return attrs
+
+
+class LeadCommentSerializer(serializers.ModelSerializer):
+    """Serializer for lead comments."""
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+    author_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        from .models import LeadComment
+        model = LeadComment
+        fields = [
+            'id',
+            'lead',
+            'author',
+            'author_email',
+            'author_name',
+            'text',
+            'created_at',
+        ]
+        read_only_fields = ['id', 'author', 'created_at', 'author_email', 'author_name']
+    
+    def get_author_name(self, obj):
+        """Get display name for author."""
+        if obj.author.first_name and obj.author.last_name:
+            return f"{obj.author.first_name} {obj.author.last_name}"
+        if obj.author.first_name:
+            return obj.author.first_name
+        return obj.author.email
+
+
+class LeadCommentCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating lead comments."""
+    
+    class Meta:
+        from .models import LeadComment
+        model = LeadComment
+        fields = ['text']
+    
+    def validate_text(self, value):
+        """Ensure text is not empty."""
+        if not value or not value.strip():
+            raise serializers.ValidationError('Введите текст комментария')
         return value.strip()

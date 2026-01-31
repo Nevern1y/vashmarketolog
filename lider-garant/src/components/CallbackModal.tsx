@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { submitLead } from "@/lib/leads";
 
 type Props = {
   open: boolean;
@@ -10,6 +12,9 @@ type Props = {
 
 export default function CallbackModal({ open, onClose }: Props) {
   const [mounted, setMounted] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
@@ -35,6 +40,41 @@ export default function CallbackModal({ open, onClose }: Props) {
       window.removeEventListener("keydown", onKey);
     };
   }, [open, mounted, onClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name.trim() || !phone.trim()) {
+      toast.error("Заполните все поля");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await submitLead({
+        name: name.trim(),
+        phone,
+        source: "website_form",
+        form_name: "callback_modal",
+        message: "Запрос обратного звонка",
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Ошибка отправки");
+        return;
+      }
+
+      toast.success("Заявка отправлена! Мы перезвоним вам в ближайшее время.");
+      setName("");
+      setPhone("");
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Ошибка отправки";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -65,22 +105,20 @@ export default function CallbackModal({ open, onClose }: Props) {
               onClick={onClose}
               className="rounded-full p-1 text-foreground/70 hover:bg-foreground/10"
               aria-label="Закрыть"
+              disabled={isSubmitting}
             >
               ✕
             </button>
           </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              onClose();
-            }}
-            className="space-y-3"
-          >
+          <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="text"
               placeholder="Ваше имя"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2.5 text-sm outline-none focus:border-foreground/30 sm:text-base"
               required
+              disabled={isSubmitting}
             />
             <div>
               <label className="sr-only" htmlFor="callback-phone">
@@ -89,15 +127,19 @@ export default function CallbackModal({ open, onClose }: Props) {
               <PhoneInput
                 id="callback-phone"
                 name="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
                 className="w-full rounded-xl border border-foreground/15 bg-background px-3 py-2.5 text-sm outline-none focus:border-foreground/30 sm:text-base"
                 required
+                disabled={isSubmitting}
               />
             </div>
             <button
               type="submit"
-              className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-background hover:opacity-90 sm:text-base"
+              disabled={isSubmitting}
+              className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-background hover:opacity-90 sm:text-base disabled:opacity-50"
             >
-              Жду звонка
+              {isSubmitting ? "Отправка..." : "Жду звонка"}
             </button>
           </form>
         </div>
