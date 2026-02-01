@@ -288,10 +288,14 @@ function ClientApplicationsTab({
     if (!searchQuery.trim()) return true
     
     const searchLower = searchQuery.toLowerCase()
+    const purchaseNumber = app.goscontract_data?.purchase_number || app.tender_number || ''
+    
     return (
-      (app.application_number || '').toLowerCase().includes(searchLower) ||
-      (app.notice_number || '').toLowerCase().includes(searchLower) ||
-      (app.bank_name || '').toLowerCase().includes(searchLower)
+      String(app.id).includes(searchLower) ||
+      purchaseNumber.toLowerCase().includes(searchLower) ||
+      (app.target_bank_name || '').toLowerCase().includes(searchLower) ||
+      (app.product_type_display || '').toLowerCase().includes(searchLower) ||
+      (app.status_display || '').toLowerCase().includes(searchLower)
     )
   })
   
@@ -350,64 +354,79 @@ function ClientApplicationsTab({
             )}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>№ заявки / № извещения</TableHead>
-                <TableHead>Дата</TableHead>
-                <TableHead>МФО/Банк</TableHead>
-                <TableHead>Клиент</TableHead>
-                <TableHead className="text-right">Сумма продукта, руб.</TableHead>
-                <TableHead className="text-right">Сумма к оплате, руб.</TableHead>
-                <TableHead>Статус</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredApps.map((app) => {
-                const statusConfig = getStatusConfig(app.status)
-                const primaryAmount = getPrimaryAmountValue(app)
-                return (
-                  <TableRow 
-                    key={app.id}
-                    className="cursor-pointer hover:bg-accent/50"
-                    onClick={() => onApplicationClick?.(app.id)}
-                  >
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-[#3CE8D1]">{app.application_number || '—'}</p>
-                        <p className="text-xs text-muted-foreground">{app.notice_number || '—'}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatDate(app.created_at)}</TableCell>
-                    <TableCell>{app.bank_name || '—'}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{app.company_name}</p>
-                        <p className="text-xs text-muted-foreground">ИНН: {app.company_inn}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {primaryAmount !== null ? primaryAmount.toLocaleString('ru-RU') : '—'}
-                    </TableCell>
-                    <TableCell className="text-right font-mono">
-                      {app.commission?.toLocaleString('ru-RU') || '0,00'}
-                    </TableCell>
-                    <TableCell>
-                      <span 
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        style={{ 
-                          backgroundColor: `${statusConfig.color}15`,
-                          color: statusConfig.color 
-                        }}
-                      >
-                        {statusConfig.label}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-b border-border/50 hover:bg-transparent">
+                  <TableHead className="text-muted-foreground font-medium">ID / № закупки</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Тип продукта</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Дата</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Банк</TableHead>
+                  <TableHead className="text-right text-muted-foreground font-medium">Сумма, ₽</TableHead>
+                  <TableHead className="text-muted-foreground font-medium">Статус</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredApps.map((app) => {
+                  const statusConfig = getStatusConfig(app.status)
+                  const primaryAmount = getPrimaryAmountValue(app)
+                  // Get purchase number from goscontract_data or use tender_number
+                  const purchaseNumber = app.goscontract_data?.purchase_number || app.tender_number
+                  return (
+                    <TableRow 
+                      key={app.id}
+                      className="cursor-pointer border-b border-border/30 hover:bg-[#3CE8D1]/5 transition-colors"
+                      onClick={() => onApplicationClick?.(app.id)}
+                    >
+                      <TableCell>
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-[#3CE8D1]">#{app.id}</p>
+                          {purchaseNumber && (
+                            <p className="text-xs text-muted-foreground truncate max-w-[180px]" title={purchaseNumber}>
+                              {purchaseNumber}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-[#0a1628] text-xs font-medium text-foreground border border-border/50">
+                          {app.product_type_display || app.product_type || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDate(app.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {app.target_bank_name || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-mono font-medium text-foreground">
+                          {primaryAmount !== null ? primaryAmount.toLocaleString('ru-RU') : '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span 
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap"
+                          style={{ 
+                            backgroundColor: `${statusConfig.color}15`,
+                            color: statusConfig.color 
+                          }}
+                        >
+                          <span 
+                            className="w-1.5 h-1.5 rounded-full" 
+                            style={{ backgroundColor: statusConfig.color }}
+                          />
+                          {statusConfig.label}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
