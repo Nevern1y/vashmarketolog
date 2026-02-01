@@ -76,7 +76,16 @@ export function ClientDetailPage({
   const { applications, isLoading: appsLoading, refetch: refetchApps } = useApplications()
   
   // Filter applications for this client
+  // DEBUG: Log applications data to diagnose filtering issue
+  console.log('[ClientDetailPage] clientId:', clientId, 'type:', typeof clientId)
+  console.log('[ClientDetailPage] applications count:', applications.length)
+  if (applications.length > 0) {
+    console.log('[ClientDetailPage] First app:', { id: applications[0].id, company: applications[0].company, company_name: applications[0].company_name })
+    console.log('[ClientDetailPage] All app company IDs:', applications.map(a => ({ id: a.id, company: a.company, company_name: a.company_name })))
+  }
+  
   const clientApplications = applications.filter(app => String(app.company) === String(clientId))
+  console.log('[ClientDetailPage] Filtered clientApplications:', clientApplications.length)
   
   // Get client status badge
   const getClientStatusBadge = () => {
