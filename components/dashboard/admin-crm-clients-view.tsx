@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useAdminCRMClients, type AdminCRMClient } from "@/hooks/use-admin-crm-clients"
+import { useAdminDirectClients, type AdminDirectClient } from "@/hooks/use-admin-direct-clients"
 import { useApplications } from "@/hooks/use-applications"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,7 +38,9 @@ import {
     User,
     RefreshCw,
     FileText,
-    Eye
+    Eye,
+    Users,
+    UserCheck
 } from "lucide-react"
 import { toast } from "sonner"
 import { getStatusConfig } from "@/lib/status-mapping"
@@ -58,6 +61,9 @@ interface AdminCRMClientsViewProps {
 }
 
 export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewProps) {
+    // Main tab state: "agent_clients" or "direct_clients"
+    const [mainTab, setMainTab] = useState<'agent_clients' | 'direct_clients'>('agent_clients')
+    
     const {
         clients,
         isLoading,
@@ -67,6 +73,13 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
         rejectClient
     } = useAdminCRMClients()
 
+    const {
+        clients: directClients,
+        isLoading: isDirectLoading,
+        error: directError,
+        refetch: refetchDirect
+    } = useAdminDirectClients()
+
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all')
     const [processingId, setProcessingId] = useState<number | null>(null)
@@ -74,8 +87,12 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
     const [isDuplicateDialogOpen, setIsDuplicateDialogOpen] = useState(false)
 
     const [selectedClient, setSelectedClient] = useState<AdminCRMClient | null>(null)
+    const [selectedDirectClient, setSelectedDirectClient] = useState<AdminDirectClient | null>(null)
     const [isClientModalOpen, setIsClientModalOpen] = useState(false)
+    const [isDirectClientModalOpen, setIsDirectClientModalOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<'info' | 'applications'>('info')
+    const [directSearchQuery, setDirectSearchQuery] = useState("")
+    const [directAccreditedFilter, setDirectAccreditedFilter] = useState<'all' | 'accredited' | 'not_accredited'>('all')
 
     const { applications, isLoading: isAppsLoading } = useApplications()
 
@@ -136,6 +153,26 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
     const pendingCount = clients.filter(c => c.client_status === 'pending').length
     const confirmedCount = clients.filter(c => c.client_status === 'confirmed').length
 
+    // Direct clients stats and filtering
+    const accreditedCount = directClients.filter(c => c.is_accredited).length
+    const notAccreditedCount = directClients.filter(c => !c.is_accredited).length
+
+    const filteredDirectClients = directClients.filter(client => {
+        const matchesSearch =
+            (client.inn?.toLowerCase().includes(directSearchQuery.toLowerCase())) ||
+            (client.name?.toLowerCase().includes(directSearchQuery.toLowerCase())) ||
+            (client.short_name?.toLowerCase().includes(directSearchQuery.toLowerCase())) ||
+            (client.owner_email?.toLowerCase().includes(directSearchQuery.toLowerCase())) ||
+            (client.contact_person?.toLowerCase().includes(directSearchQuery.toLowerCase()))
+
+        const matchesAccredited =
+            directAccreditedFilter === 'all' ||
+            (directAccreditedFilter === 'accredited' && client.is_accredited) ||
+            (directAccreditedFilter === 'not_accredited' && !client.is_accredited)
+
+        return matchesSearch && matchesAccredited
+    })
+
     const clientApplications = useMemo(() => {
         if (!selectedClient) return []
         return (applications || []).filter(app => app.company === selectedClient.id)
@@ -146,6 +183,17 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
         setActiveTab('info')
         setIsClientModalOpen(true)
     }
+
+    const openDirectClientModal = (client: AdminDirectClient) => {
+        setSelectedDirectClient(client)
+        setActiveTab('info')
+        setIsDirectClientModalOpen(true)
+    }
+
+    const directClientApplications = useMemo(() => {
+        if (!selectedDirectClient) return []
+        return (applications || []).filter(app => app.company === selectedDirectClient.id)
+    }, [applications, selectedDirectClient])
 
     const formatDate = (dateStr: string) => {
         try {
@@ -160,7 +208,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
         return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(amount)) + ' ₽'
     }
 
-    if (isLoading) {
+    if (isLoading && isDirectLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
@@ -174,15 +222,15 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold">Клиенты агентов</h1>
+                    <h1 className="text-xl md:text-2xl font-bold">Клиенты</h1>
                     <p className="text-sm text-muted-foreground hidden sm:block">
-                        Проверка и закрепление CRM клиентов
+                        Управление клиентами агентов и прямыми клиентами
                     </p>
                 </div>
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={refetch}
+                    onClick={() => mainTab === 'agent_clients' ? refetch() : refetchDirect()}
                     className="gap-2 w-full sm:w-auto"
                 >
                     <RefreshCw className="h-4 w-4" />
@@ -190,7 +238,25 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                 </Button>
             </div>
 
-            {/* Stats */}
+            {/* Main Tabs: Agent Clients / Direct Clients */}
+            <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as 'agent_clients' | 'direct_clients')}>
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="agent_clients" className="gap-2">
+                        <Users className="h-4 w-4" />
+                        <span className="hidden sm:inline">Клиенты агентов</span>
+                        <span className="sm:hidden">Агентов</span>
+                        <Badge variant="secondary" className="ml-1">{clients.length}</Badge>
+                    </TabsTrigger>
+                    <TabsTrigger value="direct_clients" className="gap-2">
+                        <UserCheck className="h-4 w-4" />
+                        <span className="hidden sm:inline">Прямые клиенты</span>
+                        <span className="sm:hidden">Прямые</span>
+                        <Badge variant="secondary" className="ml-1">{directClients.length}</Badge>
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Tab 1: Agent Clients (existing functionality) */}
+                <TabsContent value="agent_clients" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
                     <CardContent className="p-3 md:pt-6 md:p-6">
@@ -412,7 +478,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                             {client.short_name || client.name || "Без названия"}
                                                         </p>
                                                         <p className="text-sm text-muted-foreground">
-                                                            {client.contact_email}
+                                                            {client.contact_person || "—"}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -507,6 +573,266 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                     </div>
                 </CardContent>
             </Card>
+                </TabsContent>
+
+                {/* Tab 2: Direct Clients */}
+                <TabsContent value="direct_clients" className="space-y-4">
+                    {isDirectLoading ? (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="h-8 w-8 animate-spin text-[#00d4aa]" />
+                        </div>
+                    ) : (
+                        <>
+                            {/* Stats for Direct Clients */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20">
+                                    <CardContent className="p-3 md:pt-6 md:p-6">
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <div className="p-2 md:p-3 bg-green-500/20 rounded-lg">
+                                                <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 text-green-500" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xl md:text-2xl font-bold">{accreditedCount}</p>
+                                                <p className="text-xs md:text-sm text-muted-foreground">Аккредитованы</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/20">
+                                    <CardContent className="p-3 md:pt-6 md:p-6">
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <div className="p-2 md:p-3 bg-yellow-500/20 rounded-lg">
+                                                <AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-yellow-500" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xl md:text-2xl font-bold">{notAccreditedCount}</p>
+                                                <p className="text-xs md:text-sm text-muted-foreground">Не аккредитованы</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+                                    <CardContent className="p-3 md:pt-6 md:p-6">
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <div className="p-2 md:p-3 bg-blue-500/20 rounded-lg">
+                                                <Building2 className="h-5 w-5 md:h-6 md:w-6 text-blue-500" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xl md:text-2xl font-bold">{directClients.length}</p>
+                                                <p className="text-xs md:text-sm text-muted-foreground">Всего</p>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Filters for Direct Clients */}
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        placeholder="Поиск по ИНН, названию, email или контактному лицу..."
+                                        value={directSearchQuery}
+                                        onChange={(e) => setDirectSearchQuery(e.target.value)}
+                                        className="pl-9"
+                                    />
+                                </div>
+                                <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+                                    <div className="flex gap-2 min-w-max pb-2">
+                                        <Button
+                                            variant={directAccreditedFilter === 'all' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setDirectAccreditedFilter('all')}
+                                        >
+                                            Все
+                                        </Button>
+                                        <Button
+                                            variant={directAccreditedFilter === 'accredited' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setDirectAccreditedFilter('accredited')}
+                                            className="gap-2"
+                                        >
+                                            <CheckCircle2 className="h-4 w-4" />
+                                            Аккредитованы
+                                        </Button>
+                                        <Button
+                                            variant={directAccreditedFilter === 'not_accredited' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setDirectAccreditedFilter('not_accredited')}
+                                            className="gap-2"
+                                        >
+                                            <AlertTriangle className="h-4 w-4" />
+                                            Не аккредитованы
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Error for Direct Clients */}
+                            {directError && (
+                                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-4 text-destructive">
+                                    {directError}
+                                </div>
+                            )}
+
+                            {/* Direct Clients Table */}
+                            <Card>
+                                <CardContent className="p-0">
+                                    {/* Mobile: Card View */}
+                                    <div className="md:hidden p-3 space-y-3">
+                                        {filteredDirectClients.length === 0 ? (
+                                            <div className="text-center py-8 text-muted-foreground">
+                                                Прямых клиентов не найдено
+                                            </div>
+                                        ) : (
+                                            filteredDirectClients.map((client) => (
+                                                <div key={client.id} className="p-3 rounded-lg border bg-card">
+                                                    {/* Company + Status */}
+                                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-2 bg-muted rounded-lg shrink-0">
+                                                                <Building2 className="h-4 w-4" />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="font-medium text-sm truncate">
+                                                                    {client.short_name || client.name || "Без названия"}
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground truncate">
+                                                                    {client.contact_person || "—"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        {client.is_accredited ? (
+                                                            <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs shrink-0">
+                                                                Аккредитован
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs shrink-0">
+                                                                Не аккредитован
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    {/* INN */}
+                                                    <div className="mb-2">
+                                                        <code className="text-xs bg-muted px-1 rounded">{client.inn || "—"}</code>
+                                                    </div>
+                                                    {/* Owner */}
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                                                        <User className="h-3 w-3" />
+                                                        <span className="truncate">{client.owner_email}</span>
+                                                    </div>
+                                                    {/* Actions */}
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="flex-1 gap-1"
+                                                            onClick={() => openDirectClientModal(client)}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            Профиль
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    {/* Desktop: Table View */}
+                                    <div className="hidden md:block overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Компания</TableHead>
+                                                    <TableHead>ИНН</TableHead>
+                                                    <TableHead>Владелец</TableHead>
+                                                    <TableHead>Статус</TableHead>
+                                                    <TableHead className="hidden xl:table-cell">Заявки</TableHead>
+                                                    <TableHead className="text-right">Действия</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredDirectClients.length === 0 ? (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                            Прямых клиентов не найдено
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ) : (
+                                                    filteredDirectClients.map((client) => (
+                                                        <TableRow key={client.id}>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="p-2 bg-muted rounded-lg">
+                                                                        <Building2 className="h-4 w-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-medium">
+                                                                            {client.short_name || client.name || "Без названия"}
+                                                                        </p>
+                                                                        <p className="text-sm text-muted-foreground">
+                                                                            {client.contact_person || "—"}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <code className="text-sm bg-muted px-2 py-1 rounded">
+                                                                    {client.inn || "—"}
+                                                                </code>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <div className="flex items-center gap-2">
+                                                                    <User className="h-4 w-4 text-muted-foreground" />
+                                                                    <div>
+                                                                        <p className="text-sm">{client.owner_name || client.owner_email}</p>
+                                                                        <p className="text-xs text-muted-foreground">
+                                                                            {client.owner_email}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {client.is_accredited ? (
+                                                                    <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                                                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                        Аккредитован
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                                                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                                                        Не аккредитован
+                                                                    </Badge>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="hidden xl:table-cell">
+                                                                <span className="text-sm">{client.applications_count || 0}</span>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="gap-1"
+                                                                    onClick={() => openDirectClientModal(client)}
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                    Профиль
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+                </TabsContent>
+            </Tabs>
             </div>
 
             <Dialog
@@ -594,6 +920,115 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                                 variant="outline"
                                                                 onClick={() => {
                                                                     setIsClientModalOpen(false)
+                                                                    onOpenApplication(app.id)
+                                                                }}
+                                                            >
+                                                                Открыть
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12">
+                                            <FileText className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                                            <p className="text-muted-foreground">У клиента нет заявок</p>
+                                        </div>
+                                    )}
+                                </TabsContent>
+                            </Tabs>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Direct Client Detail Modal */}
+            <Dialog
+                open={isDirectClientModalOpen}
+                onOpenChange={(open) => {
+                    setIsDirectClientModalOpen(open)
+                    if (!open) setSelectedDirectClient(null)
+                }}
+            >
+                <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
+                    {selectedDirectClient && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>{selectedDirectClient.short_name || selectedDirectClient.name || "Клиент"}</DialogTitle>
+                                <DialogDescription className="flex items-center gap-2">
+                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">ИНН {selectedDirectClient.inn || "—"}</code>
+                                    {selectedDirectClient.is_accredited ? (
+                                        <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs">Аккредитован</Badge>
+                                    ) : (
+                                        <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs">Не аккредитован</Badge>
+                                    )}
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 overflow-hidden flex flex-col">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="info">
+                                        <Building2 className="h-4 w-4 mr-2" />
+                                        Информация
+                                    </TabsTrigger>
+                                    <TabsTrigger value="applications">
+                                        <FileText className="h-4 w-4 mr-2" />
+                                        Заявки
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <InfoRow label="Компания" value={selectedDirectClient.name} />
+                                        <InfoRow label="Краткое название" value={selectedDirectClient.short_name} />
+                                        <InfoRow label="ИНН" value={selectedDirectClient.inn} />
+                                        <InfoRow label="ОГРН" value={selectedDirectClient.ogrn} />
+                                        <InfoRow label="КПП" value={selectedDirectClient.kpp} />
+                                        <InfoRow label="Регион" value={selectedDirectClient.region} />
+                                        <InfoRow label="Руководитель" value={selectedDirectClient.director_name} />
+                                        <InfoRow label="Контактное лицо" value={selectedDirectClient.contact_person} />
+                                        <InfoRow label="Телефон" value={selectedDirectClient.contact_phone} />
+                                        <InfoRow label="Email" value={selectedDirectClient.contact_email} />
+                                        <InfoRow label="Владелец (email)" value={selectedDirectClient.owner_email} />
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
+                                    {isAppsLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                        </div>
+                                    ) : directClientApplications.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {directClientApplications.map((app) => {
+                                                const statusCfg = getStatusConfig(app.status)
+                                                const amount = getPrimaryAmountValue(app)
+                                                return (
+                                                    <div
+                                                        key={app.id}
+                                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 rounded-lg border gap-3"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-mono text-[#3CE8D1]">#{app.id}</span>
+                                                                <Badge className={cn("text-xs", statusCfg.bgColor, statusCfg.color)}>
+                                                                    {statusCfg.label}
+                                                                </Badge>
+                                                            </div>
+                                                            <p className="text-sm font-medium text-foreground truncate mt-1">
+                                                                {getProductTypeLabel(app.product_type, app.product_type_display)}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {amount ? formatAmount(amount) : "—"} • {formatDate(app.created_at)}
+                                                            </p>
+                                                        </div>
+                                                        {onOpenApplication && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                onClick={() => {
+                                                                    setIsDirectClientModalOpen(false)
                                                                     onOpenApplication(app.id)
                                                                 }}
                                                             >

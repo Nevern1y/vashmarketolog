@@ -164,10 +164,14 @@ interface ApplicationDetailViewProps {
  */
 export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalculationSession, onNavigateToCalculator }: ApplicationDetailViewProps) {
     const { application, isLoading, error, refetch, setApplication, startPolling, stopPolling } = useApplication(applicationId)
-    const { updateApplication, deleteApplication } = useApplicationMutations()
+    const { updateApplication, deleteApplication, submitApplication } = useApplicationMutations()
     const { sendToBank, isLoading: isSubmitting } = usePartnerActions()
     const { uploadDocument, deleteDocument, getLastError: getDocumentError } = useDocumentMutations()
     const { user } = useAuth()
+
+    // Role-based permissions for submission flow
+    const isClientRole = user?.role === 'client'
+    const canSendToBank = user?.role === 'agent' || user?.role === 'admin'
 
     // Step expansion state
     const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({
@@ -650,6 +654,40 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         }
     }, [application, sendToBank, refetch, triggerSubmitSuccess, setApplication])
 
+    // Handle submit for review (Client role) - sends to /submit/ endpoint
+    const handleSubmitForReview = useCallback(async () => {
+        if (!application) return
+
+        // Check missing required fields first
+        const missingFields = getMissingSubmitFields(application)
+        if (missingFields.length > 0) {
+            toast.error('Заполните обязательные поля', {
+                description: missingFields.join(', ')
+            })
+            return
+        }
+
+        // Check if documents are attached
+        if (!application.documents || application.documents.length === 0) {
+            toast.error('Необходимо прикрепить документы', {
+                description: 'Загрузите требуемые документы перед отправкой заявки'
+            })
+            return
+        }
+
+        const result = await submitApplication(application.id)
+        if (result) {
+            setApplication(result)
+            triggerSubmitSuccess()
+            toast.success('Заявка отправлена на проверку')
+            refetch()
+        } else {
+            toast.error('Не удалось отправить заявку', {
+                description: 'Попробуйте ещё раз или обратитесь в поддержку'
+            })
+        }
+    }, [application, submitApplication, refetch, triggerSubmitSuccess, setApplication])
+
     // Handle edit application save - polymorphic for all product types
     const handleEditApplicationSave = useCallback(async (data: Record<string, unknown>): Promise<boolean> => {
         if (!application) return false
@@ -890,14 +928,14 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     }, [deleteDocument, refetch])
 
     // Status badge helper
-    const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
-            draft: "bg-gray-500/20 text-gray-400 border-gray-500/30",
-            pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-            in_review: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-            info_requested: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+            draft: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+            pending: "bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30",
+            in_review: "bg-[#4F7DF3]/20 text-[#4F7DF3] border-[#4F7DF3]/30",
+            info_requested: "bg-[#FFD93D]/20 text-[#FFD93D] border-[#FFD93D]/30",
             approved: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-            rejected: "bg-red-500/20 text-red-400 border-red-500/30",
+            rejected: "bg-[#E03E9D]/20 text-[#E03E9D] border-[#E03E9D]/30",
             won: "bg-[#3CE8D1]/20 text-[#3CE8D1] border-[#3CE8D1]/30",
             lost: "bg-[#FF521D]/20 text-[#FF521D] border-[#FF521D]/30",
         }
@@ -1036,10 +1074,13 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     const formProgress = calculateFormProgress(application)
     const docProgress = calculateDocumentProgress(application)
-    // Application is submitted if status is NOT draft (pending means sent to scoring)
-    const isSubmitted = application.status !== 'draft'
+    // Application is submitted if status is NOT draft and NOT info_requested
+    // info_requested allows re-editing and resubmission
+    const isSubmitted = application.status !== 'draft' && application.status !== 'info_requested'
     const missingSubmitFields = getMissingSubmitFields(application)
-    const canSubmit = application.status === 'draft' && formProgress === 100 && missingSubmitFields.length === 0
+    // Can submit if status is draft or info_requested (returned for revision)
+    const canEditAndSubmit = application.status === 'draft' || application.status === 'info_requested'
+    const canSubmit = canEditAndSubmit && formProgress === 100 && missingSubmitFields.length === 0
     // Show calculation session number for all users if session exists
     const showCalculationSessionLink = Boolean(application.calculation_session)
     const amountInfo = getAmountDisplay(application)
@@ -1105,6 +1146,22 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 {/* Left Column - Main Content */}
                 <div className="lg:col-span-2 space-y-4">
 
+                    {/* Info Requested Banner - show return reason to agent/client */}
+                    {application.status === 'info_requested' && application.info_request_message && (
+                        <Card className="border-amber-500/30 bg-amber-500/10">
+                            <CardHeader className="pb-2 pt-3 px-4">
+                                <CardTitle className="text-amber-400 text-sm flex items-center gap-2">
+                                    <XCircle className="h-4 w-4" />
+                                    Заявка возвращена на доработку
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="px-4 pb-3">
+                                <p className="text-sm text-amber-200 mb-2">{application.info_request_message}</p>
+                                <p className="text-xs text-amber-400/70">Внесите необходимые изменения и отправьте заявку повторно</p>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Application Info Card - Compact BANKON24 style */}
                     {/* Application Info Card - Refined per User Request */}
                     <Card className="bg-[#0f2042] border-[#1e3a5f]">
@@ -1114,7 +1171,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                 <h3 className="text-sm font-medium text-[#3CE8D1] uppercase tracking-wide">
                                     Данные заявки
                                 </h3>
-                                {application.status === 'draft' && (
+                                {canEditAndSubmit && (
                                     <Button
                                         size="sm"
                                         onClick={() => setIsEditModalOpen(true)}
@@ -2270,7 +2327,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                                     <Download className="h-4 w-4" />
                                                                 </a>
                                                             </Button>
-                                                            {application.status === 'draft' && (
+{canEditAndSubmit && (
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -2299,12 +2356,12 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                         )}
                     </Card>
 
-                    {/* Step 3: Submit to Bank */}
+{/* Step 3: Submit to Bank */}
                     <Card className="bg-[#0a1628] border-[#1e3a5f] overflow-hidden">
                         <StepHeader
                             step={3}
                             title="Отправка в банк"
-                            subtitle={isSubmitted ? "Заявка отправлена" : "Отправьте заявку на рассмотрение"}
+                            subtitle={isSubmitted ? "Заявка отправлена" : application.status === 'info_requested' ? "Внесите изменения и отправьте повторно" : "Отправьте заявку на рассмотрение"}
                             icon={<Send className="h-6 w-6" />}
                             progress={isSubmitted ? 100 : 0}
                             isComplete={isSubmitted}
@@ -2321,20 +2378,53 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                         submittedAt={application.submitted_at || undefined}
                                         statusDisplay={application.status_display}
                                     />
-                                ) : (
+                                ) : isClientRole ? (
+                                    /* Client: Submit for review */
                                     <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <div className="max-w-md mx-auto">
                                             <Send className="h-16 w-16 mx-auto text-[#3CE8D1] mb-4" />
                                             <h3 className="text-xl font-semibold text-white mb-2">
-                                                Готовы отправить?
+                                                {application.status === 'info_requested' 
+                                                    ? "Готовы отправить повторно?" 
+                                                    : "Готовы отправить на проверку?"}
                                             </h3>
                                             <p className="text-[#94a3b8] mb-6">
-                                                После отправки заявка будет передана в банк для рассмотрения.
-                                                Редактирование будет недоступно.
+                                                {application.status === 'info_requested'
+                                                    ? "После внесения изменений отправьте заявку повторно на проверку."
+                                                    : "После отправки заявка будет проверена и передана в банк."}
+                                            </p>
+                                            <Button
+                                                onClick={handleSubmitForReview}
+                                                disabled={!canEditAndSubmit || isSubmitting}
+                                                className="bg-[#3CE8D1] hover:bg-[#2fd5bf] text-black font-semibold px-8"
+                                            >
+                                                {isSubmitting ? (
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Send className="h-4 w-4 mr-2" />
+                                                )}
+                                                ОТПРАВИТЬ НА ПРОВЕРКУ
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Agent/Admin: Submit to bank */
+                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
+                                        <div className="max-w-md mx-auto">
+                                            <Send className="h-16 w-16 mx-auto text-[#3CE8D1] mb-4" />
+                                            <h3 className="text-xl font-semibold text-white mb-2">
+                                                {application.status === 'info_requested'
+                                                    ? "Готовы отправить повторно?"
+                                                    : "Готовы отправить?"}
+                                            </h3>
+                                            <p className="text-[#94a3b8] mb-6">
+                                                {application.status === 'info_requested'
+                                                    ? "После внесения изменений отправьте заявку повторно в банк."
+                                                    : "После отправки заявка будет передана в банк для рассмотрения. Редактирование будет недоступно."}
                                             </p>
                                             <Button
                                                 onClick={handleSubmitToBank}
-                                                disabled={application.status !== 'draft' || isSubmitting}
+                                                disabled={!canEditAndSubmit || isSubmitting}
                                                 className="bg-[#3CE8D1] hover:bg-[#2fd5bf] text-black font-semibold px-8"
                                             >
                                                 {isSubmitting ? (
@@ -2344,7 +2434,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                                                 )}
                                                 ОТПРАВИТЬ ЗАЯВКУ
                                             </Button>
-
                                         </div>
                                     </div>
                                 )}
@@ -2433,7 +2522,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                             Назад к списку
                         </Button>
 
-                        {application.status === 'draft' && (
+{canEditAndSubmit && (
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button

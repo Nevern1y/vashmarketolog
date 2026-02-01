@@ -334,7 +334,9 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     const [showRejectDialog, setShowRejectDialog] = useState(false)
     const [showIssueDialog, setShowIssueDialog] = useState(false)
     const [showNotIssuedDialog, setShowNotIssuedDialog] = useState(false)
+    const [showRequestInfoDialog, setShowRequestInfoDialog] = useState(false)
     const [rejectReason, setRejectReason] = useState("")
+    const [infoRequestReason, setInfoRequestReason] = useState("")
     const [isEditingNotes, setIsEditingNotes] = useState(false)
     const [editedNotes, setEditedNotes] = useState("")
     const [isSavingNotes, setIsSavingNotes] = useState(false)
@@ -375,11 +377,17 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
     }
 
     const handleRequestInfo = async () => {
-        const result = await requestInfo(parseInt(applicationId), "")
+        if (!infoRequestReason.trim()) {
+            toast.error("Укажите причину возврата на доработку")
+            return
+        }
+        const result = await requestInfo(parseInt(applicationId), infoRequestReason.trim())
         if (result) {
             toast.success("Возвращено на доработку")
             refetch()
         }
+        setShowRequestInfoDialog(false)
+        setInfoRequestReason("")
     }
 
     const handleMarkIssued = async () => {
@@ -511,7 +519,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                             <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={handleRequestInfo}
+                                onClick={() => setShowRequestInfoDialog(true)}
                                 disabled={isActioning}
                                 className="flex-1 sm:flex-none h-9 text-xs"
                             >
@@ -559,8 +567,8 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 >
                                     <CheckCircle className="h-4 w-4 mr-1.5" />Одобрить
                                 </Button>
-                                {/* Send to Bank button - only show if not already sent */}
-                                {!application.external_id && (
+                                {/* Send to Bank button - only show if not already sent AND status is pending */}
+                                {!application.external_id && application.status === 'pending' && (
                                     <Button
                                         size="sm"
                                         variant="outline"
@@ -640,6 +648,21 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Info Requested Banner - show return reason */}
+                {application.status === 'info_requested' && application.info_request_message && (
+                    <Card className="border-amber-500/30 bg-amber-500/10 mt-4">
+                        <CardHeader className="pb-2 pt-3 px-4">
+                            <CardTitle className="text-amber-400 text-sm flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4" />
+                                Причина возврата на доработку
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="px-4 pb-3">
+                            <p className="text-sm text-amber-200">{application.info_request_message}</p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
 
             {/* ============================================ */}
@@ -1778,6 +1801,34 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                         <AlertDialogCancel>Отмена</AlertDialogCancel>
                         <AlertDialogAction onClick={handleMarkNotIssued} className="bg-rose-500 hover:bg-rose-600">
                             <XCircle className="h-4 w-4 mr-1.5" />Не выдан
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={showRequestInfoDialog} onOpenChange={setShowRequestInfoDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Вернуть на доработку</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Заявка #{application.id} будет возвращена клиенту/агенту на доработку.
+                            Укажите причину возврата — она будет видна в заявке.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Textarea
+                        placeholder="Укажите причину возврата (обязательно)..."
+                        value={infoRequestReason}
+                        onChange={(e) => setInfoRequestReason(e.target.value)}
+                        className="mt-4 min-h-[100px]"
+                    />
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setInfoRequestReason("")}>Отмена</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleRequestInfo} 
+                            disabled={!infoRequestReason.trim()}
+                            className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <MessageSquare className="h-4 w-4 mr-1.5" />Вернуть
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

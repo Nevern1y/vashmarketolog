@@ -666,8 +666,9 @@ class Application(models.Model):
 
     @property
     def can_submit(self):
-        """Can submit if in draft."""
-        return self.status == ApplicationStatus.DRAFT
+        """Can submit if in draft or info_requested (returned for revision)."""
+        return self.status in [ApplicationStatus.DRAFT, ApplicationStatus.INFO_REQUESTED]
+
 
 
 class PartnerDecision(models.Model):

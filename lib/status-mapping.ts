@@ -65,8 +65,8 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
         step: 1,
         label: 'Отправка на скоринг',
         stepLabel: 'Скоринг',
-        color: 'text-[#3CE8D1]',
-        bgColor: 'bg-[#3CE8D1]/10',
+        color: 'text-[#F59E0B]',
+        bgColor: 'bg-[#F59E0B]/10',
         isNegative: false,
     },
     in_review: {
@@ -91,8 +91,8 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
         step: 2,
         label: 'Одобрен',
         stepLabel: 'Одобрен',
-        color: 'text-[#3CE8D1]',
-        bgColor: 'bg-[#3CE8D1]/15',
+        color: 'text-emerald-400',
+        bgColor: 'bg-emerald-500/15',
         isNegative: false,
     },
     rejected: {

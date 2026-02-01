@@ -14,6 +14,7 @@ from .serializers import (
     CompanyProfileCreateSerializer,
     CompanyProfileListSerializer,
     CRMClientSerializer,
+    AdminDirectClientSerializer,
 )
 from apps.users.permissions import IsAdmin, IsAgent, IsClientOrAgent, IsOwnerOrAdmin
 
@@ -403,3 +404,23 @@ class AdminCRMClientViewSet(viewsets.ReadOnlyModelViewSet):
             'has_duplicates': duplicates.exists(),
             'duplicates': AdminCRMClientSerializer(duplicates, many=True).data
         })
+
+
+@extend_schema(tags=['Admin - Direct Clients'])
+@extend_schema_view(
+    list=extend_schema(description='List all direct clients (registered without agent)'),
+    retrieve=extend_schema(description='Get direct client details'),
+)
+class AdminDirectClientsViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for Admin to view all direct clients (is_crm_client=False).
+    
+    These are clients who registered directly, not through an agent.
+    Admin can only view these clients (read-only).
+    """
+    serializer_class = AdminDirectClientSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get_queryset(self):
+        """Return all direct clients (not CRM clients)."""
+        return CompanyProfile.objects.filter(is_crm_client=False).select_related('owner')

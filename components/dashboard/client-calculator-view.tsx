@@ -308,12 +308,17 @@ const calculateOffers = (amount: number, law: string, days: number, productType:
     })
 
     // Сортировка по приоритету скорости: Высокая → Средняя → Низкая
+    // Банки с individual: true (Индивидуальное рассмотрение) всегда в конце
     const speedPriority: Record<string, number> = {
         "Высокая": 0,
         "Средняя": 1,
         "Низкая": 2
     }
     approved.sort((a, b) => {
+        // Individual banks always go to the end
+        if (a.individual && !b.individual) return 1
+        if (!a.individual && b.individual) return -1
+        
         const priorityA = speedPriority[a.speed] ?? 3
         const priorityB = speedPriority[b.speed] ?? 3
         return priorityA - priorityB
@@ -1592,13 +1597,13 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         </div>
     )
 
-    // Insurance Results (uses calculatedOffers)
+    // Insurance Results (uses INSURANCE_COMPANIES)
     const InsuranceResultsView = () => (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <Button variant="ghost" onClick={backToForm}><ArrowLeft className="h-4 w-4 mr-2" />Назад</Button>
                 <h2 className="text-xl font-bold">Результат расчета страхования</h2>
-                <Badge variant="default" className="bg-green-600">Предложений: {calculatedOffers.approved.length}</Badge>
+                <Badge variant="default" className="bg-green-600">Компаний: {INSURANCE_COMPANIES.length}</Badge>
             </div>
 
             <div className="bg-muted/30 p-3 rounded-lg text-sm">
@@ -1611,7 +1616,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
             <Card>
                 <CardHeader className="py-3">
-                    <span className="text-green-500 font-bold">СТРАХОВЫЕ КОМПАНИИ: {calculatedOffers.approved.length}</span>
+                    <span className="text-green-500 font-bold">СТРАХОВЫЕ КОМПАНИИ: {INSURANCE_COMPANIES.length}</span>
                 </CardHeader>
                 <CardContent className="p-0">
                     <table className="w-full text-sm">
@@ -1619,25 +1624,28 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                             <tr>
                                 <th className="text-left p-2">Компания</th>
                                 <th className="text-center p-2">Ставка</th>
-                                <th className="text-center p-2">Премия</th>
-                                <th className="text-center p-2">Скорость</th>
+                                <th className="text-center p-2">Премия (ориент.)</th>
                                 <th className="text-center p-2">Выбрать</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {calculatedOffers.approved.map((bank, i) => {
-                                // Calculate insurance premium (estimate 1-5% of amount)
-                                const premiumRate = bank.individual ? 0 : (bank.bgRate || 2.5)
+                            {INSURANCE_COMPANIES.map((company, i) => {
+                                // Estimate insurance premium (1-3% of amount depending on category)
+                                const premiumRate = 
+                                    insuranceCategory === "Персонал" ? 2.0 :
+                                    insuranceCategory === "Транспорт" ? 2.5 :
+                                    insuranceCategory === "Имущество" ? 1.5 :
+                                    insuranceCategory === "Ответственность" ? 1.8 :
+                                    insuranceCategory === "Строительно-монтажные риски" ? 2.2 :
+                                    insuranceCategory === "Контракта" ? 1.5 : 2.0
                                 const premium = (insuranceAmount ?? 0) * premiumRate / 100
                                 return (
-                                    <tr key={i} className={cn("border-t", bank.individual && "bg-[#3CE8D1]/10")}>
+                                    <tr key={i} className="border-t hover:bg-muted/30">
                                         <td className="p-2">
-                                            <span className="font-medium">{bank.name}</span>
-                                            {bank.individual && <Badge className="ml-2 bg-[#3CE8D1] text-[#0a1628]">Инд. условия</Badge>}
+                                            <span className="font-medium">{company}</span>
                                         </td>
-                                        <td className="p-2 text-center">{bank.individual ? "Индив." : `${premiumRate.toFixed(1)}%`}</td>
-                                        <td className="p-2 text-center text-[#3CE8D1]">{bank.individual ? "По запросу" : `${premium.toLocaleString("ru-RU")} ₽`}</td>
-                                        <td className="p-2 text-center"><SpeedBadge speed={bank.speed} /></td>
+                                        <td className="p-2 text-center">{premiumRate.toFixed(1)}%</td>
+                                        <td className="p-2 text-center text-[#3CE8D1]">{premium.toLocaleString("ru-RU")} ₽</td>
                                         <td className="p-2 text-center"><Checkbox checked={selectedOffers.has(i)} onCheckedChange={() => toggleOffer(i)} /></td>
                                     </tr>
                                 )
@@ -2810,7 +2818,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         <div className="grid gap-4 md:grid-cols-2">
                                             <div className="space-y-2">
                                                 <Label className="text-sm text-[#94a3b8]">Сумма платежа <span className="text-[#3CE8D1]">*</span></Label>
-                                                <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="100 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                                <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="5 000 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label className="text-sm text-[#94a3b8]">Валюта <span className="text-[#3CE8D1]">*</span></Label>
@@ -2819,6 +2827,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                                         <SelectValue placeholder="Выберите валюту" />
                                                     </SelectTrigger>
                                                     <SelectContent>
+                                                        <SelectItem value="RUB">RUB — Российский рубль</SelectItem>
                                                         <SelectItem value="USD">USD — Доллар США</SelectItem>
                                                         <SelectItem value="EUR">EUR — Евро</SelectItem>
                                                         <SelectItem value="CNY">CNY — Китайский юань</SelectItem>

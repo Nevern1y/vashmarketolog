@@ -169,11 +169,14 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
   // Get status badge
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { label: string; className: string }> = {
-      pending: { label: "Новая", className: "bg-[#3CE8D1]/10 text-[#3CE8D1]" },
-      in_review: { label: "На рассмотрении", className: "bg-blue-500/10 text-blue-500" },
-      approved: { label: "Одобрена", className: "bg-[#3CE8D1]/10 text-[#3CE8D1]" },
-      rejected: { label: "Отклонена", className: "bg-red-500/10 text-red-500" },
-      info_requested: { label: "Возвращение на доработку", className: "bg-[#f97316]/10 text-[#f97316]" },
+      draft: { label: "Черновик", className: "bg-slate-500/10 text-slate-400" },
+      pending: { label: "Скоринг", className: "bg-[#F59E0B]/10 text-[#F59E0B]" },
+      in_review: { label: "На рассмотрении", className: "bg-[#4F7DF3]/10 text-[#4F7DF3]" },
+      approved: { label: "Одобрена", className: "bg-emerald-500/10 text-emerald-400" },
+      rejected: { label: "Отклонена", className: "bg-[#E03E9D]/10 text-[#E03E9D]" },
+      info_requested: { label: "На доработке", className: "bg-[#FFD93D]/10 text-[#FFD93D]" },
+      won: { label: "Выдан", className: "bg-[#3CE8D1]/10 text-[#3CE8D1]" },
+      lost: { label: "Не выдан", className: "bg-[#FF521D]/10 text-[#FF521D]" },
     }
     const config = statusMap[status] || { label: status, className: "bg-gray-100 text-gray-600" }
     return <Badge className={`${config.className} text-sm px-3 py-1`}>{config.label}</Badge>

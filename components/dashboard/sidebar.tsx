@@ -13,6 +13,7 @@ import {
   Landmark,
   PhoneCall,
   Search,
+  Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
     { id: "calculator" as ViewType, label: "Калькулятор", icon: Calculator },
     { id: "banks" as ViewType, label: "Банки", icon: Landmark },
     { id: "acts" as ViewType, label: "Акты", icon: FileCheck },
+    { id: "tender_support" as ViewType, label: "Сопровождение", icon: Briefcase },
   ]
 
   const toolsNavItems = [

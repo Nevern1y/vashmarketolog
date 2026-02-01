@@ -333,6 +333,8 @@ export interface Application {
     created_at: string;
     updated_at: string;
     submitted_at: string | null;
+    // Info request message - reason for returning to revision (info_requested status)
+    info_request_message?: string;
 }
 
 // CalculationSession - stores calculation results for "Результат отбора" page

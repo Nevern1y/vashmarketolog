@@ -47,21 +47,21 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
     switch (status) {
       case "pending":
         return (
-          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] gap-1">
+          <Badge className="bg-[#F59E0B]/10 text-[#F59E0B] gap-1">
             <Inbox className="h-3 w-3" />
-            Новая
+            Скоринг
           </Badge>
         )
       case "in_review":
         return (
-          <Badge className="bg-blue-500/10 text-blue-500 gap-1">
+          <Badge className="bg-[#4F7DF3]/10 text-[#4F7DF3] gap-1">
             <Clock className="h-3 w-3" />
             На рассмотрении
           </Badge>
         )
       case "approved":
         return (
-          <Badge className="bg-[#3CE8D1]/10 text-[#3CE8D1] gap-1">
+          <Badge className="bg-emerald-500/10 text-emerald-400 gap-1">
             <CheckCircle2 className="h-3 w-3" />
             Одобрена
           </Badge>
@@ -75,7 +75,7 @@ export function PartnerIncomingView({ onOpenDetail }: PartnerIncomingViewProps) 
         )
       case "info_requested":
         return (
-          <Badge className="bg-[#f97316]/10 text-[#f97316] gap-1">
+          <Badge className="bg-[#FFD93D]/10 text-[#FFD93D] gap-1">
             <AlertCircle className="h-3 w-3" />
             Возвращение на доработку
           </Badge>

@@ -280,7 +280,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        application.status = ApplicationStatus.PENDING
+        # Determine target status based on current status
+        if application.status == ApplicationStatus.INFO_REQUESTED:
+            # Resubmission after revision - skip scoring, go directly to review
+            application.status = ApplicationStatus.IN_REVIEW
+            # Clear the info request message since revision is complete
+            application.info_request_message = None
+        else:
+            # Initial submission from draft - go to scoring
+            application.status = ApplicationStatus.PENDING
+        
         application.submitted_at = timezone.now()
         application.save()
         

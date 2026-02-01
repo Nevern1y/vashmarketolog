@@ -39,12 +39,15 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
         }
     }, [applicationId, user?.role, markAsRead])
 
-    // Auto-scroll to bottom when new messages arrive
+    // Auto-scroll to bottom when new messages arrive (only if user is near bottom)
     useEffect(() => {
         if (scrollAreaRef.current) {
             const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
             if (scrollContainer) {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight
+                const isNearBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 100
+                if (isNearBottom) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight
+                }
             }
         }
     }, [messages])

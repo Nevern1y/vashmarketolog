@@ -11,6 +11,7 @@ export type AgentViewType =
   | "check_counterparty"
   | "call_database"
   | "acts"
+  | "tender_support"
   | "profile-settings"
   | "bank_conditions"
   | "individual_terms"

@@ -3048,7 +3048,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Сумма платежа <span className="text-[#3CE8D1]">*</span></Label>
-                                        <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="100 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
+                                        <Input type="text" inputMode="decimal" value={formatInputNumber(amount)} onChange={e => setAmount(parseInputNumber(e.target.value))} placeholder="5 000 000" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Валюта <span className="text-[#3CE8D1]">*</span></Label>
@@ -3057,6 +3057,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                                 <SelectValue placeholder="Выберите валюту" />
                                             </SelectTrigger>
                                             <SelectContent>
+                                                <SelectItem value="RUB">RUB — Российский рубль</SelectItem>
                                                 <SelectItem value="USD">USD — Доллар США</SelectItem>
                                                 <SelectItem value="EUR">EUR — Евро</SelectItem>
                                                 <SelectItem value="CNY">CNY — Китайский юань</SelectItem>

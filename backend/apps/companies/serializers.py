@@ -425,3 +425,47 @@ class AdminCRMClientSerializer(serializers.ModelSerializer):
             inn=obj.inn,
             is_crm_client=True
         ).exclude(id=obj.id).exists()
+
+
+class AdminDirectClientSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Admin view of Direct clients (is_crm_client=False).
+    These are clients who registered directly without an agent.
+    """
+    owner_email = serializers.EmailField(source='owner.email', read_only=True)
+    owner_name = serializers.SerializerMethodField()
+    applications_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CompanyProfile
+        fields = [
+            'id',
+            'inn',
+            'kpp',
+            'ogrn',
+            'name',
+            'short_name',
+            'legal_address',
+            'region',
+            'director_name',
+            'is_accredited',
+            'contact_person',
+            'contact_phone',
+            'contact_email',
+            # Owner info (the client themselves)
+            'owner_email',
+            'owner_name',
+            # Applications
+            'applications_count',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = fields
+    
+    def get_owner_name(self, obj):
+        if obj.owner:
+            return f"{obj.owner.first_name} {obj.owner.last_name}".strip() or obj.owner.email
+        return None
+    
+    def get_applications_count(self, obj):
+        return obj.applications.filter(status__in=ACTIVE_APPLICATION_STATUSES).count()
