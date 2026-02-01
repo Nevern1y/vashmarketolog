@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -32,7 +32,7 @@ import {
 import { cn } from "@/lib/utils"
 import { getStatusConfig } from "@/lib/status-mapping"
 import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
-import { useApplications } from "@/hooks/use-applications"
+import type { ApplicationListItem, PaginatedResponse } from "@/hooks/use-applications"
 import {
     Clock,
     Loader2,
@@ -166,7 +166,8 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const { applications, isLoading: isAppsLoading } = useApplications()
+    const [agentApplications, setAgentApplications] = useState<ApplicationListItem[]>([])
+    const [isAgentAppsLoading, setIsAgentAppsLoading] = useState(false)
 
     // Modal state
     const [activeTab, setActiveTab] = useState('info')
@@ -313,6 +314,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
         setSelectedAgent(agent)
         setActiveTab('info')
         setIsModalOpen(true)
+        setAgentApplications([])
     }
 
     // Delete document
@@ -377,10 +379,28 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
         none: agents.filter(a => a.accreditation_status === 'none').length,
     }), [agents])
 
-    const agentApplications = useMemo(() => {
-        if (!selectedAgent) return []
-        return (applications || []).filter(app => app.created_by === selectedAgent.id)
-    }, [applications, selectedAgent])
+    const loadAgentApplications = useCallback(async (agentId: number) => {
+        setIsAgentAppsLoading(true)
+        try {
+            const res = await api.get<PaginatedResponse<ApplicationListItem>>('/applications/', {
+                created_by: String(agentId),
+            })
+            const results = Array.isArray(res)
+                ? res
+                : (res as PaginatedResponse<ApplicationListItem>).results || []
+            setAgentApplications(results)
+        } catch (err) {
+            setAgentApplications([])
+            toast.error('Ошибка загрузки заявок агента')
+        } finally {
+            setIsAgentAppsLoading(false)
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!selectedAgent || !isModalOpen || activeTab !== 'applications') return
+        loadAgentApplications(selectedAgent.id)
+    }, [selectedAgent, isModalOpen, activeTab, loadAgentApplications])
 
     // Loading
     if (isLoading) {
@@ -852,7 +872,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                 </TabsContent>
 
                                 <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
-                                    {isAppsLoading ? (
+                                    {isAgentAppsLoading ? (
                                         <div className="flex items-center justify-center py-8">
                                             <Loader2 className="h-6 w-6 animate-spin" />
                                         </div>

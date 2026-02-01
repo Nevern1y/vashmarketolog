@@ -155,48 +155,57 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         # Admin sees all
         if user.role == 'admin' or user.is_superuser:
-            return Application.objects.select_related(*base_select).prefetch_related('documents').all()
-        
+            queryset = Application.objects.select_related(*base_select).prefetch_related('documents').all()
         # Partner sees only assigned
-        if user.role == 'partner':
-            return Application.objects.select_related(*base_select).prefetch_related('documents').filter(assigned_partner=user)
-        
-        # Client/Agent base query: their own applications
-        base_query = Q(created_by=user) | Q(company__owner=user)
-        
-        # Special case: Client should see applications from their inviting agent
-        if user.role == 'client':
-            # Option 1: If client was invited by an agent, show agent's applications for them
-            if user.invited_by and user.invited_by.role == 'agent':
-                # Show applications created by the agent for companies with matching INN
+        elif user.role == 'partner':
+            queryset = Application.objects.select_related(*base_select).prefetch_related('documents').filter(assigned_partner=user)
+        else:
+            # Client/Agent base query: their own applications
+            base_query = Q(created_by=user) | Q(company__owner=user)
+
+            # Special case: Client should see applications from their inviting agent
+            if user.role == 'client':
+                # Option 1: If client was invited by an agent, show agent's applications for them
+                if user.invited_by and user.invited_by.role == 'agent':
+                    # Show applications created by the agent for companies with matching INN
+                    client_company = CompanyProfile.objects.filter(
+                        owner=user,
+                        is_crm_client=False
+                    ).first()
+
+                    if client_company and client_company.inn:
+                        # Applications created by inviting agent for companies with this INN
+                        base_query = base_query | Q(
+                            created_by=user.invited_by,
+                            company__inn=client_company.inn
+                        )
+
+                # Option 2: Also check for any CRM companies with matching INN
                 client_company = CompanyProfile.objects.filter(
-                    owner=user, 
+                    owner=user,
                     is_crm_client=False
                 ).first()
-                
+
                 if client_company and client_company.inn:
-                    # Applications created by inviting agent for companies with this INN
-                    base_query = base_query | Q(
-                        created_by=user.invited_by,
-                        company__inn=client_company.inn
-                    )
-            
-            # Option 2: Also check for any CRM companies with matching INN
-            client_company = CompanyProfile.objects.filter(
-                owner=user, 
-                is_crm_client=False
-            ).first()
-            
-            if client_company and client_company.inn:
-                crm_companies_with_same_inn = CompanyProfile.objects.filter(
-                    is_crm_client=True,
-                    inn=client_company.inn
-                ).values_list('id', flat=True)
-                
-                if crm_companies_with_same_inn:
-                    base_query = base_query | Q(company_id__in=crm_companies_with_same_inn)
-        
-        return Application.objects.filter(base_query).select_related(*base_select).prefetch_related('documents').distinct()
+                    crm_companies_with_same_inn = CompanyProfile.objects.filter(
+                        is_crm_client=True,
+                        inn=client_company.inn
+                    ).values_list('id', flat=True)
+
+                    if crm_companies_with_same_inn:
+                        base_query = base_query | Q(company_id__in=crm_companies_with_same_inn)
+
+            queryset = Application.objects.filter(base_query).select_related(*base_select).prefetch_related('documents').distinct()
+
+        created_by_param = self.request.query_params.get('created_by') or self.request.query_params.get('agent_id')
+        if created_by_param:
+            try:
+                created_by_id = int(created_by_param)
+                queryset = queryset.filter(created_by_id=created_by_id)
+            except (TypeError, ValueError):
+                pass
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'create':
