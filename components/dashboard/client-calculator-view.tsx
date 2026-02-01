@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { CalculatorPrefill } from "@/lib/calculator-prefill"
 import { Button } from "@/components/ui/button"
@@ -24,6 +23,7 @@ import {
 import { toast } from "sonner"
 import { getCompanyBasicsError } from "@/lib/company-basics"
 import { getProductTypeLabel } from "@/lib/application-display"
+import { navigateToApplications } from "@/lib/navigation"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany } from "@/hooks/use-companies"
@@ -370,7 +370,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showResults, setShowResults] = useState<string | null>(null)
     const [selectedOffers, setSelectedOffers] = useState<Set<number>>(new Set())
-    const router = useRouter()
 
     // API hooks for real backend integration
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
@@ -559,6 +558,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     // Get product type for document matching
     const getProductTypeForDocs = (): string => {
         switch (activeTab) {
+            case "tz": return "tender_loan"
             case "bg": return "bank_guarantee"
             case "kik": return "contract_loan"
             case "express": return "corporate_credit"
@@ -567,6 +567,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             case "insurance": return "insurance"
             case "ved": return "ved"
             case "rko": return "rko"
+            case "deposits": return "deposits"
             default: return "general"
         }
     }
@@ -1055,6 +1056,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         let successCount = 0
         let errorCount = 0
         const successfulBankNames: string[] = []
+        const createdApplicationIds: number[] = []
 
         // First, create a CalculationSession to store the calculation results (root application)
         let sessionId = currentSessionId
@@ -1146,6 +1148,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                 if (result) {
                     successCount++
                     successfulBankNames.push(bank.name)
+                    createdApplicationIds.push(result.id)
                 } else {
                     errorCount++
                 }
@@ -1167,7 +1170,13 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
             setTimeout(() => {
-                router.push("/?view=applications")
+                if (createdApplicationIds.length === 1) {
+                    navigateToApplications({ appId: createdApplicationIds[0] })
+                } else if (createdApplicationIds.length > 1) {
+                    navigateToApplications({ highlightIds: createdApplicationIds })
+                } else {
+                    navigateToApplications()
+                }
             }, 400)
         } else {
             toast.error("Не удалось создать заявки")
@@ -1218,6 +1227,13 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             return
         }
 
+        const matched = matchDocumentsToRequired()
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+
         const payload = {
             company: company.id,
             product_type: type === "rko" ? "rko" : "special_account",
@@ -1225,6 +1241,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             term_months: 12,
             target_bank_name: bank,
             account_type: type,
+            document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
         }
 
         try {
@@ -1232,7 +1249,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             if (result) {
                 toast.success(`Заявка №${result.id} в ${bank} создана`)
                 // Redirect to the standard application detail view
-                router.push(`/?view=applications&appId=${result.id}`)
+                navigateToApplications({ appId: result.id })
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1266,6 +1283,13 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
         setIsSubmitting(true)
 
+        const matched = matchDocumentsToRequired()
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+
         const payload = {
             company: company.id,
             product_type: "ved",
@@ -1275,6 +1299,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             ved_country: vedCountry,
             ved_purpose: vedPurpose || undefined,
             target_bank_name: bankName || "Индивидуальный подбор",
+            document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
             goscontract_data: {
                 currency: vedCurrency,
                 country: vedCountry,
@@ -1287,7 +1312,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             if (result) {
                 toast.success(`Заявка на международный платёж №${result.id} создана!`)
                 // Redirect to standard application detail view
-                router.push(`/?view=applications&appId=${result.id}`)
+                navigateToApplications({ appId: result.id })
             } else {
                 toast.error("Не удалось создать заявку")
             }

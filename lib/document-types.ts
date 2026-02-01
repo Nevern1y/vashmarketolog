@@ -496,6 +496,7 @@ export const REQUIRED_DOCUMENTS_BY_PRODUCT: Record<string, number[]> = {
     // РКО - только карточка обязательна
     rko: [1],
     special_account: [1],
+    deposits: [1],
     
     // Страхование - только карточка обязательна
     insurance: [1],

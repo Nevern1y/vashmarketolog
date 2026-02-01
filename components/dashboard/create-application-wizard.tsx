@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { cn } from "@/lib/utils"
+import { navigateToApplications } from "@/lib/navigation"
 import { X, Gavel, Banknote, Truck, Upload, CheckCircle2, FileText, Loader2, AlertCircle, Building2, Hash, FileCheck, Globe, Shield, CreditCard, Briefcase, ChevronDown, ChevronUp, Star, Clock, Percent, XCircle, Plus, FolderOpen, File } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -146,7 +146,6 @@ import {
 } from "@/lib/document-types"
 
 export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSuccess }: CreateApplicationWizardProps) {
-  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("")
@@ -997,10 +996,10 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
         onSuccess(createdApps[0])
       } else if (createdApps.length === 1) {
         // Одна заявка → детальная страница для проверки и отправки
-        window.location.href = `/?view=application-detail&id=${createdApps[0]}`
+        navigateToApplications({ appId: createdApps[0] })
       } else {
-        // Несколько заявок → список с подсветкой первой
-        window.location.href = `/?view=applications&highlight=${createdApps[0]}`
+        // Несколько заявок → список с подсветкой всех созданных
+        navigateToApplications({ highlightIds: createdApps })
       }
     } else {
       toast.error(error || "Не удалось создать заявки")

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
     FileText,
     Filter,
@@ -63,7 +63,34 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
     const [searchQuery, setSearchQuery] = useState("")
     const [productFilter, setProductFilter] = useState<string>("all")
     const [currentPage, setCurrentPage] = useState(1)
+    const [highlightedIds, setHighlightedIds] = useState<number[]>([])
     const itemsPerPage = 10
+
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        const params = new URLSearchParams(window.location.search)
+        const highlightParam = params.get("highlight")
+        if (!highlightParam) return
+
+        const ids = highlightParam
+            .split(",")
+            .map(value => parseInt(value, 10))
+            .filter(id => Number.isFinite(id))
+
+        if (ids.length === 0) return
+
+        setHighlightedIds(ids)
+        setCurrentPage(1)
+
+        const timeout = setTimeout(() => {
+            setHighlightedIds([])
+            const url = new URL(window.location.href)
+            url.searchParams.delete("highlight")
+            window.history.replaceState(window.history.state, "", url.toString())
+        }, 2500)
+
+        return () => clearTimeout(timeout)
+    }, [])
 
     // Filter applications
     const filteredApps = applications.filter(app => {
@@ -128,11 +155,15 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
     const ApplicationCard = ({ app }: { app: typeof paginatedApps[0] }) => {
         const primaryAmount = getPrimaryAmountValue(app)
         const amountLabel = primaryAmount !== null ? `${formatAmount(primaryAmount)} ₽` : "—"
+        const isHighlighted = highlightedIds.includes(app.id)
 
         return (
             <div
             onClick={() => onOpenDetail?.(String(app.id))}
-            className="p-4 rounded-lg border border-[#1e3a5f] bg-[#0a1628] hover:bg-[#0f2042] cursor-pointer transition-colors"
+            className={cn(
+                "p-4 rounded-lg border border-[#1e3a5f] bg-[#0a1628] hover:bg-[#0f2042] cursor-pointer transition-colors",
+                isHighlighted && "border-[#3CE8D1]/60 bg-[#3CE8D1]/10 shadow-[0_0_0_1px_rgba(60,232,209,0.2)]"
+            )}
         >
             {/* Header: ID + Status */}
             <div className="flex items-start justify-between gap-2 mb-3">
@@ -305,10 +336,15 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {paginatedApps.map((app) => (
+                                        {paginatedApps.map((app) => {
+                                            const isHighlighted = highlightedIds.includes(app.id)
+                                            return (
                                             <TableRow
                                                 key={app.id}
-                                                className="border-[#1e3a5f] hover:bg-[#0a1628] cursor-pointer transition-colors"
+                                                className={cn(
+                                                    "border-[#1e3a5f] hover:bg-[#0a1628] cursor-pointer transition-colors",
+                                                    isHighlighted && "border-[#3CE8D1]/60 bg-[#3CE8D1]/10"
+                                                )}
                                                 onClick={() => onOpenDetail?.(String(app.id))}
                                             >
                                                 <TableCell className="font-medium">
@@ -372,7 +408,7 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                                     </Button>
                                                 </TableCell>
                                             </TableRow>
-                                        ))}
+                                        )})}
                                     </TableBody>
                                 </Table>
                             </div>

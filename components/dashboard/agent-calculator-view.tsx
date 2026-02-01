@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { CalculatorPrefill } from "@/lib/calculator-prefill"
 import { Button } from "@/components/ui/button"
@@ -24,6 +23,7 @@ import {
 import { toast } from "sonner"
 import { getCompanyBasicsError } from "@/lib/company-basics"
 import { getProductTypeLabel } from "@/lib/application-display"
+import { navigateToApplications } from "@/lib/navigation"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany, useCRMClients, useCRMClientMutations, type CreateCompanyPayload, type CompanyListItem } from "@/hooks/use-companies"
@@ -386,7 +386,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
     const [showResults, setShowResults] = useState<string | null>(null)
     const [selectedOffers, setSelectedOffers] = useState<Set<number>>(new Set())
     const [isAddClientOpen, setIsAddClientOpen] = useState(false)
-    const router = useRouter()
     const { createClient } = useCRMClientMutations()
 
     // API hooks for real backend integration
@@ -609,6 +608,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
     // Get product type for document matching
     const getProductTypeForDocs = (): string => {
         switch (activeTab) {
+            case "tz": return "tender_loan"
             case "bg": return "bank_guarantee"
             case "kik": return "contract_loan"
             case "express": return "corporate_credit"
@@ -618,6 +618,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             case "ved": return "ved"
             case "rko": return "rko"
             case "tender_support": return "tender_support"
+            case "deposits": return "deposits"
             default: return "general"
         }
     }
@@ -1156,6 +1157,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         let successCount = 0
         let errorCount = 0
         const successfulBankNames: string[] = []
+        const createdApplicationIds: number[] = []
 
         // First, create a CalculationSession to store the calculation results (root application)
         let sessionId = currentSessionId
@@ -1252,6 +1254,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 if (result) {
                     successCount++
                     successfulBankNames.push(bank.name)
+                    createdApplicationIds.push(result.id)
                 } else {
                     errorCount++
                 }
@@ -1272,13 +1275,13 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
-            // Save sessionId before reset for redirect
-            const sessionIdForRedirect = currentSessionId
             setTimeout(() => {
-                if (sessionIdForRedirect) {
-                    router.push(`/?view=applications&session=${sessionIdForRedirect}`)
+                if (createdApplicationIds.length === 1) {
+                    navigateToApplications({ appId: createdApplicationIds[0] })
+                } else if (createdApplicationIds.length > 1) {
+                    navigateToApplications({ highlightIds: createdApplicationIds })
                 } else {
-                    router.push("/?view=applications")
+                    navigateToApplications()
                 }
             }, 400)
         } else {
@@ -1344,6 +1347,12 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
         try {
             setIsTenderSupportSubmitting(true)
+            const matched = matchDocumentsToRequired()
+            if (matched.missingRequired.length > 0) {
+                toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                    description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+                })
+            }
             const payload = {
                 company: company.id,
                 product_type: "tender_support" as const,
@@ -1353,13 +1362,14 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 tender_support_type: tenderSupportType,
                 purchase_category: purchaseApiValue,
                 industry: tenderSupportIndustry || undefined,
+                document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
             }
 
             const result = await createApplication(payload as Parameters<typeof createApplication>[0])
             if (result) {
                 toast.success(`Заявка №${result.id} создана`)
                 // Redirect to the created application
-                router.push(`/?view=applications&appId=${result.id}`)
+                navigateToApplications({ appId: result.id })
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1387,6 +1397,13 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             return
         }
 
+        const matched = matchDocumentsToRequired()
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+
         const payload = {
             company: company.id,
             product_type: type === "rko" ? "rko" : "special_account",
@@ -1394,6 +1411,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             term_months: 12,
             target_bank_name: bank,
             account_type: type,
+            document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
         }
 
         try {
@@ -1401,7 +1419,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             if (result) {
                 toast.success(`Заявка №${result.id} в ${bank} создана`)
                 // Redirect to the standard application detail view
-                router.push(`/?view=applications&appId=${result.id}`)
+                navigateToApplications({ appId: result.id })
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1438,6 +1456,13 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
         setIsSubmitting(true)
 
+        const matched = matchDocumentsToRequired()
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+
         const payload = {
             company: company.id,
             product_type: "ved",
@@ -1447,6 +1472,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             ved_country: vedCountry,
             ved_purpose: vedPurpose || undefined,
             target_bank_name: bankName || "Индивидуальный подбор",
+            document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
             goscontract_data: {
                 currency: vedCurrency,
                 country: vedCountry,
@@ -1460,7 +1486,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 toast.success(`Заявка на международный платёж №${result.id} создана!`)
                 setTimeout(() => {
                     // Redirect to the created application
-                    router.push(`/?view=applications&appId=${result.id}`)
+                    navigateToApplications({ appId: result.id })
                 }, 400)
             } else {
                 toast.error("Не удалось создать заявку")

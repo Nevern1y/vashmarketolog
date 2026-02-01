@@ -9,8 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Briefcase, Building2, Calculator, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useApplicationMutations } from "@/hooks/use-applications"
+import { useDocuments } from "@/hooks/use-documents"
 import { useMyCompany } from "@/hooks/use-companies"
 import { getCompanyBasicsError } from "@/lib/company-basics"
+import { getDocumentTypeName, getRequiredDocumentsForProduct } from "@/lib/document-types"
+import { navigateToApplications } from "@/lib/navigation"
 
 // =============================================================================
 // TENDER SUPPORT CONFIG
@@ -37,12 +40,32 @@ export function ClientTenderSupportView() {
 
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
     const { company } = useMyCompany()
+    const { documents: companyDocuments } = useDocuments()
 
     const [supportType, setSupportType] = useState("")
     const [purchaseType, setPurchaseType] = useState("")
     const [industry, setIndustry] = useState("")
 
     const isFormValid = supportType && purchaseType
+
+    const matchDocumentsToRequired = () => {
+        const requiredDocs = getRequiredDocumentsForProduct("tender_support")
+        const requiredDocIds = requiredDocs.map(d => d.id)
+        const allDocs = company
+            ? companyDocuments.filter(d => d.company === company.id || d.company == null)
+            : companyDocuments
+
+        const autoSelectedIds = allDocs
+            .filter(d => requiredDocIds.includes(d.document_type_id))
+            .map(d => d.id)
+
+        const foundTypeIds = allDocs.map(d => d.document_type_id)
+        const missingRequired = requiredDocIds
+            .filter(id => !foundTypeIds.includes(id))
+            .map(id => ({ id, name: getDocumentTypeName(id, "tender_support") }))
+
+        return { autoSelectedIds, missingRequired }
+    }
 
     const handleCreateApplication = async () => {
         if (!isFormValid) {
@@ -60,6 +83,12 @@ export function ClientTenderSupportView() {
 
         try {
             setIsSubmitting(true)
+            const matched = matchDocumentsToRequired()
+            if (matched.missingRequired.length > 0) {
+                toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                    description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+                })
+            }
             const payload = {
                 company: company.id,
                 product_type: "tender_support" as const,
@@ -69,11 +98,13 @@ export function ClientTenderSupportView() {
                 tender_support_type: supportType,
                 purchase_category: purchaseApiValue,
                 industry: industry || undefined,
+                document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
             }
 
             const result = await createApplication(payload as Parameters<typeof createApplication>[0])
             if (result) {
                 toast.success(`Заявка №${result.id} создана`)
+                navigateToApplications({ appId: result.id })
             } else {
                 toast.error("Не удалось создать заявку")
             }

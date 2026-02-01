@@ -29,11 +29,13 @@ import {
     PlusCircle,
     Search
 } from "lucide-react"
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
 import { getCompanyBasicsError } from "@/lib/company-basics"
+import { navigateToApplications } from "@/lib/navigation"
+import { getDocumentTypeName, getRequiredDocumentsForProduct } from "@/lib/document-types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -98,12 +100,17 @@ export function CalculationSessionView({
     const [selectedBanks, setSelectedBanks] = useState<string[]>([])
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
+    const autoSelectDoneRef = useRef(false)
     
     // Add Bank Dialog state
     const [isAddBankDialogOpen, setIsAddBankDialogOpen] = useState(false)
     const [bankSearchQuery, setBankSearchQuery] = useState("")
     const [banksToAdd, setBanksToAdd] = useState<string[]>([])
     const [isAddingBanks, setIsAddingBanks] = useState(false)
+
+    useEffect(() => {
+        autoSelectDoneRef.current = false
+    }, [sessionId])
 
     // Filter available banks (not already in approved_banks)
     const availableBanksToAdd = useMemo(() => {
@@ -193,10 +200,24 @@ export function CalculationSessionView({
             return
         }
 
+        const requiredDocs = getRequiredDocumentsForProduct(session.product_type)
+        const requiredDocIds = requiredDocs.map(d => d.id)
+        const foundTypeIds = filteredDocuments.map(d => d.document_type_id)
+        const missingRequired = requiredDocIds
+            .filter(id => !foundTypeIds.includes(id))
+            .map(id => ({ id, name: getDocumentTypeName(id, session.product_type) }))
+
+        if (missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+
         setIsCreating(true)
         const successfulBankNames: string[] = []
         let successCount = 0
         let errorCount = 0
+        const createdApplicationIds: number[] = []
 
         // Helper to reconstruct goscontract_data based on product type
         const buildGoscontractData = (formData: any, productType: string) => {
@@ -308,6 +329,7 @@ export function CalculationSessionView({
                 if (result) {
                     successCount++
                     successfulBankNames.push(bankName)
+                    createdApplicationIds.push(result.id)
                 } else {
                     errorCount++
                 }
@@ -334,11 +356,18 @@ export function CalculationSessionView({
             setSelectedDocumentIds([])
 
             // Navigate to applications page after successful creation
-            if (onNavigateToApplications) {
-                setTimeout(() => {
+            setTimeout(() => {
+                if (onNavigateToApplications) {
                     onNavigateToApplications()
-                }, 500) // Small delay to show toast
-            }
+                }
+                if (createdApplicationIds.length === 1) {
+                    navigateToApplications({ appId: createdApplicationIds[0] })
+                } else if (createdApplicationIds.length > 1) {
+                    navigateToApplications({ highlightIds: createdApplicationIds })
+                } else {
+                    navigateToApplications()
+                }
+            }, 500) // Small delay to show toast
         } else {
             toast.error("Не удалось создать заявки")
         }
@@ -362,6 +391,28 @@ export function CalculationSessionView({
         }
         return labels[productType] || productType
     }
+
+    const filteredDocuments = useMemo(() => {
+        return session?.company
+            ? companyDocuments.filter(doc => doc.company === session.company || doc.company == null)
+            : []
+    }, [session?.company, companyDocuments])
+
+    useEffect(() => {
+        if (!session || filteredDocuments.length === 0 || autoSelectDoneRef.current) return
+
+        const requiredDocs = getRequiredDocumentsForProduct(session.product_type)
+        const requiredDocIds = requiredDocs.map(d => d.id)
+        const matchedIds = filteredDocuments
+            .filter(doc => requiredDocIds.includes(doc.document_type_id))
+            .map(doc => doc.id)
+
+        if (matchedIds.length > 0) {
+            setSelectedDocumentIds(prev => [...new Set([...prev, ...matchedIds])])
+        }
+
+        autoSelectDoneRef.current = true
+    }, [session, filteredDocuments])
 
     if (isLoading) {
         return (
@@ -389,10 +440,6 @@ export function CalculationSessionView({
     const submittedBanks = session.approved_banks.filter(
         bank => session.submitted_banks.includes(bank.name)
     )
-
-    const filteredDocuments = session?.company
-        ? companyDocuments.filter(doc => doc.company === session.company || doc.company == null)
-        : []
     const toggleDocumentSelection = (docId: number) => {
         setSelectedDocumentIds(prev =>
             prev.includes(docId)
