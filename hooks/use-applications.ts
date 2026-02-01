@@ -457,12 +457,17 @@ export interface PaginatedResponse<T> {
 }
 
 // Hook for listing applications
+// Fixed: Added hasInitiallyLoaded flag to prevent showing "not found" during initial load
 export function useApplications(statusFilter?: string) {
     const [applications, setApplications] = useState<ApplicationListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // Track if initial data has been loaded at least once
+    const hasInitiallyLoadedRef = useRef(false);
+    const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
     const fetchApplications = useCallback(async (params?: Record<string, string>) => {
+        // Don't reset applications to empty during refetch - keep stale data visible
         setIsLoading(true);
         setError(null);
 
@@ -473,6 +478,11 @@ export function useApplications(statusFilter?: string) {
             }
             const response = await api.get<PaginatedResponse<ApplicationListItem>>('/applications/', queryParams);
             setApplications(response.results);
+            // Mark as initially loaded after first successful fetch
+            if (!hasInitiallyLoadedRef.current) {
+                hasInitiallyLoadedRef.current = true;
+                setHasInitiallyLoaded(true);
+            }
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError.message || 'Ошибка загрузки заявок');
@@ -488,6 +498,7 @@ export function useApplications(statusFilter?: string) {
     return {
         applications,
         isLoading,
+        hasInitiallyLoaded,  // New: indicates if first load completed
         error,
         refetch: fetchApplications,
     };

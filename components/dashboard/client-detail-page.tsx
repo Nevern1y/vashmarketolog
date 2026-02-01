@@ -73,19 +73,10 @@ export function ClientDetailPage({
   // API Hooks
   const { client, isLoading: clientLoading, error: clientError, refetch: refetchClient } = useCRMClient(clientId)
   const { documents, isLoading: docsLoading, refetch: refetchDocs } = useDocuments({ company: clientId })
-  const { applications, isLoading: appsLoading, refetch: refetchApps } = useApplications()
+  const { applications, isLoading: appsLoading, hasInitiallyLoaded: appsInitiallyLoaded, refetch: refetchApps } = useApplications()
   
   // Filter applications for this client
-  // DEBUG: Log applications data to diagnose filtering issue
-  console.log('[ClientDetailPage] clientId:', clientId, 'type:', typeof clientId)
-  console.log('[ClientDetailPage] applications count:', applications.length)
-  if (applications.length > 0) {
-    console.log('[ClientDetailPage] First app:', { id: applications[0].id, company: applications[0].company, company_name: applications[0].company_name })
-    console.log('[ClientDetailPage] All app company IDs:', applications.map(a => ({ id: a.id, company: a.company, company_name: a.company_name })))
-  }
-  
   const clientApplications = applications.filter(app => String(app.company) === String(clientId))
-  console.log('[ClientDetailPage] Filtered clientApplications:', clientApplications.length)
   
   // Get client status badge
   const getClientStatusBadge = () => {
@@ -241,6 +232,7 @@ export function ClientDetailPage({
           <ClientApplicationsTab
             applications={clientApplications}
             isLoading={appsLoading}
+            hasInitiallyLoaded={appsInitiallyLoaded}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onApplicationClick={onApplicationClick}
@@ -274,6 +266,7 @@ export function ClientDetailPage({
 interface ApplicationsTabProps {
   applications: any[]
   isLoading: boolean
+  hasInitiallyLoaded?: boolean
   searchQuery: string
   onSearchChange: (query: string) => void
   onApplicationClick?: (id: number) => void
@@ -283,6 +276,7 @@ interface ApplicationsTabProps {
 function ClientApplicationsTab({
   applications,
   isLoading,
+  hasInitiallyLoaded,
   searchQuery,
   onSearchChange,
   onApplicationClick,
@@ -290,11 +284,14 @@ function ClientApplicationsTab({
 }: ApplicationsTabProps) {
   // Filter applications by search
   const filteredApps = applications.filter(app => {
+    // Show all applications if search is empty
+    if (!searchQuery.trim()) return true
+    
     const searchLower = searchQuery.toLowerCase()
     return (
-      app.application_number?.toLowerCase().includes(searchLower) ||
-      app.notice_number?.toLowerCase().includes(searchLower) ||
-      app.bank_name?.toLowerCase().includes(searchLower)
+      (app.application_number || '').toLowerCase().includes(searchLower) ||
+      (app.notice_number || '').toLowerCase().includes(searchLower) ||
+      (app.bank_name || '').toLowerCase().includes(searchLower)
     )
   })
   
