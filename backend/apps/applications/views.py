@@ -1022,6 +1022,48 @@ class CalculationSessionViewSet(viewsets.ModelViewSet):
         
         return Response(CalculationSessionSerializer(session, context={'request': request}).data)
 
+    @extend_schema(
+        request={'application/json': {'type': 'object', 'properties': {'banks': {'type': 'array', 'items': {'type': 'object'}}}}},
+        responses={200: CalculationSessionSerializer}
+    )
+    @action(detail=True, methods=['post'])
+    def add_banks(self, request, pk=None):
+        """
+        Add banks to approved_banks list.
+        POST /api/calculation-sessions/{id}/add_banks/
+        
+        Body: {"banks": [{"name": "Сбербанк", "bgRate": 2.5, "creditRate": 15, "speed": "Высокая", "individual": false}]}
+        """
+        session = self.get_object()
+        banks = request.data.get('banks', [])
+        
+        if not isinstance(banks, list):
+            return Response(
+                {'error': 'banks должен быть списком'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate each bank has required fields
+        required_fields = ['name', 'bgRate', 'creditRate', 'speed']
+        for bank in banks:
+            missing = [f for f in required_fields if f not in bank]
+            if missing:
+                return Response(
+                    {'error': f'Отсутствуют обязательные поля: {missing}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Get existing bank names to avoid duplicates
+        existing_names = {b['name'] for b in session.approved_banks}
+        
+        # Add new banks (avoid duplicates)
+        new_banks = [b for b in banks if b['name'] not in existing_names]
+        if new_banks:
+            session.approved_banks = session.approved_banks + new_banks
+            session.save()
+        
+        return Response(CalculationSessionSerializer(session, context={'request': request}).data)
+
 
 # =============================================================================
 # PUBLIC LEAD API (No authentication required)

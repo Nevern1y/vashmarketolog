@@ -240,9 +240,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         // Optional documents (without asterisk) - ALWAYS after required
         // Перенесены из обязательных: 201 (31.12.2023), 202 (31.12.2025), 204 (30.06.2025)
         const optionalDocs = [
+            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 204, required: false },
             { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2023 с квитанцией ИФНС", id: 201, required: false },
             { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 31.12.2025 с квитанцией ИФНС", id: 202, required: false },
-            { name: "Бухбаланс Ф1 и ОПиУ Ф2 на 30.06.2025", id: 204, required: false },
             { name: "Карточка 51 счета за 24 месяца по текущую дату", id: 80, required: false },
             { name: "Налоговая декларация на прибыль за 24 год с квитанцией ИФНС", id: 210, required: false },
             { name: "Налоговая декларация на прибыль за 25 год с квитанцией ИФНС", id: 211, required: false },
@@ -287,6 +287,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 return rkoDocs
             case 'insurance':
                 return insuranceDocs
+            case 'tender_support':
+                // Тендерное сопровождение - только карточка компании обязательна
+                return [{ name: "Карточка компании", id: 1, required: true }]
             default:
                 return [
                     ...requiredDocs,
@@ -1081,6 +1084,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                         {/* Title: Заявка #ID */}
                         <h1 className="text-lg md:text-2xl font-bold text-white flex flex-wrap items-center gap-2 md:gap-3">
                             <span className="truncate">Заявка #{application.id}</span>
+                            <Badge className="bg-[#3CE8D1]/20 text-[#3CE8D1] border-[#3CE8D1]/30 text-xs md:text-sm font-medium">
+                                {getProductTypeDisplay(application)}
+                            </Badge>
                             {application.target_bank_name && (
                                 <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs md:text-sm font-medium">
                                     {application.target_bank_name}

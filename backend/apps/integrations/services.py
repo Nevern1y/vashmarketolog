@@ -754,9 +754,10 @@ class BankIntegrationService:
                 application = Application.objects.get(id=application_id)
                 application.external_id = ticket_id_str
                 application.bank_status = 'Отправлено (Phase 1)'
-                # Update status to in_review after sending to bank
-                if application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
-                    application.status = ApplicationStatus.IN_REVIEW
+                # Update status to pending (Отправка на скоринг) after sending to bank
+                # Status will become in_review when bank starts processing
+                if application.status == ApplicationStatus.DRAFT:
+                    application.status = ApplicationStatus.PENDING
                 
                 # Save client data snapshot (Phase 2 enhancement)
                 # This preserves the company data at the time of submission
@@ -816,9 +817,10 @@ class BankIntegrationService:
             application = Application.objects.get(id=application_id)
             application.external_id = ticket_id_str
             application.bank_status = 'sent'
-            # Update status to in_review after sending to bank
-            if application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
-                application.status = ApplicationStatus.IN_REVIEW
+            # Update status to pending (Отправка на скоринг) after sending to bank
+            # Status will become in_review when bank starts processing (via sync_status)
+            if application.status == ApplicationStatus.DRAFT:
+                application.status = ApplicationStatus.PENDING
             application.save()
             logger.info(f"Application {application_id} saved with external_id={ticket_id_str}")
         except Exception as e:

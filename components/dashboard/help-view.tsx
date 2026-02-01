@@ -342,14 +342,14 @@ export function HelpView() {
                                         key={section.id}
                                         onClick={() => setActiveSection(section.id)}
                                         className={cn(
-                                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                                            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left",
                                             activeSection === section.id
                                                 ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
                                                 : "text-muted-foreground hover:text-foreground hover:bg-accent"
                                         )}
                                     >
-                                        <Icon className="h-4 w-4" />
-                                        {section.title}
+                                        <Icon className="h-4 w-4 flex-shrink-0" />
+                                        <span className="truncate">{section.title}</span>
                                     </button>
                                 )
                             })}

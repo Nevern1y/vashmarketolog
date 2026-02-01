@@ -1052,11 +1052,34 @@ export function useCalculationSessionMutations() {
         }
     }, []);
 
+    const addApprovedBanks = useCallback(async (
+        sessionId: number, 
+        banks: Array<{ name: string; bgRate: number; creditRate: number; speed: string; individual?: boolean }>
+    ): Promise<CalculationSession | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<CalculationSession>(
+                `/applications/calculation-sessions/${sessionId}/add_banks/`,
+                { banks }
+            );
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка добавления банков');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         isLoading,
         error,
         createSession,
         updateSubmittedBanks,
+        addApprovedBanks,
         clearError: () => setError(null),
     };
 }

@@ -315,12 +315,17 @@ const calculateOffers = (amount: number, law: string, days: number, productType:
     })
 
     // Сортировка по приоритету скорости: Высокая → Средняя → Низкая
+    // Банки с individual: true (Индивидуальное рассмотрение) всегда в конце
     const speedPriority: Record<string, number> = {
         "Высокая": 0,
         "Средняя": 1,
         "Низкая": 2
     }
     approved.sort((a, b) => {
+        // Individual banks always go to the end
+        if (a.individual && !b.individual) return 1
+        if (!a.individual && b.individual) return -1
+        
         const priorityA = speedPriority[a.speed] ?? 3
         const priorityB = speedPriority[b.speed] ?? 3
         return priorityA - priorityB
@@ -1285,8 +1290,14 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
         if (successCount > 0) {
             toast.success(`Создано заявок: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+            // Save sessionId before reset for redirect
+            const sessionIdForRedirect = currentSessionId
             setTimeout(() => {
-                router.push("/?view=applications")
+                if (sessionIdForRedirect) {
+                    router.push(`/?view=applications&session=${sessionIdForRedirect}`)
+                } else {
+                    router.push("/?view=applications")
+                }
             }, 400)
         } else {
             toast.error("Не удалось создать заявки")
@@ -1365,7 +1376,8 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             const result = await createApplication(payload as Parameters<typeof createApplication>[0])
             if (result) {
                 toast.success(`Заявка №${result.id} создана`)
-                router.push("/?view=applications")
+                // Redirect to the created application
+                router.push(`/?view=applications&appId=${result.id}`)
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1475,7 +1487,8 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             if (result) {
                 toast.success(`Заявка на международный платёж №${result.id} создана!`)
                 setTimeout(() => {
-                    router.push("/?view=applications")
+                    // Redirect to the created application
+                    router.push(`/?view=applications&appId=${result.id}`)
                 }, 400)
             } else {
                 toast.error("Не удалось создать заявку")
@@ -2290,6 +2303,15 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <Label className="text-sm text-[#94a3b8]">Дата окончания (авто)</Label>
+                                        <Input
+                                            type="date"
+                                            value={dateTo}
+                                            onChange={e => setDateTo(e.target.value)}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="text"
@@ -2303,15 +2325,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
                                         />
                                         <p className="text-xs text-[#94a3b8]">Введите срок, дата окончания рассчитается автоматически</p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Дата окончания (авто)</Label>
-                                        <Input
-                                            type="date"
-                                            value={dateTo}
-                                            onChange={e => setDateTo(e.target.value)}
-                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert"
-                                        />
                                     </div>
                                 </div>
                             </div>
@@ -2992,7 +3005,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             <SelectValue placeholder="Выберите срок" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map(m =>
+                                            {Array.from({ length: 60 }, (_, i) => i + 1).map(m =>
                                                 <SelectItem key={m} value={String(m)}>{m} мес.</SelectItem>
                                             )}
                                         </SelectContent>

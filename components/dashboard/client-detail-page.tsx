@@ -25,6 +25,9 @@ import {
   ExternalLink,
   Search,
   Filter,
+  Pencil,
+  X,
+  Check,
 } from "lucide-react"
 import { useCRMClient, useCRMClientMutations } from "@/hooks/use-companies"
 import { useDocuments, useDocumentMutations, formatDocumentType } from "@/hooks/use-documents"
@@ -73,7 +76,7 @@ export function ClientDetailPage({
   const { applications, isLoading: appsLoading, refetch: refetchApps } = useApplications()
   
   // Filter applications for this client
-  const clientApplications = applications.filter(app => app.company === clientId)
+  const clientApplications = applications.filter(app => String(app.company) === String(clientId))
   
   // Get client status badge
   const getClientStatusBadge = () => {
@@ -415,6 +418,93 @@ interface InfoTabProps {
 }
 
 function ClientInfoTab({ client, onRefresh }: InfoTabProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const { updateClient } = useCRMClientMutations()
+  
+  // Form state for editing
+  const [formData, setFormData] = useState({
+    name: client.name || '',
+    short_name: client.short_name || '',
+    inn: client.inn || '',
+    kpp: client.kpp || '',
+    ogrn: client.ogrn || '',
+    region: client.region || '',
+    employee_count: client.employee_count || '',
+    legal_address: client.legal_address || '',
+    actual_address: client.actual_address || '',
+    director_name: client.director_name || '',
+    director_position: client.director_position || '',
+    contact_person: client.contact_person || '',
+    contact_phone: client.contact_phone || '',
+    contact_email: client.contact_email || '',
+    website: client.website || '',
+  })
+  
+  // Reset form when client changes
+  useEffect(() => {
+    setFormData({
+      name: client.name || '',
+      short_name: client.short_name || '',
+      inn: client.inn || '',
+      kpp: client.kpp || '',
+      ogrn: client.ogrn || '',
+      region: client.region || '',
+      employee_count: client.employee_count || '',
+      legal_address: client.legal_address || '',
+      actual_address: client.actual_address || '',
+      director_name: client.director_name || '',
+      director_position: client.director_position || '',
+      contact_person: client.contact_person || '',
+      contact_phone: client.contact_phone || '',
+      contact_email: client.contact_email || '',
+      website: client.website || '',
+    })
+  }, [client])
+  
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+  
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const result = await updateClient(client.id, formData)
+      if (result) {
+        toast.success('Данные компании обновлены')
+        setIsEditing(false)
+        onRefresh()
+      } else {
+        toast.error('Ошибка сохранения данных')
+      }
+    } catch {
+      toast.error('Ошибка сохранения данных')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+  
+  const handleCancel = () => {
+    setFormData({
+      name: client.name || '',
+      short_name: client.short_name || '',
+      inn: client.inn || '',
+      kpp: client.kpp || '',
+      ogrn: client.ogrn || '',
+      region: client.region || '',
+      employee_count: client.employee_count || '',
+      legal_address: client.legal_address || '',
+      actual_address: client.actual_address || '',
+      director_name: client.director_name || '',
+      director_position: client.director_position || '',
+      contact_person: client.contact_person || '',
+      contact_phone: client.contact_phone || '',
+      contact_email: client.contact_email || '',
+      website: client.website || '',
+    })
+    setIsEditing(false)
+  }
+  
   // Calculate completion percentages (simplified)
   const sections = [
     { name: "Общая информация", filled: client.name && client.inn ? 67 : 0 },
@@ -427,66 +517,81 @@ function ClientInfoTab({ client, onRefresh }: InfoTabProps) {
     { name: "Контактные лица", filled: client.contact_person ? 100 : 0 },
   ]
   
+  // Editable field component
+  const EditableField = ({ label, field, type = "text", colSpan = false, mono = false }: { 
+    label: string
+    field: keyof typeof formData
+    type?: string 
+    colSpan?: boolean
+    mono?: boolean
+  }) => (
+    <div className={colSpan ? "md:col-span-2" : ""}>
+      <Label className="text-muted-foreground">{label}</Label>
+      {isEditing ? (
+        <Input
+          type={type}
+          value={formData[field]}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className={`mt-1 ${mono ? 'font-mono' : ''}`}
+        />
+      ) : (
+        <div className={`mt-1 p-2 bg-muted/50 rounded ${mono ? 'font-mono' : ''}`}>
+          {String(formData[field]) || '—'}
+        </div>
+      )}
+    </div>
+  )
+  
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Main form */}
       <div className="lg:col-span-3">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Общая информация</CardTitle>
+            <div className="flex gap-2">
+              {isEditing ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                    <X className="h-4 w-4 mr-1" />
+                    Отмена
+                  </Button>
+                  <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-1" />
+                    )}
+                    Сохранить
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Редактировать
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-muted-foreground">ИНН</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded font-mono">{client.inn || '—'}</div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">КПП</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded font-mono">{client.kpp || '—'}</div>
-              </div>
-              <div className="md:col-span-2">
-                <Label className="text-muted-foreground">Полное наименование</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded">{client.name || '—'}</div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Сокращённое наименование</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded">{client.short_name || '—'}</div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">ОГРН</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded font-mono">{client.ogrn || '—'}</div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Регион</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded">{client.region || '—'}</div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Количество сотрудников</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded">{client.employee_count || '—'}</div>
-              </div>
-              <div className="md:col-span-2">
-                <Label className="text-muted-foreground">Юридический адрес</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded">{client.legal_address || '—'}</div>
-              </div>
-              <div className="md:col-span-2">
-                <Label className="text-muted-foreground">Фактический адрес</Label>
-                <div className="mt-1 p-2 bg-muted/50 rounded">{client.actual_address || '—'}</div>
-              </div>
+              <EditableField label="ИНН" field="inn" mono />
+              <EditableField label="КПП" field="kpp" mono />
+              <EditableField label="Полное наименование" field="name" colSpan />
+              <EditableField label="Сокращённое наименование" field="short_name" />
+              <EditableField label="ОГРН" field="ogrn" mono />
+              <EditableField label="Регион" field="region" />
+              <EditableField label="Количество сотрудников" field="employee_count" type="number" />
+              <EditableField label="Юридический адрес" field="legal_address" colSpan />
+              <EditableField label="Фактический адрес" field="actual_address" colSpan />
             </div>
             
             {/* Director section */}
             <div className="pt-4 border-t">
               <h4 className="font-medium mb-4">Руководитель</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">ФИО</Label>
-                  <div className="mt-1 p-2 bg-muted/50 rounded">{client.director_name || '—'}</div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Должность</Label>
-                  <div className="mt-1 p-2 bg-muted/50 rounded">{client.director_position || '—'}</div>
-                </div>
+                <EditableField label="ФИО" field="director_name" />
+                <EditableField label="Должность" field="director_position" />
               </div>
             </div>
             
@@ -494,22 +599,10 @@ function ClientInfoTab({ client, onRefresh }: InfoTabProps) {
             <div className="pt-4 border-t">
               <h4 className="font-medium mb-4">Контактная информация</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Контактное лицо</Label>
-                  <div className="mt-1 p-2 bg-muted/50 rounded">{client.contact_person || '—'}</div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Телефон</Label>
-                  <div className="mt-1 p-2 bg-muted/50 rounded">{client.contact_phone || '—'}</div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Email</Label>
-                  <div className="mt-1 p-2 bg-muted/50 rounded">{client.contact_email || '—'}</div>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Сайт</Label>
-                  <div className="mt-1 p-2 bg-muted/50 rounded">{client.website || '—'}</div>
-                </div>
+                <EditableField label="Контактное лицо" field="contact_person" />
+                <EditableField label="Телефон" field="contact_phone" />
+                <EditableField label="Email" field="contact_email" type="email" />
+                <EditableField label="Сайт" field="website" />
               </div>
             </div>
           </CardContent>

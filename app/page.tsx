@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import type { ClientViewType, ViewType, AgentViewType } from "@/lib/types"
 import type { CalculatorPrefill } from "@/lib/calculator-prefill"
 import { useAuth } from "@/lib/auth-context"
-import { usePersistedView, usePersistedAppDetail } from "@/hooks/use-persisted-view"
+import { usePersistedView, usePersistedAppDetail, usePersistedSession } from "@/hooks/use-persisted-view"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { ClientSidebar } from "@/components/dashboard/client-sidebar"
 import { PartnerLayout } from "@/components/dashboard/partner-layout"
@@ -57,12 +57,14 @@ export default function DashboardPage() {
   const { appId: selectedApplicationId, openDetail, closeDetail } = usePersistedAppDetail()
   const showingAppDetail = !!selectedApplicationId
 
+  // URL-based calculation session state
+  const { sessionId: selectedCalculationSessionId, openSession: setSelectedCalculationSessionId, closeSession: closeCalculationSessionUrl } = usePersistedSession()
+
   // UI states (these don't need to persist)
   // НЕ НУЖНАЯ РЕАЛИЗАЦИЯ: Wizard заменен на переход в калькулятор
   // const [isWizardOpen, setIsWizardOpen] = useState(false)
   // const [wizardClientId, setWizardClientId] = useState<number | null>(null)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
-  const [selectedCalculationSessionId, setSelectedCalculationSessionId] = useState<number | null>(null)
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
   const [calculatorPrefill, setCalculatorPrefill] = useState<CalculatorPrefill | null>(null)
 
@@ -80,7 +82,7 @@ export default function DashboardPage() {
 
   const openCalculatorFromApplication = (prefill: CalculatorPrefill) => {
     setCalculatorPrefill(prefill)
-    setSelectedCalculationSessionId(null)
+    closeCalculationSessionUrl()
     closeDetail()
 
     if (user?.role === 'agent') {
@@ -103,7 +105,7 @@ export default function DashboardPage() {
   }
 
   const closeCalculationSession = () => {
-    setSelectedCalculationSessionId(null)
+    closeCalculationSessionUrl()
   }
 
   // Navigation to client detail page
@@ -233,7 +235,10 @@ export default function DashboardPage() {
             <div className="hidden lg:block">
               <Sidebar
                 activeView={agentView}
-                onViewChange={setAgentView}
+                onViewChange={(view) => {
+                  setAgentView(view)
+                  closeDetail()  // Закрываем деталь заявки при навигации
+                }}
                 onCreateApplication={() => openWizard()}
               />
             </div>
@@ -249,6 +254,7 @@ export default function DashboardPage() {
                   onViewChange={(view) => {
                     setAgentView(view)
                     setIsMobileSidebarOpen(false)
+                    closeDetail()  // Закрываем деталь заявки при навигации
                   }}
                   onCreateApplication={() => {
                     openWizard()
@@ -450,7 +456,10 @@ export default function DashboardPage() {
             <div className="hidden lg:block">
               <ClientSidebar
                 activeView={clientView}
-                onViewChange={setClientView}
+                onViewChange={(view) => {
+                  setClientView(view)
+                  closeDetail()  // Закрываем деталь заявки при навигации
+                }}
                 onCreateApplication={() => openWizard()}
               />
             </div>
@@ -466,6 +475,7 @@ export default function DashboardPage() {
                   onViewChange={(view) => {
                     setClientView(view)
                     setIsMobileSidebarOpen(false)
+                    closeDetail()  // Закрываем деталь заявки при навигации
                   }}
                   onCreateApplication={() => {
                     openWizard()

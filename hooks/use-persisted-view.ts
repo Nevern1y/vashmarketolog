@@ -116,3 +116,51 @@ export function usePersistedAppDetail(): {
 
     return { appId: localAppId, openDetail, closeDetail }
 }
+
+/**
+ * Hook to manage calculation session view state in URL
+ */
+export function usePersistedSession(): {
+    sessionId: number | null
+    openSession: (id: number) => void
+    closeSession: () => void
+} {
+    // Use useSyncExternalStore for URL sync
+    const urlSearch = useSyncExternalStore(subscribeToUrl, getUrlSnapshot, getServerSnapshot)
+
+    // Get session from URL
+    const getSessionFromUrl = useCallback((): number | null => {
+        if (typeof window === 'undefined') return null
+        const params = new URLSearchParams(urlSearch)
+        const sessionStr = params.get("session")
+        return sessionStr ? parseInt(sessionStr, 10) : null
+    }, [urlSearch])
+
+    // Local state
+    const [localSessionId, setLocalSessionId] = useState<number | null>(() => getSessionFromUrl())
+
+    // Sync when URL changes externally
+    useEffect(() => {
+        setLocalSessionId(getSessionFromUrl())
+    }, [urlSearch, getSessionFromUrl])
+
+    const openSession = useCallback((id: number) => {
+        setLocalSessionId(id)
+        if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href)
+            url.searchParams.set("session", String(id))
+            window.history.replaceState(window.history.state, '', url.toString())
+        }
+    }, [])
+
+    const closeSession = useCallback(() => {
+        setLocalSessionId(null)
+        if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href)
+            url.searchParams.delete("session")
+            window.history.replaceState(window.history.state, '', url.toString())
+        }
+    }, [])
+
+    return { sessionId: localSessionId, openSession, closeSession }
+}

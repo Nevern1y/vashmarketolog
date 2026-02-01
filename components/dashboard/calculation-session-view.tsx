@@ -25,13 +25,54 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Plus
+    Plus,
+    PlusCircle,
+    Search
 } from "lucide-react"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/lib/auth-context"
 import { getCompanyBasicsError } from "@/lib/company-basics"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+// Bank database for adding new banks to session
+interface BankInfo {
+    name: string
+    bgRate: number
+    creditRate: number
+    speed: string
+    individual?: boolean
+    type?: string
+}
+
+const ALL_BANKS: BankInfo[] = [
+    { name: "Сбербанк", bgRate: 2.5, creditRate: 15, speed: "Низкая" },
+    { name: "ВТБ", bgRate: 2.8, creditRate: 14.5, speed: "Средняя" },
+    { name: "Альфа-Банк", bgRate: 3.0, creditRate: 16, speed: "Высокая" },
+    { name: "Промсвязьбанк", bgRate: 2.7, creditRate: 15.5, speed: "Высокая" },
+    { name: "Совкомбанк", bgRate: 3.2, creditRate: 17, speed: "Высокая" },
+    { name: "Газпромбанк", bgRate: 2.3, creditRate: 13, speed: "Низкая" },
+    { name: "Тинькофф", bgRate: 4.0, creditRate: 18, speed: "Высокая" },
+    { name: "Открытие", bgRate: 2.9, creditRate: 15, speed: "Средняя" },
+    { name: "Райффайзен", bgRate: 2.6, creditRate: 14, speed: "Средняя" },
+    { name: "Локо-Банк", bgRate: 3.5, creditRate: 19, speed: "Высокая" },
+    { name: "МКБ", bgRate: 2.8, creditRate: 15.5, speed: "Средняя" },
+    { name: "Уралсиб", bgRate: 3.1, creditRate: 16.5, speed: "Средняя" },
+    { name: "Индивидуальное рассмотрение", bgRate: 0, creditRate: 0, speed: "Высокая", individual: true },
+    // Leasing companies
+    { name: "Эволюция (Лизинг)", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
+    { name: "Carcade (Лизинг)", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
+    { name: "Европлан (Лизинг)", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
+    { name: "ВТБ Лизинг", bgRate: 0, creditRate: 0, speed: "Средняя", type: "leasing" },
+    { name: "ПСБ Лизинг", bgRate: 0, creditRate: 0, speed: "Средняя", type: "leasing" },
+    { name: "Газпромбанк Автолизинг", bgRate: 0, creditRate: 0, speed: "Средняя", type: "leasing" },
+    { name: "Ресо Лизинг", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
+    { name: "Контрол Лизинг", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
+    { name: "МГКЛ (Лизинг)", bgRate: 0, creditRate: 0, speed: "Средняя", type: "leasing" },
+]
 
 interface CalculationSessionViewProps {
     sessionId: number
@@ -48,7 +89,7 @@ export function CalculationSessionView({
 }: CalculationSessionViewProps) {
     const { session, isLoading, error, refetch: refetchSession } = useCalculationSession(sessionId)
     const { createApplication } = useApplicationMutations()
-    const { updateSubmittedBanks } = useCalculationSessionMutations()
+    const { updateSubmittedBanks, addApprovedBanks } = useCalculationSessionMutations()
     const { documents: companyDocuments, isLoading: documentsLoading } = useDocuments({ company: session?.company, includeUnassigned: true })
     const { user } = useAuth()
     const { company: myCompany } = useMyCompany()
@@ -57,6 +98,70 @@ export function CalculationSessionView({
     const [selectedBanks, setSelectedBanks] = useState<string[]>([])
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
+    
+    // Add Bank Dialog state
+    const [isAddBankDialogOpen, setIsAddBankDialogOpen] = useState(false)
+    const [bankSearchQuery, setBankSearchQuery] = useState("")
+    const [banksToAdd, setBanksToAdd] = useState<string[]>([])
+    const [isAddingBanks, setIsAddingBanks] = useState(false)
+
+    // Filter available banks (not already in approved_banks)
+    const availableBanksToAdd = useMemo(() => {
+        if (!session) return ALL_BANKS
+        const existingNames = new Set(session.approved_banks.map(b => b.name))
+        const isLeasing = session.product_type === 'leasing'
+        
+        return ALL_BANKS.filter(bank => {
+            // Filter by type
+            if (isLeasing && bank.type !== 'leasing') return false
+            if (!isLeasing && bank.type === 'leasing') return false
+            // Not already in session
+            if (existingNames.has(bank.name)) return false
+            // Search filter
+            if (bankSearchQuery && !bank.name.toLowerCase().includes(bankSearchQuery.toLowerCase())) return false
+            return true
+        })
+    }, [session, bankSearchQuery])
+
+    const handleAddBanks = async () => {
+        if (banksToAdd.length === 0 || !session) return
+        
+        setIsAddingBanks(true)
+        try {
+            const banksData = banksToAdd.map(name => {
+                const bank = ALL_BANKS.find(b => b.name === name)
+                return bank ? {
+                    name: bank.name,
+                    bgRate: bank.bgRate,
+                    creditRate: bank.creditRate,
+                    speed: bank.speed,
+                    individual: bank.individual,
+                } : null
+            }).filter(Boolean) as BankInfo[]
+            
+            const result = await addApprovedBanks(session.id, banksData)
+            if (result) {
+                toast.success(`Добавлено банков: ${banksData.length}`)
+                setBanksToAdd([])
+                setIsAddBankDialogOpen(false)
+                await refetchSession()
+            } else {
+                toast.error("Ошибка добавления банков")
+            }
+        } catch {
+            toast.error("Ошибка добавления банков")
+        } finally {
+            setIsAddingBanks(false)
+        }
+    }
+
+    const toggleBankToAdd = (bankName: string) => {
+        setBanksToAdd(prev => 
+            prev.includes(bankName)
+                ? prev.filter(b => b !== bankName)
+                : [...prev, bankName]
+        )
+    }
 
     const handleBankToggle = useCallback((bankName: string) => {
         setSelectedBanks(prev =>
@@ -332,10 +437,21 @@ export function CalculationSessionView({
             {/* Summary Card */}
             <Card className="bg-[#0f2042] border-[#1e3a5f]">
                 <CardHeader className="pb-3">
-                    <CardTitle className="text-white flex items-center gap-2">
-                        <Building2 className="h-5 w-5 text-[#3CE8D1]" />
-                        Результат отбора банков
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-white flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-[#3CE8D1]" />
+                            Результат отбора банков
+                        </CardTitle>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsAddBankDialogOpen(true)}
+                            className="border-[#3CE8D1]/50 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                        >
+                            <PlusCircle className="h-4 w-4 mr-2" />
+                            Добавить банк
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -549,6 +665,113 @@ export function CalculationSessionView({
                     </CardContent>
                 </Card>
             )}
+
+            {/* Add Bank Dialog */}
+            <Dialog open={isAddBankDialogOpen} onOpenChange={setIsAddBankDialogOpen}>
+                <DialogContent className="bg-[#0f2042] border-[#1e3a5f] max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-white flex items-center gap-2">
+                            <PlusCircle className="h-5 w-5 text-[#3CE8D1]" />
+                            Добавить банк
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4">
+                        {/* Search */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#94a3b8]" />
+                            <Input
+                                placeholder="Поиск банка..."
+                                value={bankSearchQuery}
+                                onChange={(e) => setBankSearchQuery(e.target.value)}
+                                className="pl-10 bg-[#1a2942] border-[#2a3a5c] text-white placeholder:text-[#94a3b8]"
+                            />
+                        </div>
+                        
+                        {/* Bank list */}
+                        <ScrollArea className="h-[300px] pr-4">
+                            <div className="space-y-2">
+                                {availableBanksToAdd.length === 0 ? (
+                                    <p className="text-center text-[#94a3b8] py-8">
+                                        {bankSearchQuery ? 'Банки не найдены' : 'Все доступные банки уже добавлены'}
+                                    </p>
+                                ) : (
+                                    availableBanksToAdd.map((bank) => {
+                                        const isSelected = banksToAdd.includes(bank.name)
+                                        return (
+                                            <div
+                                                key={bank.name}
+                                                onClick={() => toggleBankToAdd(bank.name)}
+                                                className={cn(
+                                                    "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all",
+                                                    isSelected
+                                                        ? "bg-[#3CE8D1]/10 border-[#3CE8D1]/50"
+                                                        : "bg-[#1a2942]/50 border-[#2a3a5c]/50 hover:bg-[#1a2942]"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Checkbox
+                                                        checked={isSelected}
+                                                        className="border-[#3CE8D1]/50 data-[state=checked]:bg-[#3CE8D1] data-[state=checked]:border-[#3CE8D1]"
+                                                    />
+                                                    <div>
+                                                        <span className="text-white font-medium">{bank.name}</span>
+                                                        {bank.individual && (
+                                                            <Badge className="ml-2 bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                                                                Индивидуально
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="text-sm text-[#94a3b8]">
+                                                    {bank.speed}
+                                                </div>
+                                            </div>
+                                        )
+                                    })
+                                )}
+                            </div>
+                        </ScrollArea>
+                        
+                        {banksToAdd.length > 0 && (
+                            <p className="text-sm text-[#94a3b8]">
+                                Выбрано: <span className="text-[#3CE8D1] font-medium">{banksToAdd.length}</span>
+                            </p>
+                        )}
+                    </div>
+                    
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsAddBankDialogOpen(false)
+                                setBanksToAdd([])
+                                setBankSearchQuery("")
+                            }}
+                            className="border-[#2a3a5c] text-[#94a3b8] hover:bg-[#1a2942]"
+                        >
+                            Отмена
+                        </Button>
+                        <Button
+                            onClick={handleAddBanks}
+                            disabled={banksToAdd.length === 0 || isAddingBanks}
+                            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#3CE8D1]/90"
+                        >
+                            {isAddingBanks ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Добавление...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Добавить ({banksToAdd.length})
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -2788,7 +2788,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                             <SelectValue placeholder="Выберите срок" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16].map(m =>
+                                            {Array.from({ length: 60 }, (_, i) => i + 1).map(m =>
                                                 <SelectItem key={m} value={String(m)}>{m} мес.</SelectItem>
                                             )}
                                         </SelectContent>

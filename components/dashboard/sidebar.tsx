@@ -12,6 +12,7 @@ import {
   FileCheck,
   Landmark,
   PhoneCall,
+  Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -48,6 +49,7 @@ export function Sidebar({ activeView, onViewChange, onCreateApplication }: Sideb
   const toolsNavItems = [
     { id: "news" as ViewType, label: "Новости", icon: Newspaper },
     { id: "call_database" as ViewType, label: "База для прозвона", icon: PhoneCall },
+    { id: "check_counterparty" as ViewType, label: "Проверка контрагента", icon: Search },
     { id: "help" as ViewType, label: "Помощь", icon: HelpCircle },
   ]
 
