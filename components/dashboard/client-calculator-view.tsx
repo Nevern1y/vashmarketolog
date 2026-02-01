@@ -347,22 +347,6 @@ const SpeedBadge = ({ speed }: { speed: string }) => {
     return <span className={cn("px-2 py-0.5 rounded text-xs", colors[speed] || colors["Низкая"])}>{speed}</span>
 }
 
-// RKO/Specaccount/VED Application interface
-interface RkoApplication {
-    id: number
-    bank: string
-    createdAt: string
-    status: "creating" | "sent" | "approved" | "rejected"
-    tariff: string
-    type: "rko" | "specaccount" | "ved"
-    messages: { sender: string; text: string; time: string }[]
-    // VED specific fields
-    amount?: number
-    currency?: string
-    country?: string
-    purpose?: string
-}
-
 // VED Banks database
 const VED_BANKS = [
     { name: "Райффайзен", rating: "A+", sanctions: "Да", currencies: ["USD", "EUR", "CNY"], countries: ["Китай", "ОАЭ", "Турция", "Казахстан"] },
@@ -371,9 +355,6 @@ const VED_BANKS = [
     { name: "Альфа-Банк", rating: "A", sanctions: "Да", currencies: ["CNY", "TRY"], countries: ["Китай", "Турция", "ОАЭ"] },
     { name: "ВТБ", rating: "A+", sanctions: "Да", currencies: ["CNY", "AED"], countries: ["Китай", "ОАЭ", "Казахстан"] },
 ]
-
-// Initial applications (empty - will be populated from API)
-const INITIAL_APPLICATIONS: RkoApplication[] = []
 
 // =============================================================================
 // MAIN COMPONENT
@@ -395,10 +376,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const { createApplication, isLoading: isCreatingApplication } = useApplicationMutations()
     const { createSession, updateSubmittedBanks } = useCalculationSessionMutations()
     const { company, isLoading: isLoadingCompany } = useMyCompany()
-
-    // RKO/Specaccount applications state
-    const [applications, setApplications] = useState<RkoApplication[]>(INITIAL_APPLICATIONS)
-    const [selectedApplication, setSelectedApplication] = useState<RkoApplication | null>(null)
 
     // Shared form state
     const [federalLaw, setFederalLaw] = useState("44")
@@ -1253,19 +1230,9 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         try {
             const result = await createApplication(payload as Parameters<typeof createApplication>[0])
             if (result) {
-                // Update local state for UI display
-                const newApp: RkoApplication = {
-                    id: result.id,
-                    bank,
-                    createdAt: result.created_at || new Date().toISOString().replace("T", " ").slice(0, 19),
-                    status: "creating",
-                    tariff: "-",
-                    type,
-                    messages: []
-                }
-                setApplications(prev => [newApp, ...prev])
-                setSelectedApplication(newApp)
                 toast.success(`Заявка №${result.id} в ${bank} создана`)
+                // Redirect to the standard application detail view
+                router.push(`/?view=applications&appId=${result.id}`)
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1273,20 +1240,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             console.error('Error creating RKO application:', err)
             toast.error("Ошибка при создании заявки")
         }
-    }
-
-    // Send application
-    const sendApplication = (app: RkoApplication) => {
-        setApplications(prev => prev.map(a => a.id === app.id ? { ...a, status: "sent" as const } : a))
-        setSelectedApplication(prev => prev?.id === app.id ? { ...prev, status: "sent" } : prev)
-        toast.success(`Заявка №${app.id} отправлена`)
-    }
-
-    // Delete application
-    const deleteApplication = (app: RkoApplication) => {
-        setApplications(prev => prev.filter(a => a.id !== app.id))
-        setSelectedApplication(null)
-        toast.success(`Заявка №${app.id} удалена`)
     }
 
     // Create VED (International Payments) application - REAL API INTEGRATION
@@ -1332,26 +1285,9 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         try {
             const result = await createApplication(payload as Parameters<typeof createApplication>[0])
             if (result) {
-                // Create local application for UI
-                const newApp: RkoApplication = {
-                    id: result.id,
-                    bank: bankName || "Индивидуальный подбор",
-                    createdAt: result.created_at || new Date().toISOString().replace("T", " ").slice(0, 19),
-                    status: "creating",
-                    tariff: "-",
-                    type: "ved",
-                    messages: [],
-                    amount: amount,
-                    currency: vedCurrency,
-                    country: vedCountry,
-                    purpose: vedPurpose,
-                }
-                setApplications(prev => [newApp, ...prev])
-                setSelectedApplication(newApp)
                 toast.success(`Заявка на международный платёж №${result.id} создана!`)
-                setTimeout(() => {
-                    router.push("/?view=applications")
-                }, 400)
+                // Redirect to standard application detail view
+                router.push(`/?view=applications&appId=${result.id}`)
             } else {
                 toast.error("Не удалось создать заявку")
             }
@@ -1363,16 +1299,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         }
     }
 
-    // Get status label and color
-    const getStatusInfo = (status: RkoApplication["status"]) => {
-        const info: Record<typeof status, { label: string; color: string }> = {
-            creating: { label: "СОЗДАНИЕ ЗАЯВКИ", color: "bg-yellow-500" },
-            sent: { label: "ОТПРАВЛЕНА", color: "bg-blue-500" },
-            approved: { label: "ОДОБРЕНА", color: "bg-green-500" },
-            rejected: { label: "ОТКЛОНЕНА", color: "bg-red-500" }
-        }
-        return info[status]
-    }
     // Product cards data - with descriptions for professional card UI
     const productCards = [
         { id: "bg", label: "Банковская гарантия", icon: FileText, description: "Гарантии для тендеров по 44-ФЗ, 223-ФЗ, КБГ" },
@@ -2831,110 +2757,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
                 {/* TAB: INTERNATIONAL PAYMENTS - Premium Redesign */}
                 <TabsContent value="ved" className="mt-6">
-                    {selectedApplication && selectedApplication.type === "ved" ? (
-                        /* Application Detail View with Breadcrumbs */
-                        <div className="space-y-4">
-                            {/* Breadcrumb */}
-                            <div className="flex items-center gap-2 text-sm">
-                                <Button variant="link" className="p-0 h-auto text-[#3CE8D1] font-medium" onClick={() => setSelectedApplication(null)}>
-                                    ← Международные платежи
-                                </Button>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="text-muted-foreground">ВЭД</span>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="font-medium">Заявка #{selectedApplication.id}</span>
-                            </div>
-
-                            {/* Main Content Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                                {/* Left Column - Application Info */}
-                                <div className="lg:col-span-2 space-y-4">
-                                    {/* Header Card with Status */}
-                                    <Card className="border-l-4 border-l-[#3CE8D1]">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div>
-                                                    <h2 className="text-lg font-bold text-foreground">Заявка #{selectedApplication.id}</h2>
-                                                    <p className="text-sm text-muted-foreground">Международный платёж</p>
-                                                </div>
-                                                <Badge className={cn("text-white", getStatusInfo(selectedApplication.status).color)}>
-                                                    {getStatusInfo(selectedApplication.status).label}
-                                                </Badge>
-                                            </div>
-
-                                            {/* Key Info Grid */}
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Сумма</p>
-                                                    <p className="font-medium text-[#3CE8D1]">{formatNumber(selectedApplication.amount || 0)} {selectedApplication.currency}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Страна</p>
-                                                    <p className="font-medium">{selectedApplication.country}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Банк</p>
-                                                    <p className="font-medium">{selectedApplication.bank}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Дата создания</p>
-                                                    <p className="font-medium text-[#3CE8D1]">{selectedApplication.createdAt.split(" ")[0]}</p>
-                                                </div>
-                                                {selectedApplication.purpose && (
-                                                    <div className="bg-muted/30 rounded-lg p-3 col-span-2">
-                                                        <p className="text-xs text-muted-foreground mb-1">Цель платежа</p>
-                                                        <p className="font-medium">{selectedApplication.purpose}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Status Message Card */}
-                                    <Card className="bg-muted/20">
-                                        <CardContent className="p-4 text-center">
-                                            <CheckCircle2 className="h-10 w-10 mx-auto text-[#3CE8D1]/50 mb-2" />
-                                            <p className="text-sm font-medium text-foreground mb-1">
-                                                Заявка готова к отправке
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Менеджер свяжется с вами для уточнения деталей
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Actions Card */}
-                                    <Card>
-                                        <CardContent className="p-4 space-y-3">
-                                            <Button
-                                                onClick={() => sendApplication(selectedApplication)}
-                                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium"
-                                            >
-                                                ОТПРАВИТЬ ЗАЯВКУ
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                                onClick={() => deleteApplication(selectedApplication)}
-                                            >
-                                                Удалить заявку
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Right Column - Chat */}
-                                <div className="lg:col-span-3">
-                                    <ApplicationChat
-                                        applicationId={selectedApplication.id}
-                                        className="h-[500px] lg:h-[600px]"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Form + Banks List */
-                        <div className="space-y-6">
+                    {/* Form + Banks List */}
+                    <div className="space-y-6">
                             <Card className="border border-[#2a3a5c]/50 bg-gradient-to-br from-[#0f1d32] to-[#0a1425] shadow-2xl overflow-hidden">
                                 <CardHeader className="relative pb-6 border-b border-[#2a3a5c]/30">
                                     <div className="absolute inset-0 bg-gradient-to-r from-[#3CE8D1]/5 via-transparent to-[#3CE8D1]/5" />
@@ -3080,7 +2904,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 </CardContent>
                             </Card>
                         </div>
-                    )}
                 </TabsContent>
 
                 {/* TAB: DEPOSITS */}
@@ -3135,291 +2958,53 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
                 {/* TAB 6: RKO */}
                 <TabsContent value="rko">
-                    {selectedApplication && selectedApplication.type === "rko" ? (
-                        /* Application Detail View - Clean 2-Column Layout */
-                        <div className="space-y-4">
-                            {/* Breadcrumb */}
-                            <div className="flex items-center gap-2 text-sm">
-                                <Button variant="link" className="p-0 h-auto text-[#3CE8D1] font-medium" onClick={() => setSelectedApplication(null)}>
-                                    ← Мои заявки
-                                </Button>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="text-muted-foreground">РКО</span>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="font-medium">Заявка #{selectedApplication.id}</span>
+                    {/* Banks List */}
+                    <Card>
+                        <CardHeader><CardTitle>РКО (Расчётно-кассовое обслуживание)</CardTitle></CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">Всего: {RKO_BANKS.length} банков</p>
+                            <div className="rounded-lg border overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-muted/50"><tr><th className="text-left p-3">Банк</th><th className="text-left p-3">Рейтинг</th><th className="text-left p-3">Санкции</th><th className="text-left p-3">Стоимость</th><th className="text-left p-3"></th></tr></thead>
+                                    <tbody>
+                                        {RKO_BANKS.map((bank, i) => (
+                                            <tr key={i} className="border-t">
+                                                <td className="p-3 font-medium">{bank.name}</td>
+                                                <td className="p-3"><Badge variant="outline">{bank.rating}</Badge></td>
+                                                <td className="p-3"><Badge variant={bank.sanctions === "Да" ? "destructive" : bank.sanctions === "Частично" ? "secondary" : "outline"}>{bank.sanctions}</Badge></td>
+                                                <td className="p-3 text-green-500 font-medium">{bank.cost}</td>
+                                                <td className="p-3"><Button size="sm" variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]" onClick={() => createRkoApplication(bank.name, "rko")}>Создать заявку</Button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-
-                            {/* Main Content Grid - Info + Chat Side by Side */}
-                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                                {/* Left Column - Application Info (2/5 width on large screens) */}
-                                <div className="lg:col-span-2 space-y-4">
-                                    {/* Header Card with Status */}
-                                    <Card className="border-l-4 border-l-[#3CE8D1]">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div>
-                                                    <h2 className="text-lg font-bold text-foreground">Заявка #{selectedApplication.id}</h2>
-                                                    <p className="text-sm text-muted-foreground">Открытие расчётного счёта</p>
-                                                </div>
-                                                <Badge className={cn("text-white", getStatusInfo(selectedApplication.status).color)}>
-                                                    {getStatusInfo(selectedApplication.status).label}
-                                                </Badge>
-                                            </div>
-
-                                            {/* Key Info Grid */}
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Банк</p>
-                                                    <p className="font-medium">{selectedApplication.bank}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Дата создания</p>
-                                                    <p className="font-medium text-[#3CE8D1]">{selectedApplication.createdAt.split(" ")[0]}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3 col-span-2">
-                                                    <p className="text-xs text-muted-foreground mb-1">Тариф</p>
-                                                    <p className="font-medium">{selectedApplication.tariff || "Стандартный"}</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Status Message Card */}
-                                    <Card className="bg-muted/20">
-                                        <CardContent className="p-4 text-center">
-                                            <CheckCircle2 className="h-10 w-10 mx-auto text-[#3CE8D1]/50 mb-2" />
-                                            <p className="text-sm font-medium text-foreground mb-1">
-                                                Заявка готова к отправке
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Документы не требуются
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Actions Card */}
-                                    <Card>
-                                        <CardContent className="p-4 space-y-3">
-                                            <Button
-                                                onClick={() => sendApplication(selectedApplication)}
-                                                className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-medium"
-                                            >
-                                                ОТПРАВИТЬ ЗАЯВКУ
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                                onClick={() => deleteApplication(selectedApplication)}
-                                            >
-                                                Удалить заявку
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Right Column - Chat (3/5 width on large screens) */}
-                                <div className="lg:col-span-3">
-                                    <ApplicationChat
-                                        applicationId={selectedApplication.id}
-                                        className="h-[500px] lg:h-[600px]"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Banks List */
-                        <Card>
-                            <CardHeader><CardTitle>РКО (Расчётно-кассовое обслуживание)</CardTitle></CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground mb-4">Всего: {RKO_BANKS.length} банков</p>
-                                <div className="rounded-lg border overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted/50"><tr><th className="text-left p-3">Банк</th><th className="text-left p-3">Рейтинг</th><th className="text-left p-3">Санкции</th><th className="text-left p-3">Стоимость</th><th className="text-left p-3"></th></tr></thead>
-                                        <tbody>
-                                            {RKO_BANKS.map((bank, i) => (
-                                                <tr key={i} className="border-t">
-                                                    <td className="p-3 font-medium">{bank.name}</td>
-                                                    <td className="p-3"><Badge variant="outline">{bank.rating}</Badge></td>
-                                                    <td className="p-3"><Badge variant={bank.sanctions === "Да" ? "destructive" : bank.sanctions === "Частично" ? "secondary" : "outline"}>{bank.sanctions}</Badge></td>
-                                                    <td className="p-3 text-green-500 font-medium">{bank.cost}</td>
-                                                    <td className="p-3"><Button size="sm" variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]" onClick={() => createRkoApplication(bank.name, "rko")}>Создать заявку</Button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )
-                    }
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 {/* TAB 7: SPECACCOUNT */}
                 <TabsContent value="specaccount">
-                    {selectedApplication && selectedApplication.type === "specaccount" ? (
-                        /* Application Detail View - Clean 2-Column Layout */
-                        <div className="space-y-4">
-                            {/* Breadcrumb */}
-                            <div className="flex items-center gap-2 text-sm">
-                                <Button variant="link" className="p-0 h-auto text-[#3CE8D1] font-medium" onClick={() => setSelectedApplication(null)}>
-                                    ← Мои заявки
-                                </Button>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="text-muted-foreground">Спецсчёт</span>
-                                <span className="text-muted-foreground">/</span>
-                                <span className="font-medium">Заявка #{selectedApplication.id}</span>
+                    {/* Banks List */}
+                    <Card>
+                        <CardHeader><CardTitle>Спецсчет</CardTitle></CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-muted-foreground mb-4">Выберите банк для открытия спецсчёта:</p>
+                            <div className="rounded-lg border overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-muted/50"><tr><th className="text-left p-3">Банк</th><th className="text-left p-3">Создать заявку</th></tr></thead>
+                                    <tbody>
+                                        {["Альфа-Банк", "Сбербанк", "ВТБ", "Точка", "Промсвязьбанк"].map((bank, i) => (
+                                            <tr key={i} className="border-t">
+                                                <td className="p-3">{bank}</td>
+                                                <td className="p-3"><Button size="sm" variant="link" className="text-[#3CE8D1] p-0" onClick={() => createRkoApplication(bank, "specaccount")}>Создать заявку</Button></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-
-                            {/* Main Content Grid - Info + Chat Side by Side */}
-                            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                                {/* Left Column - Application Info (2/5 width on large screens) */}
-                                <div className="lg:col-span-2 space-y-4">
-                                    {/* Header Card with Status */}
-                                    <Card className="border-l-4 border-l-[#4F7DF3]">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div>
-                                                    <h2 className="text-lg font-bold text-foreground">Заявка #{selectedApplication.id}</h2>
-                                                    <p className="text-sm text-muted-foreground">Открытие спецсчёта</p>
-                                                </div>
-                                                <Badge className={cn("text-white", getStatusInfo(selectedApplication.status).color)}>
-                                                    {getStatusInfo(selectedApplication.status).label}
-                                                </Badge>
-                                            </div>
-
-                                            {/* Key Info Grid */}
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Банк</p>
-                                                    <p className="font-medium">{selectedApplication.bank}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3">
-                                                    <p className="text-xs text-muted-foreground mb-1">Дата создания</p>
-                                                    <p className="font-medium text-[#4F7DF3]">{selectedApplication.createdAt.split(" ")[0]}</p>
-                                                </div>
-                                                <div className="bg-muted/30 rounded-lg p-3 col-span-2">
-                                                    <p className="text-xs text-muted-foreground mb-1">Тариф</p>
-                                                    <p className="font-medium">{selectedApplication.tariff || "Стандартный"}</p>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Status Message Card */}
-                                    <Card className="bg-muted/20">
-                                        <CardContent className="p-4 text-center">
-                                            <CheckCircle2 className="h-10 w-10 mx-auto text-[#4F7DF3]/50 mb-2" />
-                                            <p className="text-sm font-medium text-foreground mb-1">
-                                                Заявка готова к отправке
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                Документы не требуются
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Actions Card */}
-                                    <Card>
-                                        <CardContent className="p-4 space-y-3">
-                                            <Button
-                                                onClick={() => sendApplication(selectedApplication)}
-                                                className="w-full bg-[#4F7DF3] text-white hover:bg-[#3d6ce0] font-medium"
-                                            >
-                                                ОТПРАВИТЬ ЗАЯВКУ
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                className="w-full text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                                                onClick={() => deleteApplication(selectedApplication)}
-                                            >
-                                                Удалить заявку
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-
-                                {/* Right Column - Chat (3/5 width on large screens) */}
-                                <div className="lg:col-span-3">
-                                    <ApplicationChat
-                                        applicationId={selectedApplication.id}
-                                        className="h-[500px] lg:h-[600px]"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Applications List */
-                        <Card>
-                            <CardHeader><CardTitle>Спецсчет</CardTitle></CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-lg font-medium">Всего заявок: {applications.filter(a => a.type === "specaccount").length}</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-muted-foreground">Вид страницы:</span>
-                                        <Button variant="outline" size="icon" className="h-8 w-8">☰</Button>
-                                        <Button variant="outline" size="icon" className="h-8 w-8">▦</Button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-medium mb-2">Сводная таблица по созданным Вами заявкам:</h3>
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <Input placeholder="Поиск" className="max-w-xs" />
-                                        <div className="flex items-center gap-2 ml-auto text-sm">
-                                            <span>Выводить на странице:</span>
-                                            {[10, 25, 50].map(n => (<Button key={n} variant={n === 10 ? "default" : "outline"} size="sm" className={n === 10 ? "bg-green-500" : ""}>{n}</Button>))}
-                                        </div>
-                                    </div>
-                                    {applications.filter(a => a.type === "specaccount").length === 0 ? (
-                                        <div className="rounded-lg border p-4 text-center text-muted-foreground">Заявки не найдены</div>
-                                    ) : (
-                                        <div className="rounded-lg border overflow-hidden">
-                                            <table className="w-full text-sm">
-                                                <thead className="bg-muted/50">
-                                                    <tr>
-                                                        <th className="text-left p-3">№ заявки</th>
-                                                        <th className="text-left p-3">Дата создания</th>
-                                                        <th className="text-left p-3">Банк</th>
-                                                        <th className="text-left p-3">Статус заявки</th>
-                                                        <th className="text-left p-3"></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {applications.filter(a => a.type === "specaccount").map(app => (
-                                                        <tr key={app.id} className="border-t hover:bg-muted/30 cursor-pointer" onClick={() => setSelectedApplication(app)}>
-                                                            <td className="p-3 text-[#3CE8D1]">{app.id}</td>
-                                                            <td className="p-3">{app.createdAt}</td>
-                                                            <td className="p-3">{app.bank}</td>
-                                                            <td className="p-3">{getStatusInfo(app.status).label}</td>
-                                                            <td className="p-3"><Badge variant="outline">💬</Badge></td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <h3 className="font-medium mb-2">Сводная таблица банков, в которых Вы можете создать заявку:</h3>
-                                    <div className="rounded-lg border overflow-hidden">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted/50"><tr><th className="text-left p-3">Банк</th><th className="text-left p-3">Создать заявку</th></tr></thead>
-                                            <tbody>
-                                                {["Альфа-Банк", "Сбербанк", "ВТБ", "Точка", "Промсвязьбанк"].map((bank, i) => (
-                                                    <tr key={i} className="border-t">
-                                                        <td className="p-3">{bank}</td>
-                                                        <td className="p-3"><Button size="sm" variant="link" className="text-[#3CE8D1] p-0" onClick={() => createRkoApplication(bank, "specaccount")}>Создать заявку</Button></td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )
-                    }
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 {/* TAB 8: UNSECURED */}

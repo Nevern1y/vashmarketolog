@@ -552,6 +552,7 @@ class ApplicationListSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'created_by',
+            'company',           # Company ID for filtering
             'company_name',
             'company_inn',
             'product_type',
