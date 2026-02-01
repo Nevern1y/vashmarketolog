@@ -226,3 +226,206 @@ class ApplicationChatConsumer(AsyncWebsocketConsumer):
             id=message_id,
             application_id=self.application_id
         ).exclude(sender=self.user).update(is_read=True)
+
+
+class AdminChatListConsumer(AsyncWebsocketConsumer):
+    """
+    WebSocket consumer for admin chat list page.
+    
+    Broadcasts updates when:
+    - New message arrives (not from admin)
+    - Message is marked as read
+    - Admin replies to a thread
+    
+    Connection URL: ws://host/ws/admin/chat-threads/?token={jwt_token}
+    
+    Outbound messages:
+    - {\"type\": \"threads_update\", \"threads\": [...]}
+    - {\"type\": \"new_message\", \"application_id\": ..., \"preview\": ...}
+    """
+    
+    GROUP_NAME = 'admin_chat_threads'
+    
+    async def connect(self):
+        """Handle WebSocket connection."""
+        # Authenticate user via JWT token in query string
+        self.user = await self.get_user_from_token()
+        
+        if not self.user:
+            await self.close()
+            return
+        
+        # Check user is admin
+        is_admin = await self.check_is_admin()
+        if not is_admin:
+            await self.close()
+            return
+        
+        # Join admin chat threads group
+        await self.channel_layer.group_add(
+            self.GROUP_NAME,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        # Send initial threads data
+        threads = await self.get_chat_threads()
+        await self.send(text_data=json.dumps({
+            'type': 'threads_update',
+            'threads': threads,
+        }))
+    
+    async def disconnect(self, close_code):
+        """Handle WebSocket disconnect."""
+        await self.channel_layer.group_discard(
+            self.GROUP_NAME,
+            self.channel_name
+        )
+    
+    async def receive(self, text_data):
+        """Handle incoming WebSocket message (refresh request)."""
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            return
+        
+        if data.get('type') == 'refresh':
+            threads = await self.get_chat_threads()
+            await self.send(text_data=json.dumps({
+                'type': 'threads_update',
+                'threads': threads,
+            }))
+    
+    async def threads_update(self, event):
+        """Send threads update to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'threads_update',
+            'threads': event['threads'],
+        }))
+    
+    async def new_message_notification(self, event):
+        """Send new message notification to WebSocket."""
+        await self.send(text_data=json.dumps({
+            'type': 'new_message',
+            'application_id': event['application_id'],
+            'company_name': event.get('company_name', ''),
+            'sender_name': event.get('sender_name', ''),
+            'preview': event.get('preview', ''),
+        }))
+    
+    @database_sync_to_async
+    def get_user_from_token(self):
+        """Extract and validate JWT token from query string."""
+        query_string = self.scope.get('query_string', b'').decode()
+        params = dict(param.split('=') for param in query_string.split('&') if '=' in param)
+        token_str = params.get('token')
+        
+        if not token_str:
+            return None
+        
+        try:
+            token = AccessToken(token_str)
+            user_id = token.get('user_id')
+            return User.objects.get(id=user_id, is_active=True)
+        except (InvalidToken, TokenError, User.DoesNotExist):
+            return None
+    
+    @database_sync_to_async
+    def check_is_admin(self):
+        """Check if user is admin."""
+        return self.user.role == 'admin' or self.user.is_superuser or self.user.is_staff
+    
+    @database_sync_to_async
+    def get_chat_threads(self):
+        """Get list of chat threads for admin."""
+        from apps.applications.models import Application, TicketMessage
+        from django.db.models import Count, Q, Max, OuterRef, Subquery, CharField
+        
+        # Subquery to get the role of the last message sender for each application
+        last_message_sender_role = Subquery(
+            TicketMessage.objects.filter(
+                application_id=OuterRef('application_id')
+            ).order_by('-created_at').values('sender__role')[:1],
+            output_field=CharField()
+        )
+        
+        # Get applications with chat activity that need attention
+        threads_data = list(
+            TicketMessage.objects
+            .values('application_id')
+            .annotate(
+                unread_count=Count(
+                    'id', 
+                    filter=Q(is_read=False) & ~Q(sender__role='admin')
+                ),
+                last_message_at=Max('created_at'),
+                last_sender_role=last_message_sender_role,
+            )
+            .filter(
+                Q(unread_count__gt=0) |  # Has unread messages from non-admins
+                ~Q(last_sender_role='admin')  # Last message is not from admin
+            )
+            .order_by('-last_message_at')
+        )
+        
+        result = []
+        application_ids = [t['application_id'] for t in threads_data]
+        
+        if not application_ids:
+            return result
+        
+        # Prefetch applications
+        applications = {
+            app.id: app 
+            for app in Application.objects.filter(id__in=application_ids).select_related('company')
+        }
+        
+        # Get last non-admin message for each application (for preview)
+        last_messages = {}
+        for app_id in application_ids:
+            last_msg = (
+                TicketMessage.objects
+                .filter(application_id=app_id)
+                .exclude(sender__role='admin')
+                .select_related('sender')
+                .order_by('-created_at')
+                .first()
+            )
+            if last_msg:
+                last_messages[app_id] = last_msg
+        
+        for thread in threads_data:
+            app_id = thread['application_id']
+            app = applications.get(app_id)
+            last_msg = last_messages.get(app_id)
+            
+            if not app or not last_msg:
+                continue
+            
+            # Get sender name
+            sender_name = ''
+            if last_msg.sender.first_name or last_msg.sender.last_name:
+                sender_name = f"{last_msg.sender.first_name or ''} {last_msg.sender.last_name or ''}".strip()
+            if not sender_name:
+                sender_name = last_msg.sender.email
+            
+            # Check if admin replied (last message is from admin)
+            admin_replied = thread['last_sender_role'] == 'admin'
+            
+            # Skip if all read AND admin replied
+            if thread['unread_count'] == 0 and admin_replied:
+                continue
+            
+            result.append({
+                'application_id': app_id,
+                'company_name': app.company.name if app.company else f'Заявка #{app_id}',
+                'last_sender_email': last_msg.sender.email,
+                'last_sender_name': sender_name,
+                'last_message_preview': last_msg.content[:100] if last_msg.content else '[Файл]',
+                'unread_count': thread['unread_count'],
+                'admin_replied': admin_replied,
+                'last_message_at': thread['last_message_at'].isoformat() if thread['last_message_at'] else None,
+            })
+        
+        return result

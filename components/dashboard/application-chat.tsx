@@ -21,12 +21,23 @@ interface ApplicationChatProps {
 export function ApplicationChat({ applicationId, className }: ApplicationChatProps) {
     const { user } = useAuth()
     const { avatar: myAvatar, getInitials: getMyInitials } = useAvatar()
-    const { messages, isLoading, isSending, error, sendMessage, refetch, clearError } = useChatPolling(applicationId)
+    const { messages, isLoading, isSending, error, sendMessage, refetch, markAsRead, clearError } = useChatPolling(applicationId)
 
     const [inputValue, setInputValue] = useState("")
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+    // Mark messages as read when chat is opened (admin only)
+    useEffect(() => {
+        if (applicationId && user?.role === 'admin') {
+            // Small delay to ensure messages are loaded
+            const timeoutId = setTimeout(() => {
+                markAsRead()
+            }, 500)
+            return () => clearTimeout(timeoutId)
+        }
+    }, [applicationId, user?.role, markAsRead])
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {

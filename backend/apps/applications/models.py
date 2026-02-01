@@ -762,6 +762,26 @@ class TicketMessage(models.Model):
         default=False,
         help_text='True если сообщение получено через вебхук TICKET_CHAT_MESSAGE_URL'
     )
+    
+    # Read tracking for admin chat notifications
+    is_read = models.BooleanField(
+        'Прочитано',
+        default=False,
+        help_text='True когда сообщение прочитано получателем'
+    )
+    read_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='read_ticket_messages',
+        verbose_name='Прочитано пользователем'
+    )
+    read_at = models.DateTimeField(
+        'Время прочтения',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         verbose_name = 'Сообщение чата'

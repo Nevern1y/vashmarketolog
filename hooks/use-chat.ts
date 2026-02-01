@@ -24,6 +24,7 @@ export interface ChatMessage {
     content: string;
     file?: string;
     file_url?: string | null;
+    is_read: boolean;
     created_at: string;
 }
 
@@ -39,6 +40,7 @@ interface ChatMessageResponse {
     content: string;
     file: string | null;
     file_url: string | null;
+    is_read: boolean;
     created_at: string;
 }
 
@@ -93,6 +95,7 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
                 content: msg.content,
                 file: msg.file || undefined,
                 file_url: msg.file_url,
+                is_read: msg.is_read ?? false,
                 created_at: msg.created_at,
             }));
 
@@ -143,6 +146,7 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
                 content: newMessage.content,
                 file: newMessage.file || undefined,
                 file_url: newMessage.file_url,
+                is_read: newMessage.is_read ?? false,
                 created_at: newMessage.created_at,
             }]);
 
@@ -192,6 +196,29 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
         fetchMessages(true);
     }, [fetchMessages]);
 
+    // Mark all messages as read
+    const markAsRead = useCallback(async (): Promise<number> => {
+        if (!applicationId) return 0;
+        
+        try {
+            const response = await api.post<{ marked_count: number }>(
+                `/applications/${applicationId}/messages/mark_read/`
+            );
+            
+            // Update local state to reflect read status
+            setMessages(prev => prev.map(msg => ({
+                ...msg,
+                is_read: true,
+            })));
+            
+            return response.marked_count;
+        } catch (err) {
+            const apiError = err as ApiError;
+            console.error('[Chat] Mark read error:', apiError);
+            return 0;
+        }
+    }, [applicationId]);
+
     return {
         messages,
         isLoading,
@@ -199,6 +226,7 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
         error,
         sendMessage,
         refetch,
+        markAsRead,
         startPolling,
         stopPolling,
         clearError: () => setError(null),

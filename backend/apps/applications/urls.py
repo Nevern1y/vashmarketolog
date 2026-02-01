@@ -14,6 +14,7 @@ from .views import (
     PublicLeadCreateView,
     LeadViewSet,
     LeadCommentViewSet,
+    ChatThreadViewSet,
 )
 
 # Main applications router
@@ -36,6 +37,10 @@ decisions_router.register(r'', PartnerDecisionViewSet, basename='decision')
 # Admin leads router
 leads_router = DefaultRouter()
 leads_router.register(r'', LeadViewSet, basename='lead')
+
+# Chat threads router (admin only)
+chat_threads_router = DefaultRouter()
+chat_threads_router.register(r'', ChatThreadViewSet, basename='chat-thread')
 
 # Nested router for comments under leads
 # Creates: /admin/leads/{lead_pk}/comments/
@@ -62,6 +67,9 @@ urlpatterns = [
     
     # Nested lead comments routes
     path('admin/leads/', include(lead_comments_router.urls)),
+    
+    # Chat threads for admin (unread messages list)
+    path('chat-threads/', include(chat_threads_router.urls)),
     
     # Standard CRUD + custom actions (MUST BE BEFORE nested routes to allow POST)
     path('', include(router.urls)),

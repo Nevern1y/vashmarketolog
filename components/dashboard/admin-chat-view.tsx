@@ -6,50 +6,52 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { useNotifications, formatRelativeTime } from "@/hooks/use-notifications"
-import { useApplications } from "@/hooks/use-applications"
-import { MessageCircle, Search, Loader2, ExternalLink } from "lucide-react"
+import { useChatThreads, formatRelativeTime, type ChatThread } from "@/hooks/use-chat-threads"
+import { MessageCircle, Search, Loader2, ExternalLink, Wifi, WifiOff, AlertCircle } from "lucide-react"
 
 interface AdminChatViewProps {
     onOpenApplication: (applicationId: number) => void
 }
 
 export function AdminChatView({ onOpenApplication }: AdminChatViewProps) {
-    const { notifications, isLoading, markAsRead } = useNotifications()
-    const { applications } = useApplications()
+    const { threads, isLoading, error, isConnected, refresh } = useChatThreads()
     const [searchQuery, setSearchQuery] = useState("")
 
-    const appMap = useMemo(() => {
-        return new Map(applications.map((app) => [app.id, app]))
-    }, [applications])
-
-    const chatNotifications = useMemo(() => {
-        return notifications.filter((n) => n.type === "chat_message")
-    }, [notifications])
-
-    const filteredNotifications = useMemo(() => {
+    const filteredThreads = useMemo(() => {
         const query = searchQuery.trim().toLowerCase()
-        if (!query) return chatNotifications
+        if (!query) return threads
 
-        return chatNotifications.filter((n) => {
-            const app = n.details.applicationId ? appMap.get(n.details.applicationId) : null
-            const companyName = app?.company_name || ""
-            const senderName = n.details.senderName || ""
-            const preview = n.details.previewText || n.message || ""
-
+        return threads.filter((thread) => {
             return (
-                companyName.toLowerCase().includes(query) ||
-                senderName.toLowerCase().includes(query) ||
-                preview.toLowerCase().includes(query) ||
-                String(n.details.applicationId || "").includes(query)
+                thread.companyName.toLowerCase().includes(query) ||
+                thread.lastSenderName.toLowerCase().includes(query) ||
+                thread.lastSenderEmail.toLowerCase().includes(query) ||
+                thread.lastMessagePreview.toLowerCase().includes(query) ||
+                String(thread.applicationId).includes(query)
             )
         })
-    }, [chatNotifications, searchQuery, appMap])
+    }, [threads, searchQuery])
 
-    const handleOpenApplication = (notificationId: string, applicationId?: number) => {
-        if (!applicationId) return
-        markAsRead(notificationId)
+    const handleOpenApplication = (applicationId: number) => {
         onOpenApplication(applicationId)
+    }
+
+    const getThreadStatus = (thread: ChatThread) => {
+        if (thread.unreadCount > 0) {
+            return {
+                type: 'unread' as const,
+                label: `${thread.unreadCount} непрочитанных`,
+                className: 'bg-[#3CE8D1]/20 text-[#3CE8D1]',
+            }
+        }
+        if (!thread.adminReplied) {
+            return {
+                type: 'no_reply' as const,
+                label: 'Вы не ответили',
+                className: 'bg-amber-500/20 text-amber-500',
+            }
+        }
+        return null
     }
 
     return (
@@ -58,8 +60,24 @@ export function AdminChatView({ onOpenApplication }: AdminChatViewProps) {
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold text-foreground">Чат</h1>
                     <p className="text-sm text-muted-foreground">
-                        Последние сообщения по заявкам
+                        Сообщения, требующие внимания
                     </p>
+                </div>
+                <div className="flex items-center gap-2">
+                    {isConnected ? (
+                        <Badge variant="outline" className="text-green-500 border-green-500/30">
+                            <Wifi className="h-3 w-3 mr-1" />
+                            Live
+                        </Badge>
+                    ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                            <WifiOff className="h-3 w-3 mr-1" />
+                            Polling
+                        </Badge>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={refresh}>
+                        Обновить
+                    </Button>
                 </div>
             </div>
 
@@ -77,61 +95,71 @@ export function AdminChatView({ onOpenApplication }: AdminChatViewProps) {
                 </CardContent>
             </Card>
 
+            {error && (
+                <Card className="border-destructive/50 bg-destructive/10">
+                    <CardContent className="p-4 flex items-center gap-2 text-destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <span className="text-sm">{error}</span>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card className="border-border">
                 <CardContent className="p-0">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-10">
                             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
-                    ) : filteredNotifications.length === 0 ? (
+                    ) : filteredThreads.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                             <MessageCircle className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                            <p className="text-muted-foreground">Сообщений нет</p>
+                            <p className="text-muted-foreground">
+                                {searchQuery ? 'Ничего не найдено' : 'Нет сообщений, требующих внимания'}
+                            </p>
+                            <p className="text-xs text-muted-foreground/60 mt-1">
+                                Все сообщения прочитаны и получили ответ
+                            </p>
                         </div>
                     ) : (
                         <div className="divide-y divide-border">
-                            {filteredNotifications.map((notification) => {
-                                const appId = notification.details.applicationId
-                                const app = appId ? appMap.get(appId) : null
-                                const companyName = app?.company_name || "Заявка"
-                                const senderName = notification.details.senderName || ""
-                                const preview = notification.details.previewText || notification.message
-
+                            {filteredThreads.map((thread) => {
+                                const status = getThreadStatus(thread)
+                                
                                 return (
                                     <div
-                                        key={notification.id}
+                                        key={thread.applicationId}
                                         className={cn(
-                                            "p-4 flex flex-col md:flex-row md:items-center justify-between gap-3",
-                                            !notification.isRead && "bg-[#3CE8D1]/5"
+                                            "p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors",
+                                            status?.type === 'unread' && "bg-[#3CE8D1]/5",
+                                            status?.type === 'no_reply' && "bg-amber-500/5"
                                         )}
                                     >
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <h3 className="text-sm font-semibold text-foreground truncate">
-                                                    {companyName}
+                                                    {thread.companyName}
                                                 </h3>
-                                                {appId && (
-                                                    <Badge variant="outline" className="text-[10px]">
-                                                        #{appId}
+                                                <Badge variant="outline" className="text-[10px]">
+                                                    #{thread.applicationId}
+                                                </Badge>
+                                                {status && (
+                                                    <Badge className={cn("text-[10px]", status.className)}>
+                                                        {status.label}
                                                     </Badge>
                                                 )}
-                                                {!notification.isRead && (
-                                                    <Badge className="bg-[#3CE8D1]/20 text-[#3CE8D1] text-[10px]">Новое</Badge>
-                                                )}
                                             </div>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {senderName ? `${senderName}: ` : ""}{preview}
+                                            <p className="text-xs text-muted-foreground mt-1 truncate">
+                                                {thread.lastSenderName}: {thread.lastMessagePreview}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 shrink-0">
                                             <span className="text-xs text-muted-foreground">
-                                                {formatRelativeTime(notification.createdAt)}
+                                                {formatRelativeTime(thread.lastMessageAt)}
                                             </span>
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                onClick={() => handleOpenApplication(notification.id, appId)}
-                                                disabled={!appId}
+                                                onClick={() => handleOpenApplication(thread.applicationId)}
                                             >
                                                 <ExternalLink className="h-4 w-4 mr-2" />
                                                 Открыть

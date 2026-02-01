@@ -754,9 +754,10 @@ class TicketMessageSerializer(serializers.ModelSerializer):
             'content',
             'file',
             'file_url',
+            'is_read',
             'created_at',
         ]
-        read_only_fields = ['id', 'application', 'sender', 'sender_id', 'sender_email', 'sender_name', 'sender_role', 'file_url', 'created_at']
+        read_only_fields = ['id', 'application', 'sender', 'sender_id', 'sender_email', 'sender_name', 'sender_role', 'file_url', 'is_read', 'created_at']
 
     def get_sender_name(self, obj):
         """Get sender's full name."""
@@ -983,3 +984,22 @@ class LeadCommentCreateSerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError('Введите текст комментария')
         return value.strip()
+
+
+# =============================================================================
+# CHAT THREAD SERIALIZERS (Admin chat list)
+# =============================================================================
+
+class ChatThreadSerializer(serializers.Serializer):
+    """
+    Serializer for admin chat threads list.
+    Returns aggregated data per application with unread messages.
+    """
+    application_id = serializers.IntegerField()
+    company_name = serializers.CharField()
+    last_sender_email = serializers.EmailField()
+    last_sender_name = serializers.CharField()
+    last_message_preview = serializers.CharField()
+    unread_count = serializers.IntegerField()
+    admin_replied = serializers.BooleanField()
+    last_message_at = serializers.DateTimeField()

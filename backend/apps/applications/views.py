@@ -25,6 +25,7 @@ from .serializers import (
     TicketMessageCreateSerializer,
     CalculationSessionSerializer,
     CalculationSessionCreateSerializer,
+    ChatThreadSerializer,
 )
 from rest_framework.views import APIView
 from apps.users.permissions import (
@@ -838,6 +839,33 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
             file=serializer.validated_data.get('file'),
         )
         
+        # Broadcast to admin_chat_threads WebSocket group for real-time updates
+        # Only notify if sender is NOT admin (admins don't need to see their own messages)
+        if request.user.role != 'admin':
+            try:
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    company_name = application.company.name if application.company else f'Заявка #{application.id}'
+                    sender_name = request.user.first_name or request.user.email
+                    
+                    async_to_sync(channel_layer.group_send)(
+                        'admin_chat_threads',
+                        {
+                            'type': 'new_message_notification',
+                            'application_id': application.id,
+                            'company_name': company_name,
+                            'sender_name': sender_name,
+                            'preview': message.content[:100] if message.content else '[Файл]',
+                        }
+                    )
+            except Exception as e:
+                # Don't fail the request if WebSocket broadcast fails
+                import logging
+                logging.getLogger(__name__).warning(f'Failed to broadcast to admin_chat_threads: {e}')
+        
         return Response(
             TicketMessageSerializer(message, context={'request': request}).data,
             status=status.HTTP_201_CREATED
@@ -862,6 +890,71 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
                 Q(created_by=user) | Q(company__owner=user)
             )
         )
+
+    @extend_schema(
+        description='Mark all unread messages in this application as read (excluding own messages)',
+        responses={200: {'type': 'object', 'properties': {'marked_count': {'type': 'integer'}}}},
+    )
+    @action(detail=False, methods=['post'], url_path='mark_read')
+    def mark_read(self, request, application_pk=None):
+        """
+        Mark all unread messages in this application as read.
+        Only marks messages from other users (not own messages).
+        """
+        from django.utils import timezone
+        
+        if not application_pk:
+            return Response(
+                {'error': 'Не указана заявка'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check user has access to this application
+        try:
+            self._get_accessible_application(application_pk)
+        except Application.DoesNotExist:
+            return Response(
+                {'error': 'Заявка не найдена или недоступна'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Mark messages as read (exclude own messages)
+        now = timezone.now()
+        updated = TicketMessage.objects.filter(
+            application_id=application_pk,
+            is_read=False
+        ).exclude(
+            sender=request.user
+        ).update(
+            is_read=True,
+            read_by=request.user,
+            read_at=now
+        )
+        
+        # Broadcast to admin_chat_threads to update the list (if messages were marked)
+        if updated > 0:
+            try:
+                from asgiref.sync import async_to_sync
+                from channels.layers import get_channel_layer
+                
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    # Send signal to refresh admin chat list
+                    async_to_sync(channel_layer.group_send)(
+                        'admin_chat_threads',
+                        {
+                            'type': 'new_message_notification',
+                            'application_id': int(application_pk),
+                            'company_name': '',
+                            'sender_name': '',
+                            'preview': '',
+                        }
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f'Failed to broadcast mark_read to admin_chat_threads: {e}')
+        
+        return Response({'marked_count': updated}, status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=['Calculation Sessions'])
@@ -1169,4 +1262,126 @@ class LeadCommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         lead_id = self.kwargs.get('lead_pk')
         serializer.save(author=self.request.user, lead_id=lead_id)
+
+
+@extend_schema(tags=['Chat Threads'])
+class ChatThreadViewSet(viewsets.ViewSet):
+    """
+    ViewSet for admin chat threads list.
+    
+    Returns applications with unread messages or messages awaiting admin reply.
+    Uses aggregation to return one row per application.
+    
+    Logic:
+    - Show applications with unread messages from non-admin users
+    - OR applications where last message is NOT from admin (needs reply)
+    - Exclude applications where admin is the last sender AND all messages are read
+    """
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    @extend_schema(
+        description='Get list of applications with unread messages or awaiting reply',
+        responses={200: ChatThreadSerializer(many=True)},
+    )
+    def list(self, request):
+        """
+        Returns list of chat threads for admin.
+        
+        Each thread represents an application with:
+        - Unread message count (from non-admin users)
+        - Last message preview and sender info
+        - admin_replied: True if admin was the last to send a message
+        """
+        from django.db.models import Count, Q, Max, OuterRef, Subquery, CharField
+        
+        # Subquery to get the role of the last message sender for each application
+        last_message_sender_role = Subquery(
+            TicketMessage.objects.filter(
+                application_id=OuterRef('application_id')
+            ).order_by('-created_at').values('sender__role')[:1],
+            output_field=CharField()
+        )
+        
+        # Get applications with chat activity that need attention
+        # Either: has unread messages from non-admins OR last message is not from admin
+        threads_data = list(
+            TicketMessage.objects
+            .values('application_id')
+            .annotate(
+                unread_count=Count(
+                    'id', 
+                    filter=Q(is_read=False) & ~Q(sender__role='admin')
+                ),
+                last_message_at=Max('created_at'),
+                last_sender_role=last_message_sender_role,
+            )
+            .filter(
+                Q(unread_count__gt=0) |  # Has unread messages from non-admins
+                ~Q(last_sender_role='admin')  # Last message is not from admin
+            )
+            .order_by('-last_message_at')
+        )
+        
+        # Build response data
+        result = []
+        application_ids = [t['application_id'] for t in threads_data]
+        
+        if not application_ids:
+            return Response([])
+        
+        # Prefetch applications
+        applications = {
+            app.id: app 
+            for app in Application.objects.filter(id__in=application_ids).select_related('company')
+        }
+        
+        # Get last non-admin message for each application (for preview)
+        last_messages = {}
+        for app_id in application_ids:
+            last_msg = (
+                TicketMessage.objects
+                .filter(application_id=app_id)
+                .exclude(sender__role='admin')
+                .select_related('sender')
+                .order_by('-created_at')
+                .first()
+            )
+            if last_msg:
+                last_messages[app_id] = last_msg
+        
+        for thread in threads_data:
+            app_id = thread['application_id']
+            app = applications.get(app_id)
+            last_msg = last_messages.get(app_id)
+            
+            if not app or not last_msg:
+                continue
+            
+            # Get sender name
+            sender_name = ''
+            if last_msg.sender.first_name or last_msg.sender.last_name:
+                sender_name = f"{last_msg.sender.first_name or ''} {last_msg.sender.last_name or ''}".strip()
+            if not sender_name:
+                sender_name = last_msg.sender.email
+            
+            # Check if admin replied (last message is from admin)
+            admin_replied = thread['last_sender_role'] == 'admin'
+            
+            # Skip if all read AND admin replied
+            if thread['unread_count'] == 0 and admin_replied:
+                continue
+            
+            result.append({
+                'application_id': app_id,
+                'company_name': app.company.name if app.company else f'Заявка #{app_id}',
+                'last_sender_email': last_msg.sender.email,
+                'last_sender_name': sender_name,
+                'last_message_preview': last_msg.content[:100] if last_msg.content else '[Файл]',
+                'unread_count': thread['unread_count'],
+                'admin_replied': admin_replied,
+                'last_message_at': thread['last_message_at'],
+            })
+        
+        serializer = ChatThreadSerializer(result, many=True)
+        return Response(serializer.data)
 
