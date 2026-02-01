@@ -567,8 +567,8 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 >
                                     <CheckCircle className="h-4 w-4 mr-1.5" />Одобрить
                                 </Button>
-                                {/* Send to Bank button - only show if not already sent AND status is pending */}
-                                {!application.external_id && application.status === 'pending' && (
+                                {/* Send to Bank button - show for pending OR info_requested (returned for revision) */}
+                                {((!application.external_id && application.status === 'pending') || application.status === 'info_requested') && (
                                     <Button
                                         size="sm"
                                         variant="outline"
@@ -577,7 +577,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                         className="flex-1 sm:flex-none h-9 text-xs text-[#3CE8D1] border-[#3CE8D1]/30 hover:text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
                                     >
                                         <Send className="h-4 w-4 mr-1.5" />
-                                        {isSendingToBank ? "Отправка..." : "Отправить в банк"}
+                                        {isSendingToBank ? "Отправка..." : application.status === 'info_requested' ? "Отправить повторно" : "Отправить в банк"}
                                     </Button>
                                 )}
                                 {/* Sync status button - only show if already sent */}

@@ -571,6 +571,7 @@ export function CalculationSessionView({
                                         <Checkbox
                                             checked={isSelected}
                                             onCheckedChange={() => handleBankToggle(bank.name)}
+                                            onClick={(event) => event.stopPropagation()}
                                             className="border-[#3CE8D1] data-[state=checked]:bg-[#3CE8D1] data-[state=checked]:text-[#0f2042]"
                                         />
                                         <div className="flex-1">
@@ -759,6 +760,8 @@ export function CalculationSessionView({
                                                 <div className="flex items-center gap-3">
                                                     <Checkbox
                                                         checked={isSelected}
+                                                        onCheckedChange={() => toggleBankToAdd(bank.name)}
+                                                        onClick={(event) => event.stopPropagation()}
                                                         className="border-[#3CE8D1]/50 data-[state=checked]:bg-[#3CE8D1] data-[state=checked]:border-[#3CE8D1]"
                                                     />
                                                     <div>

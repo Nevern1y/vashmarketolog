@@ -754,10 +754,13 @@ class BankIntegrationService:
                 application = Application.objects.get(id=application_id)
                 application.external_id = ticket_id_str
                 application.bank_status = 'Отправлено (Phase 1)'
-                # Update status to in_review (На рассмотрении в банке) after sending to bank
-                # Flow: draft -> pending (client submit) -> in_review (admin send to bank)
-                if application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                # Update status after sending to bank
+                # Flow: draft -> pending (scoring) -> in_review (after scoring)
+                # Re-submission from INFO_REQUESTED should go directly to review
+                if application.status == ApplicationStatus.INFO_REQUESTED:
                     application.status = ApplicationStatus.IN_REVIEW
+                elif application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                    application.status = ApplicationStatus.PENDING
                 
                 # Save client data snapshot (Phase 2 enhancement)
                 # This preserves the company data at the time of submission
@@ -817,10 +820,13 @@ class BankIntegrationService:
             application = Application.objects.get(id=application_id)
             application.external_id = ticket_id_str
             application.bank_status = 'sent'
-            # Update status to in_review (На рассмотрении в банке) after sending to bank
-            # Flow: draft -> pending (client submit) -> in_review (admin send to bank)
-            if application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+            # Update status after sending to bank
+            # Flow: draft -> pending (scoring) -> in_review (after scoring)
+            # Re-submission from INFO_REQUESTED should go directly to review
+            if application.status == ApplicationStatus.INFO_REQUESTED:
                 application.status = ApplicationStatus.IN_REVIEW
+            elif application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                application.status = ApplicationStatus.PENDING
             application.save()
             logger.info(f"Application {application_id} saved with external_id={ticket_id_str}")
         except Exception as e:

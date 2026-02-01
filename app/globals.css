@@ -102,9 +102,6 @@
 }
 
 /* Remove .dark variant - we're dark by default */
-.dark {
-  /* All variables already set for dark mode in :root */
-}
 
 @theme inline {
   --font-sans: "Inter", "Inter Fallback", sans-serif;

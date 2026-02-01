@@ -447,12 +447,19 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const [comment, setComment] = useState("")
 
     useEffect(() => {
-        if (dateFrom && termDays && termDays > 0) {
-            const startDate = new Date(dateFrom)
-            if (Number.isNaN(startDate.getTime())) return
-            startDate.setDate(startDate.getDate() + termDays)
+        if (!dateFrom || typeof termDays !== 'number' || !Number.isFinite(termDays) || termDays <= 0) return
+
+        const startDate = new Date(dateFrom)
+        if (Number.isNaN(startDate.getTime())) return
+
+        startDate.setDate(startDate.getDate() + termDays)
+        if (Number.isNaN(startDate.getTime())) return
+
+        try {
             const calculatedDateTo = startDate.toISOString().split('T')[0]
             setDateTo(calculatedDateTo)
+        } catch {
+            // Invalid date range - skip auto-update
         }
     }, [dateFrom, termDays])
 
@@ -889,7 +896,10 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
         // Calculate based on form data
         const law = federalLaw === "44" ? "44-ФЗ" : federalLaw === "223" ? "223-ФЗ" : federalLaw === "615" ? "185-ФЗ (615-ПП)" : federalLaw === "275" ? "275-ФЗ" : "КБГ (Коммерческие)"
-        const days = dateFrom && dateTo ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24)) : 30
+        const rawDays = dateFrom && dateTo
+            ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24))
+            : 30
+        const days = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 30
 
         let calculatedAmount = amount
         if (productType === "kik") calculatedAmount = creditAmount
@@ -2059,7 +2069,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                             value={termDays ?? ""}
                                             onChange={e => {
                                                 const val = e.target.value.replace(/\D/g, "")
-                                                setTermDays(val ? parseInt(val) : undefined)
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setTermDays(Number.isFinite(parsed) ? parsed : undefined)
                                             }}
                                             className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
                                         />
@@ -2404,7 +2415,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                             value={termDays ?? ""}
                                             onChange={e => {
                                                 const val = e.target.value.replace(/\D/g, "")
-                                                setTermDays(val ? parseInt(val) : undefined)
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setTermDays(Number.isFinite(parsed) ? parsed : undefined)
                                             }}
                                             className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
                                         />

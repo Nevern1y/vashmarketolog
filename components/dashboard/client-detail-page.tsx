@@ -282,6 +282,16 @@ function ClientApplicationsTab({
   onApplicationClick,
   onCreateApplication,
 }: ApplicationsTabProps) {
+  // Compact bank name display for table
+  const formatBankName = (name: string | undefined): string => {
+    if (!name) return '—'
+    const abbreviations: Record<string, string> = {
+      'Индивидуальное рассмотрение': 'Индивид. рассм.',
+      'Индивидуальный подбор': 'Индивид. подбор',
+    }
+    return abbreviations[name] || name
+  }
+
   // Filter applications by search
   const filteredApps = applications.filter(app => {
     // Show all applications if search is empty
@@ -397,8 +407,8 @@ function ClientApplicationsTab({
                         {formatDate(app.created_at)}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">
-                          {app.target_bank_name || '—'}
+                        <span className="text-sm whitespace-nowrap">
+                          {formatBankName(app.target_bank_name)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">

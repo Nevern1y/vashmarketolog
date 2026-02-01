@@ -621,8 +621,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         application = self.get_object()
         
-        # Validate application hasn't already been sent
-        if application.external_id:
+        # Validate application can be sent to bank
+        # Allow re-submission for applications returned for revision (INFO_REQUESTED status)
+        if application.external_id and application.status != ApplicationStatus.INFO_REQUESTED:
             return Response(
                 {'error': f'Заявка уже отправлена в банк (ID: {application.external_id})'},
                 status=status.HTTP_400_BAD_REQUEST

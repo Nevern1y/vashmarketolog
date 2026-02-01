@@ -63,7 +63,7 @@ export const STATUS_CONFIG: Record<DjangoApplicationStatus, StatusConfig> = {
     // Step 2: Review / Прескоринг + На рассмотрении
     pending: {
         step: 1,
-        label: 'Отправка на скоринг',
+        label: 'На скорринге в банке',
         stepLabel: 'Скоринг',
         color: 'text-[#F59E0B]',
         bgColor: 'bg-[#F59E0B]/10',

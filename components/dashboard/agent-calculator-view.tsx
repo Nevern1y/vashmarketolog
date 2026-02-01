@@ -399,6 +399,8 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
     // Get confirmed clients only (clients invited by this agent)
     const confirmedClients = (clients || []).filter((client: CompanyListItem) => client.client_status === 'confirmed')
+    const pendingClients = (clients || []).filter((client: CompanyListItem) => client.client_status === 'pending')
+    const clientsForSelect = [...confirmedClients, ...pendingClients]
 
     // Get selected client - in CRM, clients ARE companies, so client.id IS the company ID
     const selectedClient = confirmedClients.find((c: CompanyListItem) => c.id.toString() === selectedClientId)
@@ -501,12 +503,19 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
     // When dateFrom or termDays change, automatically calculate dateTo
     React.useEffect(() => {
-        if (dateFrom && termDays && termDays > 0) {
-            const startDate = new Date(dateFrom)
-            if (Number.isNaN(startDate.getTime())) return
-            startDate.setDate(startDate.getDate() + termDays)
+        if (!dateFrom || typeof termDays !== 'number' || !Number.isFinite(termDays) || termDays <= 0) return
+
+        const startDate = new Date(dateFrom)
+        if (Number.isNaN(startDate.getTime())) return
+
+        startDate.setDate(startDate.getDate() + termDays)
+        if (Number.isNaN(startDate.getTime())) return
+
+        try {
             const calculatedDateTo = startDate.toISOString().split('T')[0]
             setDateTo(calculatedDateTo)
+        } catch {
+            // Invalid date range - skip auto-update
         }
     }, [dateFrom, termDays])
 
@@ -939,7 +948,10 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
         // Calculate based on form data
         const law = federalLaw === "44" ? "44-ФЗ" : federalLaw === "223" ? "223-ФЗ" : federalLaw === "615" ? "185-ФЗ (615-ПП)" : federalLaw === "275" ? "275-ФЗ" : "КБГ (Коммерческие)"
-        const days = dateFrom && dateTo ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24)) : 30
+        const rawDays = dateFrom && dateTo
+            ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24))
+            : 30
+        const days = Number.isFinite(rawDays) && rawDays > 0 ? rawDays : 30
 
         let calculatedAmount = amount
         if (productType === "kik") calculatedAmount = creditAmount
@@ -1955,14 +1967,22 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     }
                                 }}>
                                     <SelectTrigger className="h-11 bg-[#1a2942]/50 border-[#2a3a5c]/50 hover:border-[#3CE8D1]/50">
-                                        <SelectValue placeholder={clientsLoading ? "Загрузка..." : confirmedClients.length === 0 ? "Нет подтвержденных клиентов" : "Выберите клиента"} />
+                                        <SelectValue placeholder={clientsLoading ? "Загрузка..." : clientsForSelect.length === 0 ? "Нет клиентов" : "Выберите клиента"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {confirmedClients.map((client: CompanyListItem) => (
-                                            <SelectItem key={client.id} value={client.id.toString()}>
-                                                {client.name} (ИНН: {client.inn})
-                                            </SelectItem>
-                                        ))}
+                                        {clientsForSelect.map((client: CompanyListItem) => {
+                                            const isPending = client.client_status === 'pending'
+                                            return (
+                                                <SelectItem
+                                                    key={client.id}
+                                                    value={client.id.toString()}
+                                                    disabled={isPending}
+                                                    className={cn(isPending && "text-[#94a3b8] opacity-70 cursor-not-allowed")}
+                                                >
+                                                    {client.name} (ИНН: {client.inn}){isPending ? " (на подтверждении)" : ""}
+                                                </SelectItem>
+                                            )
+                                        })}
                                         <SelectItem value="add_new_client" className="text-[#3CE8D1] font-medium bg-[#3CE8D1]/10 focus:bg-[#3CE8D1]/20 focus:text-[#3CE8D1] mt-1 border-t border-[#2a3a5c]">
                                             + Добавить нового клиента
                                         </SelectItem>
@@ -1970,7 +1990,9 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                 </Select>
                                 {confirmedClients.length === 0 && !clientsLoading && (
                                     <p className="text-xs text-amber-400">
-                                        У вас нет подтверждённых клиентов. Пригласите клиентов в CRM.
+                                        {pendingClients.length > 0
+                                            ? "Клиенты ожидают подтверждения администратором."
+                                            : "У вас нет клиентов. Пригласите клиентов в CRM."}
                                     </p>
                                 )}
                             </div>
@@ -2293,7 +2315,8 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             value={termDays ?? ''}
                                             onChange={e => {
                                                 const val = e.target.value.replace(/\D/g, '')
-                                                setTermDays(val ? parseInt(val) : undefined)
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setTermDays(Number.isFinite(parsed) ? parsed : undefined)
                                             }}
                                             placeholder="88"
                                             className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50"
@@ -3265,18 +3288,30 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                 <Label>Клиент *</Label>
                                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                                     <SelectTrigger className="bg-[#0f1d32]/50 border-[#2a3a5c]/30 text-white">
-                                        <SelectValue placeholder={clientsLoading ? "Загрузка..." : confirmedClients.length === 0 ? "Нет подтвержденных клиентов" : "Выберите клиента"} />
+                                        <SelectValue placeholder={clientsLoading ? "Загрузка..." : clientsForSelect.length === 0 ? "Нет клиентов" : "Выберите клиента"} />
                                     </SelectTrigger>
                                     <SelectContent className="bg-[#0f2042] border-[#1e3a5f]">
-                                        {confirmedClients.map((c) => (
-                                            <SelectItem key={c.id} value={c.id.toString()} className="text-white hover:bg-[#1e3a5f]">
-                                                {c.name} ({c.inn})
-                                            </SelectItem>
-                                        ))}
+                                        {clientsForSelect.map((c) => {
+                                            const isPending = c.client_status === 'pending'
+                                            return (
+                                                <SelectItem
+                                                    key={c.id}
+                                                    value={c.id.toString()}
+                                                    disabled={isPending}
+                                                    className={cn("text-white hover:bg-[#1e3a5f]", isPending && "text-[#94a3b8] opacity-70 cursor-not-allowed")}
+                                                >
+                                                    {c.name} ({c.inn}){isPending ? " (на подтверждении)" : ""}
+                                                </SelectItem>
+                                            )
+                                        })}
                                     </SelectContent>
                                 </Select>
                                 {confirmedClients.length === 0 && !clientsLoading && (
-                                    <p className="text-xs text-amber-400 mt-1">У вас нет подтверждённых клиентов.</p>
+                                    <p className="text-xs text-amber-400 mt-1">
+                                        {pendingClients.length > 0
+                                            ? "Клиенты ожидают подтверждения администратором."
+                                            : "У вас нет клиентов. Пригласите клиентов в CRM."}
+                                    </p>
                                 )}
                             </div>
 

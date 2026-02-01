@@ -67,7 +67,8 @@ import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-di
 import { ApplicationChat } from "./application-chat"
 import { AdditionalDocumentsModal } from "./additional-documents-modal"
 import { ApplicationEditModal } from "./application-edit-modal"
-import { SubmissionSuccess, useSubmissionSuccess } from "@/components/ui/submission-success"
+import { StatusEffect, useSubmissionSuccess } from "@/components/ui/submission-success"
+import type { DjangoApplicationStatus } from "@/lib/status-mapping"
 
 // Insurance category and product display labels
 const INSURANCE_CATEGORY_LABELS: Record<string, string> = {
@@ -2372,9 +2373,12 @@ const getStatusBadge = (status: string) => {
                             <CardContent className="p-6 pt-0">
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
-                                {isSubmitted || showSubmitSuccess ? (
-                                    <SubmissionSuccess
+                                {/* Show status-based effect for submitted applications */}
+                                {isSubmitted ? (
+                                    <StatusEffect
+                                        status={application.status as DjangoApplicationStatus}
                                         isVisible={true}
+                                        isAnimated={showSubmitSuccess}
                                         submittedAt={application.submitted_at || undefined}
                                         statusDisplay={application.status_display}
                                     />
@@ -2420,7 +2424,7 @@ const getStatusBadge = (status: string) => {
                                             <p className="text-[#94a3b8] mb-6">
                                                 {application.status === 'info_requested'
                                                     ? "После внесения изменений отправьте заявку повторно в банк."
-                                                    : "После отправки заявка будет передана в банк для рассмотрения. Редактирование будет недоступно."}
+                                                    : "После отправки заявка уйдет на скорринг в банк. После скоринга начнется рассмотрение. Редактирование будет недоступно."}
                                             </p>
                                             <Button
                                                 onClick={handleSubmitToBank}
@@ -2446,9 +2450,20 @@ const getStatusBadge = (status: string) => {
                         <StepHeader
                             step={4}
                             title="Согласование и оплата"
-                            subtitle="Финальный этап оформления"
+                            subtitle={(() => {
+                                switch (application.status) {
+                                    case 'approved': return 'Заявка одобрена!'
+                                    case 'won': return 'Продукт выдан!'
+                                    case 'rejected': return 'Заявка отклонена'
+                                    case 'lost': return 'Продукт не выдан'
+                                    case 'info_requested': return 'Требуется доработка'
+                                    case 'pending': return 'Ожидание скоринга'
+                                    case 'in_review': return 'На рассмотрении'
+                                    default: return 'Финальный этап оформления'
+                                }
+                            })()}
                             icon={<CheckCircle className="h-6 w-6" />}
-                            progress={application.status === 'approved' || application.status === 'won' ? 100 : 0}
+                            progress={application.status === 'approved' || application.status === 'won' ? 100 : application.status === 'rejected' || application.status === 'lost' ? 100 : 0}
                             isComplete={application.status === 'approved' || application.status === 'won'}
                             isExpanded={expandedSteps[4]}
                             onToggle={() => toggleStep(4)}
@@ -2457,53 +2472,67 @@ const getStatusBadge = (status: string) => {
                             <CardContent className="p-6 pt-0">
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
-                                {application.status === 'approved' || application.status === 'won' ? (
-                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
-                                        <CheckCircle className="h-20 w-20 mx-auto text-emerald-400 mb-4" />
-                                        <h3 className="text-2xl font-bold text-white mb-2">
-                                            🎉 Заявка одобрена!
-                                        </h3>
-                                        <p className="text-[#94a3b8] mb-6">
-                                            Поздравляем! Банковская гарантия будет выпущена после оплаты комиссии.
-                                        </p>
-                                        {application.commission_data && (
-                                            <div className="bg-[#0f2042] rounded-lg p-4 inline-block">
-                                                <p className="text-sm text-[#94a3b8] mb-2">Комиссия к оплате</p>
-                                                <p className="text-2xl font-bold text-[#3CE8D1]">
-                                                    {(application.commission_data.total || 0).toLocaleString('ru-RU')} ₽
-                                                </p>
-                                            </div>
-                                        )}
-                                        {application.signing_url && (
-                                            <Button
-                                                asChild
-                                                className="mt-6 bg-[#3CE8D1] hover:bg-[#2fd5bf] text-black font-semibold"
-                                            >
-                                                <a href={application.signing_url} target="_blank" rel="noopener noreferrer">
-                                                    <ExternalLink className="h-4 w-4 mr-2" />
-                                                    Перейти к подписанию
-                                                </a>
-                                            </Button>
-                                        )}
-                                    </div>
-                                ) : application.status === 'rejected' ? (
-                                    <div className="text-center py-8 [@media(max-height:820px)]:py-4">
-                                        <XCircle className="h-20 w-20 mx-auto text-red-400 mb-4" />
-                                        <h3 className="text-2xl font-bold text-white mb-2">
-                                            Заявка отклонена
-                                        </h3>
-                                        <p className="text-[#94a3b8]">
-                                            К сожалению, банк не одобрил данную заявку.
-                                        </p>
-                                    </div>
+                                {/* Success statuses: approved/won - Show with confetti on first view */}
+                                {(application.status === 'approved' || application.status === 'won') ? (
+                                    <>
+                                        <StatusEffect
+                                            status={application.status as DjangoApplicationStatus}
+                                            isVisible={true}
+                                            isAnimated={showSubmitSuccess}
+                                        />
+                                        {/* Additional info for approved/won */}
+                                        <div className="text-center">
+                                            {application.commission_data && (
+                                                <div className="bg-[#0f2042] rounded-lg p-4 inline-block mb-4">
+                                                    <p className="text-sm text-[#94a3b8] mb-2">Комиссия к оплате</p>
+                                                    <p className="text-2xl font-bold text-[#3CE8D1]">
+                                                        {(application.commission_data.total || 0).toLocaleString('ru-RU')} ₽
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {application.signing_url && (
+                                                <Button
+                                                    asChild
+                                                    className="mt-4 bg-[#3CE8D1] hover:bg-[#2fd5bf] text-black font-semibold"
+                                                >
+                                                    <a href={application.signing_url} target="_blank" rel="noopener noreferrer">
+                                                        <ExternalLink className="h-4 w-4 mr-2" />
+                                                        Перейти к подписанию
+                                                    </a>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </>
+                                ) : (application.status === 'rejected' || application.status === 'lost') ? (
+                                    /* Rejection statuses */
+                                    <StatusEffect
+                                        status={application.status as DjangoApplicationStatus}
+                                        isVisible={true}
+                                        isAnimated={false}
+                                    />
+                                ) : application.status === 'info_requested' ? (
+                                    /* Info requested - warning status */
+                                    <StatusEffect
+                                        status={application.status as DjangoApplicationStatus}
+                                        isVisible={true}
+                                        isAnimated={false}
+                                    />
+                                ) : (application.status === 'pending' || application.status === 'in_review') ? (
+                                    /* Pending/In Review - waiting status with pulse */
+                                    <StatusEffect
+                                        status={application.status as DjangoApplicationStatus}
+                                        isVisible={true}
+                                        isAnimated={false}
+                                    />
                                 ) : (
+                                    /* Draft or unknown - neutral waiting */
                                     <div className="text-center py-8 [@media(max-height:820px)]:py-4">
                                         <Clock className="h-16 w-16 mx-auto text-[#94a3b8] mb-4" />
                                         <h3 className="text-xl font-semibold text-white mb-2">
-                                            Ожидание решения банка
+                                            Ожидание отправки
                                         </h3>
                                         <p className="text-[#94a3b8]">
-                                            Заявка находится на рассмотрении. Вы получите уведомление о решении.
+                                            Заполните заявку и отправьте её на рассмотрение.
                                         </p>
                                     </div>
                                 )}

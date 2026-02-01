@@ -130,7 +130,7 @@ class ApplicationStatus(models.TextChoices):
     - Возвращение на доработку, Отказано, Одобрен, Выдан
     """
     DRAFT = 'draft', 'Создание заявки'
-    PENDING = 'pending', 'Отправка на скоринг'
+    PENDING = 'pending', 'На скорринге в банке'
     IN_REVIEW = 'in_review', 'На рассмотрении в банке'
     INFO_REQUESTED = 'info_requested', 'Возвращение на доработку'
     APPROVED = 'approved', 'Одобрен'

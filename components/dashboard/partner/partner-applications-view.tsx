@@ -46,6 +46,8 @@ interface PartnerApplicationsViewProps {
 const PRODUCT_TABS = [
     { value: "all", label: "Все", shortLabel: "Все", desc: "" },
     { value: "bank_guarantee", label: "Банковские гарантии", shortLabel: "БГ", desc: "Гарантии для тендеров и контрактов" },
+    { value: "kik", label: "КИК", shortLabel: "КИК", desc: "Кредит на исполнение контракта" },
+    { value: "corporate_credit", label: "Кредит", shortLabel: "Кредит", desc: "Кредитование бизнеса" },
     { value: "leasing", label: "Лизинг для юрлиц", shortLabel: "Лизинг", desc: "Лизинг оборудования и транспорта" },
     { value: "factoring", label: "Факторинг для бизнеса", shortLabel: "Факторинг", desc: "Факторинговое финансирование" },
     { value: "insurance", label: "Страхование СМР", shortLabel: "Страх.", desc: "Страхование строительно-монтажных работ" },
@@ -99,7 +101,15 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
             app.company_inn?.includes(searchQuery) ||
             String(app.id).includes(searchQuery)
 
-        const matchesProduct = productFilter === "all" || app.product_type === productFilter
+        // КИК tab filters both tender_loan and contract_loan
+        let matchesProduct = false
+        if (productFilter === "all") {
+            matchesProduct = true
+        } else if (productFilter === "kik") {
+            matchesProduct = app.product_type === "tender_loan" || app.product_type === "contract_loan"
+        } else {
+            matchesProduct = app.product_type === productFilter
+        }
 
         return matchesSearch && matchesProduct
     })
