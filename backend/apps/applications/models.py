@@ -328,8 +328,11 @@ class Application(models.Model):
     company = models.ForeignKey(
         'companies.CompanyProfile',
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='applications',
-        verbose_name='Компания'
+        verbose_name='Компания',
+        help_text='Может быть пустым для заявок из лидов до привязки клиента'
     )
     
     # Link to calculation session (root application)

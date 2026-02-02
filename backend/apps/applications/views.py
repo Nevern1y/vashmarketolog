@@ -1164,7 +1164,12 @@ class LeadViewSet(viewsets.ModelViewSet):
         serializer.save()
     
     @extend_schema(
-        request=None,
+        request={'type': 'object', 'properties': {
+            'amount': {'type': 'string', 'description': 'Amount to override lead value'},
+            'term_months': {'type': 'integer', 'description': 'Term in months to override'},
+            'product_type': {'type': 'string', 'description': 'Product type to override'},
+            'guarantee_type': {'type': 'string', 'description': 'Guarantee type to override'},
+        }},
         responses={200: LeadSerializer, 400: {'type': 'object'}}
     )
     @action(detail=True, methods=['post'])
@@ -1175,8 +1180,17 @@ class LeadViewSet(viewsets.ModelViewSet):
         
         Creates Application from Lead data and links them.
         The admin user becomes the creator of the application.
+        
+        Supports "smart conversion" - accepts optional fields to override/supplement lead data:
+        - amount: Override lead amount (required if lead has no amount)
+        - term_months: Override lead term (required if lead has no term)
+        - product_type: Override product type
+        - guarantee_type: Override guarantee type
+        
+        This allows converting leads with incomplete data by providing missing fields.
         """
         from .models import LeadStatus, ApplicationStatus
+        from decimal import Decimal, InvalidOperation
         
         lead = self.get_object()
         
@@ -1186,15 +1200,70 @@ class LeadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create Application from Lead data
+        # Get values from request body OR fallback to lead data
+        # This allows "smart conversion" with data supplementation
+        request_amount = request.data.get('amount')
+        request_term = request.data.get('term_months')
+        request_product = request.data.get('product_type')
+        request_guarantee = request.data.get('guarantee_type')
+        
+        # Determine final values (request overrides lead)
+        final_amount = None
+        if request_amount is not None:
+            try:
+                final_amount = Decimal(str(request_amount))
+            except (InvalidOperation, ValueError):
+                return Response(
+                    {'error': 'Некорректная сумма'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif lead.amount is not None:
+            final_amount = lead.amount
+        
+        final_term = None
+        if request_term is not None:
+            try:
+                final_term = int(request_term)
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Некорректный срок'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif lead.term_months is not None:
+            final_term = lead.term_months
+        
+        final_product = request_product or lead.product_type
+        final_guarantee = request_guarantee if request_guarantee is not None else (lead.guarantee_type or '')
+        
+        # Validate required fields
+        validation_errors = []
+        if final_amount is None:
+            validation_errors.append('Не указана сумма')
+        if final_term is None:
+            validation_errors.append('Не указан срок')
+        
+        if validation_errors:
+            return Response(
+                {
+                    'error': 'Невозможно конвертировать лид: отсутствуют обязательные данные',
+                    'details': validation_errors,
+                    'missing_fields': {
+                        'amount': final_amount is None,
+                        'term_months': final_term is None,
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create Application from Lead data (with overrides applied)
         # Admin is set as creator - client can be linked later when they register
         application = Application.objects.create(
-            created_by=request.user,  # Admin creates on behalf of lead
+            created_by=request.user,
             company=None,  # Will be filled when client completes profile
-            product_type=lead.product_type,
-            guarantee_type=lead.guarantee_type or '',
-            amount=lead.amount,
-            term_months=lead.term_months,
+            product_type=final_product,
+            guarantee_type=final_guarantee,
+            amount=final_amount,
+            term_months=final_term,
             status=ApplicationStatus.DRAFT,
             notes=f"Создано из лида #{lead.id}\n"
                   f"Контакт: {lead.full_name}\n"

@@ -49,6 +49,17 @@ export interface LeadUpdate {
     assigned_to?: number | null;
 }
 
+/**
+ * Data for converting a lead to application.
+ * All fields are optional - if not provided, values from lead will be used.
+ */
+export interface LeadConvertData {
+    amount?: string | number;
+    term_months?: number;
+    product_type?: string;
+    guarantee_type?: string;
+}
+
 // Lead status config for UI
 export const LEAD_STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
     new: { label: "Новый", color: "text-[#3CE8D1]", bgColor: "bg-[#3CE8D1]/10" },
@@ -132,16 +143,27 @@ export function useLeadActions() {
         }
     }, []);
 
-    const convertToApplication = useCallback(async (leadId: number): Promise<Lead | null> => {
+    const convertToApplication = useCallback(async (
+        leadId: number, 
+        data?: LeadConvertData
+    ): Promise<{ data: Lead | null; error: string | null }> => {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await api.post<Lead>(`/applications/admin/leads/${leadId}/convert/`, {});
-            return response;
+            const response = await api.post<Lead>(`/applications/admin/leads/${leadId}/convert/`, data || {});
+            return { data: response, error: null };
         } catch (err) {
             const apiError = err as ApiError;
-            setError(apiError.message || 'Ошибка конвертации лида');
-            return null;
+            // Extract detailed error message - include details if available
+            let errorMessage = apiError.message || 'Ошибка конвертации лида';
+            
+            // Check if there are details in the errors object
+            if (apiError.errors?.details && Array.isArray(apiError.errors.details)) {
+                errorMessage += ': ' + apiError.errors.details.join(', ');
+            }
+            
+            setError(errorMessage);
+            return { data: null, error: errorMessage };
         } finally {
             setIsLoading(false);
         }

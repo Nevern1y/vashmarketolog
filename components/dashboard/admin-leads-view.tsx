@@ -27,7 +27,7 @@ import {
     CheckCircle2,
 } from "lucide-react"
 import { useLeads, useLeadActions, useLeadComments, useLeadNotificationSettings, LEAD_STATUS_CONFIG, LEAD_SOURCE_CONFIG } from "@/hooks/use-leads"
-import type { Lead, LeadComment } from "@/hooks/use-leads"
+import type { Lead, LeadComment, LeadConvertData } from "@/hooks/use-leads"
 import { useAdminUsers, getAdminDisplayName } from "@/hooks/use-admin-users"
 import { ArrowRightCircle, UserCog, Send, Settings, X, Plus, Download } from "lucide-react"
 import {
@@ -65,6 +65,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 
 // ============================================
@@ -89,6 +90,14 @@ const PRODUCT_TYPE_LABELS: Record<string, string> = {
 // Form Name Labels (mapping technical names to readable)
 // ============================================
 const FORM_NAME_LABELS: Record<string, string> = {
+    // Landing page forms (actual values from lider-garant)
+    callback_modal: "Обратный звонок",
+    app_shell_callback: "Быстрый звонок",
+    header_form: "Заявка из шапки",
+    top_application_form: "Форма БГ (главная)",
+    guarantee_calculator: "Калькулятор БГ",
+    application_form_section: "Заявка на продукт",
+    
     // Calculator forms
     calculator_bg: "Калькулятор БГ",
     calculator_credit: "Калькулятор кредита",
@@ -107,6 +116,9 @@ const FORM_NAME_LABELS: Record<string, string> = {
     factoring_form: "Заявка на факторинг",
     leasing_form: "Заявка на лизинг",
     rko_form: "Заявка на РКО",
+    insurance_form: "Заявка на страхование",
+    deposit_form: "Заявка на депозит",
+    ved_form: "Заявка на ВЭД",
     
     // Landing pages
     landing_bg: "Лендинг БГ",
@@ -154,7 +166,7 @@ export function AdminLeadsView() {
     const [showDetailsDialog, setShowDetailsDialog] = useState(false)
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
     const [showAssignDialog, setShowAssignDialog] = useState(false)
-    const [selectedManagerId, setSelectedManagerId] = useState<string>("")
+    const [selectedManagerId, setSelectedManagerId] = useState<string>("unassigned")
     const [newCommentText, setNewCommentText] = useState("")
     const [isExporting, setIsExporting] = useState(false)
     
@@ -163,6 +175,13 @@ export function AdminLeadsView() {
     const [emailEnabled, setEmailEnabled] = useState(true)
     const [emailList, setEmailList] = useState<string[]>([])
     const [newEmail, setNewEmail] = useState("")
+
+    // Smart Convert Dialog state - for leads with incomplete data
+    const [showSmartConvertDialog, setShowSmartConvertDialog] = useState(false)
+    const [convertProductType, setConvertProductType] = useState("bank_guarantee")
+    const [convertGuaranteeType, setConvertGuaranteeType] = useState("")
+    const [convertAmount, setConvertAmount] = useState("")
+    const [convertTermMonths, setConvertTermMonths] = useState("")
 
     // Comments for selected lead
     const { 
@@ -236,15 +255,40 @@ export function AdminLeadsView() {
 
     const handleConvertConfirm = async () => {
         if (!selectedLeadId) return
-        const result = await convertToApplication(selectedLeadId)
-        if (result) {
+        const { data, error } = await convertToApplication(selectedLeadId)
+        if (data) {
             toast.success(`Лид конвертирован в заявку`)
             refetch()
         } else {
-            toast.error("Ошибка конвертации")
+            toast.error(error || "Ошибка конвертации")
         }
         setShowConvertDialog(false)
         setSelectedLeadId(null)
+    }
+
+    /**
+     * Check if lead has complete data for direct conversion
+     */
+    const hasCompleteData = (lead: Lead): boolean => {
+        return lead.amount !== null && lead.term_months !== null
+    }
+
+    /**
+     * Get lead completeness info for UI indicators
+     */
+    const getLeadCompleteness = (lead: Lead): { type: 'ready' | 'interested' | 'callback'; color: string; label: string } => {
+        const hasAmount = lead.amount !== null
+        const hasTermMonths = lead.term_months !== null
+        const hasInn = !!lead.inn
+        const hasProduct = lead.product_type && lead.product_type !== 'bank_guarantee'
+
+        if (hasAmount && hasTermMonths) {
+            return { type: 'ready', color: 'bg-emerald-400/10 text-emerald-400', label: 'Готов' }
+        }
+        if (hasProduct || hasAmount || hasInn || lead.guarantee_type) {
+            return { type: 'interested', color: 'bg-amber-400/10 text-amber-400', label: 'Заинтересован' }
+        }
+        return { type: 'callback', color: 'bg-slate-400/10 text-slate-400', label: 'Callback' }
     }
 
     const openConvertDialog = (lead: Lead) => {
@@ -252,19 +296,72 @@ export function AdminLeadsView() {
             toast.error("Этот лид уже конвертирован в заявку")
             return
         }
+        
+        setSelectedLead(lead)
         setSelectedLeadId(lead.id)
-        setShowConvertDialog(true)
+        
+        // Prefill form with lead data
+        setConvertProductType(lead.product_type || 'bank_guarantee')
+        setConvertGuaranteeType(lead.guarantee_type || '')
+        setConvertAmount(lead.amount?.toString() || '')
+        setConvertTermMonths(lead.term_months?.toString() || '')
+        
+        // Check data completeness
+        if (hasCompleteData(lead)) {
+            // Complete data - show simple confirmation dialog
+            setShowConvertDialog(true)
+        } else {
+            // Incomplete data - show smart convert dialog with form
+            setShowSmartConvertDialog(true)
+        }
+    }
+
+    /**
+     * Handle smart convert with additional data
+     */
+    const handleSmartConvert = async () => {
+        if (!selectedLeadId) return
+        
+        // Validate required fields
+        if (!convertAmount || !convertTermMonths) {
+            toast.error("Укажите сумму и срок")
+            return
+        }
+        
+        const convertData: LeadConvertData = {
+            amount: convertAmount,
+            term_months: parseInt(convertTermMonths),
+            product_type: convertProductType,
+            guarantee_type: convertGuaranteeType || undefined,
+        }
+        
+        const { data, error } = await convertToApplication(selectedLeadId, convertData)
+        if (data) {
+            toast.success(`Лид конвертирован в заявку`)
+            refetch()
+        } else {
+            toast.error(error || "Ошибка конвертации")
+        }
+        
+        setShowSmartConvertDialog(false)
+        setSelectedLeadId(null)
+        setSelectedLead(null)
+        // Reset form
+        setConvertAmount('')
+        setConvertTermMonths('')
+        setConvertProductType('bank_guarantee')
+        setConvertGuaranteeType('')
     }
 
     const openAssignDialog = (lead: Lead) => {
         setSelectedLeadId(lead.id)
-        setSelectedManagerId(lead.assigned_to?.toString() || "")
+        setSelectedManagerId(lead.assigned_to?.toString() || "unassigned")
         setShowAssignDialog(true)
     }
 
     const handleAssignManager = async () => {
         if (!selectedLeadId) return
-        const assignedTo = selectedManagerId ? parseInt(selectedManagerId) : null
+        const assignedTo = selectedManagerId && selectedManagerId !== "unassigned" ? parseInt(selectedManagerId) : null
         const result = await updateLead(selectedLeadId, { assigned_to: assignedTo })
         if (result) {
             toast.success(assignedTo ? "Менеджер назначен" : "Менеджер снят")
@@ -274,7 +371,7 @@ export function AdminLeadsView() {
         }
         setShowAssignDialog(false)
         setSelectedLeadId(null)
-        setSelectedManagerId("")
+        setSelectedManagerId("unassigned")
     }
 
     const handleAddComment = async () => {
@@ -536,6 +633,7 @@ export function AdminLeadsView() {
                             {filteredLeads.map((lead) => {
                                 const statusConfig = LEAD_STATUS_CONFIG[lead.status] || LEAD_STATUS_CONFIG.new
                                 const sourceConfig = LEAD_SOURCE_CONFIG[lead.source] || LEAD_SOURCE_CONFIG.other
+                                const completeness = getLeadCompleteness(lead)
 
                                 return (
                                     <div
@@ -546,7 +644,7 @@ export function AdminLeadsView() {
                                             {/* Left: Contact Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2 mb-2">
-                                                    <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                         <span className="text-xs font-mono text-muted-foreground">#{lead.id}</span>
                                                         <Badge className={cn("text-xs", statusConfig.bgColor, statusConfig.color)}>
                                                             {statusConfig.label}
@@ -554,6 +652,12 @@ export function AdminLeadsView() {
                                                         <Badge variant="outline" className={cn("text-xs", sourceConfig.color)}>
                                                             {sourceConfig.label}
                                                         </Badge>
+                                                        {/* Lead completeness indicator */}
+                                                        {lead.status !== 'converted' && (
+                                                            <Badge variant="outline" className={cn("text-xs", completeness.color)}>
+                                                                {completeness.label}
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                     <span className="text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
                                                         {formatDate(lead.created_at)}
@@ -795,6 +899,126 @@ export function AdminLeadsView() {
                 </AlertDialogContent>
             </AlertDialog>
 
+            {/* Smart Convert Dialog - for leads with incomplete data */}
+            <Dialog open={showSmartConvertDialog} onOpenChange={setShowSmartConvertDialog}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Конвертировать лид в заявку</DialogTitle>
+                        <DialogDescription>
+                            Проверьте и дозаполните данные для создания заявки
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    {selectedLead && (
+                        <div className="space-y-4 py-2">
+                            {/* Contact info (read-only) */}
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <Label className="text-muted-foreground text-xs">ФИО</Label>
+                                    <p className="font-medium">{selectedLead.full_name}</p>
+                                </div>
+                                <div>
+                                    <Label className="text-muted-foreground text-xs">Телефон</Label>
+                                    <p className="font-medium">{selectedLead.phone}</p>
+                                </div>
+                            </div>
+                            
+                            <Separator />
+                            
+                            {/* Editable fields */}
+                            <div className="space-y-4">
+                                <div>
+                                    <Label>Тип продукта</Label>
+                                    <Select value={convertProductType} onValueChange={setConvertProductType}>
+                                        <SelectTrigger className="mt-1.5">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(PRODUCT_TYPE_LABELS).map(([value, label]) => (
+                                                <SelectItem key={value} value={value}>{label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                
+                                {/* Guarantee type - only for bank_guarantee */}
+                                {convertProductType === 'bank_guarantee' && (
+                                    <div>
+                                        <Label>Тип гарантии</Label>
+                                        <Select value={convertGuaranteeType || "none"} onValueChange={(v) => setConvertGuaranteeType(v === "none" ? "" : v)}>
+                                            <SelectTrigger className="mt-1.5">
+                                                <SelectValue placeholder="Выберите тип" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Не указан</SelectItem>
+                                                <SelectItem value="application_security">Обеспечение заявки</SelectItem>
+                                                <SelectItem value="contract_execution">Исполнение контракта</SelectItem>
+                                                <SelectItem value="advance_return">Возврат аванса</SelectItem>
+                                                <SelectItem value="warranty_obligations">Гарантийные обязательства</SelectItem>
+                                                <SelectItem value="payment_guarantee">Гарантия оплаты</SelectItem>
+                                                <SelectItem value="customs_guarantee">Таможенная гарантия</SelectItem>
+                                                <SelectItem value="vat_refund">Возмещение НДС</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <Label>
+                                            Сумма, ₽ <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            value={convertAmount}
+                                            onChange={(e) => setConvertAmount(e.target.value)}
+                                            placeholder="1000000"
+                                            className="mt-1.5"
+                                            min={0}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label>
+                                            Срок, мес. <span className="text-destructive">*</span>
+                                        </Label>
+                                        <Input
+                                            type="number"
+                                            value={convertTermMonths}
+                                            onChange={(e) => setConvertTermMonths(e.target.value)}
+                                            placeholder="12"
+                                            className="mt-1.5"
+                                            min={1}
+                                            max={120}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* Info about missing data */}
+                                {(!selectedLead.amount || !selectedLead.term_months) && (
+                                    <p className="text-xs text-muted-foreground bg-muted p-2 rounded">
+                                        Этот лид содержит неполные данные. Укажите недостающую информацию для создания заявки.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowSmartConvertDialog(false)}>
+                            Отмена
+                        </Button>
+                        <Button 
+                            onClick={handleSmartConvert}
+                            disabled={!convertAmount || !convertTermMonths || isActionLoading}
+                            className="bg-[#3CE8D1] text-black hover:bg-[#3CE8D1]/90"
+                        >
+                            {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            Создать заявку
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Assign Manager Dialog */}
             <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
                 <DialogContent>
@@ -814,7 +1038,7 @@ export function AdminLeadsView() {
                                 <SelectValue placeholder="Выберите менеджера" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Не назначен</SelectItem>
+                                <SelectItem value="unassigned">Не назначен</SelectItem>
                                 {admins.map((admin) => (
                                     <SelectItem key={admin.id} value={admin.id.toString()}>
                                         {getAdminDisplayName(admin)}
