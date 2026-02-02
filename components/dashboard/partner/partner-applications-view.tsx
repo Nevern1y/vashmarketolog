@@ -96,10 +96,15 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
 
     // Filter applications
     const filteredApps = applications.filter(app => {
+        const query = searchQuery.toLowerCase()
         const matchesSearch = !searchQuery ||
-            app.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            app.company_name?.toLowerCase().includes(query) ||
             app.company_inn?.includes(searchQuery) ||
-            String(app.id).includes(searchQuery)
+            String(app.id).includes(searchQuery) ||
+            (app.tender_number || "").toLowerCase().includes(query) ||
+            (app.goscontract_data?.purchase_number || "").toLowerCase().includes(query) ||
+            (app.external_id || "").toLowerCase().includes(query) ||
+            (app.target_bank_name || "").toLowerCase().includes(query)
 
         // КИК tab filters both tender_loan and contract_loan
         let matchesProduct = false

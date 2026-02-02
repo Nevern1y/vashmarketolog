@@ -876,7 +876,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                             <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[200px]">Компания</th>
                                             <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">Продукт</th>
                                             <th className="hidden 2xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Закон</th>
-                                            <th className="hidden 2xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">МФО/Банк</th>
+                                            <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[120px]">МФО/Банк</th>
                                             <th className="hidden lg:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Сумма</th>
                                             <th className="hidden 2xl:table-cell text-left text-xs font-semibold text-muted-foreground p-4 min-w-[150px]">Создатель</th>
                                             <th className="text-left text-xs font-semibold text-muted-foreground p-4 min-w-[100px]">Статус</th>
@@ -942,7 +942,7 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                 <span className="text-muted-foreground">—</span>
                                                             )}
                                                         </td>
-                                                        <td className="hidden 2xl:table-cell p-4">
+                                                        <td className="hidden lg:table-cell p-4">
                                                             <span className="text-sm text-foreground">
                                                                 {app.target_bank_name || "—"}
                                                             </span>

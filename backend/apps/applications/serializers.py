@@ -442,9 +442,30 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        """Create application and attach documents."""
+        """Create application and attach documents + auto-assign partner."""
         document_ids = validated_data.pop('document_ids', [])
         validated_data['created_by'] = self.context['request'].user
+        
+        # Auto-assign partner based on target_bank_name
+        target_bank_name = validated_data.get('target_bank_name')
+        if target_bank_name and not validated_data.get('assigned_partner'):
+            from apps.bank_conditions.models import Bank
+            try:
+                bank = Bank.objects.get(
+                    name__iexact=target_bank_name,
+                    is_active=True,
+                    partner_user__isnull=False
+                )
+                validated_data['assigned_partner'] = bank.partner_user
+            except Bank.DoesNotExist:
+                # Try partial match
+                bank = Bank.objects.filter(
+                    name__icontains=target_bank_name,
+                    is_active=True,
+                    partner_user__isnull=False
+                ).first()
+                if bank:
+                    validated_data['assigned_partner'] = bank.partner_user
         
         application = super().create(validated_data)
         

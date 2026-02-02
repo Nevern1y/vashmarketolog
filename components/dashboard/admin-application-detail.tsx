@@ -328,7 +328,7 @@ function SectionDivider({ label }: { label: string }) {
 
 export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicationDetailProps) {
     const { application, isLoading, refetch } = useApplication(applicationId)
-    const { approveApplication, rejectApplication, restoreApplication, requestInfo, markIssued, markNotIssued, saveNotes, sendToBank, syncBankStatus, isLoading: isActioning } = usePartnerActions()
+    const { approveApplication, rejectApplication, restoreApplication, sendToReview, requestInfo, markIssued, markNotIssued, saveNotes, sendToBank, syncBankStatus, isLoading: isActioning } = usePartnerActions()
 
     const [showApproveDialog, setShowApproveDialog] = useState(false)
     const [showRejectDialog, setShowRejectDialog] = useState(false)
@@ -412,6 +412,14 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
         const result = await restoreApplication(parseInt(applicationId))
         if (result) {
             toast.success("Заявка восстановлена")
+            refetch()
+        }
+    }
+
+    const handleSendToReview = async () => {
+        const result = await sendToReview(parseInt(applicationId))
+        if (result) {
+            toast.success("Заявка отправлена на рассмотрение в банк")
             refetch()
         }
     }
@@ -567,6 +575,18 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 >
                                     <CheckCircle className="h-4 w-4 mr-1.5" />Одобрить
                                 </Button>
+                                {/* Send to Review button - changes status to in_review */}
+                                {application.status === 'pending' && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={handleSendToReview}
+                                        disabled={isActioning}
+                                        className="flex-1 sm:flex-none h-9 text-xs text-amber-400 border-amber-500/30 hover:text-amber-400 hover:bg-amber-500/10"
+                                    >
+                                        <Send className="h-4 w-4 mr-1.5" />На рассмотрение
+                                    </Button>
+                                )}
                                 {/* Send to Bank button - show for pending OR info_requested (returned for revision) */}
                                 {((!application.external_id && application.status === 'pending') || application.status === 'info_requested') && (
                                     <Button

@@ -501,8 +501,8 @@ export const REQUIRED_DOCUMENTS_BY_PRODUCT: Record<string, number[]> = {
     // Страхование - только карточка обязательна
     insurance: [1],
     
-    // Тендерное сопровождение
-    tender_support: [1],
+    // Тендерное сопровождение - полный пакет как у БГ/КИК
+    tender_support: [1, 203, 200, 50, 21, 22, 75, 76, 81],
 };
 
 export const getRequiredDocumentsForProduct = (productType: string): { id: number; name: string }[] => {

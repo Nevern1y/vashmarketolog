@@ -5,6 +5,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema
 from .models import Bank, BankCondition, IndividualReviewCondition, RKOCondition, StopFactor
 from .serializers import (
     BankSerializer,
@@ -13,7 +15,9 @@ from .serializers import (
     RKOConditionSerializer,
     StopFactorSerializer,
     BankConditionsAggregatedSerializer,
+    PartnerBankProfileSerializer,
 )
+from apps.users.permissions import IsPartner
 
 
 class BankViewSet(viewsets.ReadOnlyModelViewSet):
@@ -116,3 +120,41 @@ class BankConditionsAggregatedViewSet(viewsets.ViewSet):
         
         serializer = BankConditionsAggregatedSerializer(data)
         return Response(serializer.data)
+
+
+@extend_schema(tags=['Partner Bank Profile'])
+class PartnerBankProfileView(APIView):
+    """
+    Partner's bank profile management.
+    GET /api/bank-conditions/partner/profile/ - Get partner's bank profile
+    PATCH /api/bank-conditions/partner/profile/ - Update partner's bank profile
+    """
+    permission_classes = [IsAuthenticated, IsPartner]
+    
+    def get(self, request):
+        """Get the current partner's bank profile."""
+        try:
+            bank = Bank.objects.get(partner_user=request.user)
+            serializer = PartnerBankProfileSerializer(bank)
+            return Response(serializer.data)
+        except Bank.DoesNotExist:
+            return Response(
+                {'error': 'Профиль банка не найден. Обратитесь к администратору.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    def patch(self, request):
+        """Update the current partner's bank profile."""
+        try:
+            bank = Bank.objects.get(partner_user=request.user)
+        except Bank.DoesNotExist:
+            return Response(
+                {'error': 'Профиль банка не найден. Обратитесь к администратору.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = PartnerBankProfileSerializer(bank, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

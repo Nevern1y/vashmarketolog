@@ -10,7 +10,19 @@ class BankSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Bank
-        fields = ['id', 'name', 'short_name', 'logo_url', 'is_active', 'order']
+        fields = ['id', 'name', 'short_name', 'logo_url', 'is_active', 'order', 
+                  'partner_user', 'contact_email', 'contact_phone', 'description']
+        read_only_fields = ['partner_user']
+
+
+class PartnerBankProfileSerializer(serializers.ModelSerializer):
+    """Serializer for partner to view/edit their bank profile."""
+    
+    class Meta:
+        model = Bank
+        fields = ['id', 'name', 'short_name', 'logo_url', 'contact_email', 
+                  'contact_phone', 'description', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'name', 'is_active', 'created_at', 'updated_at']
 
 
 class BankConditionSerializer(serializers.ModelSerializer):

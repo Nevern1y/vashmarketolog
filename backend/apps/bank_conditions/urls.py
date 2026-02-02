@@ -10,6 +10,7 @@ from .views import (
     RKOConditionViewSet,
     StopFactorViewSet,
     BankConditionsAggregatedViewSet,
+    PartnerBankProfileView,
 )
 
 router = DefaultRouter()
@@ -22,4 +23,5 @@ router.register(r'all', BankConditionsAggregatedViewSet, basename='all')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('partner/profile/', PartnerBankProfileView.as_view(), name='partner-bank-profile'),
 ]

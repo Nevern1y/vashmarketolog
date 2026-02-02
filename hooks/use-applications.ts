@@ -909,6 +909,22 @@ export function usePartnerActions() {
         }
     }, []);
 
+    const sendToReview = useCallback(async (applicationId: number): Promise<Application | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.post<Application>(`/applications/${applicationId}/send_to_review/`);
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка отправки на рассмотрение');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     // Phase 4: Send application to bank
     const sendToBank = useCallback(async (applicationId: number): Promise<{
         ticket_id: string;
@@ -974,6 +990,7 @@ export function usePartnerActions() {
         markNotIssued,
         rejectApplication,
         restoreApplication,
+        sendToReview,
         saveNotes,
         sendToBank,
         syncBankStatus,

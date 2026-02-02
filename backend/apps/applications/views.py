@@ -540,6 +540,37 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
+        request=None,
+        responses={200: ApplicationSerializer}
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdmin])
+    def send_to_review(self, request, pk=None):
+        """
+        Send application to bank review (Admin only).
+        POST /api/applications/{id}/send_to_review/
+        
+        Changes status from PENDING to IN_REVIEW when admin sends application to bank.
+        """
+        application = self.get_object()
+        
+        if application.status == ApplicationStatus.IN_REVIEW:
+            return Response(
+                {'error': 'Заявка уже на рассмотрении в банке'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if application.status not in [ApplicationStatus.PENDING, ApplicationStatus.INFO_REQUESTED]:
+            return Response(
+                {'error': f'Невозможно отправить на рассмотрение заявку со статусом {application.get_status_display()}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        application.status = ApplicationStatus.IN_REVIEW
+        application.save()
+        
+        return Response(ApplicationSerializer(application, context={'request': request}).data)
+
+    @extend_schema(
         request=AdminNotesSerializer,
         responses={200: ApplicationSerializer}
     )

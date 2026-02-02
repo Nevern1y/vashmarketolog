@@ -2,6 +2,7 @@
 Bank Conditions models for storing partner bank tariffs and conditions.
 """
 from django.db import models
+from django.conf import settings
 
 
 class Bank(models.Model):
@@ -11,6 +12,23 @@ class Bank(models.Model):
     logo_url = models.URLField('URL логотипа', blank=True)
     is_active = models.BooleanField('Активен', default=True)
     order = models.IntegerField('Порядок сортировки', default=0)
+    
+    # Link to partner user account
+    partner_user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='partner_bank',
+        verbose_name='Аккаунт партнёра',
+        help_text='Пользователь с ролью partner, связанный с этим банком'
+    )
+    
+    # Additional bank info for profile
+    contact_email = models.EmailField('Контактный email', blank=True)
+    contact_phone = models.CharField('Контактный телефон', max_length=20, blank=True)
+    description = models.TextField('Описание', blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

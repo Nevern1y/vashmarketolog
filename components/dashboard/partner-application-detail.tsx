@@ -362,11 +362,13 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-4">
-                  <TabsTrigger value="general">Общие данные</TabsTrigger>
-                  <TabsTrigger value="registration">Регистрация</TabsTrigger>
-                  <TabsTrigger value="bank">Банковские реквизиты</TabsTrigger>
-                  <TabsTrigger value="founders">Учредители</TabsTrigger>
+                <TabsList className="flex w-full overflow-x-auto mb-4 h-auto flex-wrap md:flex-nowrap gap-1">
+                  <TabsTrigger value="general" className="flex-shrink-0">Общие</TabsTrigger>
+                  <TabsTrigger value="registration" className="flex-shrink-0">Регистрация</TabsTrigger>
+                  <TabsTrigger value="bank" className="flex-shrink-0">Реквизиты</TabsTrigger>
+                  <TabsTrigger value="founders" className="flex-shrink-0">Учредители</TabsTrigger>
+                  <TabsTrigger value="leadership" className="flex-shrink-0">Руководство</TabsTrigger>
+                  <TabsTrigger value="licenses" className="flex-shrink-0">Лицензии</TabsTrigger>
                 </TabsList>
 
                 {/* General Information Tab */}
@@ -499,7 +501,30 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                         {(application as any).company_data.bank_accounts_data.map((acc: any, idx: number) => (
                           <div key={idx} className="p-3 rounded bg-background border">
                             <p className="font-medium">{acc.bank_name}</p>
-                            <p className="text-sm text-muted-foreground">БИК: {acc.bic} | Счет: {acc.account}</p>
+                            <p className="text-sm text-muted-foreground">БИК: {acc.bic || acc.bank_bik} | Счет: {acc.account}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ETP Accounts - Electronic Trading Platforms */}
+                  {(application as any).company_data?.etp_accounts_data && (application as any).company_data.etp_accounts_data.length > 0 && (
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CreditCard className="h-4 w-4 text-[#3CE8D1]" />
+                        <span className="text-sm font-medium text-muted-foreground">Счета на электронных площадках (ЭТП)</span>
+                      </div>
+                      <div className="space-y-3">
+                        {(application as any).company_data.etp_accounts_data.map((etp: any, idx: number) => (
+                          <div key={idx} className="p-3 rounded bg-background border">
+                            <p className="font-medium">{etp.platform}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm text-muted-foreground">
+                              {etp.bank_name && <p>Банк: {etp.bank_name}</p>}
+                              {etp.bik && <p>БИК: <span className="font-mono">{etp.bik}</span></p>}
+                              {etp.account && <p>Счет: <span className="font-mono">{etp.account}</span></p>}
+                              {etp.corr_account && <p>К/с: <span className="font-mono">{etp.corr_account}</span></p>}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -509,26 +534,250 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
 
                 {/* Founders Tab */}
                 <TabsContent value="founders" className="space-y-4">
-                  {(application as any).company_data?.founders_data && (application as any).company_data.founders_data.length > 0 ? (
+                  {/* Physical Founders */}
+                  {(application as any).company_data?.founders_data && (application as any).company_data.founders_data.length > 0 && (
                     <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Физические лица</p>
                       {(application as any).company_data.founders_data.map((founder: any, idx: number) => (
                         <div key={idx} className="p-4 rounded-lg bg-muted/50 border">
                           <div className="flex items-center gap-2 mb-2">
                             <User className="h-4 w-4 text-[#3CE8D1]" />
-                            <span className="font-medium">{founder.name}</span>
+                            <span className="font-medium">{founder.full_name || founder.name}</span>
                           </div>
                           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                             {founder.inn && <p className="text-muted-foreground">ИНН: <span className="font-mono">{founder.inn}</span></p>}
-                            {founder.share && <p className="text-muted-foreground">Доля: <span className="font-medium">{founder.share}%</span></p>}
-                            {founder.type && <p className="text-muted-foreground">Тип: {founder.type}</p>}
+                            {(founder.share_relative || founder.share) && <p className="text-muted-foreground">Доля: <span className="font-medium">{founder.share_relative || founder.share}%</span></p>}
+                            {founder.citizen && <p className="text-muted-foreground">Гражданство: {founder.citizen}</p>}
+                            {founder.birth_date && <p className="text-muted-foreground">Дата рождения: {new Date(founder.birth_date).toLocaleDateString('ru-RU')}</p>}
+                            {founder.birth_place && <p className="text-muted-foreground">Место рождения: {founder.birth_place}</p>}
                           </div>
+                          {founder.document && (
+                            <div className="mt-3 pt-3 border-t border-muted">
+                              <p className="text-xs text-muted-foreground mb-2">Паспортные данные</p>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                {founder.document.series && founder.document.number && (
+                                  <p className="text-muted-foreground">Серия/номер: <span className="font-mono">{founder.document.series} {founder.document.number}</span></p>
+                                )}
+                                {founder.document.issued_at && (
+                                  <p className="text-muted-foreground">Дата выдачи: {new Date(founder.document.issued_at).toLocaleDateString('ru-RU')}</p>
+                                )}
+                                {founder.document.authority_code && (
+                                  <p className="text-muted-foreground">Код подр.: <span className="font-mono">{founder.document.authority_code}</span></p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Legal Entity Founders */}
+                  {(application as any).company_data?.legal_founders_data && (application as any).company_data.legal_founders_data.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-muted-foreground">Юридические лица</p>
+                      {(application as any).company_data.legal_founders_data.map((legalFounder: any, idx: number) => (
+                        <div key={idx} className="p-4 rounded-lg bg-muted/50 border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Building2 className="h-4 w-4 text-[#3CE8D1]" />
+                            <span className="font-medium">{legalFounder.name}</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            {legalFounder.inn && <p className="text-muted-foreground">ИНН: <span className="font-mono">{legalFounder.inn}</span></p>}
+                            {legalFounder.ogrn && <p className="text-muted-foreground">ОГРН: <span className="font-mono">{legalFounder.ogrn}</span></p>}
+                            {legalFounder.share_relative && <p className="text-muted-foreground">Доля: <span className="font-medium">{legalFounder.share_relative}%</span></p>}
+                            {legalFounder.registration_date && <p className="text-muted-foreground">Дата рег.: {new Date(legalFounder.registration_date).toLocaleDateString('ru-RU')}</p>}
+                            {legalFounder.is_resident !== undefined && (
+                              <p className="text-muted-foreground">Резидент РФ: {legalFounder.is_resident ? 'Да' : 'Нет'}</p>
+                            )}
+                          </div>
+                          {(legalFounder.director_name || legalFounder.email || legalFounder.phone) && (
+                            <div className="mt-3 pt-3 border-t border-muted">
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                {legalFounder.director_position && legalFounder.director_name && (
+                                  <p className="text-muted-foreground">{legalFounder.director_position}: {legalFounder.director_name}</p>
+                                )}
+                                {legalFounder.email && <p className="text-muted-foreground">Email: {legalFounder.email}</p>}
+                                {legalFounder.phone && <p className="text-muted-foreground">Тел: {legalFounder.phone}</p>}
+                                {legalFounder.website && (
+                                  <a href={legalFounder.website} target="_blank" rel="noopener noreferrer" className="text-[#3CE8D1] hover:underline flex items-center gap-1">
+                                    Сайт <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty state */}
+                  {(!(application as any).company_data?.founders_data || (application as any).company_data.founders_data.length === 0) &&
+                   (!(application as any).company_data?.legal_founders_data || (application as any).company_data.legal_founders_data.length === 0) && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Данные об учредителях не заполнены</p>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Leadership Tab */}
+                <TabsContent value="leadership" className="space-y-4">
+                  {(application as any).company_data?.leadership_data && (application as any).company_data.leadership_data.length > 0 ? (
+                    <div className="space-y-3">
+                      {(application as any).company_data.leadership_data.map((leader: any, idx: number) => (
+                        <div key={idx} className="p-4 rounded-lg bg-muted/50 border">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="h-4 w-4 text-[#3CE8D1]" />
+                            <span className="font-medium">{leader.full_name}</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                            {leader.position && <p className="text-muted-foreground">Должность: <span className="font-medium">{leader.position}</span></p>}
+                            {leader.share_percent && <p className="text-muted-foreground">Доля: <span className="font-medium">{leader.share_percent}%</span></p>}
+                            {leader.citizenship && <p className="text-muted-foreground">Гражданство: {leader.citizenship}</p>}
+                            {leader.birth_date && <p className="text-muted-foreground">Дата рождения: {new Date(leader.birth_date).toLocaleDateString('ru-RU')}</p>}
+                            {leader.email && <p className="text-muted-foreground">Email: {leader.email}</p>}
+                            {leader.phone && <p className="text-muted-foreground">Телефон: {leader.phone}</p>}
+                          </div>
+                          {leader.passport && (
+                            <div className="mt-3 pt-3 border-t border-muted">
+                              <p className="text-xs text-muted-foreground mb-2">Паспортные данные</p>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                {leader.passport.series && leader.passport.number && (
+                                  <p className="text-muted-foreground">Серия/номер: <span className="font-mono">{leader.passport.series} {leader.passport.number}</span></p>
+                                )}
+                                {leader.passport.issued_date && (
+                                  <p className="text-muted-foreground">Дата выдачи: {new Date(leader.passport.issued_date).toLocaleDateString('ru-RU')}</p>
+                                )}
+                                {leader.passport.department_code && (
+                                  <p className="text-muted-foreground">Код подр.: <span className="font-mono">{leader.passport.department_code}</span></p>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">
                       <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>Данные об учредителях не заполнены</p>
+                      <p>Данные о руководстве не заполнены</p>
+                    </div>
+                  )}
+                  
+                  {/* Director passport data as fallback */}
+                  {(application as any).company_data?.passport_series && (
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm font-medium mb-3">Паспортные данные руководителя</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <p className="text-muted-foreground">Серия/номер: <span className="font-mono">{(application as any).company_data.passport_series} {(application as any).company_data.passport_number}</span></p>
+                        {(application as any).company_data.passport_date && (
+                          <p className="text-muted-foreground">Дата выдачи: {new Date((application as any).company_data.passport_date).toLocaleDateString('ru-RU')}</p>
+                        )}
+                        {(application as any).company_data.passport_code && (
+                          <p className="text-muted-foreground">Код подр.: <span className="font-mono">{(application as any).company_data.passport_code}</span></p>
+                        )}
+                      </div>
+                      {(application as any).company_data.passport_issued_by && (
+                        <p className="text-sm text-muted-foreground mt-2">Кем выдан: {(application as any).company_data.passport_issued_by}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MCHD (Machine-Readable Power of Attorney) */}
+                  {(application as any).company_data?.is_mchd && (
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm font-medium mb-3">Машиночитаемая доверенность (МЧД)</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        {(application as any).company_data.mchd_number && (
+                          <p className="text-muted-foreground">Номер: <span className="font-mono">{(application as any).company_data.mchd_number}</span></p>
+                        )}
+                        {(application as any).company_data.mchd_issue_date && (
+                          <p className="text-muted-foreground">Дата выдачи: {new Date((application as any).company_data.mchd_issue_date).toLocaleDateString('ru-RU')}</p>
+                        )}
+                        {(application as any).company_data.mchd_expiry_date && (
+                          <p className="text-muted-foreground">Действует до: {new Date((application as any).company_data.mchd_expiry_date).toLocaleDateString('ru-RU')}</p>
+                        )}
+                        {(application as any).company_data.mchd_principal_inn && (
+                          <p className="text-muted-foreground">ИНН доверителя: <span className="font-mono">{(application as any).company_data.mchd_principal_inn}</span></p>
+                        )}
+                      </div>
+                      {(application as any).company_data.mchd_file && (
+                        <a
+                          href={(application as any).company_data.mchd_file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 mt-3 text-sm text-[#3CE8D1] hover:underline"
+                        >
+                          <FileText className="h-4 w-4" /> Скачать файл МЧД
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Licenses and Activities Tab */}
+                <TabsContent value="licenses" className="space-y-4">
+                  {/* Activities / OKVED */}
+                  {(application as any).company_data?.activities_data && (application as any).company_data.activities_data.length > 0 && (
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm font-medium mb-3">Виды деятельности (ОКВЭД)</p>
+                      <div className="space-y-2">
+                        {(application as any).company_data.activities_data.map((activity: any, idx: number) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <span className="font-mono text-sm bg-background px-2 py-0.5 rounded">{activity.code}</span>
+                            <span className="text-sm">{activity.name}</span>
+                            {activity.is_primary && <Badge variant="outline" className="text-xs">Основной</Badge>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Licenses */}
+                  {(application as any).company_data?.licenses_data && (application as any).company_data.licenses_data.length > 0 ? (
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm font-medium mb-3">Лицензии и СРО</p>
+                      <div className="space-y-3">
+                        {(application as any).company_data.licenses_data.map((license: any, idx: number) => (
+                          <div key={idx} className="p-3 rounded bg-background border">
+                            <p className="font-medium">{license.name}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm text-muted-foreground">
+                              {license.type && <p>Тип: {license.type}</p>}
+                              {license.number && <p>Номер: <span className="font-mono">{license.number}</span></p>}
+                              {license.issued_date && <p>Выдана: {new Date(license.issued_date).toLocaleDateString('ru-RU')}</p>}
+                              {license.valid_until && <p>Действует до: {new Date(license.valid_until).toLocaleDateString('ru-RU')}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>Лицензии и СРО не указаны</p>
+                    </div>
+                  )}
+
+                  {/* Contact Persons */}
+                  {(application as any).company_data?.contact_persons_data && (application as any).company_data.contact_persons_data.length > 0 && (
+                    <div className="p-4 rounded-lg bg-muted/50 border">
+                      <p className="text-sm font-medium mb-3">Контактные лица</p>
+                      <div className="space-y-3">
+                        {(application as any).company_data.contact_persons_data.map((person: any, idx: number) => (
+                          <div key={idx} className="p-3 rounded bg-background border">
+                            <p className="font-medium">
+                              {person.last_name} {person.first_name} {person.patronymic}
+                            </p>
+                            <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
+                              {person.position && <p>Должность: {person.position}</p>}
+                              {person.email && <p>Email: {person.email}</p>}
+                              {person.phone && <p>Тел: {person.phone}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </TabsContent>
@@ -783,6 +1032,193 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                 (application as any).goscontract_data?.equipment_type && (
                   <ProductInfoItem label="Предмет лизинга" value={(application as any).goscontract_data.equipment_type} fullWidth />
                 )
+              )}
+
+              {/* Insurance Fields */}
+              {application.product_type === 'insurance' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {((application as any).insurance_category || (application as any).goscontract_data?.insurance_category) && (
+                      <ProductInfoItem
+                        label="Категория страхования"
+                        value={(() => {
+                          const cat = (application as any).insurance_category || (application as any).goscontract_data?.insurance_category
+                          const categoryLabels: Record<string, string> = {
+                            smr: 'Строительно-монтажные риски',
+                            contract: 'Контракта',
+                            personnel: 'Персонал',
+                            transport: 'Транспорт',
+                            property: 'Имущество',
+                            liability: 'Ответственность',
+                          }
+                          return categoryLabels[cat] || cat
+                        })()}
+                      />
+                    )}
+                    {((application as any).insurance_product_type || (application as any).goscontract_data?.insurance_product_type) && (
+                      <ProductInfoItem
+                        label="Страховой продукт"
+                        value={(() => {
+                          const prod = (application as any).insurance_product_type || (application as any).goscontract_data?.insurance_product_type
+                          const productLabels: Record<string, string> = {
+                            smr_full: 'СМР полный пакет',
+                            smr_basic: 'СМР базовый',
+                            smr_risks: 'Страхование строительных рисков',
+                            contract_execution: 'Страхование исполнения контракта',
+                            contract_liability: 'Страхование ответственности по контракту',
+                            dms: 'Добровольное медицинское страхование (ДМС)',
+                            critical_illness: 'Страхование критических заболеваний',
+                            accident: 'Страхование несчастных случаев',
+                            travel: 'Комплексное страхование в поездках',
+                            osago: 'ОСАГО юридических лиц',
+                            fleet: 'Комплексное страхование автопарков',
+                            special_tech: 'Страхование специальной техники',
+                            carrier_liability: 'Страхование ответственности перевозчика',
+                            construction: 'Страхование объектов строительства',
+                            cargo: 'Страхование грузов и перевозок',
+                            company_property: 'Страхование имущества компаний',
+                            business_interruption: 'Страхование перерывов деятельности',
+                            civil_liability: 'Страхование гражданской ответственности',
+                            hazardous_objects: 'Страхование опасных объектов',
+                            professional_risks: 'Страхование профессиональных рисков',
+                            quality_liability: 'Страхование ответственности за качество',
+                          }
+                          return productLabels[prod] || prod
+                        })()}
+                      />
+                    )}
+                  </div>
+                  {(application as any).goscontract_data?.insurance_amount && (
+                    <ProductInfoItem label="Страховая сумма" value={formatCurrency((application as any).goscontract_data.insurance_amount)} />
+                  )}
+                  {(application as any).goscontract_data?.insurance_term_months && (
+                    <ProductInfoItem label="Срок договора" value={`${(application as any).goscontract_data.insurance_term_months} мес.`} />
+                  )}
+                </>
+              )}
+
+              {/* Tender Support Fields */}
+              {application.product_type === 'tender_support' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(application as any).tender_support_type && (
+                      <ProductInfoItem
+                        label="Тип сопровождения"
+                        value={
+                          (application as any).tender_support_type === 'one_time' ? 'Разовое сопровождение' :
+                          (application as any).tender_support_type === 'full_cycle' ? 'Тендерное сопровождение под ключ' :
+                          (application as any).tender_support_type
+                        }
+                      />
+                    )}
+                    {(application as any).purchase_category && (
+                      <ProductInfoItem
+                        label="Категория закупок"
+                        value={(() => {
+                          const cat = (application as any).purchase_category
+                          const categoryLabels: Record<string, string> = {
+                            gov_44: 'Госзакупки по 44-ФЗ',
+                            gov_223: 'Закупки по 223-ФЗ',
+                            property: 'Имущественные торги',
+                            commercial: 'Коммерческие закупки',
+                          }
+                          return categoryLabels[cat] || cat
+                        })()}
+                      />
+                    )}
+                  </div>
+                  {(application as any).industry && (
+                    <ProductInfoItem label="Отрасль закупок" value={(application as any).industry} fullWidth />
+                  )}
+                </>
+              )}
+
+              {/* Deposits Fields */}
+              {application.product_type === 'deposits' && (
+                <>
+                  {(application as any).goscontract_data?.deposit_amount && (
+                    <ProductInfoItem label="Сумма депозита" value={formatCurrency((application as any).goscontract_data.deposit_amount)} />
+                  )}
+                  {(application as any).goscontract_data?.deposit_term_months && (
+                    <ProductInfoItem label="Срок депозита" value={`${(application as any).goscontract_data.deposit_term_months} мес.`} />
+                  )}
+                  {(application as any).goscontract_data?.deposit_rate && (
+                    <ProductInfoItem label="Процентная ставка" value={`${(application as any).goscontract_data.deposit_rate}%`} />
+                  )}
+                </>
+              )}
+
+              {/* RKO / Special Account Fields */}
+              {(application.product_type === 'rko' || application.product_type === 'special_account') && (
+                <>
+                  {(application as any).account_type && (
+                    <ProductInfoItem
+                      label="Тип счёта"
+                      value={
+                        (application as any).account_type === 'rko' ? 'Расчётно-кассовое обслуживание (РКО)' :
+                        (application as any).account_type === 'special' ? 'Специальный счёт' :
+                        (application as any).account_type
+                      }
+                    />
+                  )}
+                  <ProductInfoItem 
+                    label="Тип продукта" 
+                    value={application.product_type === 'rko' ? 'РКО' : 'Спецсчёт'} 
+                  />
+                </>
+              )}
+
+              {/* Tender Loan Fields (similar to Contract Loan) */}
+              {application.product_type === 'tender_loan' && (
+                <>
+                  {/* Tender info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(application as any).goscontract_data?.purchase_number && (
+                      <div className="p-4 rounded-lg bg-muted/50 border flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">№ извещения</p>
+                          <p className="font-mono font-medium">{(application as any).goscontract_data.purchase_number}</p>
+                        </div>
+                        <a
+                          href={`https://zakupki.gov.ru/epz/order/notice/ea44/view/common-info.html?regNumber=${(application as any).goscontract_data.purchase_number}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#3CE8D1] hover:underline flex items-center gap-1 text-sm"
+                        >
+                          ЕИС <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    )}
+                    {(application as any).goscontract_data?.lot_number && (
+                      <ProductInfoItem label="№ лота" value={(application as any).goscontract_data.lot_number} mono />
+                    )}
+                  </div>
+
+                  {(application as any).goscontract_data?.credit_amount && (
+                    <ProductInfoItem label="Сумма займа" value={formatCurrency((application as any).goscontract_data.credit_amount)} />
+                  )}
+
+                  {/* Tender dates */}
+                  {((application as any).goscontract_data?.credit_start_date || (application as any).goscontract_data?.credit_end_date) && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(application as any).goscontract_data?.credit_start_date && (
+                        <ProductInfoItem label="Срок займа с" value={new Date((application as any).goscontract_data.credit_start_date).toLocaleDateString('ru-RU')} />
+                      )}
+                      {(application as any).goscontract_data?.credit_end_date && (
+                        <ProductInfoItem label="Срок займа по" value={new Date((application as any).goscontract_data.credit_end_date).toLocaleDateString('ru-RU')} />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Flags */}
+                  {(application as any).goscontract_data?.has_prepayment && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Badge variant="outline">
+                        Авансирование {(application as any).goscontract_data?.advance_percent ? `(${(application as any).goscontract_data.advance_percent}%)` : ''}
+                      </Badge>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* Notes */}

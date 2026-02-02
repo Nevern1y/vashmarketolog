@@ -153,6 +153,7 @@ const INSURANCE_COMPANIES = [
     "РЕСО",
     "БСД",
     "Пари",
+    "Индивидуальный подбор",
 ]
 // Backend enum values with Russian labels for insurance products
 const INSURANCE_PRODUCTS_BACKEND: Record<string, { value: string; label: string }[]> = {
@@ -1066,8 +1067,14 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             return baseData
         }
 
-        // Create applications for each selected bank
-        const selectedBanks = Array.from(selectedOffers).map(idx => calculatedOffers.approved[idx])
+        // Create applications for each selected bank/company
+        // For insurance, use INSURANCE_COMPANIES; for others, use calculatedOffers
+        const selectedBanks = showResults === "insurance"
+            ? Array.from(selectedOffers).map(idx => ({
+                name: INSURANCE_COMPANIES[idx],
+                individual: INSURANCE_COMPANIES[idx] === "Индивидуальный подбор"
+              }))
+            : Array.from(selectedOffers).map(idx => calculatedOffers.approved[idx])
         let successCount = 0
         let errorCount = 0
         const successfulBankNames: string[] = []
@@ -1109,18 +1116,29 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                 const amountDisplay = formatInputNumber(amount ?? 0)
                 const title = `${getProductTypeLabel(productType)} ${amountDisplay} ₽`
 
-                const session = await createSession({
-                    company: company.id,
-                    product_type: productType,
-                    form_data: formData,
-                    approved_banks: calculatedOffers.approved.map(b => ({
+                // For insurance, use INSURANCE_COMPANIES; for others, use calculatedOffers
+                const approvedBanksData = productType === "insurance"
+                    ? INSURANCE_COMPANIES.map(name => ({
+                        name,
+                        bgRate: 0,
+                        creditRate: 0,
+                        speed: "Средняя",
+                        individual: name === "Индивидуальный подбор"
+                      }))
+                    : calculatedOffers.approved.map(b => ({
                         name: b.name,
                         bgRate: b.bgRate,
                         creditRate: b.creditRate,
                         speed: b.speed,
                         individual: b.individual
-                    })),
-                    rejected_banks: calculatedOffers.rejected,
+                      }))
+
+                const session = await createSession({
+                    company: company.id,
+                    product_type: productType,
+                    form_data: formData,
+                    approved_banks: approvedBanksData,
+                    rejected_banks: productType === "insurance" ? [] : calculatedOffers.rejected,
                     title
                 })
 
@@ -1640,6 +1658,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                         </thead>
                         <tbody>
                             {INSURANCE_COMPANIES.map((company, i) => {
+                                const isIndividual = company === "Индивидуальный подбор"
                                 // Estimate insurance premium (1-3% of amount depending on category)
                                 const premiumRate = 
                                     insuranceCategory === "Персонал" ? 2.0 :
@@ -1650,12 +1669,13 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     insuranceCategory === "Контракта" ? 1.5 : 2.0
                                 const premium = (insuranceAmount ?? 0) * premiumRate / 100
                                 return (
-                                    <tr key={i} className="border-t hover:bg-muted/30">
+                                    <tr key={i} className={cn("border-t hover:bg-muted/30", isIndividual && "bg-[#3CE8D1]/10")}>
                                         <td className="p-2">
                                             <span className="font-medium">{company}</span>
+                                            {isIndividual && <Badge className="ml-2 bg-[#3CE8D1] text-[#0a1628]">Инд. условия</Badge>}
                                         </td>
-                                        <td className="p-2 text-center">{premiumRate.toFixed(1)}%</td>
-                                        <td className="p-2 text-center text-[#3CE8D1]">{premium.toLocaleString("ru-RU")} ₽</td>
+                                        <td className="p-2 text-center">{isIndividual ? "—" : `${premiumRate.toFixed(1)}%`}</td>
+                                        <td className="p-2 text-center text-[#3CE8D1]">{isIndividual ? "По запросу" : `${premium.toLocaleString("ru-RU")} ₽`}</td>
                                         <td className="p-2 text-center"><Checkbox checked={selectedOffers.has(i)} onCheckedChange={() => toggleOffer(i)} /></td>
                                     </tr>
                                 )
