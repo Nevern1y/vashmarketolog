@@ -145,15 +145,17 @@ set_env() {
 }
 
 ENV_FILE="$PROJECT_DIR/.env"
-SMTP_USER="noreply@lider-garant.ru"
-SMTP_PASSWORD="iyLM6miL*AKV"
+SMTP_USER="${SMTP_USER:-noreply@lider-garant.ru}"
+SMTP_PASSWORD="${SMTP_PASSWORD:-}"
 if [ -f "$ENV_FILE" ]; then
     set_env "EMAIL_HOST" "smtp.beget.com" "$ENV_FILE"
     set_env "EMAIL_PORT" "465" "$ENV_FILE"
     set_env "EMAIL_USE_SSL" "True" "$ENV_FILE"
     set_env "EMAIL_USE_TLS" "False" "$ENV_FILE"
     set_env "EMAIL_HOST_USER" "$SMTP_USER" "$ENV_FILE"
-    set_env "EMAIL_HOST_PASSWORD" "$SMTP_PASSWORD" "$ENV_FILE"
+    if [ -n "$SMTP_PASSWORD" ]; then
+        set_env "EMAIL_HOST_PASSWORD" "$SMTP_PASSWORD" "$ENV_FILE"
+    fi
 
     set_env "DEFAULT_FROM_EMAIL" "noreply@lider-garant.ru" "$ENV_FILE"
     set_env "SERVER_EMAIL" "noreply@lider-garant.ru" "$ENV_FILE"
