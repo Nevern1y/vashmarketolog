@@ -926,6 +926,11 @@ export function PartnersTab() {
                                                             <p className="text-xs text-muted-foreground">
                                                                 Отправьте ссылку вручную, если письмо не дошло.
                                                             </p>
+                                                            {inviteDetails.email_error && (
+                                                                <p className="text-xs text-rose-500">
+                                                                    Причина: {inviteDetails.email_error}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     )}
 

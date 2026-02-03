@@ -1,6 +1,8 @@
 """
 Views for Bank Conditions API.
 """
+import logging
+
 from django.conf import settings
 from django.core.mail import send_mail
 from rest_framework import viewsets, status
@@ -24,6 +26,8 @@ from .serializers import (
 )
 from apps.users.permissions import IsPartner, IsAdmin
 from apps.users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 class BankViewSet(viewsets.ReadOnlyModelViewSet):
@@ -76,9 +80,14 @@ class AdminBankViewSet(viewsets.ModelViewSet):
                 recipient_list=[email],
                 fail_silently=False,
             )
-            return True
-        except Exception:
-            return False
+            return True, None
+        except Exception as error:
+            logger.exception(
+                "Failed to send partner invite email to %s (bank=%s)",
+                email,
+                bank_name,
+            )
+            return False, f"{error.__class__.__name__}: {error}"
 
     @action(detail=True, methods=['post'])
     def invite_partner(self, request, pk=None):
@@ -117,11 +126,12 @@ class AdminBankViewSet(viewsets.ModelViewSet):
         bank.save(update_fields=['partner_user'])
 
         invite_url, relative_invite_url = self._build_invite_urls(user)
-        email_sent = self._send_partner_invite_email(bank.name, email, invite_url)
+        email_sent, email_error = self._send_partner_invite_email(bank.name, email, invite_url)
 
         return Response({
             'message': 'Приглашение создано' + (' и отправлено на email' if email_sent else '. Email не отправлен (проверьте SMTP настройки)'),
             'email_sent': email_sent,
+            'email_error': email_error,
             'partner': {
                 'id': user.id,
                 'email': user.email,
@@ -159,6 +169,7 @@ class AdminBankViewSet(viewsets.ModelViewSet):
         return Response({
             'message': 'Ссылка приглашения сформирована',
             'email_sent': None,
+            'email_error': None,
             'partner': {
                 'id': partner.id,
                 'email': partner.email,
@@ -192,11 +203,12 @@ class AdminBankViewSet(viewsets.ModelViewSet):
             partner.generate_invite_token()
 
         invite_url, relative_invite_url = self._build_invite_urls(partner)
-        email_sent = self._send_partner_invite_email(bank.name, partner.email, invite_url)
+        email_sent, email_error = self._send_partner_invite_email(bank.name, partner.email, invite_url)
 
         return Response({
             'message': 'Приглашение отправлено' + (' на email' if email_sent else '. Email не отправлен (проверьте SMTP настройки)'),
             'email_sent': email_sent,
+            'email_error': email_error,
             'partner': {
                 'id': partner.id,
                 'email': partner.email,

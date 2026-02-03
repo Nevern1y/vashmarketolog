@@ -1,8 +1,36 @@
 """
 Serializers for Bank Conditions API.
 """
+import re
 from rest_framework import serializers
 from .models import Bank, BankCondition, IndividualReviewCondition, RKOCondition, StopFactor
+
+
+def normalize_russian_phone(value: str) -> str:
+    raw = (value or '').strip()
+    if not raw:
+        return ''
+
+    digits = re.sub(r'\D', '', raw)
+    if not digits:
+        return ''
+
+    if len(digits) == 11 and digits[0] in ('7', '8'):
+        digits = digits[1:]
+    elif len(digits) == 10:
+        pass
+    else:
+        return raw
+
+    return f"+7({digits[:3]}){digits[3:6]}-{digits[6:8]}-{digits[8:10]}"
+
+
+class ContactPhoneValidationMixin:
+    def validate_contact_phone(self, value):
+        normalized = normalize_russian_phone(value)
+        if normalized and len(normalized) > 20:
+            raise serializers.ValidationError('Телефон должен содержать не более 20 символов')
+        return normalized
 
 
 class BankSerializer(serializers.ModelSerializer):
@@ -15,7 +43,7 @@ class BankSerializer(serializers.ModelSerializer):
         read_only_fields = ['partner_user']
 
 
-class AdminBankSerializer(serializers.ModelSerializer):
+class AdminBankSerializer(ContactPhoneValidationMixin, serializers.ModelSerializer):
     """Admin serializer for bank management with partner info."""
     partner_user_id = serializers.IntegerField(source='partner_user.id', read_only=True)
     partner_email = serializers.EmailField(source='partner_user.email', read_only=True)
@@ -55,7 +83,7 @@ class BankPartnerLinkSerializer(serializers.Serializer):
         return attrs
 
 
-class PartnerBankProfileSerializer(serializers.ModelSerializer):
+class PartnerBankProfileSerializer(ContactPhoneValidationMixin, serializers.ModelSerializer):
     """Serializer for partner to view/edit their bank profile."""
     
     class Meta:

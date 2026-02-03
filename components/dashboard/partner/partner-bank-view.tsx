@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useApplications } from "@/hooks/use-applications"
 import { usePartnerBankProfile, type PartnerBankProfileUpdate } from "@/hooks/use-bank-conditions"
+import { formatPhoneNumber } from "@/lib/utils"
 import { toast } from "sonner"
 
 /**
@@ -20,7 +21,7 @@ export function PartnerBankView() {
     const { applications, isLoading } = useApplications()
     
     // Fetch partner's bank profile
-    const { profile, isLoading: isLoadingProfile, isSaving, updateProfile, refetch: refetchProfile } = usePartnerBankProfile()
+    const { profile, isLoading: isLoadingProfile, isSaving, updateProfile } = usePartnerBankProfile()
     
     // Edit mode state
     const [isEditing, setIsEditing] = useState(false)
@@ -65,12 +66,20 @@ export function PartnerBankView() {
     }
 
     const handleSave = async () => {
-        const result = await updateProfile(formData)
-        if (result) {
+        const payload: PartnerBankProfileUpdate = {
+            short_name: formData.short_name?.trim() || "",
+            logo_url: formData.logo_url?.trim() || "",
+            contact_email: formData.contact_email?.trim() || "",
+            contact_phone: formData.contact_phone?.trim() || "",
+            description: formData.description || "",
+        }
+
+        const result = await updateProfile(payload)
+        if (result.profile) {
             toast.success("Профиль успешно сохранён")
             setIsEditing(false)
         } else {
-            toast.error("Ошибка сохранения профиля")
+            toast.error(result.error || "Ошибка сохранения профиля")
         }
     }
 
@@ -227,6 +236,7 @@ export function PartnerBankView() {
                                         value={formData.short_name}
                                         onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
                                         placeholder="Сбер, ВТБ и т.д."
+                                        maxLength={100}
                                         className="bg-[#0a1628] border-[#1e3a5f] text-white"
                                     />
                                 </div>
@@ -240,9 +250,12 @@ export function PartnerBankView() {
                                     </Label>
                                     <Input
                                         type="email"
+                                        inputMode="email"
+                                        autoComplete="email"
                                         value={formData.contact_email}
                                         onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
                                         placeholder="partner@bank.ru"
+                                        maxLength={254}
                                         className="bg-[#0a1628] border-[#1e3a5f] text-white"
                                     />
                                 </div>
@@ -252,9 +265,13 @@ export function PartnerBankView() {
                                         Контактный телефон
                                     </Label>
                                     <Input
+                                        type="tel"
+                                        inputMode="tel"
+                                        autoComplete="tel"
                                         value={formData.contact_phone}
-                                        onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                                        onChange={(e) => setFormData({ ...formData, contact_phone: formatPhoneNumber(e.target.value) })}
                                         placeholder="+7 (999) 123-45-67"
+                                        maxLength={20}
                                         className="bg-[#0a1628] border-[#1e3a5f] text-white"
                                     />
                                 </div>
@@ -263,9 +280,12 @@ export function PartnerBankView() {
                             <div className="space-y-2">
                                 <Label className="text-[#94a3b8]">URL логотипа</Label>
                                 <Input
+                                    type="url"
+                                    inputMode="url"
                                     value={formData.logo_url}
                                     onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
                                     placeholder="https://example.com/logo.png"
+                                    maxLength={200}
                                     className="bg-[#0a1628] border-[#1e3a5f] text-white"
                                 />
                             </div>

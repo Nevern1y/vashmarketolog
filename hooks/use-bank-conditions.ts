@@ -146,6 +146,11 @@ export interface PartnerBankProfileUpdate {
     description?: string
 }
 
+export interface PartnerBankProfileUpdateResult {
+    profile: PartnerBankProfile | null
+    error: string | null
+}
+
 export function usePartnerBankProfile() {
     const [profile, setProfile] = useState<PartnerBankProfile | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -177,19 +182,20 @@ export function usePartnerBankProfile() {
         fetchProfile()
     }, [fetchProfile])
 
-    const updateProfile = useCallback(async (data: PartnerBankProfileUpdate): Promise<PartnerBankProfile | null> => {
+    const updateProfile = useCallback(async (data: PartnerBankProfileUpdate): Promise<PartnerBankProfileUpdateResult> => {
         setIsSaving(true)
         setError(null)
 
         try {
             const response = await api.patch<PartnerBankProfile>('/bank-conditions/partner/profile/', data)
             setProfile(response)
-            return response
+            return { profile: response, error: null }
         } catch (err) {
             const apiError = err as ApiError
             console.error('Error updating partner bank profile:', err)
-            setError(apiError.message || 'Ошибка сохранения профиля')
-            return null
+            const message = apiError.message || 'Ошибка сохранения профиля'
+            setError(message)
+            return { profile: null, error: message }
         } finally {
             setIsSaving(false)
         }

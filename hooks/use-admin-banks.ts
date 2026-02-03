@@ -49,6 +49,7 @@ export interface PartnerLinkPayload {
 export interface PartnerInviteResponse {
     message: string
     email_sent: boolean | null
+    email_error: string | null
     partner: {
         id: number
         email: string

@@ -348,6 +348,7 @@ class PartnerInviteView(generics.CreateAPIView):
         # Send invite email automatically
         bank_name = serializer.validated_data.get('bank_name', 'Ваш банк')
         email_sent = False
+        email_error = None
         
         try:
             send_mail(
@@ -373,12 +374,13 @@ class PartnerInviteView(generics.CreateAPIView):
             )
             email_sent = True
         except Exception as e:
-            # Log error but don't fail the invite creation
-            print(f"Failed to send partner invite email: {e}")
+            email_error = f"{e.__class__.__name__}: {e}"
+            logger.exception("Failed to send partner invite email to %s", email)
         
         return Response({
             'message': 'Приглашение создано' + (' и отправлено на email' if email_sent else '. Email не отправлен (проверьте SMTP настройки)'),
             'email_sent': email_sent,
+            'email_error': email_error,
             'partner': {
                 'id': user.id,
                 'email': user.email,

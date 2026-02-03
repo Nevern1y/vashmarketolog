@@ -413,19 +413,20 @@ const calculateOffers = (
         : buildBankOffersFromConditions(banks, conditions, productType)
 
     const allowIndividual = productType !== "leasing" && shouldAllowIndividual(law, individualReviews)
-    const pool = allowIndividual
-        ? [...baseOffers, {
-            name: "Индивидуальное рассмотрение",
-            minAmount: 0,
-            maxAmount: MAX_AMOUNT_FALLBACK,
-            bgRate: 0,
-            creditRate: 0,
-            speed: "Высокая",
-            laws: LAWS,
-            individual: true,
-            type: "bank",
-            order: Number.MAX_SAFE_INTEGER,
-        }]
+    const individualOffer: BankOffer = {
+        name: "Индивидуальное рассмотрение",
+        minAmount: 0,
+        maxAmount: MAX_AMOUNT_FALLBACK,
+        bgRate: 0,
+        creditRate: 0,
+        speed: "Высокая",
+        laws: LAWS,
+        individual: true,
+        type: "bank",
+        order: Number.MAX_SAFE_INTEGER,
+    }
+    const pool: BankOffer[] = allowIndividual
+        ? [...baseOffers, individualOffer]
         : baseOffers
 
     pool.forEach((bank) => {
