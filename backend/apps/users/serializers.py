@@ -318,6 +318,28 @@ class UserListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for admin user updates (basic profile + active status)."""
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'phone',
+            'first_name',
+            'last_name',
+            'role',
+            'is_active',
+            'date_joined',
+        ]
+        read_only_fields = ['id', 'role', 'date_joined']
+
+    def update(self, instance, validated_data):
+        if 'email' in validated_data and validated_data['email'] != instance.email:
+            instance.email_verified = False
+        return super().update(instance, validated_data)
+
+
 class AgentAccreditationSerializer(serializers.ModelSerializer):
     """
     Serializer for agent accreditation list (Admin only).
@@ -397,6 +419,7 @@ class AgentAccreditationSerializer(serializers.ModelSerializer):
             'phone',
             'first_name',
             'last_name',
+            'is_active',
             'accreditation_status',
             'accreditation_submitted_at',
             'accreditation_comment',

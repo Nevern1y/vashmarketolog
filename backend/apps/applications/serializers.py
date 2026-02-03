@@ -2,6 +2,9 @@
 API Serializers for Applications.
 """
 from functools import lru_cache
+import re
+
+from django.db.models import Q
 from rest_framework import serializers
 from .models import Application, PartnerDecision, TicketMessage, ProductType, ApplicationStatus, ApplicationStatusDefinition, CalculationSession, Lead, LeadSource, LeadStatus
 
@@ -23,6 +26,57 @@ def get_status_name_cached(status_id: int, product_type: str) -> str | None:
             return status_def.name
     except Exception:
         pass
+    return None
+
+
+def _normalize_bank_name(name: str) -> str:
+    if not name:
+        return ""
+    normalized = name.strip().lower().replace("ё", "е")
+    normalized = re.sub(r"[^0-9a-zа-я]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _get_partner_for_target_bank(target_bank_name: str):
+    if not target_bank_name:
+        return None
+    cleaned_name = target_bank_name.strip()
+    if not cleaned_name:
+        return None
+
+    from apps.bank_conditions.models import Bank
+
+    banks_qs = Bank.objects.filter(is_active=True, partner_user__isnull=False)
+    exact_matches = banks_qs.filter(
+        Q(name__iexact=cleaned_name) | Q(short_name__iexact=cleaned_name)
+    )
+
+    if exact_matches.count() == 1:
+        return exact_matches.first().partner_user
+    if exact_matches.count() > 1:
+        return None
+
+    normalized_target = _normalize_bank_name(cleaned_name)
+    if not normalized_target:
+        return None
+
+    matches = []
+    for bank in banks_qs:
+        name_norm = _normalize_bank_name(bank.name)
+        short_norm = _normalize_bank_name(bank.short_name or "")
+        if normalized_target == name_norm or (short_norm and normalized_target == short_norm):
+            matches.append(bank)
+            continue
+        if len(normalized_target) >= 3 and (
+            (name_norm and normalized_target in name_norm) or
+            (short_norm and normalized_target in short_norm)
+        ):
+            matches.append(bank)
+
+    if len(matches) == 1:
+        return matches[0].partner_user
+
     return None
 
 
@@ -449,23 +503,9 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
         # Auto-assign partner based on target_bank_name
         target_bank_name = validated_data.get('target_bank_name')
         if target_bank_name and not validated_data.get('assigned_partner'):
-            from apps.bank_conditions.models import Bank
-            try:
-                bank = Bank.objects.get(
-                    name__iexact=target_bank_name,
-                    is_active=True,
-                    partner_user__isnull=False
-                )
-                validated_data['assigned_partner'] = bank.partner_user
-            except Bank.DoesNotExist:
-                # Try partial match
-                bank = Bank.objects.filter(
-                    name__icontains=target_bank_name,
-                    is_active=True,
-                    partner_user__isnull=False
-                ).first()
-                if bank:
-                    validated_data['assigned_partner'] = bank.partner_user
+            partner = _get_partner_for_target_bank(target_bank_name)
+            if partner:
+                validated_data['assigned_partner'] = partner
         
         application = super().create(validated_data)
         
@@ -551,6 +591,12 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
             user = self.context['request'].user
             documents = Document.objects.filter(id__in=document_ids, owner=user)
             application.documents.set(documents)
+
+        if not application.assigned_partner and application.target_bank_name:
+            partner = _get_partner_for_target_bank(application.target_bank_name)
+            if partner:
+                application.assigned_partner = partner
+                application.save(update_fields=['assigned_partner'])
         
         return application
 

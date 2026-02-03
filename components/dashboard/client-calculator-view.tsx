@@ -28,6 +28,7 @@ import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany } from "@/hooks/use-companies"
 import { useDocuments, type DocumentListItem } from "@/hooks/use-documents"
+import { useBankConditions, type Bank as BankInfo, type BankCondition, type IndividualReviewCondition } from "@/hooks/use-bank-conditions"
 import { getRequiredDocumentsForProduct, getDocumentTypeName } from "@/lib/document-types"
 
 // =============================================================================
@@ -243,8 +244,17 @@ const TENDER_TYPES = ["Разовое сопровождение", "Тендер
 
 const COUNTRIES = ["Россия", "Австрия", "Германия", "Казахстан", "Китай", "ОАЭ", "США", "Турция", "Узбекистан"]
 
-// Bank Interface
-interface Bank {
+const MAX_AMOUNT_FALLBACK = 999999999999
+
+const PRODUCT_KEYWORDS: Record<string, string[]> = {
+    bg: ["бг", "гарант"],
+    tz: ["тендер", "тз", "кредит"],
+    kik: ["кредит", "исполн"],
+    express: ["кредит", "экспресс"],
+}
+
+// Bank Offer Interface
+interface BankOffer {
     name: string
     minAmount: number
     maxAmount: number
@@ -253,54 +263,183 @@ interface Bank {
     speed: string
     laws: string[]
     individual?: boolean
-    type?: string
+    type?: "bank" | "leasing"
+    order?: number
 }
 
-// Bank database with conditions
-const BANKS_DB: Bank[] = [
-    { name: "Сбербанк", minAmount: 100000, maxAmount: 500000000, bgRate: 2.5, creditRate: 15, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
-    { name: "ВТБ", minAmount: 500000, maxAmount: 300000000, bgRate: 2.8, creditRate: 14.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Альфа-Банк", minAmount: 300000, maxAmount: 200000000, bgRate: 3.0, creditRate: 16, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"] },
-    { name: "Промсвязьбанк", minAmount: 100000, maxAmount: 400000000, bgRate: 2.7, creditRate: 15.5, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Совкомбанк", minAmount: 200000, maxAmount: 150000000, bgRate: 3.2, creditRate: 17, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ"] },
-    { name: "Газпромбанк", minAmount: 1000000, maxAmount: 1000000000, bgRate: 2.3, creditRate: 13, speed: "Низкая", laws: ["44-ФЗ", "223-ФЗ"] },
-    { name: "Тинькофф", minAmount: 50000, maxAmount: 50000000, bgRate: 4.0, creditRate: 18, speed: "Высокая", laws: ["КБГ (Коммерческие)"] },
-    { name: "Открытие", minAmount: 500000, maxAmount: 200000000, bgRate: 2.9, creditRate: 15, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ"] },
-    { name: "Райффайзен", minAmount: 1000000, maxAmount: 300000000, bgRate: 2.6, creditRate: 14, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Локо-Банк", minAmount: 100000, maxAmount: 100000000, bgRate: 3.5, creditRate: 19, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)"] },
-    { name: "МКБ", minAmount: 300000, maxAmount: 250000000, bgRate: 2.8, creditRate: 15.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ"] },
-    { name: "Уралсиб", minAmount: 200000, maxAmount: 100000000, bgRate: 3.1, creditRate: 16.5, speed: "Средняя", laws: ["44-ФЗ", "223-ФЗ", "КБГ (Коммерческие)"] },
-    { name: "Индивидуальное рассмотрение", minAmount: 10000, maxAmount: 999999999, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["44-ФЗ", "223-ФЗ", "185-ФЗ (615-ПП)", "КБГ (Коммерческие)", "275-ФЗ"], individual: true, type: "bank" },
+const LEASING_BANKS: BankOffer[] = [
     { name: "Эволюция (Лизинг)", minAmount: 500000, maxAmount: 100000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
     { name: "Carcade (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
     { name: "Европлан (Лизинг)", minAmount: 500000, maxAmount: 1000000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
     { name: "ВТБ Лизинг", minAmount: 1000000, maxAmount: 5000000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
 ]
 
+const parseConditionNumber = (value: string | null) => {
+    if (!value) return null
+    const raw = value.toLowerCase().trim()
+    if (!raw) return null
+
+    let multiplier = 1
+    if (raw.includes("млн")) multiplier = 1_000_000
+    if (raw.includes("тыс")) multiplier = 1_000
+
+    const normalized = raw.replace(/[^0-9,.-]/g, "").replace(",", ".")
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed * multiplier : null
+}
+
+const normalizeText = (value: string) => value.toLowerCase().replace(/ё/g, "е")
+
+const matchesProduct = (productType: string, value: string | null) => {
+    if (!value) return false
+    const keywords = PRODUCT_KEYWORDS[productType] || []
+    if (keywords.length === 0) return false
+    const normalized = normalizeText(value)
+    return keywords.some((keyword) => normalized.includes(keyword))
+}
+
+const extractLawTags = (value: string | null) => {
+    if (!value) return []
+    const normalized = normalizeText(value)
+    const tags = new Set<string>()
+
+    if (/\b44\b/.test(normalized) || normalized.includes("44-фз")) tags.add("44-ФЗ")
+    if (/\b223\b/.test(normalized) || normalized.includes("223-фз")) tags.add("223-ФЗ")
+    if (/\b185\b/.test(normalized) || normalized.includes("615")) tags.add("185-ФЗ (615-ПП)")
+    if (/\b275\b/.test(normalized) || normalized.includes("гоз")) tags.add("275-ФЗ")
+    if (normalized.includes("кбг") || normalized.includes("коммер")) tags.add("КБГ (Коммерческие)")
+
+    return Array.from(tags)
+}
+
+const shouldAllowIndividual = (law: string, reviews: IndividualReviewCondition[]) => {
+    const activeReviews = reviews.filter((review) => review.is_active)
+    if (activeReviews.length === 0) return false
+
+    const reviewTags = activeReviews.map((review) => extractLawTags(review.fz_type))
+    const hasTagged = reviewTags.some((tags) => tags.length > 0)
+    if (!hasTagged) return true
+
+    return reviewTags.some((tags) => tags.includes(law))
+}
+
+const collectNumbers = (values: Array<string | null>) => {
+    const numbers = values
+        .map(parseConditionNumber)
+        .filter((value): value is number => value !== null)
+    return numbers
+}
+
+const formatBankAmount = (value: number) => {
+    if (!Number.isFinite(value) || value >= MAX_AMOUNT_FALLBACK) return "—"
+    return value.toLocaleString("ru-RU")
+}
+
+const buildBankOffersFromConditions = (
+    banks: BankInfo[],
+    conditions: BankCondition[],
+    productType: string
+) => {
+    const activeConditions = conditions.filter((condition) => condition.is_active)
+    const hasProductTags = PRODUCT_KEYWORDS[productType]?.length
+        ? activeConditions.some((condition) => matchesProduct(productType, condition.product))
+        : false
+
+    const conditionsByBank = activeConditions.reduce((acc, condition) => {
+        const existing = acc.get(condition.bank) ?? []
+        existing.push(condition)
+        acc.set(condition.bank, existing)
+        return acc
+    }, new Map<number, BankCondition[]>())
+
+    const offers: BankOffer[] = []
+
+    banks
+        .filter((bank) => bank.is_active)
+        .forEach((bank) => {
+            const bankConditions = conditionsByBank.get(bank.id)
+            if (!bankConditions || bankConditions.length === 0) return
+
+            const matchedConditions = hasProductTags
+                ? bankConditions.filter((condition) => matchesProduct(productType, condition.product))
+                : []
+            const usedConditions = matchedConditions.length > 0 ? matchedConditions : bankConditions
+
+            const minAmounts = collectNumbers(usedConditions.map((condition) => condition.sum_min))
+            const maxAmounts = collectNumbers(usedConditions.map((condition) => condition.sum_max))
+            const rateMins = collectNumbers(usedConditions.map((condition) => condition.rate_min))
+
+            const minAmount = minAmounts.length > 0 ? Math.min(...minAmounts) : 0
+            const maxAmount = maxAmounts.length > 0 ? Math.max(...maxAmounts) : MAX_AMOUNT_FALLBACK
+            const rateMin = rateMins.length > 0 ? Math.min(...rateMins) : 0
+
+            const lawTags = new Set<string>()
+            usedConditions.forEach((condition) => {
+                extractLawTags(condition.product).forEach((tag) => lawTags.add(tag))
+            })
+
+            offers.push({
+                name: bank.name,
+                minAmount,
+                maxAmount,
+                bgRate: rateMin,
+                creditRate: rateMin,
+                speed: "Средняя",
+                laws: lawTags.size > 0 ? Array.from(lawTags) : LAWS,
+                type: "bank",
+                order: bank.order,
+            })
+        })
+
+    return offers
+}
+
 // Calculate bank offers based on form data
-const calculateOffers = (amount: number, law: string, days: number, productType: string = "bg") => {
-    const approved: typeof BANKS_DB = []
+const calculateOffers = (
+    banks: BankInfo[],
+    conditions: BankCondition[],
+    individualReviews: IndividualReviewCondition[],
+    leasingBanks: BankOffer[],
+    amount: number,
+    law: string,
+    days: number,
+    productType: string = "bg"
+) => {
+    const approved: BankOffer[] = []
     const rejected: { bank: string; reason: string }[] = []
 
-    BANKS_DB.forEach(bank => {
+    const baseOffers = productType === "leasing"
+        ? leasingBanks
+        : buildBankOffersFromConditions(banks, conditions, productType)
+
+    const allowIndividual = productType !== "leasing" && shouldAllowIndividual(law, individualReviews)
+    const pool = allowIndividual
+        ? [...baseOffers, {
+            name: "Индивидуальное рассмотрение",
+            minAmount: 0,
+            maxAmount: MAX_AMOUNT_FALLBACK,
+            bgRate: 0,
+            creditRate: 0,
+            speed: "Высокая",
+            laws: LAWS,
+            individual: true,
+            type: "bank",
+            order: Number.MAX_SAFE_INTEGER,
+        }]
+        : baseOffers
+
+    pool.forEach((bank) => {
         // Individual consideration is always available
         if (bank.individual) {
             approved.push(bank)
             return
         }
 
-        // Filter by product type
-        if (productType === "leasing") {
-            if (bank.type !== "leasing") return // Skip non-leasing companies
-        } else {
-            if (bank.type === "leasing") return // Skip leasing companies for other products
-        }
-
         if (amount < bank.minAmount) {
-            rejected.push({ bank: bank.name, reason: `Минимальная сумма ${bank.minAmount.toLocaleString("ru-RU")} ₽` })
+            rejected.push({ bank: bank.name, reason: `Минимальная сумма ${formatBankAmount(bank.minAmount)} ₽` })
         } else if (amount > bank.maxAmount) {
-            rejected.push({ bank: bank.name, reason: `Максимальная сумма ${bank.maxAmount.toLocaleString("ru-RU")} ₽` })
-        } else if (productType !== "leasing" && !bank.laws.includes(law)) {
+            rejected.push({ bank: bank.name, reason: `Максимальная сумма ${formatBankAmount(bank.maxAmount)} ₽` })
+        } else if (productType !== "leasing" && bank.laws.length > 0 && !bank.laws.includes(law)) {
             // Only check law if strictly required (not leasing)
             rejected.push({ bank: bank.name, reason: `Банк не работает с ${law}` })
         } else {
@@ -322,25 +461,12 @@ const calculateOffers = (amount: number, law: string, days: number, productType:
         
         const priorityA = speedPriority[a.speed] ?? 3
         const priorityB = speedPriority[b.speed] ?? 3
-        return priorityA - priorityB
+        if (priorityA !== priorityB) return priorityA - priorityB
+        return (a.order ?? 0) - (b.order ?? 0)
     })
 
     return { approved, rejected }
 }
-
-// RKO Banks
-const RKO_BANKS = [
-    { name: "Альфа Банк", rating: 5, sanctions: "Частично", cost: "БЕСПЛАТНО" },
-    { name: "Банк «Санкт-Петербург»", rating: 18, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-    { name: "Локо", rating: 52, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-    { name: "Модуль", rating: 114, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-    { name: "Открытие", rating: 8, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-    { name: "Промсвязьбанк", rating: 7, sanctions: "Да", cost: "БЕСПЛАТНО" },
-    { name: "Райффайзен Банк", rating: 10, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-    { name: "Сбербанк", rating: 1, sanctions: "Да", cost: "БЕСПЛАТНО" },
-    { name: "Тинькофф", rating: 12, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-    { name: "Точка", rating: 95, sanctions: "Нет", cost: "БЕСПЛАТНО" },
-]
 
 const formatNumber = (num: number): string => num.toLocaleString("ru-RU")
 
@@ -447,41 +573,68 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const [email, setEmail] = useState("")
     const [comment, setComment] = useState("")
 
+    const parseDateInput = (value: string): Date | null => {
+        if (!value) return null
+        const [yearStr, monthStr, dayStr] = value.split("-")
+        const year = Number.parseInt(yearStr, 10)
+        const month = Number.parseInt(monthStr, 10)
+        const day = Number.parseInt(dayStr, 10)
+        if (!year || !month || !day) return null
+        const date = new Date(Date.UTC(year, month - 1, day))
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    const formatDateInput = (date: Date): string => date.toISOString().slice(0, 10)
+
+    const addUtcDays = (date: Date, days: number): Date => {
+        const next = new Date(date.getTime())
+        next.setUTCDate(next.getUTCDate() + days)
+        return next
+    }
+
+    const diffDaysUtc = (start: Date, end: Date): number =>
+        Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000))
+
     useEffect(() => {
-        if (!dateFrom || typeof termDays !== 'number' || !Number.isFinite(termDays) || termDays <= 0) return
-
-        const startDate = new Date(dateFrom)
-        if (Number.isNaN(startDate.getTime())) return
-
-        startDate.setDate(startDate.getDate() + termDays)
-        if (Number.isNaN(startDate.getTime())) return
-
-        try {
-            const calculatedDateTo = startDate.toISOString().split('T')[0]
-            setDateTo(calculatedDateTo)
-        } catch {
-            // Invalid date range - skip auto-update
-        }
+        if (!dateFrom || typeof termDays !== "number" || !Number.isFinite(termDays) || termDays <= 0) return
+        const startDate = parseDateInput(dateFrom)
+        if (!startDate) return
+        const calculatedDateTo = formatDateInput(addUtcDays(startDate, termDays))
+        setDateTo(prev => (prev === calculatedDateTo ? prev : calculatedDateTo))
     }, [dateFrom, termDays])
 
     useEffect(() => {
         if (!dateFrom || !dateTo) return
-        const startDate = new Date(dateFrom)
-        const endDate = new Date(dateTo)
-        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return
-        const diffDays = Math.max(0, Math.ceil((endDate.getTime() - startDate.getTime()) / 86400000))
-        if (diffDays > 0 && diffDays !== termDays) {
-            setTermDays(diffDays)
+        const startDate = parseDateInput(dateFrom)
+        const endDate = parseDateInput(dateTo)
+        if (!startDate || !endDate) return
+        const diffDays = diffDaysUtc(startDate, endDate)
+        if (diffDays > 0) {
+            setTermDays(prev => (prev === diffDays ? prev : diffDays))
         }
-    }, [dateFrom, dateTo, termDays])
+    }, [dateFrom, dateTo])
 
     // VED (International Payments) specific
     const [vedCurrency, setVedCurrency] = useState("")
     const [vedCountry, setVedCountry] = useState("")
     const [vedPurpose, setVedPurpose] = useState("")
 
+    // Bank conditions hook
+    const {
+        banks: bankList,
+        conditions: bankConditions,
+        individualReviews,
+        rkoConditions,
+        isLoading: isBankConditionsLoading,
+    } = useBankConditions()
+
+    const rkoRows = rkoConditions
+        .filter((condition) => condition.is_active)
+        .slice()
+        .sort((a, b) => a.order - b.order)
+
     // Calculated offers result
-    const [calculatedOffers, setCalculatedOffers] = useState<{ approved: typeof BANKS_DB; rejected: { bank: string; reason: string }[] }>({ approved: [], rejected: [] })
+    const [calculatedOffers, setCalculatedOffers] = useState<{ approved: BankOffer[]; rejected: { bank: string; reason: string }[] }>({ approved: [], rejected: [] })
 
     // Current calculation session ID (for linking applications to root application)
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
@@ -908,7 +1061,16 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         if (productType === "factoring") calculatedAmount = financingAmount
         if (productType === "insurance") calculatedAmount = insuranceAmount
 
-        const offers = calculateOffers(calculatedAmount ?? 0, law, days, productType)
+        const offers = calculateOffers(
+            bankList,
+            bankConditions,
+            individualReviews,
+            LEASING_BANKS,
+            calculatedAmount ?? 0,
+            law,
+            days,
+            productType
+        )
 
         setCalculatedOffers(offers)
         setIsSubmitting(false)
@@ -1429,8 +1591,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                             {calculatedOffers.approved.map((bank, i) => (
                                 <tr key={i} className={cn("border-t", bank.individual && "bg-[#3CE8D1]/10")}>
                                     <td className="p-2 font-medium">{bank.name}{bank.individual && <Badge className="ml-2 bg-[#3CE8D1] text-[#0a1628]">Инд. условия</Badge>}</td>
-                                    <td className="p-2 text-center">{bank.minAmount.toLocaleString("ru-RU")} ₽</td>
-                                    <td className="p-2 text-center">{bank.maxAmount.toLocaleString("ru-RU")} ₽</td>
+                                    <td className="p-2 text-center">{formatBankAmount(bank.minAmount)} ₽</td>
+                                    <td className="p-2 text-center">{formatBankAmount(bank.maxAmount)} ₽</td>
                                     <td className="p-2 text-center">{bank.bgRate.toFixed(1)}%</td>
                                     <td className="p-2 text-center text-[#3CE8D1]">{((amount ?? 0) * bank.bgRate / 100).toLocaleString("ru-RU")} ₽</td>
                                     <td className="p-2 text-center"><SpeedBadge speed={bank.speed} /></td>
@@ -3028,23 +3190,45 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                     <Card>
                         <CardHeader><CardTitle>РКО (Расчётно-кассовое обслуживание)</CardTitle></CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground mb-4">Всего: {RKO_BANKS.length} банков</p>
-                            <div className="rounded-lg border overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-muted/50"><tr><th className="text-left p-3">Банк</th><th className="text-left p-3">Рейтинг</th><th className="text-left p-3">Санкции</th><th className="text-left p-3">Стоимость</th><th className="text-left p-3"></th></tr></thead>
-                                    <tbody>
-                                        {RKO_BANKS.map((bank, i) => (
-                                            <tr key={i} className="border-t">
-                                                <td className="p-3 font-medium">{bank.name}</td>
-                                                <td className="p-3"><Badge variant="outline">{bank.rating}</Badge></td>
-                                                <td className="p-3"><Badge variant={bank.sanctions === "Да" ? "destructive" : bank.sanctions === "Частично" ? "secondary" : "outline"}>{bank.sanctions}</Badge></td>
-                                                <td className="p-3 text-green-500 font-medium">{bank.cost}</td>
-                                                <td className="p-3"><Button size="sm" variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]" onClick={() => createRkoApplication(bank.name, "rko")}>Создать заявку</Button></td>
+                            <p className="text-sm text-muted-foreground mb-4">Всего: {rkoRows.length} банков</p>
+                            {isBankConditionsLoading ? (
+                                <div className="text-sm text-muted-foreground">Загрузка условий...</div>
+                            ) : rkoRows.length === 0 ? (
+                                <div className="text-sm text-muted-foreground">Нет условий РКО</div>
+                            ) : (
+                                <div className="rounded-lg border overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-muted/50">
+                                            <tr>
+                                                <th className="text-left p-3">Банк</th>
+                                                <th className="text-left p-3">Условия</th>
+                                                <th className="text-left p-3">Порядок</th>
+                                                <th className="text-left p-3"></th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {rkoRows.map((rko) => (
+                                                <tr key={rko.id} className="border-t">
+                                                    <td className="p-3 font-medium">{rko.bank_name || "—"}</td>
+                                                    <td className="p-3 text-muted-foreground">{rko.description || "—"}</td>
+                                                    <td className="p-3"><Badge variant="outline">{rko.order}</Badge></td>
+                                                    <td className="p-3">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-[#3CE8D1] border-[#3CE8D1]"
+                                                            onClick={() => createRkoApplication(rko.bank_name || "", "rko")}
+                                                            disabled={!rko.bank_name}
+                                                        >
+                                                            Создать заявку
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

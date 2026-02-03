@@ -60,6 +60,11 @@ class CompanyProfile(models.Model):
         default=False,
         help_text='True если клиент прошёл аккредитацию (заполнил профиль и загрузил документы)'
     )
+    is_active = models.BooleanField(
+        'Активен',
+        default=True,
+        help_text='Определяет, активен ли профиль компании для работы'
+    )
 
     
     # Company identification (Manual Entry Only - no validation against external DBs)

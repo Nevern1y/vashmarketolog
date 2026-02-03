@@ -396,6 +396,7 @@ class AdminCRMClientSerializer(serializers.ModelSerializer):
             'client_status',
             'client_status_display',
             'is_accredited',
+            'is_active',
             'invitation_email',
             'contact_person',
             'contact_phone',
@@ -434,6 +435,7 @@ class AdminDirectClientSerializer(serializers.ModelSerializer):
     """
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
     owner_name = serializers.SerializerMethodField()
+    owner_is_active = serializers.BooleanField(source='owner.is_active', read_only=True)
     applications_count = serializers.SerializerMethodField()
     
     class Meta:
@@ -449,12 +451,14 @@ class AdminDirectClientSerializer(serializers.ModelSerializer):
             'region',
             'director_name',
             'is_accredited',
+            'is_active',
             'contact_person',
             'contact_phone',
             'contact_email',
             # Owner info (the client themselves)
             'owner_email',
             'owner_name',
+            'owner_is_active',
             # Applications
             'applications_count',
             'created_at',

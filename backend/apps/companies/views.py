@@ -16,7 +16,7 @@ from .serializers import (
     CRMClientSerializer,
     AdminDirectClientSerializer,
 )
-from apps.users.permissions import IsAdmin, IsAgent, IsClientOrAgent, IsOwnerOrAdmin
+from apps.users.permissions import IsAdmin, IsAgent, IsClientOrAgent, IsOwnerOrAdmin, IsAgentOrAdmin
 
 
 @extend_schema(tags=['Companies'])
@@ -42,11 +42,11 @@ class CompanyProfileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        
-        # Admin sees all
+
+        # Admin sees all (including inactive)
         if user.role == 'admin' or user.is_superuser:
             return CompanyProfile.objects.all()
-        
+
         # Partner sees companies from assigned applications
         if user.role == 'partner':
             from apps.applications.models import Application
@@ -54,9 +54,9 @@ class CompanyProfileViewSet(viewsets.ModelViewSet):
                 assigned_partner=user
             ).values_list('company_id', flat=True)
             return CompanyProfile.objects.filter(id__in=assigned_company_ids)
-        
-        # Client/Agent see their own companies
-        return CompanyProfile.objects.filter(owner=user)
+
+        # Client/Agent see their own active companies only
+        return CompanyProfile.objects.filter(owner=user, is_active=True)
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -165,13 +165,17 @@ class CRMClientViewSet(viewsets.ModelViewSet):
     All created companies will have is_crm_client=True.
     """
     serializer_class = CRMClientSerializer
-    permission_classes = [IsAuthenticated, IsAgent]
+    permission_classes = [IsAuthenticated, IsAgentOrAdmin]
 
     def get_queryset(self):
-        """Return only current agent's CRM clients."""
+        """Return CRM clients for agent or all for admin."""
+        user = self.request.user
+        if user.role == 'admin' or user.is_superuser:
+            return CompanyProfile.objects.filter(is_crm_client=True)
         return CompanyProfile.objects.filter(
-            owner=self.request.user,
-            is_crm_client=True
+            owner=user,
+            is_crm_client=True,
+            is_active=True,
         )
 
     def perform_create(self, serializer):
@@ -293,7 +297,7 @@ class CRMClientViewSet(viewsets.ModelViewSet):
     list=extend_schema(description='List all CRM clients from all agents (Admin only)'),
     retrieve=extend_schema(description='Get CRM client details'),
 )
-class AdminCRMClientViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminCRMClientViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Admin to manage all CRM clients from all agents.
     
@@ -306,12 +310,47 @@ class AdminCRMClientViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get_queryset(self):
-        """Return all CRM clients from all agents."""
+        """Return all CRM clients from all agents (including inactive)."""
         return CompanyProfile.objects.filter(is_crm_client=True).select_related('owner')
 
     def get_serializer_class(self):
         from .serializers import AdminCRMClientSerializer
+        if self.action in ['update', 'partial_update']:
+            return CompanyProfileSerializer
         return AdminCRMClientSerializer
+
+    def perform_update(self, serializer):
+        serializer.save(is_crm_client=True)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_active:
+            return Response(
+                {'error': 'Сначала заблокируйте клиента'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if instance.applications.exists():
+            return Response(
+                {'error': 'Нельзя удалить клиента с существующими заявками'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def block(self, request, pk=None):
+        company = self.get_object()
+        company.is_active = False
+        company.save(update_fields=['is_active'])
+        from .serializers import AdminCRMClientSerializer
+        return Response(AdminCRMClientSerializer(company).data)
+
+    @action(detail=True, methods=['post'])
+    def unblock(self, request, pk=None):
+        company = self.get_object()
+        company.is_active = True
+        company.save(update_fields=['is_active'])
+        from .serializers import AdminCRMClientSerializer
+        return Response(AdminCRMClientSerializer(company).data)
 
     @extend_schema(
         request=None,
@@ -411,7 +450,7 @@ class AdminCRMClientViewSet(viewsets.ReadOnlyModelViewSet):
     list=extend_schema(description='List all direct clients (registered without agent)'),
     retrieve=extend_schema(description='Get direct client details'),
 )
-class AdminDirectClientsViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminDirectClientsViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Admin to view all direct clients (is_crm_client=False).
     
@@ -422,5 +461,52 @@ class AdminDirectClientsViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get_queryset(self):
-        """Return all direct clients (not CRM clients)."""
+        """Return all direct clients (not CRM clients), including inactive."""
         return CompanyProfile.objects.filter(is_crm_client=False).select_related('owner')
+
+    def get_serializer_class(self):
+        if self.action in ['update', 'partial_update']:
+            return CompanyProfileSerializer
+        return AdminDirectClientSerializer
+
+    def perform_update(self, serializer):
+        serializer.save(is_crm_client=False)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_active:
+            return Response(
+                {'error': 'Сначала заблокируйте клиента'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if instance.applications.exists():
+            return Response(
+                {'error': 'Нельзя удалить клиента с существующими заявками'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if instance.owner and instance.owner.is_active:
+            return Response(
+                {'error': 'Сначала заблокируйте аккаунт клиента'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def block(self, request, pk=None):
+        company = self.get_object()
+        company.is_active = False
+        company.save(update_fields=['is_active'])
+        if company.owner:
+            company.owner.is_active = False
+            company.owner.save(update_fields=['is_active'])
+        return Response(AdminDirectClientSerializer(company).data)
+
+    @action(detail=True, methods=['post'])
+    def unblock(self, request, pk=None):
+        company = self.get_object()
+        company.is_active = True
+        company.save(update_fields=['is_active'])
+        if company.owner:
+            company.owner.is_active = True
+            company.owner.save(update_fields=['is_active'])
+        return Response(AdminDirectClientSerializer(company).data)

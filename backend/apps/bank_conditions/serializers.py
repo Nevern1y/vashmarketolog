@@ -15,6 +15,46 @@ class BankSerializer(serializers.ModelSerializer):
         read_only_fields = ['partner_user']
 
 
+class AdminBankSerializer(serializers.ModelSerializer):
+    """Admin serializer for bank management with partner info."""
+    partner_user_id = serializers.IntegerField(source='partner_user.id', read_only=True)
+    partner_email = serializers.EmailField(source='partner_user.email', read_only=True)
+    partner_is_active = serializers.BooleanField(source='partner_user.is_active', read_only=True)
+    partner_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Bank
+        fields = [
+            'id', 'name', 'short_name', 'logo_url', 'is_active', 'order',
+            'contact_email', 'contact_phone', 'description',
+            'partner_user_id', 'partner_email', 'partner_is_active', 'partner_name',
+            'created_at', 'updated_at'
+        ]
+
+    def get_partner_name(self, obj):
+        if not obj.partner_user:
+            return None
+        return f"{obj.partner_user.first_name} {obj.partner_user.last_name}".strip() or obj.partner_user.email
+
+
+class BankPartnerInviteSerializer(serializers.Serializer):
+    """Serializer for inviting a partner for a specific bank (Admin only)."""
+    email = serializers.EmailField()
+    first_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+    last_name = serializers.CharField(required=False, allow_blank=True, max_length=150)
+
+
+class BankPartnerLinkSerializer(serializers.Serializer):
+    """Serializer for linking an existing partner account to a bank."""
+    partner_user_id = serializers.IntegerField(required=False)
+    email = serializers.EmailField(required=False)
+
+    def validate(self, attrs):
+        if not attrs.get('partner_user_id') and not attrs.get('email'):
+            raise serializers.ValidationError('Укажите partner_user_id или email')
+        return attrs
+
+
 class PartnerBankProfileSerializer(serializers.ModelSerializer):
     """Serializer for partner to view/edit their bank profile."""
     

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -40,12 +41,16 @@ import {
     FileText,
     Eye,
     Users,
-    UserCheck
+    UserCheck,
+    Edit,
+    Ban,
+    Trash2
 } from "lucide-react"
 import { toast } from "sonner"
 import { getStatusConfig } from "@/lib/status-mapping"
 import { getPrimaryAmountValue, getProductTypeLabel } from "@/lib/application-display"
 import { cn } from "@/lib/utils"
+import { EditClientSheet } from "@/components/dashboard/edit-client-sheet"
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
     return (
@@ -70,14 +75,21 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
         error,
         refetch,
         confirmClient,
-        rejectClient
+        rejectClient,
+        blockClient,
+        unblockClient,
+        deleteClient
     } = useAdminCRMClients()
 
     const {
         clients: directClients,
         isLoading: isDirectLoading,
         error: directError,
-        refetch: refetchDirect
+        refetch: refetchDirect,
+        updateClient: updateDirectClient,
+        blockClient: blockDirectClient,
+        unblockClient: unblockDirectClient,
+        deleteClient: deleteDirectClient
     } = useAdminDirectClients()
 
     const [searchQuery, setSearchQuery] = useState("")
@@ -93,6 +105,22 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
     const [activeTab, setActiveTab] = useState<'info' | 'applications'>('info')
     const [directSearchQuery, setDirectSearchQuery] = useState("")
     const [directAccreditedFilter, setDirectAccreditedFilter] = useState<'all' | 'accredited' | 'not_accredited'>('all')
+    const [editClientId, setEditClientId] = useState<number | null>(null)
+    const [isEditSheetOpen, setIsEditSheetOpen] = useState(false)
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'crm' | 'direct'; client: AdminCRMClient | AdminDirectClient } | null>(null)
+    const [isDirectEditing, setIsDirectEditing] = useState(false)
+    const [directEditForm, setDirectEditForm] = useState({
+        name: '',
+        short_name: '',
+        inn: '',
+        kpp: '',
+        ogrn: '',
+        region: '',
+        director_name: '',
+        contact_person: '',
+        contact_phone: '',
+        contact_email: '',
+    })
 
     const { applications, isLoading: isAppsLoading } = useApplications()
 
@@ -133,6 +161,70 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
         if (success) {
             toast.success(`Статус клиента "${client.short_name || client.name}" сброшен`)
         }
+    }
+
+    const handleToggleBlock = async (client: AdminCRMClient) => {
+        const action = client.is_active ? blockClient : unblockClient
+        const success = await action(client.id)
+        if (success) {
+            toast.success(client.is_active ? 'Клиент заблокирован' : 'Клиент разблокирован')
+        }
+    }
+
+    const handleToggleDirectBlock = async (client: AdminDirectClient) => {
+        const action = client.is_active ? blockDirectClient : unblockDirectClient
+        const success = await action(client.id)
+        if (success) {
+            toast.success(client.is_active ? 'Клиент заблокирован' : 'Клиент разблокирован')
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!deleteTarget) return
+        const { type, client } = deleteTarget
+        const success = type === 'crm'
+            ? await deleteClient(client.id)
+            : await deleteDirectClient(client.id)
+
+        if (success) {
+            toast.success('Клиент удалён')
+        }
+        setDeleteTarget(null)
+    }
+
+    const openEditClient = (clientId: number) => {
+        setEditClientId(clientId)
+        setIsEditSheetOpen(true)
+    }
+
+    const handleDirectEditChange = (field: keyof typeof directEditForm, value: string) => {
+        setDirectEditForm(prev => ({ ...prev, [field]: value }))
+    }
+
+    const handleSaveDirectClient = async () => {
+        if (!selectedDirectClient) return
+        const result = await updateDirectClient(selectedDirectClient.id, {
+            name: directEditForm.name || undefined,
+            short_name: directEditForm.short_name || undefined,
+            inn: directEditForm.inn || undefined,
+            kpp: directEditForm.kpp || undefined,
+            ogrn: directEditForm.ogrn || undefined,
+            region: directEditForm.region || undefined,
+            director_name: directEditForm.director_name || undefined,
+            contact_person: directEditForm.contact_person || undefined,
+            contact_phone: directEditForm.contact_phone || undefined,
+            contact_email: directEditForm.contact_email || undefined,
+        })
+        if (!result) {
+            toast.error('Ошибка обновления клиента')
+            return
+        }
+        toast.success('Данные клиента обновлены')
+        setSelectedDirectClient(prev => prev ? {
+            ...prev,
+            ...directEditForm,
+        } : prev)
+        setIsDirectEditing(false)
     }
 
     // Filter clients
@@ -188,6 +280,19 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
         setSelectedDirectClient(client)
         setActiveTab('info')
         setIsDirectClientModalOpen(true)
+        setIsDirectEditing(false)
+        setDirectEditForm({
+            name: client.name || '',
+            short_name: client.short_name || '',
+            inn: client.inn || '',
+            kpp: client.kpp || '',
+            ogrn: client.ogrn || '',
+            region: client.region || '',
+            director_name: client.director_name || '',
+            contact_person: client.contact_person || '',
+            contact_phone: client.contact_phone || '',
+            contact_email: client.contact_email || '',
+        })
     }
 
     const directClientApplications = useMemo(() => {
@@ -374,15 +479,22 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                 <code className="text-xs bg-muted px-1 rounded">{client.inn || "—"}</code>
                                             </div>
                                         </div>
-                                        {client.client_status === 'confirmed' ? (
-                                            <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs shrink-0">
-                                                Закреплён
-                                            </Badge>
-                                        ) : (
-                                            <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs shrink-0">
-                                                Ожидает
-                                            </Badge>
-                                        )}
+                                        <div className="flex flex-col items-end gap-1">
+                                            {client.client_status === 'confirmed' ? (
+                                                <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs shrink-0">
+                                                    Закреплён
+                                                </Badge>
+                                            ) : (
+                                                <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs shrink-0">
+                                                    Ожидает
+                                                </Badge>
+                                            )}
+                                            {!client.is_active && (
+                                                <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">
+                                                    Заблокирован
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
                                     {/* Agent */}
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
@@ -500,17 +612,24 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {client.client_status === 'confirmed' ? (
-                                                    <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                        Закреплён
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
-                                                        <AlertTriangle className="h-3 w-3 mr-1" />
-                                                        На рассмотрении
-                                                    </Badge>
-                                                )}
+                                                <div className="flex flex-col gap-1">
+                                                    {client.client_status === 'confirmed' ? (
+                                                        <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                            Закреплён
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                                            На рассмотрении
+                                                        </Badge>
+                                                    )}
+                                                    {!client.is_active && (
+                                                        <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">
+                                                            Заблокирован
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="hidden xl:table-cell">
                                                 {client.has_duplicates ? (
@@ -704,15 +823,22 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        {client.is_accredited ? (
-                                                            <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs shrink-0">
-                                                                Аккредитован
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs shrink-0">
-                                                                Не аккредитован
-                                                            </Badge>
-                                                        )}
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            {client.is_accredited ? (
+                                                                <Badge className="bg-green-500/20 text-green-500 border-green-500/30 text-xs shrink-0">
+                                                                    Аккредитован
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs shrink-0">
+                                                                    Не аккредитован
+                                                                </Badge>
+                                                            )}
+                                                            {!client.is_active && (
+                                                                <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">
+                                                                    Заблокирован
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                     {/* INN */}
                                                     <div className="mb-2">
@@ -795,17 +921,24 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                                 </div>
                                                             </TableCell>
                                                             <TableCell>
-                                                                {client.is_accredited ? (
-                                                                    <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                                                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                                        Аккредитован
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
-                                                                        <AlertTriangle className="h-3 w-3 mr-1" />
-                                                                        Не аккредитован
-                                                                    </Badge>
-                                                                )}
+                                                                <div className="flex flex-col gap-1">
+                                                                    {client.is_accredited ? (
+                                                                        <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                                                                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                                            Аккредитован
+                                                                        </Badge>
+                                                                    ) : (
+                                                                        <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                                                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                                                            Не аккредитован
+                                                                        </Badge>
+                                                                    )}
+                                                                    {!client.is_active && (
+                                                                        <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">
+                                                                            Заблокирован
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
                                                             </TableCell>
                                                             <TableCell className="hidden xl:table-cell">
                                                                 <span className="text-sm">{client.applications_count || 0}</span>
@@ -854,7 +987,46 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                     ) : (
                                         <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs">На рассмотрении</Badge>
                                     )}
+                                    {!selectedClient.is_active && (
+                                        <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">Заблокирован</Badge>
+                                    )}
                                 </DialogDescription>
+                                <div className="flex flex-wrap items-center gap-2 pt-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-2"
+                                        onClick={() => openEditClient(selectedClient.id)}
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                        Редактировать
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={selectedClient.is_active ? 'outline' : 'default'}
+                                        className={selectedClient.is_active ? 'text-amber-600 border-amber-500/40' : 'bg-emerald-600 hover:bg-emerald-700'}
+                                        onClick={() => handleToggleBlock(selectedClient)}
+                                    >
+                                        {selectedClient.is_active ? (
+                                            <>
+                                                <Ban className="h-4 w-4 mr-1" />
+                                                Заблокировать
+                                            </>
+                                        ) : (
+                                            'Разблокировать'
+                                        )}
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-rose-500 border-rose-500/40"
+                                        disabled={selectedClient.is_active}
+                                        onClick={() => setDeleteTarget({ type: 'crm', client: selectedClient })}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Удалить
+                                    </Button>
+                                </div>
                             </DialogHeader>
 
                             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 overflow-hidden flex flex-col">
@@ -870,6 +1042,101 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                 </TabsList>
 
                                 <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                    {isDirectEditing && (
+                                        <div className="rounded-lg border p-3 md:p-4 bg-accent/30 space-y-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-name">Компания</Label>
+                                                    <Input
+                                                        id="direct-name"
+                                                        value={directEditForm.name}
+                                                        onChange={(e) => handleDirectEditChange('name', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-short-name">Краткое название</Label>
+                                                    <Input
+                                                        id="direct-short-name"
+                                                        value={directEditForm.short_name}
+                                                        onChange={(e) => handleDirectEditChange('short_name', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-inn">ИНН</Label>
+                                                    <Input
+                                                        id="direct-inn"
+                                                        value={directEditForm.inn}
+                                                        onChange={(e) => handleDirectEditChange('inn', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-kpp">КПП</Label>
+                                                    <Input
+                                                        id="direct-kpp"
+                                                        value={directEditForm.kpp}
+                                                        onChange={(e) => handleDirectEditChange('kpp', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-ogrn">ОГРН</Label>
+                                                    <Input
+                                                        id="direct-ogrn"
+                                                        value={directEditForm.ogrn}
+                                                        onChange={(e) => handleDirectEditChange('ogrn', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-region">Регион</Label>
+                                                    <Input
+                                                        id="direct-region"
+                                                        value={directEditForm.region}
+                                                        onChange={(e) => handleDirectEditChange('region', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-director">Руководитель</Label>
+                                                    <Input
+                                                        id="direct-director"
+                                                        value={directEditForm.director_name}
+                                                        onChange={(e) => handleDirectEditChange('director_name', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-contact-person">Контактное лицо</Label>
+                                                    <Input
+                                                        id="direct-contact-person"
+                                                        value={directEditForm.contact_person}
+                                                        onChange={(e) => handleDirectEditChange('contact_person', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-contact-phone">Телефон</Label>
+                                                    <Input
+                                                        id="direct-contact-phone"
+                                                        value={directEditForm.contact_phone}
+                                                        onChange={(e) => handleDirectEditChange('contact_phone', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="direct-contact-email">Email</Label>
+                                                    <Input
+                                                        id="direct-contact-email"
+                                                        type="email"
+                                                        value={directEditForm.contact_email}
+                                                        onChange={(e) => handleDirectEditChange('contact_email', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Button size="sm" onClick={handleSaveDirectClient} className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
+                                                    Сохранить
+                                                </Button>
+                                                <Button size="sm" variant="outline" onClick={() => setIsDirectEditing(false)}>
+                                                    Отмена
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <InfoRow label="Компания" value={selectedClient.name} />
                                         <InfoRow label="Краткое название" value={selectedClient.short_name} />
@@ -963,7 +1230,47 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                     ) : (
                                         <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30 text-xs">Не аккредитован</Badge>
                                     )}
+                                    {!selectedDirectClient.is_active && (
+                                        <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">Заблокирован</Badge>
+                                    )}
                                 </DialogDescription>
+                                <div className="flex flex-wrap items-center gap-2 pt-2">
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-2"
+                                        onClick={() => setIsDirectEditing(true)}
+                                        disabled={!selectedDirectClient.is_active}
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                        Редактировать
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant={selectedDirectClient.is_active ? 'outline' : 'default'}
+                                        className={selectedDirectClient.is_active ? 'text-amber-600 border-amber-500/40' : 'bg-emerald-600 hover:bg-emerald-700'}
+                                        onClick={() => handleToggleDirectBlock(selectedDirectClient)}
+                                    >
+                                        {selectedDirectClient.is_active ? (
+                                            <>
+                                                <Ban className="h-4 w-4 mr-1" />
+                                                Заблокировать
+                                            </>
+                                        ) : (
+                                            'Разблокировать'
+                                        )}
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-rose-500 border-rose-500/40"
+                                        disabled={selectedDirectClient.is_active}
+                                        onClick={() => setDeleteTarget({ type: 'direct', client: selectedDirectClient })}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-1" />
+                                        Удалить
+                                    </Button>
+                                </div>
                             </DialogHeader>
 
                             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 overflow-hidden flex flex-col">
@@ -1051,6 +1358,34 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                     )}
                 </DialogContent>
             </Dialog>
+
+            <EditClientSheet
+                isOpen={isEditSheetOpen}
+                clientId={editClientId}
+                onClose={() => {
+                    setIsEditSheetOpen(false)
+                    setEditClientId(null)
+                }}
+                onSaved={() => refetch()}
+                mode="edit"
+            />
+
+            <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+                <AlertDialogContent className="w-[calc(100%-2rem)] max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Удалить клиента?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Удаление доступно только после блокировки. Клиент будет удалён без возможности восстановления.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-rose-600 hover:bg-rose-700">
+                            Удалить
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog
                 open={isDuplicateDialogOpen}

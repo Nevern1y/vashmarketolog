@@ -24,6 +24,7 @@ from .serializers import (
     PartnerInviteSerializer,
     PartnerAcceptInviteSerializer,
     UserListSerializer,
+    AdminUserUpdateSerializer,
 )
 from .permissions import IsAdmin
 
@@ -456,6 +457,36 @@ class UserListView(generics.ListAPIView):
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
         return queryset
+
+
+@extend_schema(tags=['Admin - User Management'])
+class AdminUserDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """
+    Retrieve, update or delete a user (Admin only).
+    DELETE is allowed only when user is inactive.
+    """
+    serializer_class = AdminUserUpdateSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    queryset = User.objects.all()
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.is_superuser or instance.role == 'admin':
+            return Response(
+                {'error': 'Нельзя удалить администратора'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if instance == request.user:
+            return Response(
+                {'error': 'Нельзя удалить текущего пользователя'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if instance.is_active:
+            return Response(
+                {'error': 'Сначала заблокируйте пользователя'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 @extend_schema(tags=['Admin - Accreditation'])

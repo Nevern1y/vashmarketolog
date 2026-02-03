@@ -145,8 +145,8 @@ export function PartnerLayout() {
             {/* MAIN CONTENT AREA */}
             {/* ============================================ */}
             <div className="flex min-h-screen flex-col lg:pl-[260px]">
-                <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} onSettingsClick={() => setActiveView("help")} />
-                <DashboardHeader onNotificationClick={(n) => n.details.applicationId && handleOpenDetail(String(n.details.applicationId))} onNavigateToSettings={() => setActiveView("help")} />
+                <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} onSettingsClick={() => setActiveView("my_bank")} />
+                <DashboardHeader onNotificationClick={(n) => n.details.applicationId && handleOpenDetail(String(n.details.applicationId))} onNavigateToSettings={() => setActiveView("my_bank")} />
                 <main className="flex-1 overflow-y-auto bg-background p-4 lg:p-8">
                     {renderContent()}
                 </main>

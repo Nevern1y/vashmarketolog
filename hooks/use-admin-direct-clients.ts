@@ -18,12 +18,14 @@ export interface AdminDirectClient {
     region: string
     director_name: string
     is_accredited: boolean
+    is_active: boolean
     contact_person: string
     contact_phone: string
     contact_email: string
     // Owner info (the client themselves)
     owner_email: string
     owner_name: string
+    owner_is_active: boolean
     // Applications
     applications_count: number
     created_at: string
@@ -56,11 +58,63 @@ export function useAdminDirectClients() {
         fetchClients()
     }, [fetchClients])
 
+    const updateClient = useCallback(async (id: number, payload: Partial<AdminDirectClient>) => {
+        try {
+            const response = await api.patch(`/companies/admin/direct/${id}/`, payload)
+            await fetchClients()
+            return response
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка обновления клиента')
+            return null
+        }
+    }, [fetchClients])
+
+    const blockClient = useCallback(async (id: number): Promise<boolean> => {
+        try {
+            await api.post(`/companies/admin/direct/${id}/block/`)
+            await fetchClients()
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка блокировки клиента')
+            return false
+        }
+    }, [fetchClients])
+
+    const unblockClient = useCallback(async (id: number): Promise<boolean> => {
+        try {
+            await api.post(`/companies/admin/direct/${id}/unblock/`)
+            await fetchClients()
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка разблокировки клиента')
+            return false
+        }
+    }, [fetchClients])
+
+    const deleteClient = useCallback(async (id: number): Promise<boolean> => {
+        try {
+            await api.delete(`/companies/admin/direct/${id}/`)
+            await fetchClients()
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка удаления клиента')
+            return false
+        }
+    }, [fetchClients])
+
     return {
         clients,
         isLoading,
         error,
         refetch: fetchClients,
+        updateClient,
+        blockClient,
+        unblockClient,
+        deleteClient,
         clearError: () => setError(null),
     }
 }

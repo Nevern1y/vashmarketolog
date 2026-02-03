@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Progress } from "@/components/ui/progress"
@@ -54,10 +55,12 @@ import {
     Filter,
     Trash2,
     Send,
+    Edit,
 } from "lucide-react"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
 import { useDocumentRequests } from "@/hooks/use-document-requests"
+import { useAdminUsers } from "@/hooks/use-admin-users"
 
 import {
     Collapsible,
@@ -120,6 +123,7 @@ interface Agent {
     phone: string | null
     first_name: string
     last_name: string
+    is_active: boolean
     accreditation_status: 'none' | 'pending' | 'approved' | 'rejected'
     accreditation_submitted_at: string | null
     accreditation_comment: string | null
@@ -173,6 +177,16 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
     const [activeTab, setActiveTab] = useState('info')
     const [deleteDoc, setDeleteDoc] = useState<AgentDocument | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isDeleteUserOpen, setIsDeleteUserOpen] = useState(false)
+    const [isEditingAgent, setIsEditingAgent] = useState(false)
+    const [editForm, setEditForm] = useState({
+        email: '',
+        phone: '',
+        first_name: '',
+        last_name: '',
+    })
+
+    const { updateUser, blockUser, unblockUser, deleteUser, isSaving: isUserSaving } = useAdminUsers()
 
     // Document request state
     const [isRequestDocOpen, setIsRequestDocOpen] = useState(false)
@@ -315,6 +329,80 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
         setActiveTab('info')
         setIsModalOpen(true)
         setAgentApplications([])
+        setIsEditingAgent(false)
+        setEditForm({
+            email: agent.email || '',
+            phone: agent.phone || '',
+            first_name: agent.first_name || '',
+            last_name: agent.last_name || '',
+        })
+    }
+
+    const handleEditChange = (field: keyof typeof editForm, value: string) => {
+        setEditForm(prev => ({ ...prev, [field]: value }))
+    }
+
+    const handleSaveAgent = async () => {
+        if (!selectedAgent) return
+
+        const result = await updateUser(selectedAgent.id, {
+            email: editForm.email.trim() || undefined,
+            phone: editForm.phone.trim() || undefined,
+            first_name: editForm.first_name.trim() || undefined,
+            last_name: editForm.last_name.trim() || undefined,
+        })
+
+        if (!result) {
+            toast.error('Ошибка обновления агента')
+            return
+        }
+
+        toast.success('Данные агента обновлены')
+        setSelectedAgent(prev => prev ? {
+            ...prev,
+            email: editForm.email,
+            phone: editForm.phone,
+            first_name: editForm.first_name,
+            last_name: editForm.last_name,
+        } : prev)
+        setAgents(prev => prev.map(agent => (
+            agent.id === selectedAgent.id
+                ? { ...agent, email: editForm.email, phone: editForm.phone, first_name: editForm.first_name, last_name: editForm.last_name }
+                : agent
+        )))
+        setIsEditingAgent(false)
+    }
+
+    const handleToggleBlock = async () => {
+        if (!selectedAgent) return
+        const action = selectedAgent.is_active ? blockUser : unblockUser
+        const result = await action(selectedAgent.id)
+        if (!result) {
+            toast.error('Ошибка обновления статуса')
+            return
+        }
+        const nextActive = !selectedAgent.is_active
+        toast.success(nextActive ? 'Агент разблокирован' : 'Агент заблокирован')
+        setSelectedAgent(prev => prev ? { ...prev, is_active: nextActive } : prev)
+        setAgents(prev => prev.map(agent => (
+            agent.id === selectedAgent.id
+                ? { ...agent, is_active: nextActive }
+                : agent
+        )))
+    }
+
+    const handleDeleteAgent = async () => {
+        if (!selectedAgent) return
+        const success = await deleteUser(selectedAgent.id)
+        if (!success) {
+            toast.error('Ошибка удаления агента')
+            return
+        }
+        toast.success('Агент удалён')
+        setIsDeleteUserOpen(false)
+        setIsModalOpen(false)
+        setSelectedAgent(null)
+        setAgents(prev => prev.filter(agent => agent.id !== selectedAgent.id))
     }
 
     // Delete document
@@ -512,7 +600,12 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                     </div>
                                     <div className="flex items-center justify-between sm:justify-end gap-3 md:gap-4 shrink-0 sm:ml-4 pl-13 sm:pl-0">
                                         <div className="text-left sm:text-right">
-                                            {getStatusBadge(agent.accreditation_status)}
+                                            <div className="flex flex-col items-start sm:items-end gap-1">
+                                                {getStatusBadge(agent.accreditation_status)}
+                                                {!agent.is_active && (
+                                                    <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">Заблокирован</Badge>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-muted-foreground mt-1">
                                                 {formatDate(agent.date_joined)}
                                             </p>
@@ -536,18 +629,53 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                     {selectedAgent && (
                         <>
                             <DialogHeader>
-                                <div className="flex items-center gap-4">
-                                    <Avatar className="h-14 w-14">
-                                        <AvatarFallback className="bg-gradient-to-br from-[#4F7DF3] to-[#3CE8D1] text-white text-lg">
-                                            {getInitials(selectedAgent)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <DialogTitle className="text-xl">{getName(selectedAgent)}</DialogTitle>
-                                        <DialogDescription className="flex items-center gap-3">
-                                            <span>{selectedAgent.company_short_name || selectedAgent.company_name || '—'}</span>
-                                            {getStatusBadge(selectedAgent.accreditation_status)}
-                                        </DialogDescription>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-14 w-14">
+                                            <AvatarFallback className="bg-gradient-to-br from-[#4F7DF3] to-[#3CE8D1] text-white text-lg">
+                                                {getInitials(selectedAgent)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <DialogTitle className="text-xl">{getName(selectedAgent)}</DialogTitle>
+                                            <DialogDescription className="flex items-center gap-3">
+                                                <span>{selectedAgent.company_short_name || selectedAgent.company_name || '—'}</span>
+                                                {getStatusBadge(selectedAgent.accreditation_status)}
+                                                {!selectedAgent.is_active && (
+                                                    <Badge variant="outline" className="text-rose-500 border-rose-500/30 text-xs">Заблокирован</Badge>
+                                                )}
+                                            </DialogDescription>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setIsEditingAgent(true)}
+                                            disabled={isUserSaving || !selectedAgent.is_active}
+                                            className="gap-2"
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                            Редактировать
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={selectedAgent.is_active ? "outline" : "default"}
+                                            onClick={handleToggleBlock}
+                                            disabled={isUserSaving}
+                                            className={selectedAgent.is_active ? "text-amber-600 border-amber-500/40" : "bg-emerald-600 hover:bg-emerald-700"}
+                                        >
+                                            {selectedAgent.is_active ? "Заблокировать" : "Разблокировать"}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-rose-500 border-rose-500/40"
+                                            disabled={selectedAgent.is_active || isUserSaving}
+                                            onClick={() => setIsDeleteUserOpen(true)}
+                                        >
+                                            Удалить
+                                        </Button>
                                     </div>
                                 </div>
                             </DialogHeader>
@@ -582,6 +710,62 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                 </TabsList>
 
                                 <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                    {isEditingAgent && (
+                                        <div className="rounded-lg border p-3 md:p-4 bg-accent/30 space-y-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="agent-first-name">Имя</Label>
+                                                    <Input
+                                                        id="agent-first-name"
+                                                        value={editForm.first_name}
+                                                        onChange={(e) => handleEditChange('first_name', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="agent-last-name">Фамилия</Label>
+                                                    <Input
+                                                        id="agent-last-name"
+                                                        value={editForm.last_name}
+                                                        onChange={(e) => handleEditChange('last_name', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="agent-email">Email</Label>
+                                                    <Input
+                                                        id="agent-email"
+                                                        type="email"
+                                                        value={editForm.email}
+                                                        onChange={(e) => handleEditChange('email', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="agent-phone">Телефон</Label>
+                                                    <Input
+                                                        id="agent-phone"
+                                                        value={editForm.phone}
+                                                        onChange={(e) => handleEditChange('phone', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={handleSaveAgent}
+                                                    disabled={isUserSaving}
+                                                    className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                                >
+                                                    Сохранить
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => setIsEditingAgent(false)}
+                                                >
+                                                    Отмена
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
                                     {/* Contact info */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 p-3 md:p-4 rounded-lg bg-accent/30">
                                         <div className="flex items-center gap-2">
@@ -950,6 +1134,24 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                             className="bg-rose-500 hover:bg-rose-600"
                         >
                             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                            Удалить
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Delete Agent Dialog */}
+            <AlertDialog open={isDeleteUserOpen} onOpenChange={setIsDeleteUserOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Удалить агента?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Удаление доступно только после блокировки. Данные пользователя будут удалены без возможности восстановления.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Отмена</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteAgent} className="bg-rose-600 hover:bg-rose-700">
                             Удалить
                         </AlertDialogAction>
                     </AlertDialogFooter>

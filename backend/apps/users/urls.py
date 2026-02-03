@@ -15,6 +15,7 @@ from .views import (
     PartnerInviteView,
     PartnerAcceptInviteView,
     UserListView,
+    AdminUserDetailView,
     # Phase 4: Accreditation views
     AccreditationListView,
     AccreditationDecisionView,
@@ -69,6 +70,7 @@ urlpatterns = [
     # Admin endpoints
     path('admin/invite-partner/', PartnerInviteView.as_view(), name='invite_partner'),
     path('admin/users/', UserListView.as_view(), name='user_list'),
+    path('admin/users/<int:pk>/', AdminUserDetailView.as_view(), name='user_detail'),
     path('admin/accreditation/', AccreditationListView.as_view(), name='accreditation_list'),
     path('admin/accreditation/<int:pk>/', AccreditationDecisionView.as_view(), name='accreditation_decision'),
 ]

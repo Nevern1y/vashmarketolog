@@ -19,6 +19,7 @@ export interface AdminCRMClient {
     client_status: 'pending' | 'confirmed'
     client_status_display: string
     is_accredited: boolean
+    is_active: boolean
     invitation_email: string
     contact_person: string
     contact_phone: string
@@ -97,6 +98,42 @@ export function useAdminCRMClients() {
         }
     }, [])
 
+    const blockClient = useCallback(async (id: number): Promise<boolean> => {
+        try {
+            await api.post(`/companies/admin/crm/${id}/block/`)
+            await fetchClients()
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка блокировки клиента')
+            return false
+        }
+    }, [fetchClients])
+
+    const unblockClient = useCallback(async (id: number): Promise<boolean> => {
+        try {
+            await api.post(`/companies/admin/crm/${id}/unblock/`)
+            await fetchClients()
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка разблокировки клиента')
+            return false
+        }
+    }, [fetchClients])
+
+    const deleteClient = useCallback(async (id: number): Promise<boolean> => {
+        try {
+            await api.delete(`/companies/admin/crm/${id}/`)
+            await fetchClients()
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка удаления клиента')
+            return false
+        }
+    }, [fetchClients])
+
     return {
         clients,
         isLoading,
@@ -105,6 +142,9 @@ export function useAdminCRMClients() {
         confirmClient,
         rejectClient,
         checkDuplicates,
+        blockClient,
+        unblockClient,
+        deleteClient,
         clearError: () => setError(null),
     }
 }

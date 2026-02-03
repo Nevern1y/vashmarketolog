@@ -166,6 +166,14 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
         return value.toLocaleString("ru-RU", options)
     }
 
+    const shouldShowAgent = (app: typeof paginatedApps[0]) => (
+        userRole === "client" && app.created_by_role === "agent"
+    )
+
+    const getAgentName = (app: typeof paginatedApps[0]) => (
+        app.created_by_name || app.created_by_email || "—"
+    )
+
     // Mobile Application Card
     const ApplicationCard = ({ app }: { app: typeof paginatedApps[0] }) => {
         const primaryAmount = getPrimaryAmountValue(app)
@@ -192,6 +200,11 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                     </a>
                     {app.external_id && (
                         <p className="text-xs text-[#94a3b8] mt-0.5">{app.external_id}</p>
+                    )}
+                    {shouldShowAgent(app) && (
+                        <p className="text-xs text-[#94a3b8] mt-0.5">
+                            Агент: <span className="text-[#3CE8D1]">{getAgentName(app)}</span>
+                        </p>
                     )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -373,6 +386,11 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                                         </a>
                                                         {app.external_id && (
                                                             <span className="text-xs text-[#94a3b8]">{app.external_id}</span>
+                                                        )}
+                                                        {shouldShowAgent(app) && (
+                                                            <span className="text-xs text-[#94a3b8]">
+                                                                Агент: <span className="text-[#3CE8D1]">{getAgentName(app)}</span>
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </TableCell>

@@ -1,94 +1,131 @@
 /**
- * API Hook for fetching Admin users list
- * 
- * Used in Admin Dashboard for assigning leads to managers.
+ * Admin hook for user management (block/update/delete).
  */
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import api, { type ApiError } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react'
+import api, { type ApiError } from '@/lib/api'
+
+export interface AdminUserUpdatePayload {
+    email?: string
+    phone?: string
+    first_name?: string
+    last_name?: string
+    is_active?: boolean
+}
 
 export interface AdminUser {
-    id: number;
-    email: string;
-    first_name: string;
-    last_name: string;
-    phone: string;
-    role: 'admin';
-    is_active: boolean;
-    date_joined: string;
+    id: number
+    email: string
+    phone?: string
+    first_name?: string
+    last_name?: string
+    role: string
+    is_active: boolean
+    date_joined?: string
 }
 
 interface PaginatedResponse<T> {
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: T[];
+    count: number
+    next: string | null
+    previous: string | null
+    results: T[]
 }
 
-/**
- * Hook for fetching list of admin users.
- * Uses GET /api/auth/admin/users/?role=admin endpoint.
- */
+export function getAdminDisplayName(admin: Partial<AdminUser> | null | undefined) {
+    if (!admin) return 'Администратор'
+    const firstName = admin.first_name || ''
+    const lastName = admin.last_name || ''
+    const fullName = `${lastName} ${firstName}`.trim()
+    return fullName || admin.email || 'Администратор'
+}
+
 export function useAdminUsers() {
-    const [admins, setAdmins] = useState<AdminUser[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const isMounted = useRef(true);
+    const [admins, setAdmins] = useState<AdminUser[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [listError, setListError] = useState<string | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const fetchAdmins = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
+        setIsLoading(true)
+        setListError(null)
 
         try {
-            // API returns paginated response for user list
             const response = await api.get<PaginatedResponse<AdminUser> | AdminUser[]>(
                 '/auth/admin/users/',
                 { role: 'admin' }
-            );
+            )
 
-            if (!isMounted.current) return;
-
-            // Handle both paginated and non-paginated response
             if (Array.isArray(response)) {
-                setAdmins(response);
-            } else if (response.results) {
-                setAdmins(response.results);
+                setAdmins(response)
+            } else if (response && 'results' in response) {
+                setAdmins(response.results)
             } else {
-                setAdmins([]);
+                setAdmins([])
             }
         } catch (err) {
-            const apiError = err as ApiError;
-            if (isMounted.current) {
-                setError(apiError.message || 'Ошибка загрузки списка администраторов');
-            }
+            const apiError = err as ApiError
+            setListError(apiError.message || 'Ошибка загрузки администраторов')
         } finally {
-            if (isMounted.current) {
-                setIsLoading(false);
-            }
+            setIsLoading(false)
         }
-    }, []);
+    }, [])
+
+    const updateUser = useCallback(async (id: number, payload: AdminUserUpdatePayload) => {
+        setIsSaving(true)
+        setError(null)
+        try {
+            const response = await api.patch(`/auth/admin/users/${id}/`, payload)
+            return response
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка обновления пользователя')
+            return null
+        } finally {
+            setIsSaving(false)
+        }
+    }, [])
+
+    const deleteUser = useCallback(async (id: number) => {
+        setIsSaving(true)
+        setError(null)
+        try {
+            await api.delete(`/auth/admin/users/${id}/`)
+            return true
+        } catch (err) {
+            const apiError = err as ApiError
+            setError(apiError.message || 'Ошибка удаления пользователя')
+            return false
+        } finally {
+            setIsSaving(false)
+        }
+    }, [])
+
+    const blockUser = useCallback(async (id: number) => {
+        return updateUser(id, { is_active: false })
+    }, [updateUser])
+
+    const unblockUser = useCallback(async (id: number) => {
+        return updateUser(id, { is_active: true })
+    }, [updateUser])
 
     useEffect(() => {
-        isMounted.current = true;
-        fetchAdmins();
-        return () => {
-            isMounted.current = false;
-        };
-    }, [fetchAdmins]);
+        fetchAdmins()
+    }, [fetchAdmins])
 
-    return { admins, isLoading, error, refetch: fetchAdmins };
-}
-
-/**
- * Get display name for admin user
- */
-export function getAdminDisplayName(admin: AdminUser): string {
-    if (admin.first_name && admin.last_name) {
-        return `${admin.first_name} ${admin.last_name}`;
+    return {
+        admins,
+        isLoading,
+        listError,
+        refetch: fetchAdmins,
+        updateUser,
+        deleteUser,
+        blockUser,
+        unblockUser,
+        isSaving,
+        error,
+        clearError: () => setError(null),
+        clearListError: () => setListError(null),
     }
-    if (admin.first_name) {
-        return admin.first_name;
-    }
-    return admin.email;
 }
