@@ -61,6 +61,8 @@ services:
       dockerfile: Dockerfile.prod
     container_name: lider_prod_backend
     restart: always
+    env_file:
+      - .env.prod
     environment:
       - DJANGO_SETTINGS_MODULE=config.settings.production
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
@@ -79,13 +81,14 @@ services:
       - BANK_API_URL=${BANK_API_URL:-https://stagebg.realistbank.ru/agent_api1_1}
       - BANK_API_LOGIN=${BANK_API_LOGIN:-}
       - BANK_API_PASSWORD=${BANK_API_PASSWORD:-}
-      # Email Configuration
+      # Email Configuration (Priority: Environment -> .env.prod -> Defaults)
+      # We intentionally do not override EMAIL_HOST_PASSWORD here with a default empty value
+      # so that it can be picked up from .env.prod if not present in the shell environment.
       - EMAIL_HOST=${EMAIL_HOST:-smtp.beget.com}
       - EMAIL_PORT=${EMAIL_PORT:-465}
       - EMAIL_USE_SSL=${EMAIL_USE_SSL:-True}
       - EMAIL_USE_TLS=${EMAIL_USE_TLS:-False}
-      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
-      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-noreply@lider-garant.ru}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-noreply@lider-garant.ru}
       - SERVER_EMAIL=${SERVER_EMAIL:-noreply@lider-garant.ru}
       - FRONTEND_URL=${FRONTEND_URL:-https://lk.lider-garant.ru}
