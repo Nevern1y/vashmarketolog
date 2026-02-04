@@ -1162,6 +1162,16 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                             {clientApplications.map((app) => {
                                                 const statusCfg = getStatusConfig(app.status)
                                                 const amount = getPrimaryAmountValue(app)
+                                                const creatorName = app.created_by_name || app.created_by_email || "—"
+                                                const creatorRoleMeta = app.created_by_role === "agent"
+                                                    ? { label: "Агент", className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border-[#4F7DF3]/30" }
+                                                    : app.created_by_role === "client"
+                                                        ? { label: "Клиент", className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border-[#3CE8D1]/30" }
+                                                        : app.created_by_role === "admin"
+                                                            ? { label: "Админ", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" }
+                                                            : app.created_by_role === "partner"
+                                                                ? { label: "Партнер", className: "bg-[#E03E9D]/10 text-[#E03E9D] border-[#E03E9D]/30" }
+                                                                : { label: "Создатель", className: "bg-muted text-muted-foreground border-border" }
                                                 return (
                                                     <div
                                                         key={app.id}
@@ -1177,6 +1187,13 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                             <p className="text-sm font-medium text-foreground truncate mt-1">
                                                                 {getProductTypeLabel(app.product_type, app.product_type_display)}
                                                             </p>
+                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                                <User className="h-3 w-3" />
+                                                                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", creatorRoleMeta.className)}>
+                                                                    {creatorRoleMeta.label}
+                                                                </Badge>
+                                                                <span className="truncate" title={creatorName}>{creatorName}</span>
+                                                            </div>
                                                             <p className="text-xs text-muted-foreground">
                                                                 {amount ? formatAmount(amount) : "—"} • {formatDate(app.created_at)}
                                                             </p>
@@ -1311,6 +1328,16 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                             {directClientApplications.map((app) => {
                                                 const statusCfg = getStatusConfig(app.status)
                                                 const amount = getPrimaryAmountValue(app)
+                                                const creatorName = app.created_by_name || app.created_by_email || "—"
+                                                const creatorRoleMeta = app.created_by_role === "agent"
+                                                    ? { label: "Агент", className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border-[#4F7DF3]/30" }
+                                                    : app.created_by_role === "client"
+                                                        ? { label: "Клиент", className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border-[#3CE8D1]/30" }
+                                                        : app.created_by_role === "admin"
+                                                            ? { label: "Админ", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" }
+                                                            : app.created_by_role === "partner"
+                                                                ? { label: "Партнер", className: "bg-[#E03E9D]/10 text-[#E03E9D] border-[#E03E9D]/30" }
+                                                                : { label: "Создатель", className: "bg-muted text-muted-foreground border-border" }
                                                 return (
                                                     <div
                                                         key={app.id}
@@ -1326,6 +1353,13 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                                             <p className="text-sm font-medium text-foreground truncate mt-1">
                                                                 {getProductTypeLabel(app.product_type, app.product_type_display)}
                                                             </p>
+                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                                <User className="h-3 w-3" />
+                                                                <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", creatorRoleMeta.className)}>
+                                                                    {creatorRoleMeta.label}
+                                                                </Badge>
+                                                                <span className="truncate" title={creatorName}>{creatorName}</span>
+                                                            </div>
                                                             <p className="text-xs text-muted-foreground">
                                                                 {amount ? formatAmount(amount) : "—"} • {formatDate(app.created_at)}
                                                             </p>

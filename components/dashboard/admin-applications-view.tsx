@@ -895,6 +895,17 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                             const law = getTenderLaw(app)
                                             const primaryAmount = getPrimaryAmountValue(app)
                                             const amountLabel = primaryAmount !== null ? `${formatCurrency(primaryAmount)} ₽` : "—"
+                                            const creatorName = app.created_by_name || app.created_by_email || "—"
+                                            const creatorRoleMeta = app.created_by_role === "agent"
+                                                ? { label: "Агент", className: "bg-[#4F7DF3]/10 text-[#4F7DF3] border-[#4F7DF3]/30" }
+                                                : app.created_by_role === "client"
+                                                    ? { label: "Клиент", className: "bg-[#3CE8D1]/10 text-[#3CE8D1] border-[#3CE8D1]/30" }
+                                                    : app.created_by_role === "admin"
+                                                        ? { label: "Админ", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" }
+                                                        : app.created_by_role === "partner"
+                                                            ? { label: "Партнер", className: "bg-[#E03E9D]/10 text-[#E03E9D] border-[#E03E9D]/30" }
+                                                            : { label: "Создатель", className: "bg-muted text-muted-foreground border-border" }
+                                            const hasCreator = Boolean(app.created_by)
 
                                             return (
                                                 <React.Fragment key={app.id}>
@@ -927,6 +938,23 @@ export function AdminApplicationsView({ onSelectApplication }: AdminApplications
                                                                         ИНН {app.company_inn}
                                                                     </p>
                                                                 )}
+                                                                <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground 2xl:hidden">
+                                                                    <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0.5", creatorRoleMeta.className)}>
+                                                                        {creatorRoleMeta.label}
+                                                                    </Badge>
+                                                                    {hasCreator ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => handleCreatorClick(app, e)}
+                                                                            className="truncate hover:underline"
+                                                                            title="Фильтр по создателю"
+                                                                        >
+                                                                            {creatorName}
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="truncate">{creatorName}</span>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className="hidden lg:table-cell p-4">

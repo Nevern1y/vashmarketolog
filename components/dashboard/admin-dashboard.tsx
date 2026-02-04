@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -292,8 +292,22 @@ export function AdminDashboard() {
     const { user, logout } = useAuth()
 
     // Get notifications to count unread chats
-    const { notifications } = useNotifications()
+    const { notifications, markAsRead } = useNotifications()
     const unreadChatCount = notifications.filter(n => n.type === "chat_message" && !n.isRead).length
+
+    useEffect(() => {
+        if (activeView !== "chat") return
+
+        const unreadChatNotifications = notifications.filter(
+            (notification) => notification.type === "chat_message" && !notification.isRead
+        )
+
+        if (unreadChatNotifications.length === 0) return
+
+        unreadChatNotifications.forEach((notification) => {
+            markAsRead(notification.id)
+        })
+    }, [activeView, notifications, markAsRead])
 
     const handleRequestLogout = () => {
         setShowLogoutDialog(true)

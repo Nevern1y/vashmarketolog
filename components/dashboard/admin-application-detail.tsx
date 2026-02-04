@@ -357,6 +357,13 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
         return new Date(dateStr).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })
     }
 
+    const createdByValue = application?.created_by_name
+        ? `${application.created_by_name}${application.created_by_email ? ` (${application.created_by_email})` : ""}`
+        : application?.created_by_email
+    const createdByLabel = application?.created_by_role === "agent" && createdByValue
+        ? `Агент ${createdByValue}`
+        : createdByValue
+
     // Actions
     const handleApprove = async () => {
         const result = await approveApplication(parseInt(applicationId))
@@ -1212,7 +1219,7 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
                                 <DataRow label="Создано" value={formatDate(application.created_at)} icon={<Calendar className="h-3.5 w-3.5" />} />
                                 <DataRow label="Обновлено" value={formatDate(application.updated_at)} icon={<Clock className="h-3.5 w-3.5" />} />
                                 <DataRow label="Отправлено" value={formatDate(application.submitted_at)} icon={<ChevronRight className="h-3.5 w-3.5" />} />
-                                <DataRow label="Создатель" value={application.created_by_email} icon={<Users className="h-3.5 w-3.5" />} />
+                                <DataRow label="Создатель" value={createdByLabel} icon={<Users className="h-3.5 w-3.5" />} />
                             </DataCard>
 
                             {/* Bank Integration */}

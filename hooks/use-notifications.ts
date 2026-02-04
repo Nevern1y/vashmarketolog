@@ -142,6 +142,7 @@ interface MarkAllReadResponse {
 }
 
 const POLLING_INTERVAL = 30000 // 30 seconds
+const NOTIFICATIONS_REFRESH_EVENT = "notifications:refresh"
 
 // Transform API response to frontend notification
 function transformNotification(apiNotification: NotificationResponse): Notification {
@@ -237,6 +238,11 @@ export function useNotifications() {
 
     const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
+    const emitRefreshEvent = useCallback(() => {
+        if (typeof window === "undefined") return
+        window.dispatchEvent(new Event(NOTIFICATIONS_REFRESH_EVENT))
+    }, [])
+
     // Fetch all notifications from unified API
     const fetchNotifications = useCallback(async (showLoading = false) => {
         if (showLoading) {
@@ -277,6 +283,7 @@ export function useNotifications() {
         try {
             // Call API to persist read state
             await api.post<MarkReadResponse>(`/notifications/${notificationId}/read/`)
+            emitRefreshEvent()
         } catch (err) {
             // Revert on error
             const apiError = err as ApiError
@@ -296,6 +303,7 @@ export function useNotifications() {
         try {
             // Call API to persist read state
             await api.post<MarkAllReadResponse>('/notifications/read_all/')
+            emitRefreshEvent()
         } catch (err) {
             const apiError = err as ApiError
             console.error('Failed to mark all notifications as read:', apiError.message)
@@ -334,6 +342,15 @@ export function useNotifications() {
             stopPolling()
         }
     }, [fetchNotifications, startPolling, stopPolling])
+
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        const handleRefresh = () => {
+            fetchNotifications(false)
+        }
+        window.addEventListener(NOTIFICATIONS_REFRESH_EVENT, handleRefresh)
+        return () => window.removeEventListener(NOTIFICATIONS_REFRESH_EVENT, handleRefresh)
+    }, [fetchNotifications])
 
     return {
         notifications,
