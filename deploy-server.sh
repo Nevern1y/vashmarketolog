@@ -22,12 +22,81 @@ PROJECT_DIR="/opt/vashmarketolog"
 DOMAINS="lider-garant.ru www.lider-garant.ru lk.lider-garant.ru"
 EMAIL="admin@lider-garant.ru"  # For Let's Encrypt notifications
 RESET_DB="${RESET_DB:-false}"
+MAX_PULL_RETRIES="${MAX_PULL_RETRIES:-3}"
+PULL_RETRY_DELAY="${PULL_RETRY_DELAY:-5}"
+MIN_DOCKER_FREE_GB="${MIN_DOCKER_FREE_GB:-5}"
+DOCKER_DNS="${DOCKER_DNS:-}"
+DISABLE_BUILDKIT="${DISABLE_BUILDKIT:-false}"
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
+
+warn() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+check_docker_space() {
+    local docker_root
+    docker_root=$(docker info -f '{{.DockerRootDir}}' 2>/dev/null || echo "/var/lib/docker")
+    if [ -d "$docker_root" ]; then
+        local avail_kb
+        avail_kb=$(df -Pk "$docker_root" | awk 'NR==2 {print $4}')
+        if [ -n "$avail_kb" ]; then
+            local avail_gb=$((avail_kb / 1024 / 1024))
+            if [ "$avail_gb" -lt "$MIN_DOCKER_FREE_GB" ]; then
+                warn "Низкий запас места в $docker_root: ~${avail_gb}GB. Рекомендуется минимум ${MIN_DOCKER_FREE_GB}GB."
+            fi
+        fi
+    fi
+}
+
+configure_docker_dns() {
+    if [ -z "$DOCKER_DNS" ]; then
+        return
+    fi
+
+    if [ -f /etc/docker/daemon.json ]; then
+        if grep -q '"dns"' /etc/docker/daemon.json; then
+            echo "Docker DNS уже настроен, пропускаем."
+            return
+        fi
+        warn "Найден /etc/docker/daemon.json без dns. Не изменяю автоматически. Настройте вручную при необходимости."
+        return
+    fi
+
+    IFS=',' read -r -a dns_list <<< "$DOCKER_DNS"
+    if [ ${#dns_list[@]} -eq 0 ]; then
+        return
+    fi
+
+    local dns_json
+    dns_json=$(printf '"%s",' "${dns_list[@]}")
+    dns_json="[${dns_json%,}]"
+
+    echo "{\"dns\": ${dns_json}}" > /etc/docker/daemon.json
+    systemctl restart docker 2>/dev/null || true
+    echo "Docker DNS задан: ${DOCKER_DNS}"
+}
+
+retry_pull() {
+    local image="$1"
+    local attempt=1
+    while [ "$attempt" -le "$MAX_PULL_RETRIES" ]; do
+        echo "Pulling $image (attempt $attempt/$MAX_PULL_RETRIES)..."
+        if docker pull "$image"; then
+            return 0
+        fi
+        if [ "$attempt" -ge "$MAX_PULL_RETRIES" ]; then
+            return 1
+        fi
+        echo -e "${YELLOW}Повтор через ${PULL_RETRY_DELAY}s...${NC}"
+        sleep "$PULL_RETRY_DELAY"
+        attempt=$((attempt + 1))
+    done
+}
 
 echo -e "${GREEN}=== ДЕПЛОЙ LIDER GARANT на сервер 85.198.97.62 ===${NC}"
 echo ""
@@ -373,14 +442,51 @@ rm -rf "$BACKUP_DIR"
 if [ "$RESET_DB" = "true" ]; then
     echo -e "${GREEN}✓ Чистая установка подготовлена (база данных удалена)${NC}"
 else
-    echo -e "${GREEN}✓ Чистая установка подготовлена (база данных сохранена в Docker volume)${NC}"
+echo -e "${GREEN}✓ Чистая установка подготовлена (база данных сохранена в Docker volume)${NC}"
 fi
+echo ""
+
+# =============================================================================
+# Шаг 5.7: Проверка доступа к Docker Hub и предзагрузка образов
+# =============================================================================
+echo -e "${YELLOW}Шаг 5.7: Проверка Docker Hub и базовых образов...${NC}"
+
+check_docker_space
+configure_docker_dns
+
+if ! curl -fsSL https://registry-1.docker.io/v2/ >/dev/null 2>&1; then
+    warn "Нет доступа к registry-1.docker.io. Проверьте DNS/сеть."
+fi
+
+BASE_IMAGES=(
+    "python:3.12-slim"
+    "node:20-alpine"
+    "nginx:alpine"
+    "postgres:15-alpine"
+    "redis:7-alpine"
+    "certbot/certbot"
+)
+
+for image in "${BASE_IMAGES[@]}"; do
+    if ! retry_pull "$image"; then
+        echo -e "${RED}✗ Не удалось скачать $image. Проверьте сеть или DNS.${NC}"
+        exit 1
+    fi
+done
+
+echo -e "${GREEN}✓ Базовые образы загружены${NC}"
 echo ""
 
 # =============================================================================
 # Шаг 6: Сборка и запуск
 # =============================================================================
 echo -e "${YELLOW}Шаг 6: Сборка и запуск контейнеров...${NC}"
+
+if [ "$DISABLE_BUILDKIT" = "true" ]; then
+    export DOCKER_BUILDKIT=0
+    export COMPOSE_DOCKER_CLI_BUILD=0
+    echo -e "${YELLOW}BuildKit отключен для сборки${NC}"
+fi
 
 docker compose -f docker-compose.prod.yml up -d --build
 
