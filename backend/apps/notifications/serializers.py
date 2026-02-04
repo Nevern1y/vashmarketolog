@@ -2,7 +2,7 @@
 Notification serializers for API.
 """
 from rest_framework import serializers
-from .models import Notification, NotificationType, LeadNotificationSettings
+from .models import Notification, NotificationType, LeadNotificationSettings, NotificationSettings
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -71,6 +71,24 @@ class MarkAllReadSerializer(serializers.Serializer):
     """Serializer for mark all as read response."""
     success = serializers.BooleanField()
     count = serializers.IntegerField(help_text='Number of notifications marked as read')
+
+
+class NotificationSettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for user notification settings (email only).
+    """
+
+    class Meta:
+        model = NotificationSettings
+        fields = [
+            'email_enabled',
+            'email_new_applications',
+            'email_status_changes',
+            'email_chat_messages',
+            'email_marketing',
+            'updated_at',
+        ]
+        read_only_fields = ['updated_at']
 
 
 class LeadNotificationSettingsSerializer(serializers.ModelSerializer):

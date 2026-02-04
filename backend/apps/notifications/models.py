@@ -167,6 +167,55 @@ class Notification(models.Model):
             self.save(update_fields=['is_read'])
 
 
+class NotificationSettings(models.Model):
+    """
+    Per-user notification settings (email only for now).
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notification_settings',
+        verbose_name='Пользователь'
+    )
+
+    email_enabled = models.BooleanField(
+        'Email-уведомления включены',
+        default=True
+    )
+    email_new_applications = models.BooleanField(
+        'Email для новых заявок',
+        default=True
+    )
+    email_status_changes = models.BooleanField(
+        'Email для изменений статуса',
+        default=True
+    )
+    email_chat_messages = models.BooleanField(
+        'Email для сообщений в чате',
+        default=True
+    )
+    email_marketing = models.BooleanField(
+        'Email для маркетинговых рассылок',
+        default=False
+    )
+
+    updated_at = models.DateTimeField('Дата обновления', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Настройки уведомлений'
+        verbose_name_plural = 'Настройки уведомлений'
+
+    def __str__(self):
+        status = 'вкл.' if self.email_enabled else 'выкл.'
+        return f"Email-уведомления: {status} ({self.user.email})"
+
+    @classmethod
+    def get_settings(cls, user):
+        settings_obj, _ = cls.objects.get_or_create(user=user)
+        return settings_obj
+
+
 class LeadNotificationSettings(models.Model):
     """
     Settings for lead email notifications.

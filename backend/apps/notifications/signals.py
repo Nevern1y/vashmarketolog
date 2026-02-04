@@ -9,13 +9,132 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 
-from .models import Notification, NotificationType, LeadNotificationSettings
+from .models import Notification, NotificationType, LeadNotificationSettings, NotificationSettings
 from apps.users.models import UserRole
 
 UserModel = get_user_model()
 
 logger = logging.getLogger(__name__)
+
+
+def get_notification_email_category(notification_type: str) -> str | None:
+    if notification_type in [
+        NotificationType.NEW_APPLICATION,
+        NotificationType.ADMIN_NEW_APPLICATION,
+    ]:
+        return 'new_applications'
+
+    if notification_type in [
+        NotificationType.STATUS_CHANGE,
+        NotificationType.DECISION_APPROVED,
+        NotificationType.DECISION_REJECTED,
+        NotificationType.DECISION_INFO_REQUESTED,
+        NotificationType.DOCUMENT_VERIFIED,
+        NotificationType.DOCUMENT_REJECTED,
+        NotificationType.DOCUMENT_REQUESTED,
+        NotificationType.ADMIN_APPLICATION_SENT,
+    ]:
+        return 'status_changes'
+
+    if notification_type == NotificationType.CHAT_MESSAGE:
+        return 'chat_messages'
+
+    return None
+
+
+def should_send_notification_email(user, notification_type: str) -> bool:
+    if not user or not user.email:
+        return False
+
+    category = get_notification_email_category(notification_type)
+    if not category:
+        return False
+
+    settings_obj = NotificationSettings.get_settings(user)
+    if not settings_obj.email_enabled:
+        return False
+
+    return bool(getattr(settings_obj, f'email_{category}', False))
+
+
+def build_notification_email(notification: Notification) -> tuple[str, str]:
+    data = notification.data or {}
+    subject_prefix = getattr(settings, 'EMAIL_SUBJECT_PREFIX', '')
+    subject = f"{subject_prefix}{notification.title}"
+
+    lines = [notification.title, notification.message]
+
+    application_id = data.get('application_id')
+    if application_id:
+        lines.append(f"Заявка №{application_id}")
+
+    if data.get('company_name'):
+        lines.append(f"Компания: {data['company_name']}")
+
+    if data.get('product_type_display'):
+        lines.append(f"Продукт: {data['product_type_display']}")
+
+    if data.get('amount'):
+        lines.append(f"Сумма: {data['amount']}")
+
+    if data.get('status_display'):
+        lines.append(f"Статус: {data['status_display']}")
+
+    if data.get('partner_name'):
+        lines.append(f"Партнёр: {data['partner_name']}")
+
+    if data.get('offered_rate'):
+        lines.append(f"Ставка: {data['offered_rate']}%")
+
+    if data.get('offered_amount'):
+        lines.append(f"Сумма предложения: {data['offered_amount']}")
+
+    if data.get('document_name'):
+        lines.append(f"Документ: {data['document_name']}")
+
+    if data.get('document_type_name'):
+        lines.append(f"Документ: {data['document_type_name']}")
+
+    if data.get('requester_name'):
+        lines.append(f"Запросил: {data['requester_name']}")
+
+    if data.get('sender_name'):
+        lines.append(f"Отправитель: {data['sender_name']}")
+
+    if data.get('preview_text'):
+        lines.append(f"Сообщение: {data['preview_text']}")
+
+    if data.get('comment'):
+        lines.append(f"Комментарий: {data['comment']}")
+
+    created_at = timezone.localtime(notification.created_at)
+    lines.append(f"Дата: {created_at.strftime('%d.%m.%Y %H:%M')}")
+
+    frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+    lines.append("")
+    lines.append(f"Открыть кабинет: {frontend_url}")
+
+    return subject, "\n".join(lines)
+
+
+def send_notification_email(notification: Notification) -> None:
+    try:
+        user = notification.user
+        if not should_send_notification_email(user, notification.type):
+            return
+
+        subject, message = build_notification_email(notification)
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'),
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send notification email: {e}")
 
 
 def get_admin_users():
@@ -28,7 +147,7 @@ def notify_admins(notification_type, title, message, data=None, source_object=No
     admins = get_admin_users()
     for admin in admins:
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=admin,
                 notification_type=notification_type,
                 title=title,
@@ -36,6 +155,7 @@ def notify_admins(notification_type, title, message, data=None, source_object=No
                 data=data or {},
                 source_object=source_object,
             )
+            send_notification_email(notification)
         except Exception as e:
             logger.error(f"Failed to create admin notification: {e}")
 
@@ -165,7 +285,7 @@ def create_decision_notification(sender, instance, created, **kwargs):
     # Create notification for application owner
     if application.created_by:
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=application.created_by,
                 notification_type=notification_type,
                 title=title,
@@ -173,6 +293,7 @@ def create_decision_notification(sender, instance, created, **kwargs):
                 data=data,
                 source_object=decision
             )
+            send_notification_email(notification)
             logger.info(f"Created decision notification for user {application.created_by.id}")
         except Exception as e:
             logger.error(f"Failed to create decision notification: {e}")
@@ -223,7 +344,7 @@ def create_application_notifications(sender, instance, created, **kwargs):
             })
             
             try:
-                Notification.create_notification(
+                notification = Notification.create_notification(
                     user=application.created_by,
                     notification_type=NotificationType.STATUS_CHANGE,
                     title='Изменение статуса заявки',
@@ -231,6 +352,7 @@ def create_application_notifications(sender, instance, created, **kwargs):
                     data=data,
                     source_object=application
                 )
+                send_notification_email(notification)
                 logger.info(f"Created status change notification for user {application.created_by.id}")
             except Exception as e:
                 logger.error(f"Failed to create status change notification: {e}")
@@ -258,7 +380,7 @@ def create_application_notifications(sender, instance, created, **kwargs):
         data = get_application_data(application)
         
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=new_partner,
                 notification_type=NotificationType.NEW_APPLICATION,
                 title='Новая заявка',
@@ -266,6 +388,7 @@ def create_application_notifications(sender, instance, created, **kwargs):
                 data=data,
                 source_object=application
             )
+            send_notification_email(notification)
             logger.info(f"Created new_application notification for partner {new_partner.id}")
         except Exception as e:
             logger.error(f"Failed to create new_application notification: {e}")
@@ -304,7 +427,7 @@ def create_document_request_notification(sender, instance, created, **kwargs):
     }
     
     try:
-        Notification.create_notification(
+        notification = Notification.create_notification(
             user=request.user,
             notification_type=NotificationType.DOCUMENT_REQUESTED,
             title='Запрос документа',
@@ -312,6 +435,7 @@ def create_document_request_notification(sender, instance, created, **kwargs):
             data=data,
             source_object=request
         )
+        send_notification_email(notification)
         logger.info(f"Created document_request notification for user {request.user.id}")
     except Exception as e:
         logger.error(f"Failed to create document_request notification: {e}")
@@ -503,7 +627,7 @@ def create_chat_message_notification(sender, instance, created, **kwargs):
     # Create notifications for all participants
     for user in participants:
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=user,
                 notification_type=NotificationType.CHAT_MESSAGE,
                 title='Новое сообщение',
@@ -511,6 +635,7 @@ def create_chat_message_notification(sender, instance, created, **kwargs):
                 data=data,
                 source_object=message
             )
+            send_notification_email(notification)
             logger.info(f"Created chat notification for user {user.id}")
         except Exception as e:
             logger.error(f"Failed to create chat notification for user {user.id}: {e}")
@@ -521,7 +646,7 @@ def create_chat_message_notification(sender, instance, created, **kwargs):
         if admin in participants:
             continue
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=admin,
                 notification_type=NotificationType.CHAT_MESSAGE,
                 title='Новое сообщение',
@@ -529,6 +654,7 @@ def create_chat_message_notification(sender, instance, created, **kwargs):
                 data=data,
                 source_object=message
             )
+            send_notification_email(notification)
             logger.info(f"Created admin chat notification for user {admin.id}")
         except Exception as e:
             logger.error(f"Failed to create admin chat notification for user {admin.id}: {e}")
@@ -581,7 +707,7 @@ def create_ticket_message_notification(sender, instance, created, **kwargs):
     
     for user in participants:
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=user,
                 notification_type=NotificationType.CHAT_MESSAGE,
                 title='Новое сообщение',
@@ -589,6 +715,7 @@ def create_ticket_message_notification(sender, instance, created, **kwargs):
                 data=data,
                 source_object=message
             )
+            send_notification_email(notification)
             logger.info(f"Created ticket notification for user {user.id}")
         except Exception as e:
             logger.error(f"Failed to create ticket notification for user {user.id}: {e}")
@@ -598,7 +725,7 @@ def create_ticket_message_notification(sender, instance, created, **kwargs):
         if admin in participants:
             continue
         try:
-            Notification.create_notification(
+            notification = Notification.create_notification(
                 user=admin,
                 notification_type=NotificationType.CHAT_MESSAGE,
                 title='Новое сообщение',
@@ -606,6 +733,7 @@ def create_ticket_message_notification(sender, instance, created, **kwargs):
                 data=data,
                 source_object=message
             )
+            send_notification_email(notification)
             logger.info(f"Created admin ticket notification for user {admin.id}")
         except Exception as e:
             logger.error(f"Failed to create admin ticket notification for user {admin.id}: {e}")

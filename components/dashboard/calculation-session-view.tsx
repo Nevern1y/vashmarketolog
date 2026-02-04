@@ -45,6 +45,30 @@ import { ApplicationEditModal } from "@/components/dashboard/application-edit-mo
 import { buildApplicationUpdatePayload, type ApplicationEditSource } from "@/components/dashboard/application-edit-helpers"
 import { getPrimaryAmountValue } from "@/lib/application-display"
 
+const PRODUCT_TYPE_LABELS: Record<string, string> = {
+    bank_guarantee: "Банковская гарантия",
+    tender_loan: "Тендерный кредит",
+    contract_loan: "Кредит на исполнение контракта",
+    corporate_credit: "Корпоративный кредит",
+    factoring: "Факторинг",
+    leasing: "Лизинг",
+    ved: "ВЭД",
+    insurance: "Страхование",
+    rko: "РКО",
+    special_account: "Спецсчет",
+    tender_support: "Тендерное сопровождение",
+}
+
+const getProductTypeLabel = (productType: string) => {
+    return PRODUCT_TYPE_LABELS[productType] || productType
+}
+
+const parseNumber = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return undefined
+    const num = Number(String(value).replace(/\s/g, ""))
+    return Number.isFinite(num) ? num : undefined
+}
+
 // Bank database for adding new banks to session
 interface BankInfo {
     name: string
@@ -441,29 +465,6 @@ export function CalculationSessionView({
         setIsCreating(false)
     }
 
-    const getProductTypeLabel = (productType: string) => {
-        const labels: Record<string, string> = {
-            'bank_guarantee': 'Банковская гарантия',
-            'tender_loan': 'Тендерный кредит',
-            'contract_loan': 'Кредит на исполнение контракта',
-            'corporate_credit': 'Корпоративный кредит',
-            'factoring': 'Факторинг',
-            'leasing': 'Лизинг',
-            'ved': 'ВЭД',
-            'insurance': 'Страхование',
-            'rko': 'РКО',
-            'special_account': 'Спецсчет',
-            'tender_support': 'Тендерное сопровождение'
-        }
-        return labels[productType] || productType
-    }
-
-    const parseNumber = (value: unknown) => {
-        if (value === null || value === undefined || value === "") return undefined
-        const num = Number(String(value).replace(/\s/g, ""))
-        return Number.isFinite(num) ? num : undefined
-    }
-
     const buildUpdatedFormData = useCallback((data: Record<string, unknown>) => {
         if (!session) return null
 
@@ -596,7 +597,7 @@ export function CalculationSessionView({
 
         setIsBulkUpdating(false)
         return successCount > 0
-    }, [buildUpdatedFormData, editableApplications, getProductTypeLabel, parseNumber, refetchApplications, refetchReferenceApplication, refetchSession, referenceApplication, session, updateApplication, updateSession])
+    }, [buildUpdatedFormData, editableApplications, refetchApplications, refetchReferenceApplication, refetchSession, referenceApplication, session, updateApplication, updateSession])
 
     const filteredDocuments = useMemo(() => {
         return session?.company

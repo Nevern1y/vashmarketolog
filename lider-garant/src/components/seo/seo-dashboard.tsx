@@ -162,23 +162,26 @@ export function SeoDashboard() {
             </header>
 
             <main className="container mx-auto py-8 px-4">
-                <div className="mb-8 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-white">Страницы</h1>
-                        <p className="text-slate-400 mt-1">
+                <div className="mb-6 flex flex-wrap items-start gap-4 sm:mb-8 sm:items-center">
+                    <div className="min-w-0">
+                        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Страницы</h1>
+                        <p className="mt-1 text-slate-400">
                             Управление страницами и контентом
                         </p>
                     </div>
-                    <Button onClick={handleCreate} className="bg-[#3ce8d1] text-[#1d194c] font-bold hover:bg-[#3ce8d1]/90 shadow-[0_0_15px_rgba(60,232,209,0.3)] border-none">
-                        <Plus className="h-4 w-4 mr-2" />
+                    <Button
+                        onClick={handleCreate}
+                        className="w-full justify-center bg-[#3ce8d1] font-bold text-[#1d194c] shadow-[0_0_15px_rgba(60,232,209,0.3)] hover:bg-[#3ce8d1]/90 border-none sm:ml-auto sm:w-auto"
+                    >
+                        <Plus className="mr-2 h-4 w-4" />
                         Создать страницу
                     </Button>
                 </div>
 
                 {/* Filters */}
-                <div className="mb-6 flex items-center gap-4">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <div className="mb-6 flex flex-wrap items-center gap-4">
+                    <div className="relative w-full min-w-0 flex-1 sm:max-w-sm">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                         <Input
                             placeholder="Поиск по URL или заголовку..."
                             value={searchQuery}

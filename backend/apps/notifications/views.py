@@ -10,13 +10,14 @@ from rest_framework.views import APIView
 from drf_spectacular.utils import extend_schema, extend_schema_view
 
 from apps.users.permissions import IsAdmin
-from .models import Notification, LeadNotificationSettings
+from .models import Notification, LeadNotificationSettings, NotificationSettings
 from .serializers import (
     NotificationSerializer,
     NotificationListSerializer,
     UnreadCountSerializer,
     MarkReadSerializer,
     MarkAllReadSerializer,
+    NotificationSettingsSerializer,
     LeadNotificationSettingsSerializer,
 )
 
@@ -105,6 +106,45 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         """
         count = Notification.get_unread_count(request.user)
         return Response({'unread_count': count})
+
+
+@extend_schema(tags=['Notifications'])
+class NotificationSettingsView(APIView):
+    """
+    API view for user notification settings (email only).
+
+    GET /api/notifications/settings/
+    PUT /api/notifications/settings/
+    """
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: NotificationSettingsSerializer},
+        description='Get current notification settings for user'
+    )
+    def get(self, request):
+        settings_obj = NotificationSettings.get_settings(request.user)
+        serializer = NotificationSettingsSerializer(settings_obj)
+        return Response(serializer.data)
+
+    @extend_schema(
+        request=NotificationSettingsSerializer,
+        responses={200: NotificationSettingsSerializer},
+        description='Update notification settings for user'
+    )
+    def put(self, request):
+        settings_obj = NotificationSettings.get_settings(request.user)
+        serializer = NotificationSettingsSerializer(
+            settings_obj,
+            data=request.data,
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(tags=['Admin Settings'])

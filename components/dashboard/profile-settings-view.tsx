@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -30,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth-context"
 import api, { authApi } from "@/lib/api"
 import { useAvatar } from "@/hooks/use-avatar"
+import { useNotificationSettings } from "@/hooks/use-notification-settings"
 import { formatPhoneNumber } from "@/lib/utils"
 
 // Tax system options per ТЗ
@@ -88,6 +89,20 @@ export function ProfileSettingsView() {
     const [feedbackTopic, setFeedbackTopic] = useState("")
     const [feedbackMessage, setFeedbackMessage] = useState("")
     const [isSendingFeedback, setIsSendingFeedback] = useState(false)
+
+    const {
+        settings: notificationSettings,
+        isLoading: isNotificationsLoading,
+        error: notificationsError,
+        updateSettings: updateNotificationSettings,
+    } = useNotificationSettings()
+
+    const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
+    const [emailNewApplicationsEnabled, setEmailNewApplicationsEnabled] = useState(true)
+    const [emailStatusChangesEnabled, setEmailStatusChangesEnabled] = useState(true)
+    const [emailChatMessagesEnabled, setEmailChatMessagesEnabled] = useState(true)
+    const [emailMarketingEnabled, setEmailMarketingEnabled] = useState(false)
+    const [isSavingNotifications, setIsSavingNotifications] = useState(false)
 
 
     const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -188,6 +203,15 @@ export function ProfileSettingsView() {
 
     const isEmailVerified = Boolean(user?.email_verified)
 
+    useEffect(() => {
+        if (!notificationSettings) return
+        setEmailNotificationsEnabled(notificationSettings.email_enabled)
+        setEmailNewApplicationsEnabled(notificationSettings.email_new_applications)
+        setEmailStatusChangesEnabled(notificationSettings.email_status_changes)
+        setEmailChatMessagesEnabled(notificationSettings.email_chat_messages)
+        setEmailMarketingEnabled(notificationSettings.email_marketing)
+    }, [notificationSettings])
+
     const handleSendVerification = async () => {
         if (!user?.email) {
             toast.error("Email не указан")
@@ -204,6 +228,26 @@ export function ProfileSettingsView() {
             toast.error(error.message || "Не удалось отправить письмо")
         } finally {
             setIsSendingVerification(false)
+        }
+    }
+
+    const handleSaveNotificationSettings = async () => {
+        setIsSavingNotifications(true)
+        try {
+            const result = await updateNotificationSettings({
+                email_enabled: emailNotificationsEnabled,
+                email_new_applications: emailNewApplicationsEnabled,
+                email_status_changes: emailStatusChangesEnabled,
+                email_chat_messages: emailChatMessagesEnabled,
+                email_marketing: emailMarketingEnabled,
+            })
+            if (result) {
+                toast.success("Настройки уведомлений сохранены")
+            } else {
+                toast.error("Ошибка сохранения настроек")
+            }
+        } finally {
+            setIsSavingNotifications(false)
         }
     }
 
@@ -276,6 +320,9 @@ export function ProfileSettingsView() {
         setProfilePhone(user?.phone || "")
         setIsEditingProfile(false)
     }
+
+    const notificationsControlsDisabled = isNotificationsLoading || isSavingNotifications
+    const categoryControlsDisabled = notificationsControlsDisabled || !emailNotificationsEnabled
 
     return (
         <div className="p-3 md:p-6 space-y-4 md:space-y-6">
@@ -540,7 +587,11 @@ export function ProfileSettingsView() {
                                             <p className="text-sm text-muted-foreground">Получать уведомления на почту</p>
                                         </div>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch
+                                        checked={emailNotificationsEnabled}
+                                        onCheckedChange={setEmailNotificationsEnabled}
+                                        disabled={notificationsControlsDisabled}
+                                    />
                                 </div>
                                 <div className="flex items-center justify-between p-4 rounded-lg border">
                                     <div className="flex items-center gap-3">
@@ -548,9 +599,10 @@ export function ProfileSettingsView() {
                                         <div>
                                             <p className="font-medium">SMS-уведомления</p>
                                             <p className="text-sm text-muted-foreground">Получать SMS о статусе заявок</p>
+                                            <p className="text-xs text-muted-foreground">В разработке</p>
                                         </div>
                                     </div>
-                                    <Switch />
+                                    <Switch checked={false} disabled />
                                 </div>
                                 <div className="flex items-center justify-between p-4 rounded-lg border">
                                     <div className="flex items-center gap-3">
@@ -558,33 +610,63 @@ export function ProfileSettingsView() {
                                         <div>
                                             <p className="font-medium">Push-уведомления</p>
                                             <p className="text-sm text-muted-foreground">Уведомления в браузере</p>
+                                            <p className="text-xs text-muted-foreground">В разработке</p>
                                         </div>
                                     </div>
-                                    <Switch defaultChecked />
+                                    <Switch checked={false} disabled />
                                 </div>
                             </div>
                             <div className="border-t pt-4">
-                                <h4 className="text-sm font-medium mb-4">Категории уведомлений</h4>
+                                <h4 className="text-sm font-medium">Категории email-уведомлений</h4>
+                                <p className="text-xs text-muted-foreground mt-1 mb-4">
+                                    Настройки применяются только к email. Уведомления в кабинете остаются активными.
+                                </p>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm">Новые заявки</span>
-                                        <Switch defaultChecked />
+                                        <Switch
+                                            checked={emailNewApplicationsEnabled}
+                                            onCheckedChange={setEmailNewApplicationsEnabled}
+                                            disabled={categoryControlsDisabled}
+                                        />
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm">Изменения статуса</span>
-                                        <Switch defaultChecked />
+                                        <Switch
+                                            checked={emailStatusChangesEnabled}
+                                            onCheckedChange={setEmailStatusChangesEnabled}
+                                            disabled={categoryControlsDisabled}
+                                        />
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm">Сообщения в чате</span>
-                                        <Switch defaultChecked />
+                                        <Switch
+                                            checked={emailChatMessagesEnabled}
+                                            onCheckedChange={setEmailChatMessagesEnabled}
+                                            disabled={categoryControlsDisabled}
+                                        />
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm">Маркетинговые рассылки</span>
-                                        <Switch />
+                                        <Switch
+                                            checked={emailMarketingEnabled}
+                                            onCheckedChange={setEmailMarketingEnabled}
+                                            disabled={categoryControlsDisabled}
+                                        />
                                     </div>
                                 </div>
                             </div>
-                            <Button className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]">
+                            {notificationsError && (
+                                <p className="text-xs text-destructive">{notificationsError}</p>
+                            )}
+                            <Button
+                                className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                onClick={handleSaveNotificationSettings}
+                                disabled={notificationsControlsDisabled}
+                            >
+                                {isSavingNotifications ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : null}
                                 Сохранить настройки
                             </Button>
                         </CardContent>
