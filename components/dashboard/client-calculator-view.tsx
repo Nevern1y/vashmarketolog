@@ -156,6 +156,8 @@ const INSURANCE_COMPANIES = [
     "Пари",
     "Индивидуальный подбор",
 ]
+
+const SPECACCOUNT_BANKS = ["Альфа-Банк", "Сбербанк", "ВТБ", "Точка", "Промсвязьбанк"]
 // Backend enum values with Russian labels for insurance products
 const INSURANCE_PRODUCTS_BACKEND: Record<string, { value: string; label: string }[]> = {
     smr: [
@@ -639,6 +641,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
     // Current calculation session ID (for linking applications to root application)
     const [currentSessionId, setCurrentSessionId] = useState<number | null>(null)
+    const [rkoSessionId, setRkoSessionId] = useState<number | null>(null)
+    const [specSessionId, setSpecSessionId] = useState<number | null>(null)
 
     // NOTE: Smart Document Prompt removed - documents now auto-attach without user confirmation
 
@@ -1425,6 +1429,80 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     // Back to form
     const backToForm = () => setShowResults(null)
 
+    const getRkoBankNames = (type: "rko" | "specaccount") => {
+        const rkoBankNames = Array.from(
+            new Set(
+                rkoRows
+                    .map(r => r.bank_name)
+                    .filter((name): name is string => Boolean(name))
+            )
+        )
+        return type === "rko" ? rkoBankNames : SPECACCOUNT_BANKS
+    }
+
+    const getRkoDocumentIds = () => {
+        const matched = matchDocumentsToRequired()
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
+            })
+        }
+        return matched.autoSelectedIds
+    }
+
+    const ensureRkoSession = async (
+        type: "rko" | "specaccount",
+        documentIds: number[]
+    ) => {
+        const existingId = type === "rko" ? rkoSessionId : specSessionId
+        if (existingId) {
+            return existingId
+        }
+
+        const bankNames = getRkoBankNames(type)
+        if (bankNames.length === 0) {
+            toast.error("Нет доступных банков для подбора")
+            return null
+        }
+
+        try {
+            const session = await createSession({
+                company: company!.id,
+                product_type: type === "rko" ? "rko" : "special_account",
+                form_data: {
+                    account_type: type,
+                    document_ids: documentIds,
+                },
+                approved_banks: bankNames.map(name => ({
+                    name,
+                    bgRate: 0,
+                    creditRate: 0,
+                    speed: "Стандарт",
+                    individual: false,
+                })),
+                rejected_banks: [],
+                title: type === "rko" ? "РКО" : "Спецсчет",
+            })
+
+            if (!session) {
+                toast.error("Не удалось создать подбор")
+                return null
+            }
+
+            if (type === "rko") {
+                setRkoSessionId(session.id)
+            } else {
+                setSpecSessionId(session.id)
+            }
+
+            return session.id
+        } catch (err) {
+            console.error('Error creating RKO session:', err)
+            toast.error("Ошибка при создании подбора")
+            return null
+        }
+    }
+
     // Create RKO/Specaccount application - REAL API INTEGRATION
     const createRkoApplication = async (bank: string, type: "rko" | "specaccount") => {
         const companyError = getCompanyBasicsError(company)
@@ -1433,12 +1511,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             return
         }
 
-        const matched = matchDocumentsToRequired()
-        if (matched.missingRequired.length > 0) {
-            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
-                description: 'Заявка будет создана. Загрузите документы позже в карточке заявки.'
-            })
-        }
+        const documentIds = getRkoDocumentIds()
+        const sessionId = await ensureRkoSession(type, documentIds)
 
         const payload = {
             company: company.id,
@@ -1447,7 +1521,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             term_months: 12,
             target_bank_name: bank,
             account_type: type,
-            document_ids: matched.autoSelectedIds.length > 0 ? matched.autoSelectedIds : undefined,
+            calculation_session: sessionId || undefined,
+            document_ids: documentIds.length > 0 ? documentIds : undefined,
         }
 
         try {

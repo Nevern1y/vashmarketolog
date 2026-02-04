@@ -1083,6 +1083,7 @@ const getStatusBadge = (status: string) => {
     const canSubmit = canEditAndSubmit && formProgress === 100 && missingSubmitFields.length === 0
     // Show calculation session number for all users if session exists
     const showCalculationSessionLink = Boolean(application.calculation_session)
+    const isRkoProduct = application.product_type === 'rko' || application.product_type === 'special_account'
     const amountInfo = getAmountDisplay(application)
 
     return (
@@ -1113,6 +1114,14 @@ const getStatusBadge = (status: string) => {
                                     title="Перейти к результатам отбора банков"
                                 >
                                     #{application.calculation_session}
+                                </button>
+                            ) : isRkoProduct ? (
+                                <button
+                                    onClick={handleRecalculate}
+                                    className="hover:text-[#3CE8D1] transition-colors cursor-pointer"
+                                    title="Выбрать другой банк"
+                                >
+                                    {getProductTypeDisplay(application)}
                                 </button>
                             ) : (
                                 <span className="text-[#94a3b8]">
