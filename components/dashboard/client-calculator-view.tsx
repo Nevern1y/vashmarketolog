@@ -537,6 +537,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const [ignoreCompletion, setIgnoreCompletion] = useState(false)
     const [contractDateFrom, setContractDateFrom] = useState("")
     const [contractDateTo, setContractDateTo] = useState("")
+    const [kikContractTermDays, setKikContractTermDays] = useState<number | undefined>(undefined)
+    const [kikCreditTermDays, setKikCreditTermDays] = useState<number | undefined>(undefined)
 
     // Factoring specific
     const [contractType, setContractType] = useState("gov")
@@ -547,6 +549,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const [shipmentVolume, setShipmentVolume] = useState<number | undefined>(undefined)
     const [paymentDelay, setPaymentDelay] = useState<number | undefined>(undefined)
     const [customerInn, setCustomerInn] = useState("")
+    const [factoringTermDays, setFactoringTermDays] = useState<number | undefined>(undefined)
 
     // Credit specific
     const [creditType, setCreditType] = useState("")
@@ -599,6 +602,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000))
 
     const isTermDaysEditable = activeTab === "bg" || activeTab === "express"
+    const isKikTab = activeTab === "kik"
+    const isFactoringTab = activeTab === "factoring"
 
     useEffect(() => {
         if (!isTermDaysEditable) return
@@ -620,6 +625,69 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             setTermDays(prev => (prev === diffDays ? prev : diffDays))
         }
     }, [dateFrom, dateTo, isTermDaysEditable])
+
+    useEffect(() => {
+        if (!isKikTab) return
+        if (!contractDateFrom || typeof kikContractTermDays !== "number" || !Number.isFinite(kikContractTermDays) || kikContractTermDays <= 0) return
+        const startDate = parseDateInput(contractDateFrom)
+        if (!startDate) return
+        const calculatedDateTo = formatDateInput(addUtcDays(startDate, kikContractTermDays))
+        setContractDateTo(prev => (prev === calculatedDateTo ? prev : calculatedDateTo))
+    }, [contractDateFrom, kikContractTermDays, isKikTab])
+
+    useEffect(() => {
+        if (!isKikTab) return
+        if (!contractDateFrom || !contractDateTo) return
+        const startDate = parseDateInput(contractDateFrom)
+        const endDate = parseDateInput(contractDateTo)
+        if (!startDate || !endDate) return
+        const diffDays = diffDaysUtc(startDate, endDate)
+        if (diffDays > 0) {
+            setKikContractTermDays(prev => (prev === diffDays ? prev : diffDays))
+        }
+    }, [contractDateFrom, contractDateTo, isKikTab])
+
+    useEffect(() => {
+        if (!isKikTab) return
+        if (!dateFrom || typeof kikCreditTermDays !== "number" || !Number.isFinite(kikCreditTermDays) || kikCreditTermDays <= 0) return
+        const startDate = parseDateInput(dateFrom)
+        if (!startDate) return
+        const calculatedDateTo = formatDateInput(addUtcDays(startDate, kikCreditTermDays))
+        setDateTo(prev => (prev === calculatedDateTo ? prev : calculatedDateTo))
+    }, [dateFrom, kikCreditTermDays, isKikTab])
+
+    useEffect(() => {
+        if (!isKikTab) return
+        if (!dateFrom || !dateTo) return
+        const startDate = parseDateInput(dateFrom)
+        const endDate = parseDateInput(dateTo)
+        if (!startDate || !endDate) return
+        const diffDays = diffDaysUtc(startDate, endDate)
+        if (diffDays > 0) {
+            setKikCreditTermDays(prev => (prev === diffDays ? prev : diffDays))
+        }
+    }, [dateFrom, dateTo, isKikTab])
+
+    useEffect(() => {
+        if (!isFactoringTab) return
+        if (!dateFrom || typeof factoringTermDays !== "number" || !Number.isFinite(factoringTermDays) || factoringTermDays <= 0) return
+        const startDate = parseDateInput(dateFrom)
+        if (!startDate) return
+        const calculatedDateTo = formatDateInput(addUtcDays(startDate, factoringTermDays))
+        setDateTo(prev => (prev === calculatedDateTo ? prev : calculatedDateTo))
+    }, [dateFrom, factoringTermDays, isFactoringTab])
+
+    useEffect(() => {
+        if (!isFactoringTab) return
+        if (!dateFrom || !dateTo) return
+        const startDate = parseDateInput(dateFrom)
+        const endDate = parseDateInput(dateTo)
+        if (!startDate || !endDate) return
+        const diffDays = diffDaysUtc(startDate, endDate)
+        if (diffDays > 0) {
+            setFactoringTermDays(prev => (prev === diffDays ? prev : diffDays))
+        }
+    }, [dateFrom, dateTo, isFactoringTab])
 
     // VED (International Payments) specific
     const [vedCurrency, setVedCurrency] = useState("")
@@ -681,6 +749,8 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         setDateFrom("")
         setDateTo("")
         setTermDays(undefined)
+        setKikContractTermDays(undefined)
+        setKikCreditTermDays(undefined)
         setHasAdvance(false)
         setAdvancePercent(undefined)
         setCreditAmount(undefined)
@@ -708,6 +778,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         setNmc(undefined)
         setDateFrom("")
         setDateTo("")
+        setFactoringTermDays(undefined)
         setShipmentVolume(undefined)
         setPaymentDelay(undefined)
         setCustomerInn("")
@@ -2522,13 +2593,17 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {contractDateFrom && contractDateTo
-                                                    ? Math.max(0, Math.ceil((new Date(contractDateTo).getTime() - new Date(contractDateFrom).getTime()) / (1000 * 60 * 60 * 24)))
-                                                    : "—"}
-                                            </span>
-                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="90"
+                                            value={kikContractTermDays ?? ""}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setKikContractTermDays(Number.isFinite(parsed) ? parsed : undefined)
+                                            }}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -2566,11 +2641,17 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
-                                            </span>
-                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="90"
+                                            value={kikCreditTermDays ?? ""}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setKikCreditTermDays(Number.isFinite(parsed) ? parsed : undefined)
+                                            }}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -2839,11 +2920,17 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
-                                            </span>
-                                        </div>
+                                        <Input
+                                            type="number"
+                                            placeholder="90"
+                                            value={factoringTermDays ?? ""}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setFactoringTermDays(Number.isFinite(parsed) ? parsed : undefined)
+                                            }}
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
+                                        />
                                     </div>
                                 </div>
                             </div>
