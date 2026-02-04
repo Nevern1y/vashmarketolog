@@ -225,7 +225,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     // Get required documents list based on product type
     const getRequiredDocuments = (productType: string): { name: string; id: number; required: boolean }[] => {
-        // Required documents for БГ/КИК/Кредиты/Лизинг/Факторинг (with asterisk) - SORTED: required first
+        // Required documents for БГ/КИК/Кредиты/Лизинг/Факторинг/Сопровождение (with asterisk) - SORTED: required first
         // ID mapping synced with database (migrations 0010 + 0012):
         // ID 200 = 30.09.2025, ID 201 = 31.12.2023, ID 202 = 31.12.2025, ID 203 = 31.12.2024, ID 204 = 30.06.2025
         // Обязательные: 1, 203, 200, 50, 21, 22, 75, 76, 81
@@ -281,6 +281,7 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             case 'tender_loan':
             case 'leasing':
             case 'factoring':
+            case 'tender_support':
                 return [
                     ...requiredDocs,
                     ...optionalDocs,
@@ -292,9 +293,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 return rkoDocs
             case 'insurance':
                 return insuranceDocs
-            case 'tender_support':
-                // Тендерное сопровождение - только карточка компании обязательна
-                return [{ name: "Карточка компании", id: 1, required: true }]
             default:
                 return [
                     ...requiredDocs,

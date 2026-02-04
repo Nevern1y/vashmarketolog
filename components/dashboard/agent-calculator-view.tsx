@@ -642,6 +642,8 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
     const diffDaysUtc = (start: Date, end: Date): number =>
         Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000))
 
+    const isTermDaysEditable = activeTab === "bg" || activeTab === "express"
+
 
     // Calculated offers result
     const [calculatedOffers, setCalculatedOffers] = useState<{ approved: BankOffer[]; rejected: { bank: string; reason: string }[] }>({ approved: [], rejected: [] })
@@ -676,14 +678,16 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
     // When dateFrom or termDays change, automatically calculate dateTo
     React.useEffect(() => {
+        if (!isTermDaysEditable) return
         if (!dateFrom || typeof termDays !== "number" || !Number.isFinite(termDays) || termDays <= 0) return
         const startDate = parseDateInput(dateFrom)
         if (!startDate) return
         const calculatedDateTo = formatDateInput(addUtcDays(startDate, termDays))
         setDateTo(prev => (prev === calculatedDateTo ? prev : calculatedDateTo))
-    }, [dateFrom, termDays])
+    }, [dateFrom, termDays, isTermDaysEditable])
 
     React.useEffect(() => {
+        if (!isTermDaysEditable) return
         if (!dateFrom || !dateTo) return
         const startDate = parseDateInput(dateFrom)
         const endDate = parseDateInput(dateTo)
@@ -692,7 +696,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         if (diffDays > 0) {
             setTermDays(prev => (prev === diffDays ? prev : diffDays))
         }
-    }, [dateFrom, dateTo])
+    }, [dateFrom, dateTo, isTermDaysEditable])
 
     // =========================================================================
     // CLEAR FORM FUNCTIONS
@@ -721,6 +725,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         setContractPrice(undefined)
         setDateFrom("")
         setDateTo("")
+        setTermDays(undefined)
         setContractDateFrom("")
         setContractDateTo("")
         setHasAdvance(false)
@@ -737,6 +742,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         setAmount(undefined)
         setDateFrom("")
         setDateTo("")
+        setTermDays(undefined)
     }
 
     const clearFactoringForm = () => {
@@ -2970,11 +2976,18 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
-                                        <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
-                                            <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
-                                            </span>
-                                        </div>
+                                        <Input
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={termDays ?? ""}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                const parsed = val ? Number.parseInt(val, 10) : NaN
+                                                setTermDays(Number.isFinite(parsed) ? parsed : undefined)
+                                            }}
+                                            placeholder="90"
+                                            className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white"
+                                        />
                                     </div>
                                 </div>
                             </div>

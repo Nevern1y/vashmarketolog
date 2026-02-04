@@ -598,15 +598,19 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
     const diffDaysUtc = (start: Date, end: Date): number =>
         Math.max(0, Math.round((end.getTime() - start.getTime()) / 86400000))
 
+    const isTermDaysEditable = activeTab === "bg" || activeTab === "express"
+
     useEffect(() => {
+        if (!isTermDaysEditable) return
         if (!dateFrom || typeof termDays !== "number" || !Number.isFinite(termDays) || termDays <= 0) return
         const startDate = parseDateInput(dateFrom)
         if (!startDate) return
         const calculatedDateTo = formatDateInput(addUtcDays(startDate, termDays))
         setDateTo(prev => (prev === calculatedDateTo ? prev : calculatedDateTo))
-    }, [dateFrom, termDays])
+    }, [dateFrom, termDays, isTermDaysEditable])
 
     useEffect(() => {
+        if (!isTermDaysEditable) return
         if (!dateFrom || !dateTo) return
         const startDate = parseDateInput(dateFrom)
         const endDate = parseDateInput(dateTo)
@@ -615,7 +619,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         if (diffDays > 0) {
             setTermDays(prev => (prev === diffDays ? prev : diffDays))
         }
-    }, [dateFrom, dateTo])
+    }, [dateFrom, dateTo, isTermDaysEditable])
 
     // VED (International Payments) specific
     const [vedCurrency, setVedCurrency] = useState("")
