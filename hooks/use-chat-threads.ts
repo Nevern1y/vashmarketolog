@@ -22,6 +22,9 @@ export interface ChatThread {
     unreadCount: number
     adminReplied: boolean
     lastMessageAt: string
+    agentName?: string | null
+    agentEmail?: string | null
+    agentPhone?: string | null
 }
 
 // API response type (matches backend serializer - snake_case)
@@ -34,6 +37,9 @@ interface ChatThreadResponse {
     unread_count: number
     admin_replied: boolean
     last_message_at: string
+    agent_name?: string | null
+    agent_email?: string | null
+    agent_phone?: string | null
 }
 
 // WebSocket message types
@@ -64,6 +70,9 @@ function transformThread(thread: ChatThreadResponse): ChatThread {
         unreadCount: thread.unread_count,
         adminReplied: thread.admin_replied,
         lastMessageAt: thread.last_message_at,
+        agentName: thread.agent_name ?? null,
+        agentEmail: thread.agent_email ?? null,
+        agentPhone: thread.agent_phone ?? null,
     }
 }
 

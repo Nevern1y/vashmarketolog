@@ -38,6 +38,39 @@ def _normalize_bank_name(name: str) -> str:
     return normalized
 
 
+BANK_STOP_WORDS = {
+    "банк",
+    "банка",
+    "пао",
+    "оао",
+    "зао",
+    "ао",
+    "ооо",
+    "пao",
+    "публичное",
+    "акционерное",
+    "общество",
+}
+
+
+def _tokenize_bank_name(name: str) -> list[str]:
+    normalized = _normalize_bank_name(name)
+    if not normalized:
+        return []
+    return [token for token in normalized.split() if token not in BANK_STOP_WORDS]
+
+
+def _token_score(target_tokens: list[str], bank_tokens: list[str]) -> float:
+    if not target_tokens or not bank_tokens:
+        return 0.0
+    target_set = set(target_tokens)
+    bank_set = set(bank_tokens)
+    intersection = len(target_set & bank_set)
+    if intersection == 0:
+        return 0.0
+    return intersection / max(len(target_set), len(bank_set))
+
+
 def _get_partner_for_target_bank(target_bank_name: str):
     if not target_bank_name:
         return None
@@ -61,21 +94,40 @@ def _get_partner_for_target_bank(target_bank_name: str):
     if not normalized_target:
         return None
 
-    matches = []
+    target_tokens = _tokenize_bank_name(cleaned_name)
+    best_match = None
+    best_score = 0.0
+    is_ambiguous = False
+
     for bank in banks_qs:
         name_norm = _normalize_bank_name(bank.name)
         short_norm = _normalize_bank_name(bank.short_name or "")
+
+        score = 0.0
         if normalized_target == name_norm or (short_norm and normalized_target == short_norm):
-            matches.append(bank)
-            continue
-        if len(normalized_target) >= 3 and (
+            score = 1.0
+        elif len(normalized_target) >= 3 and (
             (name_norm and normalized_target in name_norm) or
             (short_norm and normalized_target in short_norm)
         ):
-            matches.append(bank)
+            score = 0.9
+        else:
+            name_tokens = _tokenize_bank_name(bank.name)
+            short_tokens = _tokenize_bank_name(bank.short_name or "")
+            score = max(_token_score(target_tokens, name_tokens), _token_score(target_tokens, short_tokens))
 
-    if len(matches) == 1:
-        return matches[0].partner_user
+        if score <= 0:
+            continue
+
+        if score > best_score:
+            best_match = bank
+            best_score = score
+            is_ambiguous = False
+        elif score == best_score:
+            is_ambiguous = True
+
+    if best_match and best_score >= 0.6 and not is_ambiguous:
+        return best_match.partner_user
 
     return None
 
@@ -1071,3 +1123,6 @@ class ChatThreadSerializer(serializers.Serializer):
     unread_count = serializers.IntegerField()
     admin_replied = serializers.BooleanField()
     last_message_at = serializers.DateTimeField()
+    agent_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    agent_email = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    agent_phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)

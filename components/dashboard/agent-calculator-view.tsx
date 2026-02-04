@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner"
 import { getCompanyBasicsError } from "@/lib/company-basics"
 import { getProductTypeLabel } from "@/lib/application-display"
-import { navigateToApplications } from "@/lib/navigation"
+import { navigateToApplications, navigateToCalculationSession } from "@/lib/navigation"
 import { ApplicationChat } from "./application-chat"
 import { useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useMyCompany, useCRMClients, useCRMClientMutations, type CreateCompanyPayload, type CompanyListItem } from "@/hooks/use-companies"
@@ -158,6 +158,8 @@ const INSURANCE_COMPANIES = [
     "Пари",
     "Индивидуальный подбор",
 ]
+
+const SPECACCOUNT_BANKS = ["Альфа-Банк", "Сбербанк", "ВТБ", "Точка", "Промсвязьбанк"]
 // Backend enum values with Russian labels for insurance products
 const INSURANCE_PRODUCTS_BACKEND: Record<string, { value: string; label: string }[]> = {
     smr: [
@@ -780,6 +782,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             case "insurance": return "insurance"
             case "ved": return "ved"
             case "rko": return "rko"
+            case "specaccount": return "special_account"
             case "tender_support": return "tender_support"
             case "deposits": return "deposits"
             default: return "general"
@@ -1367,9 +1370,13 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                     insuranceCategory,
                     insuranceProduct,
                     insuranceAmount,
+                    insuranceTerm,
+                    insuranceCategoryBackend: INSURANCE_CATEGORY_TO_BACKEND[insuranceCategory] || insuranceCategory || undefined,
+                    insuranceProductBackend: INSURANCE_PRODUCT_TO_BACKEND[insuranceProduct] || insuranceProduct || undefined,
                     vedCurrency,
                     vedCountry,
                     vedPurpose,
+                    document_ids: documentIds,
                 }
 
                 // Build display title
@@ -1487,13 +1494,20 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
     // Toggle offer selection (Exclusive logic for Individual Consideration)
     const toggleOffer = (index: number) => {
-        const bank = calculatedOffers.approved[index]
+        const isInsurance = showResults === "insurance"
+        const offers = isInsurance
+            ? INSURANCE_COMPANIES.map(name => ({
+                name,
+                individual: name === "Индивидуальный подбор",
+            }))
+            : calculatedOffers.approved
+
+        const bank = offers[index]
         if (!bank) return
 
         const newSet = new Set(selectedOffers)
 
         if (bank.individual) {
-            // If selecting individual, clear all others and select only this one
             if (newSet.has(index)) {
                 newSet.delete(index)
             } else {
@@ -1501,9 +1515,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 newSet.add(index)
             }
         } else {
-            // If selecting regular bank, ensure individual is not selected
-            // Find index of individual bank if it exists
-            const individualIndex = calculatedOffers.approved.findIndex(b => b.individual)
+            const individualIndex = offers.findIndex(b => b.individual)
             if (individualIndex !== -1) {
                 newSet.delete(individualIndex)
             }
@@ -1575,6 +1587,72 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
     // Back to form
     const backToForm = () => setShowResults(null)
+
+    const createRkoSession = async (type: "rko" | "specaccount") => {
+        if (!company) {
+            toast.error("Выберите клиента")
+            return
+        }
+
+        const companyError = getCompanyBasicsError(company)
+        if (companyError) {
+            toast.error(companyError)
+            return
+        }
+
+        const rkoBankNames = Array.from(
+            new Set(
+                rkoRows
+                    .map(r => r.bank_name)
+                    .filter((name): name is string => Boolean(name))
+            )
+        )
+        const bankNames = type === "rko" ? rkoBankNames : SPECACCOUNT_BANKS
+
+        if (bankNames.length === 0) {
+            toast.error("Нет доступных банков для подбора")
+            return
+        }
+
+        const matched = matchDocumentsToRequired()
+        if (matched.missingRequired.length > 0) {
+            toast.warning(`Недостающие документы: ${matched.missingRequired.map(d => d.name).join(', ')}`, {
+                description: 'Подбор будет создан. Загрузите документы позже в карточке заявки.'
+            })
+        }
+
+        const approvedBanksData = bankNames.map(name => ({
+            name,
+            bgRate: 0,
+            creditRate: 0,
+            speed: "Стандарт",
+            individual: false,
+        }))
+
+        try {
+            const session = await createSession({
+                company: company.id,
+                product_type: type === "rko" ? "rko" : "special_account",
+                form_data: {
+                    account_type: type,
+                    document_ids: matched.autoSelectedIds,
+                },
+                approved_banks: approvedBanksData,
+                rejected_banks: [],
+                title: type === "rko" ? "РКО" : "Спецсчет",
+            })
+
+            if (session) {
+                setCurrentSessionId(session.id)
+                navigateToCalculationSession(session.id)
+            } else {
+                toast.error("Не удалось создать подбор")
+            }
+        } catch (err) {
+            console.error('Error creating RKO session:', err)
+            toast.error("Ошибка при создании подбора")
+        }
+    }
 
     // Create RKO/Specaccount application - REAL API INTEGRATION
     const createRkoApplication = async (bank: string, type: "rko" | "specaccount") => {
@@ -3367,7 +3445,20 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 <TabsContent value="rko">
                     {/* Banks List */}
                     <Card>
-                        <CardHeader><CardTitle>РКО (Расчётно-кассовое обслуживание)</CardTitle></CardHeader>
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <CardTitle>РКО (Расчётно-кассовое обслуживание)</CardTitle>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-[#3CE8D1]/40 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                    onClick={() => createRkoSession("rko")}
+                                    disabled={isBankConditionsLoading || rkoRows.length === 0}
+                                >
+                                    Открыть подбор
+                                </Button>
+                            </div>
+                        </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground mb-4">Всего: {rkoRows.length} банков</p>
                             {isBankConditionsLoading ? (
@@ -3416,14 +3507,26 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 <TabsContent value="specaccount">
                     {/* Banks List */}
                     <Card>
-                        <CardHeader><CardTitle>Спецсчет</CardTitle></CardHeader>
+                        <CardHeader>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                <CardTitle>Спецсчет</CardTitle>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-[#3CE8D1]/40 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                    onClick={() => createRkoSession("specaccount")}
+                                >
+                                    Открыть подбор
+                                </Button>
+                            </div>
+                        </CardHeader>
                         <CardContent>
                             <p className="text-sm text-muted-foreground mb-4">Выберите банк для открытия спецсчёта:</p>
                             <div className="rounded-lg border overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead className="bg-muted/50"><tr><th className="text-left p-3">Банк</th><th className="text-left p-3">Создать заявку</th></tr></thead>
                                     <tbody>
-                                        {["Альфа-Банк", "Сбербанк", "ВТБ", "Точка", "Промсвязьбанк"].map((bank, i) => (
+                                        {SPECACCOUNT_BANKS.map((bank, i) => (
                                             <tr key={i} className="border-t">
                                                 <td className="p-3">{bank}</td>
                                                 <td className="p-3"><Button size="sm" variant="link" className="text-[#3CE8D1] p-0" onClick={() => createRkoApplication(bank, "specaccount")}>Создать заявку</Button></td>

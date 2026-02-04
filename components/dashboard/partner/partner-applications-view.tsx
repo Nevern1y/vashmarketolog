@@ -202,9 +202,10 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                         <p className="text-xs text-[#94a3b8] mt-0.5">{app.external_id}</p>
                     )}
                     {shouldShowAgent(app) && (
-                        <p className="text-xs text-[#94a3b8] mt-0.5">
-                            Агент: <span className="text-[#3CE8D1]">{getAgentName(app)}</span>
-                        </p>
+                        <div className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-[#3CE8D1]/30 bg-[#3CE8D1]/10 px-2 py-0.5 text-[11px] text-[#3CE8D1]">
+                            <User className="h-3 w-3" />
+                            <span>Агент: {getAgentName(app)}</span>
+                        </div>
                     )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -388,9 +389,9 @@ export function PartnerApplicationsView({ onOpenDetail, userRole }: PartnerAppli
                                                             <span className="text-xs text-[#94a3b8]">{app.external_id}</span>
                                                         )}
                                                         {shouldShowAgent(app) && (
-                                                            <span className="text-xs text-[#94a3b8]">
-                                                                Агент: <span className="text-[#3CE8D1]">{getAgentName(app)}</span>
-                                                            </span>
+                                                            <Badge className="mt-1 w-fit border border-[#3CE8D1]/30 bg-[#3CE8D1]/10 text-[11px] text-[#3CE8D1]">
+                                                                Агент: {getAgentName(app)}
+                                                            </Badge>
                                                         )}
                                                     </div>
                                                 </TableCell>

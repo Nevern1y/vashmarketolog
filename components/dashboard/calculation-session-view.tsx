@@ -228,10 +228,15 @@ export function CalculationSessionView({
                 "kbg": "kbg"
             }
 
-            const baseData: Record<string, unknown> = {
-                law: lawMapping[formData.federalLaw] || "44-ФЗ",
-                purchase_number: formData.noticeNumber || undefined,
-                lot_number: formData.lotNumber || undefined,
+            const baseData: Record<string, unknown> = {}
+            if (formData.federalLaw) {
+                baseData.law = lawMapping[formData.federalLaw] || "44-ФЗ"
+            }
+            if (formData.noticeNumber) {
+                baseData.purchase_number = formData.noticeNumber
+            }
+            if (formData.lotNumber) {
+                baseData.lot_number = formData.lotNumber
             }
 
             if (productType === "bank_guarantee") {
@@ -285,6 +290,7 @@ export function CalculationSessionView({
                     insurance_category: formData.insuranceCategory || undefined,
                     insurance_product_type: formData.insuranceProduct || undefined,
                     insurance_amount: formData.insuranceAmount?.toString() || undefined,
+                    insurance_term_months: formData.insuranceTerm || undefined,
                 }
             }
 
@@ -292,6 +298,7 @@ export function CalculationSessionView({
         }
 
         const formData = session.form_data
+        const isRkoProduct = session.product_type === "rko" || session.product_type === "special_account"
 
         for (const bankName of selectedBanks) {
             try {
@@ -306,21 +313,61 @@ export function CalculationSessionView({
                 // Calculate term months
                 const dateFrom = formData.dateFrom as string
                 const dateTo = formData.dateTo as string
-                const termMonths = dateFrom && dateTo
-                    ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24 * 30))
-                    : 1
+                const termMonths = (() => {
+                    if (isRkoProduct) return 12
+                    if (session.product_type === "insurance" && formData.insuranceTerm) {
+                        const termValue = Number(formData.insuranceTerm)
+                        return Number.isFinite(termValue) && termValue > 0 ? termValue : 1
+                    }
+                    if (dateFrom && dateTo) {
+                        return Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24 * 30))
+                    }
+                    return 1
+                })()
+
+                const shouldSetTenderLaw = ["bank_guarantee", "tender_loan", "contract_loan"].includes(session.product_type)
+                const tenderLawValue = shouldSetTenderLaw
+                    ? lawMapping[formData.federalLaw as string] || "44_fz"
+                    : undefined
+
+                const amountValue = (() => {
+                    if (isRkoProduct) return 0
+
+                    switch (session.product_type) {
+                        case "tender_loan":
+                        case "contract_loan":
+                            return (formData.creditAmount as number) ?? (formData.amount as number) ?? 0
+                        case "factoring":
+                            return (formData.financingAmount as number) ?? (formData.amount as number) ?? 0
+                        case "leasing":
+                            return (formData.leasingAmount as number) ?? (formData.amount as number) ?? 0
+                        case "insurance":
+                            return (formData.insuranceAmount as number) ?? (formData.amount as number) ?? 0
+                        default:
+                            return (formData.amount as number) ?? 0
+                    }
+                })()
 
                 const payload = {
                     company: session.company, // session.company is the ID (number)
                     product_type: session.product_type,
-                    amount: ((formData.amount as number) ?? 0).toString(),
+                    amount: amountValue.toString(),
                     term_months: termMonths,
                     target_bank_name: bankName,
                     tender_number: (formData.noticeNumber as string) || undefined,
                     tender_platform: undefined, // Platform not always stored in form data, okay to be undefined
                     goscontract_data: buildGoscontractData(formData, session.product_type),
                     guarantee_type: session.product_type === "bank_guarantee" ? (formData.bgType as string) : undefined,
-                    tender_law: lawMapping[formData.federalLaw as string] || "44_fz",
+                    tender_law: tenderLawValue,
+                    account_type: isRkoProduct
+                        ? (session.product_type === "special_account" ? "specaccount" : "rko")
+                        : undefined,
+                    insurance_category: session.product_type === "insurance"
+                        ? ((formData.insuranceCategoryBackend as string) || (formData.insuranceCategory as string) || undefined)
+                        : undefined,
+                    insurance_product_type: session.product_type === "insurance"
+                        ? ((formData.insuranceProductBackend as string) || (formData.insuranceProduct as string) || undefined)
+                        : undefined,
                     calculation_session: session.id,
                     document_ids: selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
                 }
@@ -407,8 +454,20 @@ export function CalculationSessionView({
             .filter(doc => requiredDocIds.includes(doc.document_type_id))
             .map(doc => doc.id)
 
-        if (matchedIds.length > 0) {
-            setSelectedDocumentIds(prev => [...new Set([...prev, ...matchedIds])])
+        const sessionDocIds = Array.isArray((session.form_data as { document_ids?: number[] })?.document_ids)
+            ? (session.form_data as { document_ids?: number[] }).document_ids || []
+            : []
+        const availableDocIds = new Set(filteredDocuments.map(doc => doc.id))
+        const preselectedIds = sessionDocIds.filter(id => availableDocIds.has(id))
+
+        if (matchedIds.length > 0 || preselectedIds.length > 0) {
+            setSelectedDocumentIds(prev => [
+                ...new Set([
+                    ...prev,
+                    ...preselectedIds,
+                    ...matchedIds,
+                ])
+            ])
         }
 
         autoSelectDoneRef.current = true
@@ -433,6 +492,10 @@ export function CalculationSessionView({
             </div>
         )
     }
+
+    const isRkoSession = session.product_type === "rko" || session.product_type === "special_account"
+
+    const canAddBanks = !isRkoSession
 
     const availableBanks = session.approved_banks.filter(
         bank => !session.submitted_banks.includes(bank.name)
@@ -489,15 +552,17 @@ export function CalculationSessionView({
                             <Building2 className="h-5 w-5 text-[#3CE8D1]" />
                             Результат отбора банков
                         </CardTitle>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsAddBankDialogOpen(true)}
-                            className="border-[#3CE8D1]/50 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
-                        >
-                            <PlusCircle className="h-4 w-4 mr-2" />
-                            Добавить банк
-                        </Button>
+                        {canAddBanks && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsAddBankDialogOpen(true)}
+                                className="border-[#3CE8D1]/50 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                            >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Добавить банк
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -576,13 +641,21 @@ export function CalculationSessionView({
                                         />
                                         <div className="flex-1">
                                             <p className="text-white font-medium">{bank.name}</p>
-                                            <div className="flex gap-4 text-sm text-[#94a3b8] mt-1">
-                                                <span>Ставка БГ: <span className="text-[#3CE8D1]">{bank.bgRate}%</span></span>
-                                                <span>Срок: <span className="text-[#3CE8D1]">{bank.speed}</span></span>
-                                                {bank.individual && (
-                                                    <Badge variant="outline" className="text-orange-400 border-orange-400/30">
-                                                        Индивидуально
+                                            <div className="flex flex-wrap gap-3 text-sm text-[#94a3b8] mt-1">
+                                                {isRkoSession ? (
+                                                    <Badge variant="outline" className="text-[#3CE8D1] border-[#3CE8D1]/30">
+                                                        Тарифы по запросу
                                                     </Badge>
+                                                ) : (
+                                                    <>
+                                                        <span>Ставка БГ: <span className="text-[#3CE8D1]">{bank.bgRate}%</span></span>
+                                                        <span>Срок: <span className="text-[#3CE8D1]">{bank.speed}</span></span>
+                                                        {bank.individual && (
+                                                            <Badge variant="outline" className="text-orange-400 border-orange-400/30">
+                                                                Индивидуально
+                                                            </Badge>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
@@ -674,9 +747,17 @@ export function CalculationSessionView({
                                     <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
                                     <div className="flex-1">
                                         <p className="text-white font-medium">{bank.name}</p>
-                                        <div className="flex gap-4 text-sm text-[#94a3b8] mt-1">
-                                            <span>Ставка БГ: <span className="text-emerald-400">{bank.bgRate}%</span></span>
-                                            <span>Срок: <span className="text-emerald-400">{bank.speed}</span></span>
+                                        <div className="flex flex-wrap gap-3 text-sm text-[#94a3b8] mt-1">
+                                            {isRkoSession ? (
+                                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                                                    Тарифы по запросу
+                                                </Badge>
+                                            ) : (
+                                                <>
+                                                    <span>Ставка БГ: <span className="text-emerald-400">{bank.bgRate}%</span></span>
+                                                    <span>Срок: <span className="text-emerald-400">{bank.speed}</span></span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
@@ -715,8 +796,9 @@ export function CalculationSessionView({
             )}
 
             {/* Add Bank Dialog */}
-            <Dialog open={isAddBankDialogOpen} onOpenChange={setIsAddBankDialogOpen}>
-                <DialogContent className="bg-[#0f2042] border-[#1e3a5f] max-w-lg">
+            {canAddBanks && (
+                <Dialog open={isAddBankDialogOpen} onOpenChange={setIsAddBankDialogOpen}>
+                    <DialogContent className="bg-[#0f2042] border-[#1e3a5f] max-w-lg">
                     <DialogHeader>
                         <DialogTitle className="text-white flex items-center gap-2">
                             <PlusCircle className="h-5 w-5 text-[#3CE8D1]" />
@@ -821,7 +903,8 @@ export function CalculationSessionView({
                         </Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog>
+                </Dialog>
+            )}
         </div>
     )
 }

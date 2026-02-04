@@ -1492,8 +1492,12 @@ class ChatThreadViewSet(viewsets.ViewSet):
         
         # Prefetch applications
         applications = {
-            app.id: app 
-            for app in Application.objects.filter(id__in=application_ids).select_related('company')
+            app.id: app
+            for app in Application.objects.filter(id__in=application_ids).select_related(
+                'company',
+                'created_by',
+                'created_by__invited_by'
+            )
         }
         
         # Get last non-admin message for each application (for preview)
@@ -1532,6 +1536,25 @@ class ChatThreadViewSet(viewsets.ViewSet):
             if thread['unread_count'] == 0 and admin_replied:
                 continue
             
+            agent_user = None
+            if app.created_by and app.created_by.role == 'agent':
+                agent_user = app.created_by
+            elif app.created_by and app.created_by.role == 'client':
+                invited_by = getattr(app.created_by, 'invited_by', None)
+                if invited_by and invited_by.role == 'agent':
+                    agent_user = invited_by
+
+            agent_name = None
+            agent_email = None
+            agent_phone = None
+            if agent_user:
+                agent_email = agent_user.email
+                agent_phone = agent_user.phone
+                first = agent_user.first_name or ''
+                last = agent_user.last_name or ''
+                full_name = f"{first} {last}".strip()
+                agent_name = full_name or agent_user.email
+
             result.append({
                 'application_id': app_id,
                 'company_name': app.company.name if app.company else f'Заявка #{app_id}',
@@ -1541,6 +1564,9 @@ class ChatThreadViewSet(viewsets.ViewSet):
                 'unread_count': thread['unread_count'],
                 'admin_replied': admin_replied,
                 'last_message_at': thread['last_message_at'],
+                'agent_name': agent_name,
+                'agent_email': agent_email,
+                'agent_phone': agent_phone,
             })
         
         serializer = ChatThreadSerializer(result, many=True)

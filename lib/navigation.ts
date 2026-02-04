@@ -27,3 +27,16 @@ export const navigateToApplications = ({ appId, highlightIds }: ApplicationsNavi
     window.history.pushState(window.history.state, "", url.toString())
     window.dispatchEvent(new Event("popstate"))
 }
+
+export const navigateToCalculationSession = (sessionId: number) => {
+    if (typeof window === "undefined") return
+
+    const url = new URL(window.location.href)
+    url.searchParams.set("view", "applications")
+    url.searchParams.set("session", String(sessionId))
+    url.searchParams.delete("appId")
+    url.searchParams.delete("highlight")
+
+    window.history.pushState(window.history.state, "", url.toString())
+    window.dispatchEvent(new Event("popstate"))
+}

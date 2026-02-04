@@ -734,6 +734,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             case "insurance": return "insurance"
             case "ved": return "ved"
             case "rko": return "rko"
+            case "specaccount": return "special_account"
             case "deposits": return "deposits"
             default: return "general"
         }
@@ -1270,9 +1271,13 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                     insuranceCategory,
                     insuranceProduct,
                     insuranceAmount,
+                    insuranceTerm,
+                    insuranceCategoryBackend: INSURANCE_CATEGORY_TO_BACKEND[insuranceCategory] || insuranceCategory || undefined,
+                    insuranceProductBackend: INSURANCE_PRODUCT_TO_BACKEND[insuranceProduct] || insuranceProduct || undefined,
                     vedCurrency,
                     vedCountry,
                     vedPurpose,
+                    document_ids: documentIds,
                 }
 
                 // Build display title
@@ -1385,11 +1390,18 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
     // Toggle offer selection
     const toggleOffer = (index: number) => {
-        const selectedBank = calculatedOffers.approved[index]
-        const isIndividual = selectedBank.individual
+        const isInsurance = showResults === "insurance"
+        const offers = isInsurance
+            ? INSURANCE_COMPANIES.map(name => ({
+                name,
+                individual: name === "Индивидуальный подбор",
+            }))
+            : calculatedOffers.approved
 
-        if (isIndividual) {
-            // Exclusive selection for "Individual Consideration"
+        const selectedBank = offers[index]
+        if (!selectedBank) return
+
+        if (selectedBank.individual) {
             if (selectedOffers.has(index)) {
                 setSelectedOffers(new Set())
             } else {
@@ -1398,12 +1410,10 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         } else {
             const newSet = new Set(selectedOffers)
 
-            // Remove "Individual Consideration" if selecting normal bank
-            calculatedOffers.approved.forEach((b, i) => {
-                if (b.individual && newSet.has(i)) {
-                    newSet.delete(i)
-                }
-            })
+            const individualIndex = offers.findIndex(b => b.individual)
+            if (individualIndex !== -1) {
+                newSet.delete(individualIndex)
+            }
 
             if (newSet.has(index)) newSet.delete(index)
             else newSet.add(index)

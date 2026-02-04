@@ -27,6 +27,9 @@ export function AdminChatView({ onOpenApplication }: AdminChatViewProps) {
                 thread.lastSenderName.toLowerCase().includes(query) ||
                 thread.lastSenderEmail.toLowerCase().includes(query) ||
                 thread.lastMessagePreview.toLowerCase().includes(query) ||
+                (thread.agentName || '').toLowerCase().includes(query) ||
+                (thread.agentEmail || '').toLowerCase().includes(query) ||
+                (thread.agentPhone || '').toLowerCase().includes(query) ||
                 String(thread.applicationId).includes(query)
             )
         })
@@ -124,6 +127,11 @@ export function AdminChatView({ onOpenApplication }: AdminChatViewProps) {
                         <div className="divide-y divide-border">
                             {filteredThreads.map((thread) => {
                                 const status = getThreadStatus(thread)
+                                const agentLabel = thread.agentName || thread.agentEmail || thread.agentPhone
+                                const agentDetails = [thread.agentPhone, thread.agentEmail].filter(Boolean) as string[]
+                                const agentMeta = agentDetails.filter((detail, index) => (
+                                    detail !== agentLabel && agentDetails.indexOf(detail) === index
+                                ))
                                 
                                 return (
                                     <div
@@ -148,6 +156,12 @@ export function AdminChatView({ onOpenApplication }: AdminChatViewProps) {
                                                     </Badge>
                                                 )}
                                             </div>
+                                            {agentLabel && (
+                                                <p className="text-xs text-[#94a3b8] mt-1 truncate">
+                                                    Агент: {agentLabel}
+                                                    {agentMeta.length > 0 ? ` • ${agentMeta.join(' • ')}` : ''}
+                                                </p>
+                                            )}
                                             <p className="text-xs text-muted-foreground mt-1 truncate">
                                                 {thread.lastSenderName}: {thread.lastMessagePreview}
                                             </p>

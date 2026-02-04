@@ -155,6 +155,11 @@ if [ -f "$ENV_FILE" ]; then
     set_env "EMAIL_HOST_USER" "$SMTP_USER" "$ENV_FILE"
     if [ -n "$SMTP_PASSWORD" ]; then
         set_env "EMAIL_HOST_PASSWORD" "$SMTP_PASSWORD" "$ENV_FILE"
+    else
+        if ! grep -q "^EMAIL_HOST_PASSWORD=" "$ENV_FILE" || grep -q "^EMAIL_HOST_PASSWORD=$" "$ENV_FILE"; then
+            echo -e "${YELLOW}⚠ EMAIL_HOST_PASSWORD не задан. Почтовые уведомления работать не будут.${NC}"
+            echo -e "${YELLOW}  Укажите SMTP_PASSWORD при запуске скрипта или заполните EMAIL_HOST_PASSWORD в .env${NC}"
+        fi
     fi
 
     set_env "DEFAULT_FROM_EMAIL" "noreply@lider-garant.ru" "$ENV_FILE"

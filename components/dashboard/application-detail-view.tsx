@@ -26,7 +26,6 @@ import {
     CreditCard,
     Hash,
     Landmark,
-    Plus,
     FolderPlus,
     // Phase 2: Additional icons for extended company data
     Fingerprint,
@@ -2113,6 +2112,33 @@ const getStatusBadge = (status: string) => {
                             <CardContent className="p-6 pt-0">
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
+                                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                    <p className="text-sm text-[#94a3b8]">
+                                        Загрузите файлы или добавьте из "Мои документы"
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0]"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={!canEditAndSubmit || isUploading}
+                                        >
+                                            Загрузить файлы
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="border-[#3CE8D1]/30 text-[#3CE8D1] hover:bg-[#3CE8D1]/10"
+                                            onClick={() => setIsDocsModalOpen(true)}
+                                            disabled={!canEditAndSubmit}
+                                        >
+                                            Добавить документы
+                                        </Button>
+                                    </div>
+                                </div>
+
                                 {/* Upload Area with Drag-and-Drop */}
                                 <div
                                     className={cn(
@@ -2198,16 +2224,26 @@ const getStatusBadge = (status: string) => {
                                                     <div className="flex items-center gap-2 shrink-0">
                                                         {isUploaded && uploadedDoc ? (
                                                             <>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-8 w-8 text-[#94a3b8] hover:text-white"
-                                                                    asChild
-                                                                >
-                                                                    <a href={uploadedDoc.file_url} target="_blank" rel="noopener noreferrer">
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </a>
-                                                                </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-[#94a3b8] hover:text-white"
+                                                                asChild
+                                                            >
+                                                                <a href={uploadedDoc.file_url || "#"} target="_blank" rel="noopener noreferrer">
+                                                                    <Eye className="h-4 w-4" />
+                                                                </a>
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-[#94a3b8] hover:text-white"
+                                                                asChild
+                                                            >
+                                                                <a href={uploadedDoc.file_url || "#"} download>
+                                                                    <Download className="h-4 w-4" />
+                                                                </a>
+                                                            </Button>
                                                                 <Button
                                                                     type="button"
                                                                     variant="ghost"
@@ -2258,7 +2294,7 @@ const getStatusBadge = (status: string) => {
                                 <Separator className="my-4 bg-[#1e3a5f]" />
 
                                 {/* CTA Banner for Additional Documents */}
-                                <div className="rounded-lg bg-gradient-to-r from-[#3CE8D1]/20 to-[#4F7DF3]/20 border-2 border-dashed border-[#3CE8D1]/50 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                                <div className="rounded-lg bg-gradient-to-r from-[#3CE8D1]/20 to-[#4F7DF3]/20 border-2 border-dashed border-[#3CE8D1]/50 p-4 flex items-start gap-3 mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="bg-[#3CE8D1]/20 p-3 rounded-lg shrink-0">
                                             <FolderPlus className="h-6 w-6 text-[#3CE8D1]" />
@@ -2270,13 +2306,6 @@ const getStatusBadge = (status: string) => {
                                             </p>
                                         </div>
                                     </div>
-                                    <Button 
-                                        onClick={() => setIsDocsModalOpen(true)}
-                                        className="bg-[#3CE8D1] hover:bg-[#3CE8D1]/80 text-[#0a1628] font-medium w-full sm:w-auto"
-                                    >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Добавить документы
-                                    </Button>
                                 </div>
 
                                 {/* Documents List - Only show non-required documents to avoid duplicates */}

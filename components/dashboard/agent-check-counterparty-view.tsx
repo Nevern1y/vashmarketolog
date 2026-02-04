@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, Building2, MapPin, FileCheck, CheckCircle2, AlertCircle } from "lucide-react"
+import { Search, FileCheck, CheckCircle2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -10,15 +10,12 @@ import { toast } from "sonner"
 
 export function AgentCheckCounterpartyView() {
     const [inn, setInn] = useState("")
-    const [ogrn, setOgrn] = useState("")
-    const [name, setName] = useState("")
-    const [address, setAddress] = useState("")
     const [isChecking, setIsChecking] = useState(false)
     const [result, setResult] = useState<"success" | "error" | null>(null)
 
     const handleCheck = () => {
-        if (!inn || !name) {
-            toast.error("Заполните ИНН и Наименование компании")
+        if (!inn) {
+            toast.error("Введите ИНН")
             return
         }
 
@@ -41,7 +38,7 @@ export function AgentCheckCounterpartyView() {
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold font-['Manrope']">Проверка контрагента</h1>
-                    <p className="text-sm text-muted-foreground">Проверка юридических лиц по базам данных</p>
+                    <p className="text-sm text-muted-foreground">Проверка юридических лиц по ИНН</p>
                 </div>
             </div>
 
@@ -52,50 +49,13 @@ export function AgentCheckCounterpartyView() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Наименование компании *</Label>
-                            <div className="relative">
-                                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="pl-9"
-                                    placeholder="ООО «Ромашка»"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>ИНН *</Label>
-                                <Input
-                                    value={inn}
-                                    onChange={e => setInn(e.target.value)}
-                                    placeholder="Введите ИНН"
-                                    maxLength={12}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>ОГРН</Label>
-                                <Input
-                                    value={ogrn}
-                                    onChange={e => setOgrn(e.target.value)}
-                                    placeholder="Введите ОГРН"
-                                    maxLength={15}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Юридический адрес</Label>
-                            <div className="relative">
-                                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    value={address}
-                                    onChange={e => setAddress(e.target.value)}
-                                    className="pl-9"
-                                    placeholder="г. Москва, ул. Ленина, д. 1"
-                                />
-                            </div>
+                            <Label>ИНН *</Label>
+                            <Input
+                                value={inn}
+                                onChange={e => setInn(e.target.value)}
+                                placeholder="Введите ИНН"
+                                maxLength={12}
+                            />
                         </div>
 
                         <Button
@@ -103,7 +63,7 @@ export function AgentCheckCounterpartyView() {
                             disabled={isChecking}
                             className="w-full bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] font-semibold mt-4"
                         >
-                            {isChecking ? "Проверка..." : "Проверить контрагента"}
+                            {isChecking ? "Проверка..." : "Проверить"}
                         </Button>
                     </CardContent>
                 </Card>

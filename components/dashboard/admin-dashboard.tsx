@@ -100,7 +100,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
     return (
         <>
             {/* Sidebar Header */}
-            <div className="flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
+            <div className="flex items-center justify-between h-16 px-4 border-b border-[#1e3a5f] shrink-0">
                 {(!collapsed || isMobile) && (
                     <div className="flex items-center">
                         <img src="/placeholder-logo.svg" alt="Лидер Гарант" className="h-10 w-auto" />
@@ -111,7 +111,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                         variant="ghost"
                         size="icon"
                         onClick={onClose}
-                        className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800"
+                        className="h-8 w-8 text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f]"
                     >
                         <X className="h-4 w-4" />
                     </Button>
@@ -120,7 +120,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                         variant="ghost"
                         size="icon"
                         onClick={onToggleCollapse}
-                        className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800"
+                        className="h-8 w-8 text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f]"
                     >
                         {collapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </Button>
@@ -141,7 +141,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                                 "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                                 isActive
                                     ? "bg-[#3CE8D1]/10 text-[#3CE8D1]"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                                    : "text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f]"
                             )}
                         >
                             <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-[#3CE8D1]")} />
@@ -162,7 +162,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
             </nav>
 
             {/* User Section */}
-            <div className="p-3 border-t border-border shrink-0">
+            <div className="p-3 border-t border-[#1e3a5f] shrink-0">
                 {(!collapsed || isMobile) ? (
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -178,7 +178,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                             variant="ghost"
                             size="icon"
                             onClick={handleLogoutClick}
-                            className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 shrink-0"
+                            className="h-8 w-8 text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f] shrink-0"
                         >
                             <LogOut className="h-4 w-4" />
                         </Button>
@@ -188,7 +188,7 @@ function AdminSidebarContent({ activeView, onViewChange, collapsed = false, onTo
                         variant="ghost"
                         size="icon"
                         onClick={handleLogoutClick}
-                        className="w-full h-10 text-slate-400 hover:text-white hover:bg-slate-800"
+                        className="w-full h-10 text-[#94a3b8] hover:text-white hover:bg-[#1e3a5f]"
                     >
                         <LogOut className="h-4 w-4" />
                     </Button>
@@ -215,13 +215,13 @@ function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activ
     const { user } = useAuth()
 
     return (
-        <header className="flex items-center justify-between border-b border-border bg-slate-900 px-4 py-3 lg:hidden sticky top-0 z-40">
+        <header className="flex items-center justify-between border-b border-[#1e3a5f] bg-[#0a1628] px-4 py-3 lg:hidden sticky top-0 z-40">
             <div className="flex items-center gap-3">
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={onMenuClick}
-                    className="text-white hover:bg-slate-800"
+                    className="text-white hover:bg-[#1e3a5f]"
                 >
                     <Menu className="h-6 w-6" />
                 </Button>
@@ -251,7 +251,7 @@ function AdminMobileHeader({ onMenuClick, onSettingsClick, onProfileClick, activ
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="p-0">
                             <Avatar className="h-8 w-8 bg-[#3CE8D1]">
-                                <AvatarFallback className="bg-[#3CE8D1] text-slate-900 text-xs font-bold">
+                                <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-xs font-bold">
                                     {user?.email?.charAt(0).toUpperCase() || "A"}
                                 </AvatarFallback>
                             </Avatar>
@@ -391,7 +391,7 @@ export function AdminDashboard() {
             <aside
                 className={cn(
                     "fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col",
-                    "h-dvh border-r border-border bg-slate-900",
+                    "h-dvh border-r border-[#1e3a5f] bg-[#0a1628]",
                     "transition-[width] duration-300 ease-in-out",
                     sidebarCollapsed ? "w-14 xl:w-16" : "w-56 xl:w-60"
                 )}
@@ -410,7 +410,7 @@ export function AdminDashboard() {
             {/* MOBILE SIDEBAR DRAWER */}
             {/* ============================================ */}
             <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
-                <SheetContent side="left" className="p-0 border-none w-[260px] bg-slate-900">
+                <SheetContent side="left" className="p-0 border-none w-[260px] bg-[#0a1628]">
                     <SheetHeader className="sr-only">
                         <SheetTitle>Панель администратора</SheetTitle>
                         <SheetDescription>Навигация по разделам управления</SheetDescription>
@@ -445,7 +445,7 @@ export function AdminDashboard() {
                 />
 
                 {/* Desktop Header */}
-                <header className="hidden lg:flex items-center justify-between border-b border-border bg-slate-900/50 backdrop-blur-sm px-4 xl:px-6 2xl:px-8 py-3 sticky top-0 z-40">
+                <header className="hidden lg:flex items-center justify-between border-b border-[#1e3a5f] bg-[#0a1628]/70 backdrop-blur-sm px-4 xl:px-6 2xl:px-8 py-3 sticky top-0 z-40">
                     <div className="flex items-center gap-3">
                         <h1 className="text-lg font-semibold text-white">
                             {NAV_ITEMS.find(item => item.id === activeView)?.label || (activeView === "profile-settings" ? "Настройки аккаунта" : "Админ")}
@@ -470,7 +470,7 @@ export function AdminDashboard() {
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="flex items-center gap-2 px-2">
                                     <Avatar className="h-8 w-8 bg-[#3CE8D1]">
-                                        <AvatarFallback className="bg-[#3CE8D1] text-slate-900 text-xs font-bold">
+                                        <AvatarFallback className="bg-[#3CE8D1] text-[#0a1628] text-xs font-bold">
                                             {user?.email?.charAt(0).toUpperCase() || "A"}
                                         </AvatarFallback>
                                     </Avatar>
@@ -504,15 +504,15 @@ export function AdminDashboard() {
                 </main>
             </div>
             <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-                <AlertDialogContent className="bg-slate-900 border-slate-800 text-white">
+                <AlertDialogContent className="bg-[#0a1628] border-[#1e3a5f] text-white">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Выйти из аккаунта?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-slate-400">
+                        <AlertDialogDescription className="text-[#94a3b8]">
                             Вы уверены, что хотите выйти из админ-панели?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-transparent border-slate-700 text-white hover:bg-slate-800">
+                        <AlertDialogCancel className="bg-transparent border-[#1e3a5f] text-white hover:bg-[#1e3a5f]">
                             Отмена
                         </AlertDialogCancel>
                         <AlertDialogAction
