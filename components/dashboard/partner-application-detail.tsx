@@ -1157,6 +1157,8 @@ export function PartnerApplicationDetail({ applicationId, onBack }: PartnerAppli
                       value={
                         (application as any).account_type === 'rko' ? 'Расчётно-кассовое обслуживание (РКО)' :
                         (application as any).account_type === 'special' ? 'Специальный счёт' :
+                        (application as any).account_type === 'specaccount' ? 'Специальный счёт' :
+                        (application as any).account_type === 'special_account' ? 'Специальный счёт' :
                         (application as any).account_type
                       }
                     />

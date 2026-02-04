@@ -1962,7 +1962,9 @@ const getStatusBadge = (status: string) => {
                                                         application.account_type === 'rko_premium' ? 'РКО Премиум' :
                                                             application.account_type === 'rko_business' ? 'РКО Бизнес' :
                                                                 application.account_type === 'rko' ? 'РКО' :
-                                                                    application.account_type
+                                                                    application.account_type === 'specaccount' ? 'Спецсчет' :
+                                                                        application.account_type === 'special_account' ? 'Спецсчет' :
+                                                                            application.account_type
                                                 }
                                             />
                                         )}
@@ -1981,7 +1983,8 @@ const getStatusBadge = (status: string) => {
                                                             application.account_type === '615pp' ? 'Спецсчет 615-ПП' :
                                                                 application.account_type === 'specaccount' ? 'Спецсчёт' :
                                                                 application.account_type === 'special' ? 'Спецсчёт' :
-                                                                    application.account_type
+                                                                    application.account_type === 'special_account' ? 'Спецсчёт' :
+                                                                        application.account_type
                                                 }
                                             />
                                         )}

@@ -205,6 +205,7 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     rko_business: "РКО Бизнес",
     specaccount: "Спецсчёт",
     special: "Спецсчёт",
+    special_account: "Спецсчёт",
     "44fz": "Спецсчет 44-ФЗ",
     "223fz": "Спецсчет 223-ФЗ",
     "615pp": "Спецсчет 615-ПП",
