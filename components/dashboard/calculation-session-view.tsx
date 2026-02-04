@@ -144,6 +144,7 @@ export function CalculationSessionView({
     const autoSelectDoneRef = useRef(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isBulkUpdating, setIsBulkUpdating] = useState(false)
+
     
     // Add Bank Dialog state
     const [isAddBankDialogOpen, setIsAddBankDialogOpen] = useState(false)
@@ -549,6 +550,18 @@ export function CalculationSessionView({
         return nextFormData
     }, [session])
 
+    const editableApplications = useMemo(() => {
+        return sessionApplications.filter(
+            app => app.status === "draft" || app.status === "info_requested"
+        )
+    }, [sessionApplications])
+
+    const lockedApplications = useMemo(() => {
+        return sessionApplications.filter(
+            app => app.status !== "draft" && app.status !== "info_requested"
+        )
+    }, [sessionApplications])
+
     const handleBulkEditSave = useCallback(async (data: Record<string, unknown>): Promise<boolean> => {
         if (!session) return false
         if (!referenceApplication || editableApplications.length === 0) {
@@ -662,12 +675,6 @@ export function CalculationSessionView({
     )
     const submittedBanks = session.approved_banks.filter(
         bank => session.submitted_banks.includes(bank.name)
-    )
-    const editableApplications = sessionApplications.filter(
-        app => app.status === "draft" || app.status === "info_requested"
-    )
-    const lockedApplications = sessionApplications.filter(
-        app => app.status !== "draft" && app.status !== "info_requested"
     )
     const canBulkEdit = Boolean(referenceApplication) && editableApplications.length > 0
     const referenceAmount = referenceApplication ? getPrimaryAmountValue(referenceApplication) : null

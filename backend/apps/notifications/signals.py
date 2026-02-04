@@ -19,6 +19,33 @@ UserModel = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+def get_application_recipients(application):
+    recipients = set()
+
+    if application.created_by:
+        recipients.add(application.created_by)
+
+    if application.company and application.company.owner:
+        recipients.add(application.company.owner)
+
+    company_inn = getattr(application.company, 'inn', None)
+    if company_inn:
+        from apps.companies.models import CompanyProfile
+
+        client_companies = CompanyProfile.objects.filter(
+            inn=company_inn,
+            is_crm_client=False,
+            owner__role=UserRole.CLIENT,
+            owner__is_active=True,
+        ).select_related('owner')
+
+        for company in client_companies:
+            if company.owner:
+                recipients.add(company.owner)
+
+    return recipients
+
+
 def get_notification_email_category(notification_type: str) -> str | None:
     if notification_type in [
         NotificationType.NEW_APPLICATION,
@@ -282,11 +309,11 @@ def create_decision_notification(sender, instance, created, **kwargs):
         'decision_id': decision.id,
     })
     
-    # Create notification for application owner
-    if application.created_by:
+    recipients = get_application_recipients(application)
+    for recipient in recipients:
         try:
             notification = Notification.create_notification(
-                user=application.created_by,
+                user=recipient,
                 notification_type=notification_type,
                 title=title,
                 message=message,
@@ -294,7 +321,7 @@ def create_decision_notification(sender, instance, created, **kwargs):
                 source_object=decision
             )
             send_notification_email(notification)
-            logger.info(f"Created decision notification for user {application.created_by.id}")
+            logger.info(f"Created decision notification for user {recipient.id}")
         except Exception as e:
             logger.error(f"Failed to create decision notification: {e}")
 
@@ -335,17 +362,18 @@ def create_application_notifications(sender, instance, created, **kwargs):
     
     # Handle status change
     if old_status and old_status != new_status and new_status != 'draft':
-        if application.created_by:
-            data = get_application_data(application)
-            data.update({
-                'old_status': old_status,
-                'new_status': new_status,
-                'status_display': application.get_status_display(),
-            })
-            
+        data = get_application_data(application)
+        data.update({
+            'old_status': old_status,
+            'new_status': new_status,
+            'status_display': application.get_status_display(),
+        })
+
+        recipients = get_application_recipients(application)
+        for recipient in recipients:
             try:
                 notification = Notification.create_notification(
-                    user=application.created_by,
+                    user=recipient,
                     notification_type=NotificationType.STATUS_CHANGE,
                     title='Изменение статуса заявки',
                     message=f"Статус изменён на: {application.get_status_display()}",
@@ -353,7 +381,7 @@ def create_application_notifications(sender, instance, created, **kwargs):
                     source_object=application
                 )
                 send_notification_email(notification)
-                logger.info(f"Created status change notification for user {application.created_by.id}")
+                logger.info(f"Created status change notification for user {recipient.id}")
             except Exception as e:
                 logger.error(f"Failed to create status change notification: {e}")
 
