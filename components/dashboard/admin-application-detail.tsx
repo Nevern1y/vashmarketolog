@@ -357,9 +357,14 @@ export function AdminApplicationDetail({ applicationId, onBack }: AdminApplicati
         return new Date(dateStr).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" })
     }
 
-    const createdByValue = application?.created_by_name
-        ? `${application.created_by_name}${application.created_by_email ? ` (${application.created_by_email})` : ""}`
-        : application?.created_by_email
+    const createdByName = application?.created_by_name?.trim()
+    const createdByEmail = application?.created_by_email?.trim()
+    const hasDistinctCreatorName = Boolean(
+        createdByName && createdByEmail && createdByName.toLowerCase() !== createdByEmail.toLowerCase()
+    )
+    const createdByValue = hasDistinctCreatorName
+        ? `${createdByName} (${createdByEmail})`
+        : (createdByName || createdByEmail)
     const createdByLabel = application?.created_by_role === "agent" && createdByValue
         ? `Агент ${createdByValue}`
         : createdByValue

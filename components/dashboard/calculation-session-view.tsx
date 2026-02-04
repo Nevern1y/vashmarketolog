@@ -9,7 +9,7 @@
  * from the same calculation.
  */
 
-import { useCalculationSession, useApplicationMutations, useCalculationSessionMutations } from "@/hooks/use-applications"
+import { useApplication, useApplicationMutations, useApplications, useCalculationSession, useCalculationSessionMutations } from "@/hooks/use-applications"
 import { useDocuments, formatDocumentType } from "@/hooks/use-documents"
 import { useCRMClient, useMyCompany } from "@/hooks/use-companies"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +20,7 @@ import {
     ChevronLeft,
     Loader2,
     AlertCircle,
+    AlertTriangle,
     Building2,
     Calendar,
     CheckCircle,
@@ -27,6 +28,7 @@ import {
     Clock,
     Plus,
     PlusCircle,
+    Pencil,
     Search
 } from "lucide-react"
 import { useState, useCallback, useMemo, useEffect, useRef } from "react"
@@ -39,6 +41,9 @@ import { getDocumentTypeName, getRequiredDocumentsForProduct } from "@/lib/docum
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ApplicationEditModal } from "@/components/dashboard/application-edit-modal"
+import { buildApplicationUpdatePayload, type ApplicationEditSource } from "@/components/dashboard/application-edit-helpers"
+import { getPrimaryAmountValue } from "@/lib/application-display"
 
 // Bank database for adding new banks to session
 interface BankInfo {
@@ -90,17 +95,31 @@ export function CalculationSessionView({
     onNavigateToApplications
 }: CalculationSessionViewProps) {
     const { session, isLoading, error, refetch: refetchSession } = useCalculationSession(sessionId)
-    const { createApplication } = useApplicationMutations()
-    const { updateSubmittedBanks, addApprovedBanks } = useCalculationSessionMutations()
+    const { createApplication, updateApplication } = useApplicationMutations()
+    const { updateSubmittedBanks, addApprovedBanks, updateSession } = useCalculationSessionMutations()
     const { documents: companyDocuments, isLoading: documentsLoading } = useDocuments({ company: session?.company, includeUnassigned: true })
     const { user } = useAuth()
     const { company: myCompany } = useMyCompany()
     const crmClientId = user?.role === "agent" ? session?.company ?? null : null
     const { client: crmCompany } = useCRMClient(crmClientId)
+    const sessionApplicationParams = useMemo(() => ({ calculation_session: sessionId }), [sessionId])
+    const {
+        applications: sessionApplications,
+        isLoading: isLoadingApplications,
+        refetch: refetchApplications
+    } = useApplications(undefined, sessionApplicationParams, { fetchAllPages: true })
+    const referenceApplicationId = useMemo(() => {
+        if (sessionApplications.length === 0) return null
+        const editable = sessionApplications.find(app => app.status === "draft" || app.status === "info_requested")
+        return editable?.id ?? sessionApplications[0].id
+    }, [sessionApplications])
+    const { application: referenceApplication, refetch: refetchReferenceApplication } = useApplication(referenceApplicationId)
     const [selectedBanks, setSelectedBanks] = useState<string[]>([])
     const [selectedDocumentIds, setSelectedDocumentIds] = useState<number[]>([])
     const [isCreating, setIsCreating] = useState(false)
     const autoSelectDoneRef = useRef(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [isBulkUpdating, setIsBulkUpdating] = useState(false)
     
     // Add Bank Dialog state
     const [isAddBankDialogOpen, setIsAddBankDialogOpen] = useState(false)
@@ -439,6 +458,146 @@ export function CalculationSessionView({
         return labels[productType] || productType
     }
 
+    const parseNumber = (value: unknown) => {
+        if (value === null || value === undefined || value === "") return undefined
+        const num = Number(String(value).replace(/\s/g, ""))
+        return Number.isFinite(num) ? num : undefined
+    }
+
+    const buildUpdatedFormData = useCallback((data: Record<string, unknown>) => {
+        if (!session) return null
+
+        const nextFormData: Record<string, unknown> = {
+            ...(session.form_data || {}),
+        }
+
+        const amountValue = parseNumber(data.amount)
+        if (amountValue !== undefined) nextFormData.amount = amountValue
+
+        if (data.purchase_number !== undefined) nextFormData.noticeNumber = data.purchase_number
+        if (data.lot_number !== undefined) nextFormData.lotNumber = data.lot_number
+
+        if (typeof data.law === "string") {
+            const lawMap: Record<string, string> = {
+                "44_fz": "44",
+                "223_fz": "223",
+                "615_pp": "615",
+                "kbg": "kbg",
+                "commercial": "kbg",
+            }
+            nextFormData.federalLaw = lawMap[data.law] || data.law
+        }
+
+        if (session.product_type === "bank_guarantee" || session.product_type === "tender_loan") {
+            if (data.guarantee_type !== undefined) nextFormData.bgType = data.guarantee_type
+            if (data.guarantee_start_date !== undefined) nextFormData.dateFrom = data.guarantee_start_date
+            if (data.guarantee_end_date !== undefined) nextFormData.dateTo = data.guarantee_end_date
+            if (data.has_prepayment !== undefined) nextFormData.hasAdvance = data.has_prepayment
+            if (data.advance_percent !== undefined) nextFormData.advancePercent = data.advance_percent
+        }
+
+        if (session.product_type === "contract_loan") {
+            if (data.contract_loan_type !== undefined) nextFormData.kikType = data.contract_loan_type
+            const contractPriceValue = parseNumber(data.contract_price)
+            if (contractPriceValue !== undefined) nextFormData.contractPrice = contractPriceValue
+            const creditAmountValue = parseNumber(data.credit_amount)
+            if (creditAmountValue !== undefined) nextFormData.creditAmount = creditAmountValue
+
+            const dateFrom = (data.contract_start_date || data.credit_start_date) as string | undefined
+            const dateTo = (data.contract_end_date || data.credit_end_date) as string | undefined
+            if (dateFrom !== undefined) nextFormData.dateFrom = dateFrom
+            if (dateTo !== undefined) nextFormData.dateTo = dateTo
+
+            if (data.has_prepayment !== undefined) nextFormData.hasAdvance = data.has_prepayment
+            if (data.advance_percent !== undefined) nextFormData.advancePercent = data.advance_percent
+        }
+
+        if (session.product_type === "corporate_credit") {
+            if (data.credit_sub_type !== undefined) nextFormData.creditType = data.credit_sub_type
+            if (data.credit_start_date !== undefined) nextFormData.dateFrom = data.credit_start_date
+            if (data.credit_end_date !== undefined) nextFormData.dateTo = data.credit_end_date
+        }
+
+        if (session.product_type === "factoring") {
+            if (data.factoring_type !== undefined) nextFormData.factoringType = data.factoring_type
+            if (data.contractor_inn !== undefined) nextFormData.contractorInn = data.contractor_inn
+            const financingAmountValue = parseNumber(data.financing_amount)
+            if (financingAmountValue !== undefined) nextFormData.financingAmount = financingAmountValue
+        }
+
+        if (session.product_type === "leasing") {
+            if (data.leasing_credit_type !== undefined) nextFormData.leasingCreditType = data.leasing_credit_type
+            const leasingAmountValue = parseNumber(data.leasing_amount)
+            if (leasingAmountValue !== undefined) nextFormData.leasingAmount = leasingAmountValue
+            if (data.leasing_end_date !== undefined) nextFormData.leasingEndDate = data.leasing_end_date
+        }
+
+        if (session.product_type === "insurance") {
+            if (data.insurance_category !== undefined) nextFormData.insuranceCategory = data.insurance_category
+            if (data.insurance_product_type !== undefined) nextFormData.insuranceProduct = data.insurance_product_type
+            const insuranceAmountValue = parseNumber(data.insurance_amount)
+            if (insuranceAmountValue !== undefined) nextFormData.insuranceAmount = insuranceAmountValue
+            if (data.insurance_term_months !== undefined) nextFormData.insuranceTerm = data.insurance_term_months
+        }
+
+        if (session.product_type === "ved") {
+            if (data.ved_currency !== undefined) nextFormData.vedCurrency = data.ved_currency
+            if (data.ved_country !== undefined) nextFormData.vedCountry = data.ved_country
+        }
+
+        return nextFormData
+    }, [session])
+
+    const handleBulkEditSave = useCallback(async (data: Record<string, unknown>): Promise<boolean> => {
+        if (!session) return false
+        if (!referenceApplication || editableApplications.length === 0) {
+            toast.error("Нет заявок для редактирования")
+            return false
+        }
+
+        setIsBulkUpdating(true)
+
+        const results = await Promise.allSettled(
+            editableApplications.map((app) => {
+                const { updatePayload } = buildApplicationUpdatePayload(app as ApplicationEditSource, data)
+                return updateApplication(app.id, updatePayload)
+            })
+        )
+
+        const successCount = results.filter(
+            (result) => result.status === "fulfilled" && result.value
+        ).length
+        const errorCount = results.length - successCount
+
+        if (successCount === 0) {
+            toast.error("Не удалось обновить заявки")
+        } else if (errorCount > 0) {
+            toast.warning(`Часть заявок не обновлена: ${errorCount}`)
+        }
+
+        if (successCount > 0) {
+            const updatedFormData = buildUpdatedFormData(data)
+            if (updatedFormData) {
+                const amountValue = parseNumber(data.amount)
+                const nextTitle = amountValue !== undefined
+                    ? `${getProductTypeLabel(session.product_type)} ${amountValue.toLocaleString("ru-RU")} ₽`
+                    : session.title
+
+                await updateSession(session.id, {
+                    form_data: updatedFormData,
+                    title: nextTitle,
+                })
+            }
+        }
+
+        await refetchApplications()
+        await refetchSession()
+        refetchReferenceApplication()
+
+        setIsBulkUpdating(false)
+        return successCount > 0
+    }, [buildUpdatedFormData, editableApplications, getProductTypeLabel, parseNumber, refetchApplications, refetchReferenceApplication, refetchSession, referenceApplication, session, updateApplication, updateSession])
+
     const filteredDocuments = useMemo(() => {
         return session?.company
             ? companyDocuments.filter(doc => doc.company === session.company || doc.company == null)
@@ -503,6 +662,37 @@ export function CalculationSessionView({
     const submittedBanks = session.approved_banks.filter(
         bank => session.submitted_banks.includes(bank.name)
     )
+    const editableApplications = sessionApplications.filter(
+        app => app.status === "draft" || app.status === "info_requested"
+    )
+    const lockedApplications = sessionApplications.filter(
+        app => app.status !== "draft" && app.status !== "info_requested"
+    )
+    const canBulkEdit = Boolean(referenceApplication) && editableApplications.length > 0
+    const referenceAmount = referenceApplication ? getPrimaryAmountValue(referenceApplication) : null
+    const referenceAmountLabel = referenceAmount !== null
+        ? `${referenceAmount.toLocaleString("ru-RU")} ₽`
+        : "—"
+    const referenceBankLabel = sessionApplications.length > 1
+        ? `Несколько банков (${sessionApplications.length})`
+        : referenceApplication?.target_bank_name || "Не выбран"
+    const referenceTermLabel = (() => {
+        if (!referenceApplication) return "—"
+        const data = (referenceApplication.goscontract_data || {}) as Record<string, unknown>
+        const start = data.credit_start_date || data.guarantee_start_date || data.contract_start_date
+        const end = data.credit_end_date || data.guarantee_end_date || data.contract_end_date
+        if (start && end) {
+            const formatDate = (value: unknown) => {
+                try {
+                    return new Date(String(value)).toLocaleDateString("ru-RU")
+                } catch {
+                    return String(value)
+                }
+            }
+            return `${formatDate(start)} - ${formatDate(end)}`
+        }
+        return referenceApplication.term_months ? `${referenceApplication.term_months} мес.` : "—"
+    })()
     const toggleDocumentSelection = (docId: number) => {
         setSelectedDocumentIds(prev =>
             prev.includes(docId)
@@ -584,6 +774,92 @@ export function CalculationSessionView({
                             <p className="text-[#3CE8D1] font-medium">{availableBanks.length}</p>
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            {/* Application Data Card */}
+            <Card className="bg-[#0f2042] border-[#1e3a5f]">
+                <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-[#3CE8D1] uppercase tracking-wide">
+                            Данные заявки
+                        </h3>
+                        <Button
+                            size="sm"
+                            onClick={() => setIsEditModalOpen(true)}
+                            disabled={!canBulkEdit || isBulkUpdating || isLoadingApplications}
+                            className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] shadow-md shadow-[#3CE8D1]/20 font-semibold"
+                            title={canBulkEdit ? "Редактировать все заявки сессии" : "Нет заявок, доступных для редактирования"}
+                        >
+                            {isBulkUpdating ? (
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                                <Pencil className="h-4 w-4 mr-1" />
+                            )}
+                            Редактировать
+                        </Button>
+                    </div>
+
+                    {referenceApplication ? (
+                        <>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-4 text-sm">
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Клиент</p>
+                                    <p className="font-medium text-white truncate" title={referenceApplication.company_name}>
+                                        {referenceApplication.company_name || "—"}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">ИНН</p>
+                                    <p className="font-medium text-white font-mono">{referenceApplication.company_inn || "—"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Дата создания</p>
+                                    <p className="font-medium text-white">
+                                        {new Date(referenceApplication.created_at).toLocaleDateString("ru-RU")}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Банк</p>
+                                    <p className="font-medium text-white truncate" title={referenceBankLabel}>
+                                        {referenceBankLabel}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Сумма</p>
+                                    <p className="font-medium text-white">{referenceAmountLabel}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] md:text-xs text-[#94a3b8]">Срок</p>
+                                    <p className="font-medium text-white">{referenceTermLabel}</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#1e3a5f] bg-[#0a1628] px-4 py-3 text-xs text-[#94a3b8]">
+                                <AlertTriangle className="h-4 w-4 text-[#f59e0b] mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-white text-sm">
+                                        Изменения применятся ко всем заявкам этой сессии
+                                    </p>
+                                    <p>
+                                        Доступно для редактирования: <span className="text-white">{editableApplications.length}</span>,
+                                        недоступно: <span className="text-white">{lockedApplications.length}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center gap-2 text-sm text-[#94a3b8]">
+                            {isLoadingApplications ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Загрузка данных заявки...
+                                </>
+                            ) : (
+                                <>Заявки еще не созданы</>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -904,6 +1180,14 @@ export function CalculationSessionView({
                     </DialogFooter>
                 </DialogContent>
                 </Dialog>
+            )}
+            {referenceApplication && (
+                <ApplicationEditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    application={referenceApplication}
+                    onSave={handleBulkEditSave}
+                />
             )}
         </div>
     )

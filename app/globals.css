@@ -313,6 +313,11 @@ input[type="number"] {
     margin-left: 0.5rem;
   }
 
+  .chat-container .flex-row-reverse > * + * {
+    margin-left: 0;
+    margin-right: 0.5rem;
+  }
+
   /* Vertical flex - add top margin to siblings */
   .flex-col>*+* {
     margin-top: 0.5rem;
@@ -569,6 +574,18 @@ screen and (min-width: 1200px) and (max-width: 1440px) and (min-resolution: 192d
   word-break: break-all !important;
   overflow-wrap: anywhere !important;
   box-sizing: border-box !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
+}
+
+.chat-bubble[data-own="true"] {
+  background-color: #3CE8D1 !important;
+  color: #0a1628 !important;
+}
+
+.chat-bubble[data-own="false"] {
+  background-color: #1e3a5f !important;
+  color: #ffffff !important;
 }
 
 .chat-bubble p,

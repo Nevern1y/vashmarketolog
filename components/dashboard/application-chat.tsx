@@ -16,9 +16,10 @@ import { useAvatar } from "@/hooks/use-avatar"
 interface ApplicationChatProps {
     applicationId: number | string
     className?: string
+    showRoleBadge?: boolean
 }
 
-export function ApplicationChat({ applicationId, className }: ApplicationChatProps) {
+export function ApplicationChat({ applicationId, className, showRoleBadge = true }: ApplicationChatProps) {
     const { user } = useAuth()
     const { avatar: myAvatar, getInitials: getMyInitials } = useAvatar()
     const { messages, isLoading, isSending, error, sendMessage, refetch, markAsRead, clearError } = useChatPolling(applicationId)
@@ -270,7 +271,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                 <span className="text-[10px] sm:text-xs text-muted-foreground truncate">
                                                     {isOwn ? "Вы" : message.sender_name}
                                                 </span>
-                                                {!isOwn && getRoleBadge(message.sender_role)}
+                                                {!isOwn && showRoleBadge && getRoleBadge(message.sender_role)}
                                             </div>
 
                                             {/* Message Bubble */}
@@ -281,6 +282,7 @@ export function ApplicationChat({ applicationId, className }: ApplicationChatPro
                                                         ? "bg-[#3CE8D1] bg-gradient-to-br from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628]"
                                                         : "bg-[#1e3a5f] border border-[#3CE8D1]/30 text-white"
                                                 )}
+                                                data-own={isOwn}
                                                 style={{
                                                     maxWidth: '100%',
                                                     overflow: 'hidden',

@@ -572,7 +572,7 @@ class ApplicationCreateSerializer(serializers.ModelSerializer):
 
 class ApplicationUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for updating draft applications.
+    Serializer for updating draft or returned-for-revision applications.
     """
     document_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -613,10 +613,10 @@ class ApplicationUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """
-        Only drafts can be fully updated.
-        Non-drafts allow updating ONLY documents and notes.
+        Only drafts or returned-for-revision can be fully updated.
+        Other statuses allow updating ONLY documents and notes.
         """
-        if self.instance and not self.instance.is_editable:
+        if self.instance and self.instance.status not in [ApplicationStatus.DRAFT, ApplicationStatus.INFO_REQUESTED]:
             # Check if any restricted fields are being updated
             restricted_fields = [
                 field for field in attrs.keys() 

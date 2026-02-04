@@ -460,7 +460,11 @@ export interface PaginatedResponse<T> {
 
 // Hook for listing applications
 // Fixed: Added hasInitiallyLoaded flag to prevent showing "not found" during initial load
-export function useApplications(statusFilter?: string) {
+export function useApplications(
+    statusFilter?: string,
+    baseParams?: Record<string, string | number>,
+    options?: { fetchAllPages?: boolean }
+) {
     const [applications, setApplications] = useState<ApplicationListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -468,18 +472,50 @@ export function useApplications(statusFilter?: string) {
     const hasInitiallyLoadedRef = useRef(false);
     const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
-    const fetchApplications = useCallback(async (params?: Record<string, string>) => {
+    const normalizeParams = (params?: Record<string, string | number>): Record<string, string> => {
+        if (!params) return {}
+        return Object.entries(params).reduce<Record<string, string>>((acc, [key, value]) => {
+            if (value === undefined || value === null) return acc
+            acc[key] = String(value)
+            return acc
+        }, {})
+    }
+
+    const fetchAllPages = options?.fetchAllPages
+
+    const fetchApplications = useCallback(async (params?: Record<string, string | number>) => {
         // Don't reset applications to empty during refetch - keep stale data visible
         setIsLoading(true);
         setError(null);
 
         try {
-            const queryParams = { ...params };
+            const queryParams = {
+                ...normalizeParams(baseParams),
+                ...normalizeParams(params),
+            }
             if (statusFilter) {
                 queryParams.status = statusFilter;
             }
-            const response = await api.get<PaginatedResponse<ApplicationListItem>>('/applications/', queryParams);
-            setApplications(response.results);
+            if (fetchAllPages) {
+                let page = 1
+                let next: string | null = null
+                const allResults: ApplicationListItem[] = []
+
+                do {
+                    const response = await api.get<PaginatedResponse<ApplicationListItem>>('/applications/', {
+                        ...queryParams,
+                        page: String(page),
+                    })
+                    allResults.push(...response.results)
+                    next = response.next
+                    page += 1
+                } while (next)
+
+                setApplications(allResults)
+            } else {
+                const response = await api.get<PaginatedResponse<ApplicationListItem>>('/applications/', queryParams);
+                setApplications(response.results);
+            }
             // Mark as initially loaded after first successful fetch
             if (!hasInitiallyLoadedRef.current) {
                 hasInitiallyLoadedRef.current = true;
@@ -491,7 +527,7 @@ export function useApplications(statusFilter?: string) {
         } finally {
             setIsLoading(false);
         }
-    }, [statusFilter]);
+    }, [baseParams, fetchAllPages, statusFilter]);
 
     useEffect(() => {
         fetchApplications();
@@ -1104,12 +1140,35 @@ export function useCalculationSessionMutations() {
         }
     }, []);
 
+    const updateSession = useCallback(async (
+        sessionId: number,
+        payload: Partial<CalculationSession>
+    ): Promise<CalculationSession | null> => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await api.patch<CalculationSession>(
+                `/applications/calculation-sessions/${sessionId}/`,
+                payload
+            );
+            return response;
+        } catch (err) {
+            const apiError = err as ApiError;
+            setError(apiError.message || 'Ошибка обновления сессии калькуляции');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     return {
         isLoading,
         error,
         createSession,
         updateSubmittedBanks,
         addApprovedBanks,
+        updateSession,
         clearError: () => setError(null),
     };
 }

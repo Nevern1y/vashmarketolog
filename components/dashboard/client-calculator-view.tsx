@@ -2554,17 +2554,17 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок кредита с</Label>
-                                        <Input type="date" value={contractDateFrom} onChange={e => setContractDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
+                                        <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">по</Label>
-                                        <Input type="date" value={contractDateTo} onChange={e => setContractDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
+                                        <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
                                         <div className="h-11 px-4 rounded-lg bg-gradient-to-r from-[#3CE8D1]/10 to-transparent border border-[#3CE8D1]/20 flex items-center">
                                             <span className="text-lg font-bold text-[#3CE8D1]">
-                                                {contractDateFrom && contractDateTo ? Math.max(0, Math.ceil((new Date(contractDateTo).getTime() - new Date(contractDateFrom).getTime()) / 86400000)) : "—"}
+                                                {dateFrom && dateTo ? Math.max(0, Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000)) : "—"}
                                             </span>
                                         </div>
                                     </div>

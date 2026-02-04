@@ -205,6 +205,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             except (TypeError, ValueError):
                 pass
 
+        calculation_session_param = self.request.query_params.get('calculation_session')
+        if calculation_session_param:
+            try:
+                session_id = int(calculation_session_param)
+                queryset = queryset.filter(calculation_session_id=session_id)
+            except (TypeError, ValueError):
+                pass
+
         return queryset
 
     def get_serializer_class(self):
