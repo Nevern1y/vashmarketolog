@@ -1,40 +1,34 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Particles } from "./Particles";
 
-const applicationData = {
-  inn: "",
-  amount: "",
-  status: "ready",
+const prng = (seed: number) => {
+  let t = seed + 0x6d2b79f5;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
 
 export const FullAnimation = () => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState(applicationData);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResult, setShowResult] = useState(false);
+
+  const steps = useMemo(
+    () => [
+      { key: "intro", durationMs: 2600 },
+      { key: "checks", durationMs: 5600 },
+      { key: "offer", durationMs: 3800 },
+    ],
+    [],
+  );
 
   useEffect(() => {
-    const stepDurations = [4000, 3000, 3000];
-
+    const duration = steps[currentStep]?.durationMs ?? 3000;
     const timer = setTimeout(() => {
-      if (currentStep === 1) {
-        setIsSubmitting(true);
-        setTimeout(() => {
-          setIsSubmitting(false);
-          setShowResult(true);
-          setTimeout(() => {
-            setCurrentStep(2);
-          }, 2000);
-        }, 2000);
-      } else if (currentStep < 2) {
-        setCurrentStep((prevStep) => (prevStep + 1) % 3);
-      }
-    }, stepDurations[currentStep]);
+      setCurrentStep((prev) => (prev + 1) % steps.length);
+    }, duration);
 
     return () => clearTimeout(timer);
-  }, [currentStep]);
+  }, [currentStep, steps]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -78,25 +72,54 @@ export const FullAnimation = () => {
     },
   };
 
-  const resultVariants = {
-    hidden: { x: 50, opacity: 0, scale: 0.8 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      scale: 1,
-      transition: {
-        type: "spring" as const,
-        stiffness: 100,
-        damping: 12,
-      },
-    },
-  };
+  const checks = useMemo(
+    () => [
+      { title: "Проверяем ИНН", subtitle: "ФНС и открытые реестры" },
+      { title: "Оцениваем кредитный профиль", subtitle: "Скоринг и риски" },
+      { title: "Сравниваем банки", subtitle: "Подбираем лучшие условия" },
+    ],
+    [],
+  );
+
+  const particles = useMemo(
+    () =>
+      [...Array(15)].map((_, i) => {
+        const seed = 1337 + i * 97;
+        const dx = prng(seed + 1) * 80 - 40;
+        const dy = prng(seed + 2) * 80 - 40;
+        const duration = prng(seed + 3) * 4 + 3;
+        const delay = prng(seed + 4) * 2;
+        const left = `${prng(seed + 5) * 100}%`;
+        const top = `${prng(seed + 6) * 100}%`;
+
+        return { dx, dy, duration, delay, left, top };
+      }),
+    [],
+  );
 
   return (
     <div className="relative w-full h-[400px] rounded-3xl overflow-hidden shadow-2xl border border-[#3ce8d1]/20 backdrop-blur-sm bg-gradient-to-br from-slate-900 to-slate-800">
-      {/* Animated background particles */}
       <div className="absolute inset-0">
-        <Particles />
+        {particles.map((p, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-[#3ce8d1]/30 rounded-full"
+            animate={{
+              x: [0, p.dx],
+              y: [0, p.dy],
+              opacity: [0, 0.6, 0],
+            }}
+            transition={{
+              duration: p.duration,
+              repeat: Infinity,
+              delay: p.delay,
+            }}
+            style={{
+              left: p.left,
+              top: p.top,
+            }}
+          />
+        ))}
       </div>
 
       <AnimatePresence mode="wait">
@@ -104,90 +127,54 @@ export const FullAnimation = () => {
         {currentStep === 0 && (
           <motion.div
             key="form"
-            className="relative h-full w-full flex flex-col items-center justify-center px-4 md:px-8 py-8"
+            className="relative h-full w-full flex flex-col items-center justify-center px-4 md:px-8 py-6"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
           >
-            {/* Form Card */}
             <motion.div
               variants={formVariants}
-              className="relative bg-slate-800/90 backdrop-blur-sm rounded-2xl p-6 border border-slate-700 shadow-2xl w-full max-w-md"
+              className="relative bg-slate-900/80 backdrop-blur-sm rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-2xl w-full max-w-md"
             >
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-slate-300 text-sm font-medium">
-                    ИНН
-                  </label>
+              <div className="flex items-center justify-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.6 }}
+                  className="relative"
+                >
+                  <img
+                    src="/logo-dark.png"
+                    alt="Lider Garant"
+                    className="w-36 sm:w-40 h-auto max-h-24 object-contain"
+                  />
                   <motion.div
-                    className="relative"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5, duration: 0.5 }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="Введите ИНН"
-                      className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3ce8d1]"
-                    />
-                  </motion.div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-slate-300 text-sm font-medium">
-                    Сумма
-                  </label>
-                  <motion.div
-                    className="relative"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.7, duration: 0.5 }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="Введите сумму"
-                      className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#3ce8d1]"
-                    />
-                  </motion.div>
-                </div>
+                    className="absolute inset-0 rounded-2xl"
+                    animate={{ opacity: [0.05, 0.25, 0.05] }}
+                    transition={{
+                      duration: 2.2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    style={{ boxShadow: "0 0 40px rgba(60, 232, 209, 0.25)" }}
+                  />
+                </motion.div>
               </div>
-            </motion.div>
 
-            {/* Arrow */}
-            <motion.div
-              className="my-6"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.0, duration: 0.5 }}
-            >
-              <motion.svg
-                className="w-8 h-12 mx-auto text-[#3ce8d1]"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ delay: 1.2, duration: 1.0 }}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+                className="mt-5 text-center"
               >
-                <path d="M12 5v14M5 12l7 7 7-7" />
-              </motion.svg>
-            </motion.div>
-
-            {/* Logo */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.5, duration: 0.5 }}
-              className="relative"
-            >
-              <img
-                src="/logo-dark.png"
-                alt="Lider Garant"
-                className="w-32 h-auto max-h-20 object-contain"
-              />
+                <div className="text-white text-lg sm:text-xl md:text-2xl font-bold">
+                  Подбираем банковское предложение
+                </div>
+                <div className="text-white/70 text-sm sm:text-base mt-1">
+                  Запускаем проверку и скоринг за несколько секунд
+                </div>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
@@ -196,88 +183,99 @@ export const FullAnimation = () => {
         {currentStep === 1 && (
           <motion.div
             key="processing"
-            className="flex flex-col items-center justify-center h-full px-8"
+            className="flex flex-col items-center justify-start h-full px-4 sm:px-8 py-5 sm:py-6"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
           >
-            <motion.div variants={itemVariants} className="text-center">
-              <motion.div
-                className="w-20 h-20 mx-auto mb-6 relative"
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear",
-                }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#3ce8d1] to-[#008ed6] rounded-full opacity-20 blur-xl"></div>
-                <div className="absolute inset-2 bg-gradient-to-r from-[#3ce8d1] to-[#008ed6] rounded-full opacity-40 blur-lg"></div>
-                <div className="absolute inset-4 bg-gradient-to-r from-[#3ce8d1] to-[#008ed6] rounded-full flex items-center justify-center">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="text-white"
-                  >
-                    <path
-                      d="M12 2L2 7L12 12L22 7L12 2Z"
-                      fill="currentColor"
-                      opacity="0.8"
-                    />
-                    <path
-                      d="M2 17L12 22L22 17"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity="0.6"
-                    />
-                    <path
-                      d="M2 12L12 17L22 12"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity="0.8"
-                    />
-                  </svg>
-                </div>
-              </motion.div>
+            <motion.div
+              variants={itemVariants}
+              className="w-full max-w-xl h-full flex flex-col"
+            >
+              <div className="text-center">
+                <motion.h2
+                  className="text-xl sm:text-2xl md:text-3xl font-bold text-white"
+                  variants={itemVariants}
+                >
+                  Идут проверки
+                </motion.h2>
+                <motion.p
+                  className="text-white/70 text-sm sm:text-base md:text-lg mt-2"
+                  variants={itemVariants}
+                >
+                  Обрабатываем данные и запрашиваем условия у банков
+                </motion.p>
+              </div>
 
-              <motion.h2
-                className="text-2xl md:text-3xl font-bold text-white mb-4"
-                variants={itemVariants}
-              >
-                Обработка заявки
-              </motion.h2>
-
-              <motion.p
-                className="text-[#3ce8d1]/80 text-lg"
-                variants={itemVariants}
-              >
-                Анализируем данные и подбираем лучшие предложения
-              </motion.p>
-
-              <motion.div className="mt-6 flex gap-2">
-                {[1, 2, 3].map((i) => (
+              <div className="mt-4 sm:mt-6 space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
+                {checks.map((c, idx) => (
                   <motion.div
-                    key={i}
-                    className="w-2 h-2 bg-[#3ce8d1] rounded-full"
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.5, 1, 0.5],
-                    }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      delay: i * 0.2,
-                    }}
-                  />
+                    key={c.title}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + idx * 0.45, duration: 0.5 }}
+                    className="bg-slate-900/60 backdrop-blur-sm border border-slate-800 rounded-xl px-3 sm:px-4 py-3 flex items-center gap-3"
+                  >
+                    <motion.div
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      animate={{
+                        boxShadow: [
+                          "0 0 0px rgba(60, 232, 209, 0.0)",
+                          "0 0 16px rgba(60, 232, 209, 0.35)",
+                          "0 0 0px rgba(60, 232, 209, 0.0)",
+                        ],
+                      }}
+                      transition={{
+                        duration: 2.2,
+                        repeat: Infinity,
+                        delay: idx * 0.2,
+                      }}
+                      style={{ background: "rgba(60, 232, 209, 0.12)" }}
+                    >
+                      <motion.div
+                        className="w-2 h-2 rounded-full bg-[#3ce8d1]"
+                        animate={{ scale: [1, 1.6, 1] }}
+                        transition={{
+                          duration: 1.4,
+                          repeat: Infinity,
+                          delay: idx * 0.2,
+                        }}
+                      />
+                    </motion.div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white font-semibold truncate">
+                        {c.title}
+                      </div>
+                      <div className="text-white/60 text-xs sm:text-sm truncate">
+                        {c.subtitle}
+                      </div>
+                    </div>
+
+                    <motion.div
+                      className="h-1.5 w-16 sm:w-20 rounded-full bg-white/10 overflow-hidden"
+                      initial={false}
+                    >
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{
+                          background:
+                            "linear-gradient(90deg, #3ce8d1, #008ed6)",
+                        }}
+                        animate={{ width: ["0%", "100%"] }}
+                        transition={{
+                          duration: 1.6,
+                          repeat: Infinity,
+                          repeatDelay: 0.8,
+                          ease: "easeInOut",
+                          delay: idx * 0.2,
+                        }}
+                      />
+                    </motion.div>
+                  </motion.div>
                 ))}
-              </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -286,74 +284,98 @@ export const FullAnimation = () => {
         {currentStep === 2 && (
           <motion.div
             key="results"
-            className="flex flex-col items-center justify-center h-full px-8"
+            className="flex flex-col items-center justify-start h-full px-4 sm:px-8 py-5 sm:py-6"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
           >
-            <motion.div variants={itemVariants} className="text-center">
+            <motion.div
+              variants={itemVariants}
+              className="w-full max-w-xl h-full flex flex-col"
+            >
+              <div className="text-center shrink-0">
+                <motion.div
+                  className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-5 relative"
+                  animate={{ rotate: [0, 3, -3, 0] }}
+                  transition={{
+                    duration: 2.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#ffd93d] to-[#ffb800] rounded-full opacity-20 blur-xl"></div>
+                  <div className="absolute inset-2 bg-gradient-to-r from-[#ffd93d] to-[#ffb800] rounded-full opacity-40 blur-lg"></div>
+                  <div className="absolute inset-4 bg-gradient-to-r from-[#ffd93d] to-[#ffb800] rounded-full flex items-center justify-center">
+                    <svg
+                      width="30"
+                      height="30"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-white"
+                    >
+                      <path
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                </motion.div>
+
+                <motion.h2
+                  className="text-2xl sm:text-3xl md:text-4xl font-bold text-white"
+                  variants={itemVariants}
+                >
+                  Предложение готово
+                </motion.h2>
+
+                <motion.p
+                  className="text-[#3ce8d1] text-base sm:text-lg md:text-xl mt-2"
+                  variants={itemVariants}
+                >
+                  Получили варианты от банков и выбрали лучшее
+                </motion.p>
+              </div>
+
               <motion.div
-                className="w-24 h-24 mx-auto mb-6 relative"
                 variants={itemVariants}
+                className="mt-4 sm:mt-6 bg-gradient-to-r from-[#3ce8d1]/20 to-[#008ed6]/20 backdrop-blur-sm rounded-2xl p-5 sm:p-6 border border-[#3ce8d1]/30 flex-1 min-h-0 overflow-y-auto"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#ffd93d] to-[#ffb800] rounded-full opacity-20 blur-xl"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-[#ffd93d] to-[#ffb800] rounded-full flex items-center justify-center">
-                  <svg
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="text-white"
-                  >
-                    <path
-                      d="M20 6L9 17L4 12"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                <div className="flex items-start gap-4">
+                  <div className="shrink-0">
+                    <img
+                      src="/logo.svg"
+                      alt="Lider Garant"
+                      className="w-12 h-12 sm:w-14 sm:h-14"
                     />
-                  </svg>
-                </div>
-              </motion.div>
-
-              <motion.h2
-                className="text-3xl md:text-4xl font-bold text-white mb-4"
-                variants={itemVariants}
-              >
-                Готово!
-              </motion.h2>
-
-              <motion.p
-                className="text-[#3ce8d1] text-xl mb-8"
-                variants={itemVariants}
-              >
-                Найдено 15 банковских предложений для вас
-              </motion.p>
-
-              <motion.div
-                variants={itemVariants}
-                className="bg-gradient-to-r from-[#3ce8d1]/20 to-[#008ed6]/20 backdrop-blur-sm rounded-2xl p-6 border border-[#3ce8d1]/30"
-              >
-                <div className="flex items-center gap-4">
-                  <img
-                    src="/logo.svg"
-                    alt="Lider Garant"
-                    className="w-16 h-16"
-                  />
-                  <div className="text-left">
-                    <h3 className="text-white font-bold text-xl">
-                      Lider Garant
-                    </h3>
-                    <p className="text-white/80">
-                      Ваш надежный финансовый партнер
-                    </p>
-                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-bold text-lg md:text-xl truncate">
+                      Банк-партнёр одобрил лимит
+                    </div>
+                    <div className="text-white/75 mt-1">
+                      До{" "}
+                      <span className="text-white font-semibold">
+                        5 000 000 ₽
+                      </span>{" "}
+                      • от{" "}
+                      <span className="text-white font-semibold">14.9%</span>
+                    </div>
+                    <div className="text-white/60 text-sm mt-2">
+                      Ответ за 2 минуты, без лишних документов
+                    </div>
+                    <div className="mt-4 flex items-center gap-2 flex-wrap">
                       <span className="text-[#ffd93d] text-sm font-semibold">
                         ★ 4.9
                       </span>
                       <span className="text-white/60 text-sm">
                         • 1000+ довольных клиентов
+                      </span>
+                      <span className="text-white/60 text-sm">
+                        • 15+ банков
                       </span>
                     </div>
                   </div>
