@@ -275,7 +275,13 @@
 }
 
 .learn-more-wide {
-  width: 16rem;
+  width: 18rem;
+}
+
+@media (min-width: 768px) {
+  .learn-more-wide {
+    width: 20rem;
+  }
 }
 
 .learn-more .circle {
