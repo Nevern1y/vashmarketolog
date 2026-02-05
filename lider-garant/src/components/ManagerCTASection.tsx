@@ -1,33 +1,35 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, MessageSquareText, Phone } from "lucide-react";
 
-const cards = [
-  {
-    icon: CheckCircle2,
-    title: "Подайте заявку",
-    desc: "Перезвоним в течение 15 минут и подберём решение.",
-    link: "#application",
-    cta: "Отправить заявку",
-  },
-  {
-    icon: Phone,
-    title: "Позвоните нам",
-    desc: "Звонок бесплатный по России.",
-    link: "tel:+7(965)284-14-15 ",
-    cta: "+7(965)284-14-15 ",
-  },
-  {
-    icon: MessageSquareText,
-    title: "Напишите нам",
-    desc: "Отвечаем на почту в рабочее время.",
-    link: "mailto:info@lider-garant.ru",
-    cta: "info@lider-garant.ru",
-  },
-];
-
 export default function ManagerCTASection() {
+  const pathname = usePathname();
+  const applicationLink = pathname === "/" ? "#application" : "/#application";
+  const cards = [
+    {
+      icon: CheckCircle2,
+      title: "Подайте заявку",
+      desc: "Перезвоним в течение 15 минут и подберём решение.",
+      link: applicationLink,
+      cta: "Отправить заявку",
+    },
+    {
+      icon: Phone,
+      title: "Позвоните нам",
+      desc: "Звонок бесплатный по России.",
+      link: "tel:+7(965)284-14-15 ",
+      cta: "+7(965)284-14-15 ",
+    },
+    {
+      icon: MessageSquareText,
+      title: "Напишите нам",
+      desc: "Отвечаем на почту в рабочее время.",
+      link: "mailto:info@lider-garant.ru",
+      cta: "info@lider-garant.ru",
+    },
+  ];
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-5">
       <div className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-foreground/15">
@@ -67,7 +69,7 @@ export default function ManagerCTASection() {
                   </p>
                   <Button
                     asChild
-                    className="absolute bottom-5 left-4 right-4 sm:left-5 sm:right-5 h-10 rounded-2xl border-2 border-primary bg-transparent text-primary text-[11px] font-semibold uppercase tracking-wide hover:bg-primary hover:text-white whitespace-nowrap"
+                    className="absolute bottom-5 left-4 right-4 sm:left-5 sm:right-5 h-10 rounded-2xl border-2 border-primary bg-transparent text-primary text-[11px] font-semibold uppercase tracking-wide hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)] whitespace-nowrap"
                   >
                     <a href={link}>{cta}</a>
                   </Button>

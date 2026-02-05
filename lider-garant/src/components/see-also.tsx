@@ -59,9 +59,9 @@ export default function SeeAlso({ currentPage }: SeeAlsoProps) {
     {
       title: "Лизинг для юрлиц",
       desc: "Финансируем новое и бу с авансом от 0 %",
-      href: "/lising-dlya-yrlic",
+      href: "/lising-dlya-urlic",
       img: "/finance-products/four.png",
-      link: "/lising-dlya-yrlic",
+      link: "/lising-dlya-urlic",
     },
   ];
 

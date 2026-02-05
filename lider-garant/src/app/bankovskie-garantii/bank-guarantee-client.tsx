@@ -270,30 +270,30 @@ export default function BankGuaranteePage() {
               </div>
 
               <div className="relative hidden h-[360px] w-full overflow-hidden rounded-3xl md:flex items-center justify-center">
-                <div className="absolute bottom-2 right-5 space-y-3 z-20">
-                  <div className="flex items-center gap-3 rounded-lg bg-white/10 border border-white/10 px-3 py-2 backdrop-blur-md">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
-                      <CheckCheck className="h-3 w-3" />
+                <div className="absolute bottom-2 right-2 lg:right-4 space-y-1.5 lg:space-y-2 z-20 max-w-[240px] md:max-w-[260px] lg:max-w-[290px]">
+                  <div className="flex items-center gap-2 rounded-lg bg-white/10 border border-white/10 px-2 py-1.5 backdrop-blur-md">
+                    <div className="flex h-4 w-4 lg:h-5 lg:w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                      <CheckCheck className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
                     </div>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-[10px] md:text-[11px] lg:text-xs font-medium text-white leading-tight">
                       Одна заявка — множество предложений
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 rounded-lg bg-white/10 border border-white/10 px-3 py-2 backdrop-blur-md">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
-                      <CheckCheck className="h-3 w-3" />
+                  <div className="flex items-center gap-2 rounded-lg bg-white/10 border border-white/10 px-2 py-1.5 backdrop-blur-md">
+                    <div className="flex h-4 w-4 lg:h-5 lg:w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                      <CheckCheck className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
                     </div>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-[10px] md:text-[11px] lg:text-xs font-medium text-white leading-tight">
                       Одобрение БГ и выдача гарантий онлайн
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 rounded-lg bg-white/10 border border-white/10 px-3 py-2 backdrop-blur-md">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white">
-                      <CheckCheck className="h-3 w-3" />
+                  <div className="flex items-center gap-2 rounded-lg bg-white/10 border border-white/10 px-2 py-1.5 backdrop-blur-md">
+                    <div className="flex h-4 w-4 lg:h-5 lg:w-5 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                      <CheckCheck className="h-2.5 w-2.5 lg:h-3 lg:w-3" />
                     </div>
-                    <span className="text-sm font-medium text-white">
+                    <span className="text-[10px] md:text-[11px] lg:text-xs font-medium text-white leading-tight">
                       Все виды банковских гарантий
                     </span>
                   </div>
@@ -305,7 +305,7 @@ export default function BankGuaranteePage() {
                   width={640}
                   height={640}
                   sizes="(min-width: 1024px) 520px, 380px"
-                  className="h-72 w-auto md:h-80 lg:h-88 object-contain rounded-2xl"
+                  className="h-72 w-auto md:h-80 lg:h-88 rounded-5xl"
                   priority
                 />
               </div>
@@ -358,7 +358,7 @@ export default function BankGuaranteePage() {
                     </div>
 
                     <Link href="#form">
-                      <Button className="mt-4 w-full bg-primary px-4 py-5 rounded-xl text-white font-semibold hover:bg-transparent hover:text-primary border border-primary hover:border-primary transition-all cursor-pointer">
+                      <Button className="mt-4 w-full bg-primary px-4 py-5 rounded-xl text-[oklch(0.141_0.005_285.823)] font-semibold hover:bg-transparent hover:text-primary border border-primary hover:border-primary transition-all cursor-pointer">
                         Получить банковскую гарантию
                       </Button>
                     </Link>
@@ -497,7 +497,7 @@ export default function BankGuaranteePage() {
                     </div>
                   </div>
                   <Link href="#form">
-                    <Button className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold shadow-sm  hover:-translate-y-0.5 hover:shadow-md bg-none border border-primary hover:bg-primary text-primary hover:text-white transition-all">
+                    <Button className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold shadow-sm  hover:-translate-y-0.5 hover:shadow-md bg-none border border-primary hover:bg-primary text-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] transition-all">
                       Подать заявку
                     </Button>
                   </Link>
@@ -512,7 +512,7 @@ export default function BankGuaranteePage() {
                   onClick={() =>
                     setVisibleOffers((v) => Math.min(v + 6, TOTAL_OFFERS))
                   }
-                  className="rounded-full px-6 py-2 text-sm text-foreground/80 transition-transform hover:-translate-y-0.5 hover:shadow-sm"
+                  className="rounded-full px-6 py-2 btn-three h-12 font-semibold"
                 >
                   Показать еще
                 </Button>
@@ -622,13 +622,14 @@ export default function BankGuaranteePage() {
                   "Банковская гарантия на обеспечение исполнения контракт",
                   "Банковская гарантия на обеспечение обязательств",
                 ].map((t, i) => (
-                  <Link
-                    key={i}
-                    href="/v-razrabotke"
-                    className="block nav-link link-gradient"
-                  >
-                    {t}
-                  </Link>
+                  <div key={i}>
+                    <Link
+                      href="/v-razrabotke"
+                      className="nav-link link-gradient"
+                    >
+                      {t}
+                    </Link>
+                  </div>
                 ))}
               </div>
             </div>

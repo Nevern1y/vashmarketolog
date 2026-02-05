@@ -17,7 +17,7 @@ export default function Home() {
       desc: "44-ФЗ, 223-ФЗ, 185-ФЗ (615 ПП), коммерческие закупки, налоговые гарантии.",
       btn: "Узнать лимит",
       img: "/finance-products/guarantee.png",
-      link: "/bankovskie-garantii",
+      link: "#application",
     },
     {
       id: "credits",
@@ -25,7 +25,7 @@ export default function Home() {
       desc: "Онлайн-заявка за минуту, бесплатное сравнение ставок, получение кредита на лучших условиях.",
       btn: "Подобрать кредит",
       img: "/finance-products/two.png",
-      link: "/kredity-dlya-biznesa",
+      link: "#application",
     },
     {
       id: "logistics",
@@ -33,7 +33,7 @@ export default function Home() {
       desc: "Кредитование для текущих операционных и иных расходов (логистика, оборот).",
       btn: "Подобрать условия",
       img: "/finance-products/three.png",
-      link: "/kredity-dlya-biznesa",
+      link: "#application",
     },
     {
       id: "ved",
@@ -41,7 +41,7 @@ export default function Home() {
       desc: "Прямые корреспондентские счета в иностранных банках и гарантийные списания комиссии.",
       btn: "Подробнее",
       img: "/finance-products/four.png",
-      link: "/ved",
+      link: "#application",
     },
     {
       id: "leasing",
@@ -49,7 +49,7 @@ export default function Home() {
       desc: "Финансируем новое и с пробегом с авансом от 0%.",
       btn: "Узнать больше",
       img: "/finance-products/money.png",
-      link: "/lising-dlya-yrlic",
+      link: "#application",
     },
     {
       id: "insurance",
@@ -57,7 +57,7 @@ export default function Home() {
       desc: "Экспресс-страхование контрактов свыше 30 млн рублей.",
       btn: "Узнать больше",
       img: "/finance-products/hands.png",
-      link: "/strahovanie",
+      link: "#application",
     },
     {
       id: "factoring",
@@ -65,7 +65,7 @@ export default function Home() {
       desc: "Финансирование под уступку права требования, улучшение оборотного капитала.",
       btn: "Подробнее",
       img: "/finance-products/settings.png",
-      link: "/factoring-dlya-biznesa",
+      link: "#application",
     },
     {
       id: "tender",
@@ -73,7 +73,7 @@ export default function Home() {
       desc: "Каждый 3-й тендер — победа! Спецсчет, ЕРУЗ, закрытые секции.",
       btn: "Подробнее",
       img: "/finance-products/calculator-hand.png",
-      link: "/tendernoe-soprovojdenie",
+      link: "#application",
     },
     {
       id: "checking",
@@ -81,7 +81,7 @@ export default function Home() {
       desc: "Все — от реквизитов и отчетности до контактов и кадровых рисков.",
       btn: "Подробнее",
       img: "/finance-products/proverka.png",
-      link: "/proverka-contragentov",
+      link: "#application",
     },
   ];
 
@@ -89,29 +89,37 @@ export default function Home() {
     <main className="mx-auto w-full max-w-7xl px-6 py-12">
       <FadeIn>
         <section className="relative overflow-hidden rounded-[40px] border border-foreground/10">
-          <div className="relative grid gap-10 px-4 py-12 md:grid-cols-[1.1fr_0.9fr] md:px-14">
-            <div className="flex flex-col justify-center space-y-6 text-left">
-              <h1 className="text-3xl font-semibold leading-tight md:text-[52px]">
-                <span className="block text-primary tracking-tight">
+          <div className="relative grid gap-8 px-4 py-10 sm:gap-10 sm:py-12 md:px-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12 lg:px-14">
+            <div className="flex min-w-0 flex-col justify-center space-y-5 text-left sm:space-y-6 lg:pr-6 xl:pr-10">
+              <h1 className="text-3xl font-semibold leading-tight md:text-[52px] break-words md:break-normal">
+                <span className="block text-primary tracking-tight wrap-break-word md:break-normal">
                   Финансовый маркетплейс
                 </span>
-                <span className="block mt-2">для предпринимателей</span>
+                <span className="block mt-2 wrap-break-word md:break-normal">
+                  для предпринимателей
+                </span>
               </h1>
 
               <p className="max-w-sm text-sm leading-relaxed text-foreground/70 md:text-lg">
-                Все для госзакупок и личных нужд — получите предложение онлайн
+                Все для госзакупок и развития бизнеса — получите предложение
+                онлайн
               </p>
               <div className="flex flex-col gap-5 items-start md:flex-row md:items-center">
-                <Link href="https://lk.lider-garant.ru/auth" className="learn-more">
+                <button className="learn-more">
                   <span className="circle">
                     <span className="icon arrow"></span>
                   </span>
-                  <span className="button-text">Войти</span>
-                </Link>
+                  <Link
+                    href="#application"
+                    className="button-text text-sm md:text-base"
+                  >
+                    Получить предложение
+                  </Link>
+                </button>
               </div>
             </div>
 
-            <div className="relative w-full overflow-hidden rounded-[30px] p-3 md:p-5 backdrop-blur-xl">
+            <div className="relative min-w-0 w-full max-w-[520px] justify-self-center lg:justify-self-end">
               <FullAnimation />
             </div>
           </div>
@@ -158,16 +166,16 @@ export default function Home() {
                   )}
                 </div>
 
-                <div className="mt-auto flex items-center justify-between gap-3">
+                <div className="mt-auto flex items-center justify-between gap-3 relative z-10">
                   {item.link ? (
                     <Link
                       href={item.link}
-                      className="inline-flex rounded-xl border border-primary px-6 py-2.5 text-sm hover:bg-primary font-semibold text-primary transition-all duration-300 hover:-translate-y-1 hover:text-white cursor-pointer hover:shadow-md active:translate-y-0"
+                      className="inline-flex rounded-xl border border-primary px-6 py-2.5 text-sm hover:bg-primary font-semibold text-primary transition-all duration-300 hover:-translate-y-1 hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer hover:shadow-md active:translate-y-0"
                     >
                       {item.btn}
                     </Link>
                   ) : (
-                    <button className="inline-flex rounded-xl border border-primary px-6 py-2.5 text-sm hover:bg-primary font-semibold text-primary transition-all duration-300 hover:-translate-y-1 hover:text-white cursor-pointer hover:shadow-md active:translate-y-0">
+                    <button className="inline-flex rounded-xl border border-primary px-6 py-2.5 text-sm hover:bg-primary font-semibold text-primary transition-all duration-300 hover:-translate-y-1 hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer hover:shadow-md active:translate-y-0">
                       {item.btn}
                     </button>
                   )}
@@ -239,13 +247,13 @@ export default function Home() {
       </FadeIn>
 
       <FadeIn>
-        <NewsRibbon />
+        <BestOffersSection />
       </FadeIn>
       <FadeIn>
         <ApplicationFormSection />
       </FadeIn>
       <FadeIn>
-        <BestOffersSection />
+        <NewsRibbon />
       </FadeIn>
       <FadeIn>
         <ManagerCTASection />

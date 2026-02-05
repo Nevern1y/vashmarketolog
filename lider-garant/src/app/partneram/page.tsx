@@ -2,7 +2,39 @@
 
 import FadeIn from "@/components/FadeIn";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { PhoneInput } from "@/components/ui/phone-input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+
+const formSchema = z.object({
+  organization: z.string().min(2, "Введите название банка/организации"),
+  fullName: z.string().min(2, "Введите ФИО"),
+  email: z.string().email("Введите корректный email"),
+  phone: z
+    .string()
+    .min(1, "Введите номер телефона")
+    .regex(
+      /^\+7[\s(]?\d{3}[\s)]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$/,
+      "Введите корректный номер телефона",
+    ),
+  comments: z.string().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const advantages = [
   {
@@ -42,6 +74,41 @@ const platform = [
 ];
 
 export default function Page() {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      organization: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      comments: "",
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      toast.success(
+        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
+      );
+
+      reset();
+      setModalOpen(false);
+    } catch (error) {
+      toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
+    }
+  };
+
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16 space-y-12">
       <FadeIn>
@@ -54,9 +121,118 @@ export default function Page() {
             Присоединитесь в маркетплейсу Лидер-Гарант для получения стабильного
             потока клиентов
           </h1>
-          <Button className="mt-6 h-12 rounded-full px-8 bg-primary text-sm font-medium text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl">
-            Оставить заявку
-          </Button>
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="mt-6 h-12 rounded-full px-8 bg-primary text-sm font-medium text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl">
+                Оставить заявку
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md border-none max-h-[90vh] overflow-y-auto">
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <DialogHeader>
+                  <DialogTitle className="text-primary text-xl">
+                    Стать партнером
+                  </DialogTitle>
+                  <DialogDescription>
+                    Заполните форму, и мы свяжемся с вами для обсуждения условий
+                    сотрудничества.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="organization">Банк/Организация *</Label>
+                    <Input
+                      id="organization"
+                      {...register("organization")}
+                      placeholder="ООО 'Название банка'"
+                      className="bg-background/80 border-white/20"
+                    />
+                    {errors.organization && (
+                      <p className="text-sm text-red-400">
+                        {errors.organization.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="fullName">ФИО *</Label>
+                    <Input
+                      id="fullName"
+                      {...register("fullName")}
+                      placeholder="Иванов Иван Иванович"
+                      className="bg-background/80 border-white/20"
+                    />
+                    {errors.fullName && (
+                      <p className="text-sm text-red-400">
+                        {errors.fullName.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      {...register("email")}
+                      placeholder="example@bank.ru"
+                      className="bg-background/80 border-white/20"
+                    />
+                    {errors.email && (
+                      <p className="text-sm text-red-400">
+                        {errors.email.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phone">Телефон *</Label>
+                    <Controller
+                      name="phone"
+                      control={control}
+                      render={({ field }) => (
+                        <PhoneInput
+                          id="phone"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="+7 (___) ___-__-__"
+                          className="h-11 bg-background/80 border-white/20"
+                        />
+                      )}
+                    />
+                    {errors.phone && (
+                      <p className="text-sm text-red-400">
+                        {errors.phone.message}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="comments">Комментарии</Label>
+                    <Textarea
+                      id="comments"
+                      {...register("comments")}
+                      placeholder="Опишите вашу компанию и интересующие условия сотрудничества..."
+                      className="min-h-[100px] bg-background/80 border-white/20 resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setModalOpen(false)}
+                    className="flex-1"
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 btn-three"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Отправка..." : "Отправить заявку"}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </section>
       </FadeIn>
 
@@ -120,9 +296,13 @@ export default function Page() {
                 условия интеграции и поток клиентов.
               </p>
             </div>
-            <Button asChild className="h-12 btn-three whitespace-nowrap">
-              <Link href="/contacts">Стать партнером</Link>
-            </Button>
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="h-12 btn-three whitespace-nowrap">
+                  Стать партнером
+                </Button>
+              </DialogTrigger>
+            </Dialog>
           </div>
         </section>
       </FadeIn>

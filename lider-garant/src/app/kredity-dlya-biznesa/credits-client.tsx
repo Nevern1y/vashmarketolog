@@ -68,8 +68,8 @@ export default function Page() {
     "Сбербанк",
   ];
   const [search, setSearch] = useState("");
-  const [minAmount, setMinAmount] = useState<number | "">("");
-  const [maxAmount, setMaxAmount] = useState<number | "">("");
+  const [minAmount] = useState<number | "">("");
+  const [maxAmount] = useState<number | "">("");
   const [showAll, setShowAll] = useState(false);
 
   const formSchema = z.object({
@@ -85,8 +85,8 @@ export default function Page() {
       .string()
       .min(1, "Введите номер телефона")
       .regex(
-        /^\+7 \d{3} \d{3} \d{2} \d{2}$/,
-        "Введите корректный номер телефона"
+        /^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$/,
+        "Введите корректный номер телефона",
       ),
     fullname: z
       .string()
@@ -96,7 +96,7 @@ export default function Page() {
       .boolean()
       .refine(
         (val) => val === true,
-        "Необходимо дать согласие на обработку персональных данных"
+        "Необходимо дать согласие на обработку персональных данных",
       ),
   });
 
@@ -125,7 +125,7 @@ export default function Page() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast.success(
-        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время."
+        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
       );
 
       reset();
@@ -144,7 +144,7 @@ export default function Page() {
       (bank) =>
         bank.name.toLowerCase().includes(search.toLowerCase()) &&
         (minAmount === "" || bank.amount >= minAmount) &&
-        (maxAmount === "" || bank.amount <= maxAmount)
+        (maxAmount === "" || bank.amount <= maxAmount),
     )
     .slice(0, visibleOffers);
 
@@ -427,7 +427,7 @@ export default function Page() {
                 </li>
               </ul>
               <Button asChild className="h-12 btn-three">
-                <Link href="/credits/#application">Подать заявку</Link>
+                <Link href="#application">Подать заявку</Link>
               </Button>
             </div>
 
@@ -582,8 +582,6 @@ export default function Page() {
                       type="number"
                       placeholder="Сумма"
                       inputMode="numeric"
-                      min={1}
-                      step={1000}
                       className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
                         errors.amount ? "border-red-500" : ""
                       }`}
@@ -663,7 +661,7 @@ export default function Page() {
                   </p>
                 )}
 
-<Button
+                <Button
                   type="submit"
                   className="h-11 font-semibold btn-three w-full"
                   disabled={isSubmitting}
@@ -722,9 +720,11 @@ export default function Page() {
                         1.8%
                       </div>
                     </div>
-                    <Button className="shrink-0 text-primary rounded-xl px-4 py-2 text-xs font-semibold shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white cursor-pointer">
-                      Подать заявку
-                    </Button>
+                    <Link href="#application">
+                      <Button className="shrink-0 text-primary rounded-xl px-4 py-2 text-xs font-semibold shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer">
+                        Подать заявку
+                      </Button>
+                    </Link>
                   </div>
                 ))
               ) : (
@@ -845,13 +845,11 @@ export default function Page() {
                 "коммерческая ипотека",
                 "льготный кредит бизнесу",
               ].map((t, i) => (
-                <Link
-                  key={i}
-                  href="/v-razrabotke"
-                  className="block nav-link link-gradient"
-                >
-                  {t}
-                </Link>
+                <div key={i}>
+                  <Link href="/v-razrabotke" className="nav-link link-gradient">
+                    {t}
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

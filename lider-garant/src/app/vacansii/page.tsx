@@ -3,9 +3,7 @@ import FadeIn from "@/components/FadeIn";
 import BankLogosSlider from "@/components/BankLogosSlider";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import Link from "next/link";
-import WhyUs from "@/components/Why-us";
-import { MessageCircle, Phone, Send } from "lucide-react";
+import { Phone } from "lucide-react";
 import { useState } from "react";
 import VacancyModal from "@/components/VacancyModal";
 
@@ -330,13 +328,11 @@ export default function Page() {
                       rel="noopener noreferrer"
                       title="MAX"
                     >
-                      <a href="https://logo-teka.com/max/">
-                        <img
-                          src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
-                          alt="PNG logo Max"
-                          width={47}
-                        />
-                      </a>
+                      <img
+                        src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
+                        alt="MAX"
+                        width={47}
+                      />
                     </a>
                     <a
                       href="https://t.me/+79652841415"

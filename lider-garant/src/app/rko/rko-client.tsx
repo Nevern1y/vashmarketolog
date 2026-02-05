@@ -117,56 +117,6 @@ const bankOffers = [
   },
 ];
 
-const relatedServices = [
-  {
-    title: "Банковские гарантии",
-    description:
-      "44‑ФЗ, 223‑ФЗ, 185‑ФЗ (615 ПП), коммерческие закупки, налоговые гарантии.",
-    cta: "Узнать лимит",
-    href: "/bank-guarantee",
-    image: "/globe.svg",
-  },
-  {
-    title: "Льготное кредитование бизнеса",
-    description:
-      "Кредитование для осуществления текущих операционных и иных расходов.",
-    cta: "Подобрать условия",
-    href: "/credits",
-    image: "/cart-and-box.png",
-  },
-  {
-    title: "Финансирование контракта",
-    description:
-      "Онлайн заявка, сравнение ставок, выдача кредита на лучших условиях.",
-    cta: "Подобрать кредит",
-    href: "/tender-support",
-    image: "/finance-products/money.png",
-  },
-  {
-    title: "Лизинг",
-    description: "Финансируем новое и с пробегом с авансом от 0%.",
-    cta: "Узнать больше",
-    href: "/leasing",
-    image: "/finance-products/hands.png",
-  },
-  {
-    title: "Тендерное сопровождение",
-    description:
-      "Каждый 3-й тендер — победа. Штат опытных специалистов и спецсчет.",
-    cta: "Подробнее",
-    href: "/tender-support",
-    image: "/shield.png",
-  },
-  {
-    title: "Проверка контрагентов",
-    description:
-      "Все от реквизитов и отчетности до контактов и кадровых рисков.",
-    cta: "Подробнее",
-    href: "/counterparty-check",
-    image: "/window.svg",
-  },
-];
-
 export default function Page() {
   const formSchema = z.object({
     inn: z
@@ -182,13 +132,13 @@ export default function Page() {
       .min(1, "Введите номер телефона")
       .regex(
         /^\+7[\s(]?\d{3}[\s)]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$/,
-        "Введите корректный номер телефона"
+        "Введите корректный номер телефона",
       ),
     consent: z
       .boolean()
       .refine(
         (val) => val === true,
-        "Необходимо дать согласие на обработку персональных данных"
+        "Необходимо дать согласие на обработку персональных данных",
       ),
   });
 
@@ -216,7 +166,7 @@ export default function Page() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast.success(
-        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время."
+        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
       );
 
       reset();
@@ -269,14 +219,13 @@ export default function Page() {
     "Газстрансбанк",
     "Сбербанк",
   ];
-  const [visibleDeals] = useState(12);
 
-  const [search, setSearch] = useState("");
-  const [minAmount, setMinAmount] = useState<number | "">("");
-  const [maxAmount, setMaxAmount] = useState<number | "">("");
+  const [search] = useState("");
+  const [minAmount] = useState<number | "">("");
+  const [maxAmount] = useState<number | "">("");
 
   const filteredBanks = banks
-    .map((bank, i) => ({
+    .map((bank) => ({
       name: bank,
       amount: 500_000_000,
       term: 2600,
@@ -285,7 +234,7 @@ export default function Page() {
       (bank) =>
         bank.name.toLowerCase().includes(search.toLowerCase()) &&
         (minAmount === "" || bank.amount >= minAmount) &&
-        (maxAmount === "" || bank.amount <= maxAmount)
+        (maxAmount === "" || bank.amount <= maxAmount),
     )
     .slice(0, visibleOffers);
 
@@ -392,9 +341,11 @@ export default function Page() {
                     650 ₽/месяц
                   </div>
                 </div>
-                <Button className="shrink-0 text-primary rounded-lg px-3 py-2 sm:rounded-xl sm:px-4 sm:py-2 text-xs font-semibold shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white cursor-pointer w-full sm:w-auto">
-                  Подать заявку
-                </Button>
+                <Link href="#rko-form">
+                  <Button className="shrink-0 text-primary rounded-lg px-3 py-2 sm:rounded-xl sm:px-4 sm:py-2 text-xs font-semibold shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer w-full sm:w-auto">
+                    Подать заявку
+                  </Button>
+                </Link>
               </div>
             ))}
           </div>
@@ -418,7 +369,7 @@ export default function Page() {
         <section className="mx-auto mt-2 w-full max-w-7xl py-12">
           <div className="grid items-stretch gap-10 md:grid-cols-2">
             <div>
-<h2 className="mb-4 text-2xl font-semibold text-primary">
+              <h2 className="mb-4 text-2xl font-semibold text-primary">
                 Подберем самые выгодные предложения
               </h2>
               <p className="mb-6 text-sm text-foreground/70">
@@ -455,7 +406,6 @@ export default function Page() {
                       placeholder="Сумма"
                       inputMode="numeric"
                       min={1}
-                      step={1000}
                       className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
                         errors.amount ? "border-red-500" : ""
                       }`}
@@ -529,7 +479,7 @@ export default function Page() {
                   </p>
                 )}
 
-<Button
+                <Button
                   type="submit"
                   className="h-11 font-semibold btn-three w-full"
                   disabled={isSubmitting}
@@ -611,13 +561,11 @@ export default function Page() {
                 "специальные счета для бизнеса",
                 "специальные счета для юридических лиц",
               ].map((t, i) => (
-                <Link
-                  key={i}
-                  href="/v-razrabotke"
-                  className="block nav-link link-gradient"
-                >
-                  {t}
-                </Link>
+                <div key={i}>
+                  <Link href="/v-razrabotke" className="nav-link link-gradient">
+                    {t}
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

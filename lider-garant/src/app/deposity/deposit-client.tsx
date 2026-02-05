@@ -39,13 +39,13 @@ export default function DepositsPage() {
       .min(1, "Введите номер телефона")
       .regex(
         /^\+7[\s(]?\d{3}[\s)]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$/,
-        "Введите корректный номер телефона"
+        "Введите корректный номер телефона",
       ),
     consent: z
       .boolean()
       .refine(
         (val) => val === true,
-        "Необходимо дать согласие на обработку персональных данных"
+        "Необходимо дать согласие на обработку персональных данных",
       ),
   });
 
@@ -73,7 +73,7 @@ export default function DepositsPage() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast.success(
-        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время."
+        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
       );
 
       reset();
@@ -185,7 +185,9 @@ export default function DepositsPage() {
 
             <div className="flex flex-wrap gap-4 mt-4">
               <Link href="#application">
-                <button className="h-12 btn-three">Подать заявку</button>
+                <button className="h-12 btn-three font-semibold">
+                  Подать заявку
+                </button>
               </Link>
             </div>
 
@@ -331,9 +333,11 @@ export default function DepositsPage() {
                     ))}
                   </div>
 
-                  <button className="shrink-0 text-primary rounded-xl px-4 py-2 text-xs font-semibold shadow-sm  hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white cursor-pointer mt-6 w-full transition-all">
-                    Подать заявку
-                  </button>
+                  <Link href="#application">
+                    <Button className="shrink-0 text-primary rounded-xl px-4 py-2 text-xs font-semibold shadow-sm  hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer mt-6 w-full transition-all">
+                      Подать заявку
+                    </Button>
+                  </Link>
                 </article>
               ))}
             </div>
@@ -403,7 +407,6 @@ export default function DepositsPage() {
                           placeholder="Сумма"
                           inputMode="numeric"
                           min={1}
-                          step={1000}
                           className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
                             errors.amount ? "border-red-500" : ""
                           }`}
@@ -552,7 +555,7 @@ export default function DepositsPage() {
 
         <FadeIn>
           <section className="mx-auto w-full max-w-7xl py-12">
-            <h2 className="mb-10 text-2xl font-bold text-primary md:text-3xl">
+            <h2 className="mb-10 text-2xl font-bold text-primary md:text-3xl text-center">
               Часто ищут
             </h2>
 
@@ -571,13 +574,11 @@ export default function DepositsPage() {
                   "Депозиты для крупного бизнеса",
                   "Депозиты для компаний",
                 ].map((t, i) => (
-                  <Link
-                    key={i}
-                    href="/v-razrabotke"
-                    className="block nav-link link-gradient"
-                  >
-                    {t}
-                  </Link>
+                  <div key={i}>
+                    <Link href="/v-razrabotke" className="nav-link link-gradient">
+                      {t}
+                    </Link>
+                  </div>
                 ))}
               </div>
             </div>

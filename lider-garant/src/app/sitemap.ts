@@ -30,63 +30,75 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const now = new Date().toISOString();
 
-  // Static product pages
-  const productPages = [
-    "/rko",
-    "/ved",
-    "/factoring-dlya-biznesa",
-    "/lising-dlya-yrlic",
-    "/bankovskie-garantii",
-    "/kredity-dlya-biznesa",
-    "/deposity",
-    "/strahovanie",
-    "/tendernoe-soprovojdenie",
-    "/proverka-contragentov",
-  ];
-
-  // Static info pages
-  const infoPages = [
-    "/agents",
-    "/partneram",
-    "/o-proekte",
-    "/contact",
-    "/privacy-policy",
+  const routes = [
+    { url: "/", priority: 1, changeFrequency: "weekly" as const },
+    {
+      url: "/bankovskie-garantii",
+      priority: 0.9,
+      changeFrequency: "weekly" as const,
+    },
+    {
+      url: "/kredity-dlya-biznesa",
+      priority: 0.9,
+      changeFrequency: "weekly" as const,
+    },
+    {
+      url: "/lising-dlya-urlic",
+      priority: 0.9,
+      changeFrequency: "weekly" as const,
+    },
+    {
+      url: "/factoring-dlya-biznesa",
+      priority: 0.9,
+      changeFrequency: "weekly" as const,
+    },
+    { url: "/rko", priority: 0.9, changeFrequency: "weekly" as const },
+    { url: "/deposity", priority: 0.9, changeFrequency: "weekly" as const },
+    { url: "/strahovanie", priority: 0.9, changeFrequency: "weekly" as const },
+    { url: "/ved", priority: 0.9, changeFrequency: "weekly" as const },
+    {
+      url: "/tendernoe-soprovojdenie",
+      priority: 0.8,
+      changeFrequency: "monthly" as const,
+    },
+    {
+      url: "/proverka-contragentov",
+      priority: 0.8,
+      changeFrequency: "monthly" as const,
+    },
+    { url: "/o-proekte", priority: 0.7, changeFrequency: "monthly" as const },
+    { url: "/novosti", priority: 0.8, changeFrequency: "daily" as const },
+    { url: "/vacansii", priority: 0.6, changeFrequency: "weekly" as const },
+    { url: "/agents", priority: 0.6, changeFrequency: "monthly" as const },
+    { url: "/partneram", priority: 0.6, changeFrequency: "monthly" as const },
+    { url: "/contact", priority: 0.7, changeFrequency: "monthly" as const },
+    { url: "/documenty", priority: 0.5, changeFrequency: "yearly" as const },
+    {
+      url: "/privacy-policy",
+      priority: 0.5,
+      changeFrequency: "yearly" as const,
+    },
+    { url: "/karta-saita", priority: 0.6, changeFrequency: "monthly" as const },
   ];
 
   // Fetch dynamic SEO pages from backend
   const seoPages = await fetchSeoPages();
   
   // Create a Set of static paths for deduplication
-  const staticPaths = new Set(["/", ...productPages, ...infoPages]);
+  const staticPaths = new Set(routes.map((route) => route.url));
   
   // Filter out SEO pages that duplicate static pages
   const dynamicSeoPages = seoPages.filter(
     (page) => page.slug && !staticPaths.has(`/${page.slug}`)
   );
 
-  const allPages: MetadataRoute.Sitemap = [
-    // Homepage
-    {
-      url: siteUrl,
+  return [
+    ...routes.map((route) => ({
+      url: `${siteUrl}${route.url}`,
       lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    // Product pages (high priority)
-    ...productPages.map((path) => ({
-      url: `${siteUrl}${path}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.9,
+      changeFrequency: route.changeFrequency,
+      priority: route.priority,
     })),
-    // Info pages (medium priority)
-    ...infoPages.map((path) => ({
-      url: `${siteUrl}${path}`,
-      lastModified: now,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    })),
-    // Dynamic SEO pages from backend
     ...dynamicSeoPages.map((page) => ({
       url: `${siteUrl}/${page.slug}`,
       lastModified: page.updated_at || now,
@@ -94,6 +106,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     })),
   ];
-
-  return allPages;
 }

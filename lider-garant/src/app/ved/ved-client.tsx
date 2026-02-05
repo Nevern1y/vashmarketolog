@@ -1335,6 +1335,14 @@ export default function Page() {
       </FadeIn>
 
       <FadeIn>
+        <FaqSection
+          title="Вопросы по международным платежам"
+          items={faqItems}
+          titleClassName="mb-10 text-4xl text-center font-bold text-primary"
+        />
+      </FadeIn>
+
+      <FadeIn>
         <SeeAlso currentPage="ved" />
       </FadeIn>
       <FadeIn>

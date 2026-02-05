@@ -52,7 +52,7 @@ icon: MessageCircle,
       icon: Mail,
       label: "Email",
       action: () => {
-        window.location.href = "mailto:info@lidergarant.ru";
+        window.location.href = "mailto:info@lider-garant.ru";
       },
       color: "bg-primary",
     },

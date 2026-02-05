@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { getSeoPage } from "@/lib/seo-api";
 import { generatePageMetadata, generateMetadataFromSeoPage } from "@/utils/metadata";
 
-const SLUG = "lising-dlya-yrlic";
+const SLUG = "lising-dlya-urlic";
 const FALLBACK_TITLE = "Лизинг для юридических лиц";
 
 export async function generateMetadata(): Promise<Metadata> {

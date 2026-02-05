@@ -129,7 +129,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <Link
-                  href="/lising-dlya-yrlic"
+                  href="/lising-dlya-urlic"
                   className="nav-link link-gradient"
                 >
                   Лизинг для юрлиц
@@ -215,7 +215,7 @@ export default function SiteFooter() {
               <li>
                 <Link
                   href="/vacansii"
-                  className={`nav-link link-gradient ${pathname === "/vacancies" ? "active" : ""}`}
+                  className={`nav-link link-gradient ${pathname === "/vacansii" ? "active" : ""}`}
                 >
                   Вакансии
                 </Link>

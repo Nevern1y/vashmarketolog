@@ -66,8 +66,8 @@ export default function Page() {
   ];
 
   const [search, setSearch] = useState("");
-  const [minAmount, setMinAmount] = useState<number | "">("");
-  const [maxAmount, setMaxAmount] = useState<number | "">("");
+  const [minAmount] = useState<number | "">("");
+  const [maxAmount] = useState<number | "">("");
 
   const formSchema = z.object({
     inn: z
@@ -83,13 +83,13 @@ export default function Page() {
       .min(1, "Введите номер телефона")
       .regex(
         /^\+7[\s(]?\d{3}[\s)]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$/,
-        "Введите корректный номер телефона"
+        "Введите корректный номер телефона",
       ),
     consent: z
       .boolean()
       .refine(
         (val) => val === true,
-        "Необходимо дать согласие на обработку персональных данных"
+        "Необходимо дать согласие на обработку персональных данных",
       ),
   });
 
@@ -117,7 +117,7 @@ export default function Page() {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast.success(
-        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время."
+        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
       );
 
       reset();
@@ -136,7 +136,7 @@ export default function Page() {
       (bank) =>
         bank.name.toLowerCase().includes(search.toLowerCase()) &&
         (minAmount === "" || bank.amount >= minAmount) &&
-        (maxAmount === "" || bank.amount <= maxAmount)
+        (maxAmount === "" || bank.amount <= maxAmount),
     )
     .slice(0, visibleOffers);
 
@@ -234,7 +234,7 @@ export default function Page() {
               </div>
               <div className="flex items-center gap-3">
                 <Button asChild className="h-12 btn-three">
-                  <Link href="/factoring#factoring-form">Получить расчёт</Link>
+                  <Link href="#factoring-form">Получить расчёт</Link>
                 </Button>
               </div>
             </div>
@@ -296,9 +296,11 @@ export default function Page() {
                         1.8%
                       </div>
                     </div>
-                    <Button className="shrink-0 text-primary rounded-lg px-3 py-2 sm:rounded-xl sm:px-4 sm:py-2 text-xs font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white cursor-pointer w-full sm:w-auto">
-                      Подать заявку
-                    </Button>
+                    <Link href="#factoring-form">
+                      <Button className="shrink-0 text-primary rounded-lg px-3 py-2 sm:rounded-xl sm:px-4 sm:py-2 text-xs font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer w-full sm:w-auto">
+                        Подать заявку
+                      </Button>
+                    </Link>
                   </div>
                 ))
               ) : (
@@ -368,7 +370,6 @@ export default function Page() {
                       placeholder="Сумма"
                       inputMode="numeric"
                       min={1}
-                      step={1000}
                       className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
                         errors.amount ? "border-red-500" : ""
                       }`}
@@ -529,13 +530,11 @@ export default function Page() {
                 "факторинг форма кредитования",
                 "предоставления факторинга",
               ].map((t, i) => (
-                <Link
-                  key={i}
-                  href="/v-razrabotke"
-                  className="block nav-link link-gradient"
-                >
-                  {t}
-                </Link>
+                <div key={i}>
+                  <Link href="/v-razrabotke" className="nav-link link-gradient">
+                    {t}
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

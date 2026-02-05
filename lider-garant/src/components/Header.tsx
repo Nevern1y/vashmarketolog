@@ -30,7 +30,7 @@ import { submitLead } from "@/lib/leads";
 const financeItems = [
   { label: "Банковские гарантии", href: "/bankovskie-garantii" },
   { label: "Кредиты для бизнеса", href: "/kredity-dlya-biznesa" },
-  { label: "Лизинг для юрлиц", href: "/lising-dlya-yrlic" },
+  { label: "Лизинг для юрлиц", href: "/lising-dlya-urlic" },
   { label: "Факторинг для бизнеса", href: "/factoring-dlya-biznesa" },
   { label: "Страхование СМР", href: "/strahovanie" },
   { label: "Международные платежи", href: "/ved" },
@@ -273,21 +273,21 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
                 <nav className="grid gap-2">
                   <Link
-                    href="#agents"
+                    href="/agents"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
                     Агентам
                   </Link>
                   <Link
-                    href="#partners"
+                    href="/partneram"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
                     Партнерам
                   </Link>
                   <Link
-                    href="#about"
+                    href="/o-proekte"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >

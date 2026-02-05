@@ -1,9 +1,11 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Montserrat, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
+import HashScroll from "@/components/HashScroll";
+import ScrollToTop from "@/components/ScrollToTop";
 
 const fonte = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -19,7 +21,7 @@ const font2 = Montserrat({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ),
   title: {
     default: "Лидер гарант | Финансовый маркетплейс",
@@ -47,9 +49,6 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-};
-
-export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0b12" },
@@ -71,7 +70,7 @@ export default function RootLayout({
                 try {
                   var stored = localStorage.getItem('theme');
                   var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  var theme = stored || 'dark';
+                  var theme = stored || (prefersDark ? 'dark' : 'light');
                   document.documentElement.setAttribute('data-theme', theme);
                 } catch (e) {}
               })();
@@ -80,6 +79,8 @@ export default function RootLayout({
         />
       </head>
       <body className={`${fonte.className} ${font2.className} antialiased`} suppressHydrationWarning>
+        <ScrollToTop />
+        <HashScroll />
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>
