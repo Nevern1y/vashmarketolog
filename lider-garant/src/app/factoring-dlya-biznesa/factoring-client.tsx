@@ -331,7 +331,7 @@ export default function Page() {
         >
           <div className="grid items-stretch gap-10 md:grid-cols-2">
             <div>
-              <h2 className="mb-4 text-2xl font-semibold text-foreground">
+              <h2 className="mb-4 text-2xl font-semibold text-primary">
                 Подберем самые выгодные предложения
               </h2>
               <p className="mb-6 text-sm text-foreground/70">

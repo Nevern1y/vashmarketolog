@@ -21,7 +21,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Smartphone, Menu, X } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import CustomSelect from "./ui/my-select";
 import { toast } from "sonner";
 import { submitLead } from "@/lib/leads";
@@ -130,25 +131,16 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
               priority
             />
           </Link>
-          <nav className="mt-1 hidden items-center justify-center gap-6 lg:flex lg:gap-8">
+          <nav className="mt-1 hidden items-center justify-center gap-6 min-[1260px]:flex lg:gap-8">
             <CustomSelect items={financeItems} />
 
-            <Link
-              href="/agents"
-              className="hidden xl:inline-block nav-link link-gradient"
-            >
+<Link href="/agents" className="nav-link link-gradient">
               Агентам
             </Link>
-            <Link
-              href="/partneram"
-              className="hidden xl:inline-block nav-link link-gradient"
-            >
+            <Link href="/partneram" className="nav-link link-gradient">
               Партнерам
             </Link>
-            <Link
-              href="/o-proekte"
-              className="hidden xl:inline-block nav-link link-gradient"
-            >
+            <Link href="/o-proekte" className="nav-link link-gradient">
               О проекте
             </Link>
           </nav>
@@ -228,7 +220,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
           <button
             aria-label="Открыть меню"
-            className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-foreground/10 xl:hidden"
+            className="inline-flex items-center justify-center rounded-lg p-2 hover:bg-foreground/10 min-[1260px]:hidden"
             onClick={() => setMobileOpen(true)}
           >
             <Menu className="h-6 w-6" />
@@ -236,7 +228,10 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="right" className="p-0 w-[92vw] max-w-sm">
+<SheetContent side="right" className="p-0 w-[92vw] max-w-sm">
+            <VisuallyHidden>
+              <SheetTitle>Меню навигации</SheetTitle>
+            </VisuallyHidden>
             <div className="flex h-dvh flex-col overflow-y-auto bg-background p-5">
               <div className="mb-4 flex items-center justify-between">
                 <Link

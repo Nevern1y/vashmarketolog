@@ -663,9 +663,9 @@ export default function Page() {
                   </p>
                 )}
 
-                <Button
+<Button
                   type="submit"
-                  className="h-11 rounded-xl px-6 text-sm font-semibold bg-primary text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-2xl active:translate-y-0"
+                  className="h-11 font-semibold btn-three w-full"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Отправка..." : "Отправить заявку"}

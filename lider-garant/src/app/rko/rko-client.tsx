@@ -418,7 +418,7 @@ export default function Page() {
         <section className="mx-auto mt-2 w-full max-w-7xl py-12">
           <div className="grid items-stretch gap-10 md:grid-cols-2">
             <div>
-              <h2 className="mb-4 text-2xl font-semibold text-foreground">
+<h2 className="mb-4 text-2xl font-semibold text-primary">
                 Подберем самые выгодные предложения
               </h2>
               <p className="mb-6 text-sm text-foreground/70">
@@ -529,9 +529,9 @@ export default function Page() {
                   </p>
                 )}
 
-                <Button
+<Button
                   type="submit"
-                  className="h-11 rounded-xl px-6 text-sm font-semibold text-white shadow-lg transition-transform duration-200 hover:-translate-y-0.5 hover:brightness-105 hover:shadow-xl active:translate-y-0 bg-primary"
+                  className="h-11 font-semibold btn-three w-full"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Отправка..." : "Отправить заявку"}

@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 
 export type FaqItem = {
   q: string;
-  a: string | string[];
+  a: string | string[] | ReactNode;
 };
 
 type Props = {
@@ -23,8 +23,7 @@ export default function FaqSection({
   title,
   items,
   sectionClassName = "mx-auto w-full max-w-7xl px-0 py-10 md:py-14",
-  titleClassName =
-    "mb-6 text-2xl font-bold text-primary md:text-3xl text-center",
+  titleClassName = "mb-6 text-2xl font-bold text-primary md:text-3xl text-center",
   children,
 }: Props) {
   return (
