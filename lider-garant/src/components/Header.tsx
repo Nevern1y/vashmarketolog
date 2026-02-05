@@ -213,7 +213,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
               </Dialog>
             </div>
 
-            <Link href="https://lk.lider-garant.ru/auth" className="btn-three py-2 px-6">
+<Link href="https://lk.lider-garant.ru/auth" className="btn-three py-2 px-6 font-semibold">
               Личный кабинет
             </Link>
           </div>
@@ -323,10 +323,10 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
                       <ThemeToggle />
                     </div>
                   </div>
-                  <Link
+<Link
                     href="https://lk.lider-garant.ru/auth"
                     onClick={() => setMobileOpen(false)}
-                    className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-5 font-semibold text-primary-foreground shadow-sm transition hover:shadow-md"
+                    className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-5 font-semibold text-[oklch(0.141_0.005_285.823)] shadow-sm transition hover:shadow-md"
                   >
                     Личный кабинет
                   </Link>
