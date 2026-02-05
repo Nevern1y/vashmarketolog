@@ -5,6 +5,7 @@ import FadeIn from "@/components/FadeIn";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import ManagerCTASection from "@/components/ManagerCTASection";
 import SeeAlso from "@/components/see-also";
+import FaqSection from "@/components/FaqSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,9 +22,15 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { GuaranteeSection } from "../../components/GuaranteeSection";
+import { toast } from "sonner";
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState<"import" | "export">("import");
+
+  const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    toast.success("Заявка отправлена! Мы свяжемся с вами в ближайшее время.");
+  };
 
   const advantages = [
     {
@@ -185,6 +192,47 @@ export default function Page() {
     "проведение международных расчетов",
   ];
 
+  const faqItems = [
+    {
+      q: "С какой компании будут осуществляться платежи?",
+      a: "Лидер-Гарант обладает широкой базой зарубежных компаний для проведения международных платежей. Компания-плательщик подбирается индивидуально исходя из запроса клиента. Лидер-Гарант предлагает несколько вариантов компаний-плательщиков на ваш выбор.",
+    },
+    {
+      q: "По какому курсу осуществляется оплата?",
+      a: "Курс для оплаты согласовывается и фиксируется с клиентом по данным источника investing.com, однако в некоторых случаях курс может быть зафиксирован по данным ЦБ РФ (cbr.ru).",
+    },
+    {
+      q: "Можете ли вы отказать в услуге?",
+      a: "Мы стараемся проводить все платежи клиентов и всегда подходим индивидуально к каждому кейсу, однако, в редких случаях, мы можем отказать в проведении платежа, если он противоречит политике нашей организации или является незаконным на территории Российской Федерации.",
+    },
+    {
+      q: "Какие сроки зачисления денежных средств поставщику?",
+      a: "Средний срок зачисления средств поставщику 1-3 рабочих дня, однако он может меняться, в зависимости от заданных параметров со стороны клиента или рыночной ситуации. Возможны ситуации, когда мы можем делать платежи за несколько часов или даже осуществлять оплату вперед (для крупных клиентов).",
+    },
+    {
+      q: "Какой размер комиссии и от чего зависит?",
+      a: (
+        <div>
+          <p className="mb-3">
+            Размер комиссии варьируется от 0,3 до 8% и зависит от следующих
+            параметров:
+          </p>
+          <ul className="ml-3 space-y-1">
+            <li>• Сумма платежа</li>
+            <li>• Валюта платежа</li>
+            <li>• Предмет платежа и желаемое назначение</li>
+            <li>• География получателя</li>
+            <li>• Публичная репутация получателя</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      q: "Как я могу быть уверен, что деньги дойдут?",
+      a: "Компания Лидер-Гарант сотрудничает с крупными банками. Мы ценим свою деловую репутацию и выстраиваем долгосрочное сотрудничество как с клиентами, так и с партнерами. Лидер-Гарант гарантирует полное возмещение комиссии и платежа.",
+    },
+  ];
+
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16">
       <FadeIn>
@@ -242,7 +290,7 @@ export default function Page() {
                 <h3 className="mb-4 text-xl font-semibold text-foreground">
                   Получите предложение
                 </h3>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleFormSubmit}>
                   <div className="space-y-2">
                     <Label
                       htmlFor="from-currency"
@@ -523,7 +571,7 @@ export default function Page() {
                   onClick={() => setActiveTab("import")}
                   className={`px-6 py-2 rounded-full font-medium transition-colors ${
                     activeTab === "import"
-                      ? "bg-primary text-white"
+                      ? "bg-primary text-[oklch(0.141_0.005_285.823)]"
                       : "text-foreground/70 hover:text-foreground"
                   }`}
                 >
@@ -533,7 +581,7 @@ export default function Page() {
                   onClick={() => setActiveTab("export")}
                   className={`px-6 py-2 rounded-full font-medium transition-colors ${
                     activeTab === "export"
-                      ? "bg-primary text-white"
+                      ? "bg-primary text-[oklch(0.141_0.005_285.823)]"
                       : "text-foreground/70 hover:text-foreground"
                   }`}
                 >
@@ -627,10 +675,13 @@ export default function Page() {
           <div className="relative z-10">
             <div className="mb-12 text-center">
               <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-primary mb-4">
-                Как это работает / Импорт
+                Как это работает /{" "}
+                {activeTab === "import" ? "Импорт" : "Экспорт"}
               </h2>
               <p className="text-xl text-foreground/80 leading-relaxed max-w-3xl mx-auto">
-                Переводите оплату поставщикам из любых стран
+                {activeTab === "import"
+                  ? "Переводите оплату поставщикам из любых стран"
+                  : "Принимайте оплату от заказчиков из любых стран"}
               </p>
             </div>
 
@@ -638,10 +689,31 @@ export default function Page() {
             <div className="mb-16 overflow-x-auto">
               <div className="flex justify-center items-center min-w-max px-4">
                 <div className="flex items-center gap-2 md:gap-4">
-                  <div className="flex flex-col items-center text-center w-20 md:w-24">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  {activeTab === "import" ? (
+                    <>
+                      <div className="flex flex-col items-center text-center w-20 md:w-24">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Заказчик в России
+                        </span>
+                      </div>
+
                       <svg
-                        className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -650,33 +722,33 @@ export default function Page() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
                         />
                       </svg>
-                    </div>
-                    <span className="text-xs md:text-sm font-medium text-foreground">
-                      Заказчик в России
-                    </span>
-                  </div>
 
-                  <svg
-                    className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
-                  </svg>
+                      <div className="flex flex-col items-center text-center w-20 md:w-24">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Получатель платежа
+                        </span>
+                      </div>
 
-                  <div className="flex flex-col items-center text-center w-20 md:w-24">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                       <svg
-                        className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -685,33 +757,33 @@ export default function Page() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
                         />
                       </svg>
-                    </div>
-                    <span className="text-xs md:text-sm font-medium text-foreground">
-                      Получатель платежа
-                    </span>
-                  </div>
 
-                  <svg
-                    className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
-                  </svg>
+                      <div className="flex flex-col items-center text-center w-20 md:w-24">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Договор купли-продажи
+                        </span>
+                      </div>
 
-                  <div className="flex flex-col items-center text-center w-20 md:w-24">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                       <svg
-                        className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -720,33 +792,33 @@ export default function Page() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
                         />
                       </svg>
-                    </div>
-                    <span className="text-xs md:text-sm font-medium text-foreground">
-                      Договор купли-продажи
-                    </span>
-                  </div>
 
-                  <svg
-                    className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
-                  </svg>
+                      <div className="flex flex-col items-center text-center w-20 md:w-24">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Отправитель платежа
+                        </span>
+                      </div>
 
-                  <div className="flex flex-col items-center text-center w-20 md:w-24">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                       <svg
-                        className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -755,33 +827,58 @@ export default function Page() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
                         />
                       </svg>
-                    </div>
-                    <span className="text-xs md:text-sm font-medium text-foreground">
-                      Отправитель платежа
-                    </span>
-                  </div>
 
-                  <svg
-                    className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
-                  </svg>
+                      <div className="flex flex-col items-center text-center w-20 md:w-24">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Поставщик за рубежом
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-col items-center text-center w-24 md:w-28">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8c-1.657 0-3 1.343-3 3v1H8a2 2 0 00-2 2v3a2 2 0 002 2h8a2 2 0 002-2v-3a2 2 0 00-2-2h-1v-1c0-1.657-1.343-3-3-3z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Отправитель
+                          <br />
+                          ДС
+                        </span>
+                      </div>
 
-                  <div className="flex flex-col items-center text-center w-20 md:w-24">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                       <svg
-                        className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -790,14 +887,139 @@ export default function Page() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
                         />
                       </svg>
-                    </div>
-                    <span className="text-xs md:text-sm font-medium text-foreground">
-                      Поставщик за рубежом
-                    </span>
-                  </div>
+
+                      <div className="flex flex-col items-center text-center w-24 md:w-28">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Получатель платежа
+                          <br />
+                          за границей
+                        </span>
+                      </div>
+
+                      <svg
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
+                      </svg>
+
+                      <div className="flex flex-col items-center text-center w-32 md:w-36">
+                        <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-emerald-500/10 border-2 border-emerald-500/20 flex flex-col items-center justify-center mb-2 px-2 py-2">
+                          <span className="text-[9px] md:text-[10px] font-bold text-emerald-500 leading-tight uppercase">
+                            Агентский
+                            <br />
+                            договор
+                          </span>
+                          <span className="mt-0.5 text-[8px] md:text-[9px] text-foreground/60 leading-none">
+                            комиссия
+                          </span>
+                          <span className="text-xl md:text-3xl font-extrabold text-primary leading-none mt-0.5">
+                            0%
+                          </span>
+                        </div>
+                      </div>
+
+                      <svg
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
+                      </svg>
+
+                      <div className="flex flex-col items-center text-center w-24 md:w-28">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Отправитель
+                          <br />
+                          платежа / агент
+                        </span>
+                      </div>
+
+                      <svg
+                        className="w-4 h-4 md:w-6 md:h-6 text-primary shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        />
+                      </svg>
+
+                      <div className="flex flex-col items-center text-center w-24 md:w-28">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                          <svg
+                            className="w-6 h-6 md:w-8 md:h-8 text-primary"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
+                          </svg>
+                        </div>
+                        <span className="text-xs md:text-sm font-medium text-foreground">
+                          Компания
+                          <br />
+                          получатель
+                          <br />в России
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
