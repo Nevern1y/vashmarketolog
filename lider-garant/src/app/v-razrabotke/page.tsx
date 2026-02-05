@@ -19,14 +19,12 @@ export default function PageInDevelop() {
             Следите за обновлениями — мы стараемся сделать сервис максимально
             удобным и быстрым для вас.
           </p>
-          <button className="learn-more">
+          <Link href="/" className="learn-more">
             <span className="circle">
               <span className="icon arrow"></span>
             </span>
-            <Link href="/" className="button-text">
-              На главную
-            </Link>
-          </button>
+            <span className="button-text">На главную</span>
+          </Link>
         </div>
 
         <div className="relative w-full h-[220px] md:h-[360px]">

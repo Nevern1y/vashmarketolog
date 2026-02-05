@@ -105,17 +105,14 @@ export default function Home() {
                 онлайн
               </p>
               <div className="flex flex-col gap-5 items-start md:flex-row md:items-center">
-                <button className="learn-more">
+                <Link href="#application" className="learn-more learn-more-wide">
                   <span className="circle">
                     <span className="icon arrow"></span>
                   </span>
-                  <Link
-                    href="#application"
-                    className="button-text text-sm md:text-base"
-                  >
+                  <span className="button-text text-sm md:text-base">
                     Получить предложение
-                  </Link>
-                </button>
+                  </span>
+                </Link>
               </div>
             </div>
 

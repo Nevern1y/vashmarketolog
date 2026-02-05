@@ -274,6 +274,10 @@
   overflow: hidden;
 }
 
+.learn-more-wide {
+  width: 16rem;
+}
+
 .learn-more .circle {
   position: relative;
   display: block;
