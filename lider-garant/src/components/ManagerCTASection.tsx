@@ -1,35 +1,38 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, MessageSquareText, Phone } from "lucide-react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+
+const cards = [
+  {
+    icon: CheckCircle2,
+    title: "Подайте заявку",
+    desc: "Перезвоним в течение 15 минут и подберём решение.",
+    link: "#application",
+    cta: "Отправить заявку",
+  },
+  {
+    icon: Phone,
+    title: "Позвоните нам",
+    desc: "Звонок бесплатный по России.",
+    link: "tel:+7(965)284-14-15 ",
+    cta: "+7(965)284-14-15 ",
+  },
+  {
+    icon: MessageSquareText,
+    title: "Напишите нам",
+    desc: "Отвечаем на почту в рабочее время.",
+    link: "mailto:info@lider-garant.ru",
+    cta: "info@lider-garant.ru",
+  },
+];
 
 export default function ManagerCTASection() {
   const pathname = usePathname();
-  const applicationLink = pathname === "/" ? "#application" : "/#application";
-  const cards = [
-    {
-      icon: CheckCircle2,
-      title: "Подайте заявку",
-      desc: "Перезвоним в течение 15 минут и подберём решение.",
-      link: applicationLink,
-      cta: "Отправить заявку",
-    },
-    {
-      icon: Phone,
-      title: "Позвоните нам",
-      desc: "Звонок бесплатный по России.",
-      link: "tel:+7(965)284-14-15 ",
-      cta: "+7(965)284-14-15 ",
-    },
-    {
-      icon: MessageSquareText,
-      title: "Напишите нам",
-      desc: "Отвечаем на почту в рабочее время.",
-      link: "mailto:info@lider-garant.ru",
-      cta: "info@lider-garant.ru",
-    },
-  ];
+  const isHomePage = pathname === "/";
+
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-5">
       <div className="relative overflow-hidden rounded-[28px] sm:rounded-[32px] border border-foreground/15">
@@ -48,33 +51,55 @@ export default function ManagerCTASection() {
             </p>
 
             <div className="mt-8 grid gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {cards.map(({ icon: Icon, title, desc, link, cta }) => (
-                <div
-                  key={title}
-                  className="group relative hover:shadow-xl hover:border-primary/50 hover:shadow-primary/10  rounded-2xl border border-foreground/10 bg-white/[0.03] 
+              {cards.map(({ icon: Icon, title, desc, link, cta }) => {
+                const isApplicationLink = link === "#application";
+                const finalLink =
+                  isApplicationLink && !isHomePage ? "/#application" : link;
+
+                return (
+                  <div
+                    key={title}
+                    className="group relative hover:shadow-xl hover:border-primary/50 hover:shadow-primary/10  rounded-2xl border border-foreground/10 bg-white/[0.03] 
                   pb-19 pt-5 px-5    
                   backdrop-blur-xl transition-all duration-300 
                   sm:hover:-translate-y-1 "
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex h-9 w-9 xs:h-10 xs:w-10 items-center justify-center rounded-2xl bg-primary text-white">
-                      <Icon className="h-4 w-4 xs:h-5 xs:w-5" />
-                    </span>
-                    <div className="text-[13px] sm:text-sm font-semibold">
-                      {title}
-                    </div>
-                  </div>
-                  <p className="mt-2.5 text-[11px] sm:text-xs text-foreground/70">
-                    {desc}
-                  </p>
-                  <Button
-                    asChild
-                    className="absolute bottom-5 left-4 right-4 sm:left-5 sm:right-5 h-10 rounded-2xl border-2 border-primary bg-transparent text-primary text-[11px] font-semibold uppercase tracking-wide hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)] whitespace-nowrap"
                   >
-                    <a href={link}>{cta}</a>
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-9 w-9 xs:h-10 xs:w-10 items-center justify-center rounded-2xl bg-primary text-white">
+                        <Icon className="h-4 w-4 xs:h-5 xs:w-5" />
+                      </span>
+                      <div className="text-[13px] sm:text-sm font-semibold">
+                        {title}
+                      </div>
+                    </div>
+                    <p className="mt-2.5 text-[11px] sm:text-xs text-foreground/70">
+                      {desc}
+                    </p>
+                    {isApplicationLink && isHomePage ? (
+                      <Button
+                        className="absolute bottom-5 left-4 right-4 sm:left-5 sm:right-5 h-10 rounded-2xl border-2 border-primary bg-transparent text-primary text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] text-center leading-tight"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const section =
+                            document.getElementById("application");
+                          if (section) {
+                            section.scrollIntoView({ behavior: "smooth" });
+                          }
+                        }}
+                      >
+                        {cta}
+                      </Button>
+                    ) : (
+                      <Button
+                        asChild
+                        className="absolute bottom-5 left-4 right-4 sm:left-5 sm:right-5 h-10 rounded-2xl border-2 border-primary bg-transparent text-primary text-[10px] sm:text-[11px] font-semibold normal-case tracking-normal hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] text-center leading-tight"
+                      >
+                        <Link href={finalLink}>{cta}</Link>
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

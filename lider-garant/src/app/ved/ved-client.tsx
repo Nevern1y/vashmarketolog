@@ -136,6 +136,47 @@ export default function Page() {
     ][i % 7],
   }));
 
+  const faqItems = [
+    {
+      q: "С какой компании будут осуществляться платежи?",
+      a: "Лидер-Гарант обладает широкой базой зарубежных компаний для проведения международных платежей. Компания-плательщик подбирается индивидуально исходя из запроса клиента. Лидер-Гарант предлагает несколько вариантов компаний-плательщиков на ваш выбор.",
+    },
+    {
+      q: "По какому курсу осуществляется оплата?",
+      a: "Курс для оплаты согласовывается и фиксируется с клиентом по данным источника investing.com, однако в некоторых случаях курс может быть зафиксирован по данным ЦБ РФ (cbr.ru).",
+    },
+    {
+      q: "Можете ли вы отказать в услуге?",
+      a: "Мы стараемся проводить все платежи клиентов и всегда подходим индивидуально к каждому кейсу, однако, в редких случаях, мы можем отказать в проведении платежа, если он противоречит политике нашей организации или является незаконным на территории Российской Федерации.",
+    },
+    {
+      q: "Какие сроки зачисления денежных средств поставщику?",
+      a: "Средний срок зачисления средств поставщику 1-3 рабочих дня, однако он может меняться, в зависимости от заданных параметров со стороны клиента или рыночной ситуации. Возможны ситуации, когда мы можем делать платежи за несколько часов или даже осуществлять оплату вперед (для крупных клиентов).",
+    },
+    {
+      q: "Какой размер комиссии и от чего зависит?",
+      a: (
+        <div>
+          <p className="mb-3">
+            Размер комиссии варьируется от 0,3 до 8% и зависит от следующих
+            параметров:
+          </p>
+          <ul className="ml-3 space-y-1">
+            <li>• Сумма платежа</li>
+            <li>• Валюта платежа</li>
+            <li>• Предмет платежа и желаемое назначение</li>
+            <li>• География получателя</li>
+            <li>• Публичная репутация получателя</li>
+          </ul>
+        </div>
+      ),
+    },
+    {
+      q: "Как я могу быть уверен, что деньги дойдут?",
+      a: "Компания Лидер-Гарант сотрудничает с крупными банками. Мы ценим свою деловую репутацию и выстраиваем долгосрочное сотрудничество как с клиентами, так и с партнерами. Лидер-Гарант гарантирует полное возмещение комиссии и платежа.",
+    },
+  ];
+
   const faqs = [
     "платежи в китай",
     "платежи в европу",
@@ -190,47 +231,6 @@ export default function Page() {
     "международные денежные переводы",
     "международный банковский перевод",
     "проведение международных расчетов",
-  ];
-
-  const faqItems = [
-    {
-      q: "С какой компании будут осуществляться платежи?",
-      a: "Лидер-Гарант обладает широкой базой зарубежных компаний для проведения международных платежей. Компания-плательщик подбирается индивидуально исходя из запроса клиента. Лидер-Гарант предлагает несколько вариантов компаний-плательщиков на ваш выбор.",
-    },
-    {
-      q: "По какому курсу осуществляется оплата?",
-      a: "Курс для оплаты согласовывается и фиксируется с клиентом по данным источника investing.com, однако в некоторых случаях курс может быть зафиксирован по данным ЦБ РФ (cbr.ru).",
-    },
-    {
-      q: "Можете ли вы отказать в услуге?",
-      a: "Мы стараемся проводить все платежи клиентов и всегда подходим индивидуально к каждому кейсу, однако, в редких случаях, мы можем отказать в проведении платежа, если он противоречит политике нашей организации или является незаконным на территории Российской Федерации.",
-    },
-    {
-      q: "Какие сроки зачисления денежных средств поставщику?",
-      a: "Средний срок зачисления средств поставщику 1-3 рабочих дня, однако он может меняться, в зависимости от заданных параметров со стороны клиента или рыночной ситуации. Возможны ситуации, когда мы можем делать платежи за несколько часов или даже осуществлять оплату вперед (для крупных клиентов).",
-    },
-    {
-      q: "Какой размер комиссии и от чего зависит?",
-      a: (
-        <div>
-          <p className="mb-3">
-            Размер комиссии варьируется от 0,3 до 8% и зависит от следующих
-            параметров:
-          </p>
-          <ul className="ml-3 space-y-1">
-            <li>• Сумма платежа</li>
-            <li>• Валюта платежа</li>
-            <li>• Предмет платежа и желаемое назначение</li>
-            <li>• География получателя</li>
-            <li>• Публичная репутация получателя</li>
-          </ul>
-        </div>
-      ),
-    },
-    {
-      q: "Как я могу быть уверен, что деньги дойдут?",
-      a: "Компания Лидер-Гарант сотрудничает с крупными банками. Мы ценим свою деловую репутацию и выстраиваем долгосрочное сотрудничество как с клиентами, так и с партнерами. Лидер-Гарант гарантирует полное возмещение комиссии и платежа.",
-    },
   ];
 
   return (
@@ -1025,49 +1025,127 @@ export default function Page() {
             </div>
 
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">1</span>
-                </div>
-                <p className="text-foreground/80 leading-relaxed">
-                  Заключаем агентский договор или договор купли-продажи с вашим
-                  бизнесом в России от имени нашей иностранной компании со
-                  счётом в российском банке
-                </p>
-              </div>
+              {activeTab === "import" ? (
+                <>
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">1</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      Заключаем агентский договор или договор купли-продажи с
+                      вашим бизнесом в России от имени нашей иностранной
+                      компании со счётом в российском банке
+                    </p>
+                  </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">2</span>
-                </div>
-                <p className="text-foreground/80 leading-relaxed">
-                  Ваш поставщик из Китая, Европы или другой страны выставляет
-                  счёт на нашу иностранную компанию-плательщика без российского
-                  следа, зарегистрированную в Дубае, Гонконге или ЕС
-                </p>
-              </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">2</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      Ваш поставщик из Китая, Европы или другой страны
+                      выставляет счёт на нашу иностранную компанию-плательщика
+                      без российского следа, зарегистрированную в Дубае,
+                      Гонконге или ЕС
+                    </p>
+                  </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">3</span>
-                </div>
-                <p className="text-foreground/80 leading-relaxed">
-                  На основании полученного счёта наша иностранная компания
-                  выставляет счёт вашей российской компании в рублях, включая
-                  наше агентское вознаграждение
-                </p>
-              </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">3</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      На основании полученного счёта наша иностранная компания
+                      выставляет счёт вашей российской компании в рублях,
+                      включая наше агентское вознаграждение
+                    </p>
+                  </div>
 
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">4</span>
-                </div>
-                <p className="text-foreground/80 leading-relaxed">
-                  После получения оплаты от вашей компании, мы осуществляем
-                  платеж вашему поставщику в Китае, Европе или другой стране
-                  через нашу компанию-плательщика (ОАЭ, Гонконг или ЕС)
-                </p>
-              </div>
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">4</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      После получения оплаты от вашей компании, мы осуществляем
+                      платеж вашему поставщику в Китае, Европе или другой стране
+                      через нашу компанию-плательщика (ОАЭ, Гонконг или ЕС)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">1</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      Вы, как экспортёр из России, подписываете агентский
+                      договор с нашей иностранной компанией, имеющей рублевый
+                      счёт
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">2</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      Наша компания за границей (не связанная с Россией) от
+                      своего лица выставляет счёт вашему покупателю за продукцию
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">3</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      Ваш клиент переводит средства на счёт нашей иностранной
+                      компании в ЕС, ОАЭ или Гонконге
+                    </p>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary flex items-center justify-center">
+                      <span className="text-2xl font-bold text-white">4</span>
+                    </div>
+                    <p className="text-foreground/80 leading-relaxed">
+                      После получения оплаты от вашего клиента, наша иностранная
+                      компания со счётом в российском банке переводит вам деньги
+                      в рублях
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      <FadeIn>
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-8 md:p-12 my-12">
+          <div className="relative z-10 grid gap-8 md:grid-cols-[1fr_auto] items-center">
+            <div className="space-y-3">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-primary">
+                Нужно больше информации?
+              </h2>
+              <p className="text-lg text-foreground/80 leading-relaxed">
+                Звоните и наши менеджеры подробно вам всё расскажут!
+              </p>
+            </div>
+            <div>
+              <Button
+                size="lg"
+                className="btn-three h-14 px-8 text-base font-semibold whitespace-nowrap"
+                onClick={() => {
+                  const contactSection = document.getElementById("contact");
+                  if (contactSection) {
+                    contactSection.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+              >
+                Заказать звонок
+              </Button>
             </div>
           </div>
         </section>
@@ -1335,16 +1413,16 @@ export default function Page() {
       </FadeIn>
 
       <FadeIn>
-        <FaqSection
-          title="Вопросы по международным платежам"
-          items={faqItems}
-          titleClassName="mb-10 text-4xl text-center font-bold text-primary"
-        />
+        <SeeAlso currentPage="ved" />
       </FadeIn>
 
       <FadeIn>
-        <SeeAlso currentPage="ved" />
+        <FaqSection
+          title="Вопросы по международным платежам"
+          items={faqItems}
+        />
       </FadeIn>
+
       <FadeIn>
         <div id="contact">
           <ManagerCTASection />
@@ -1360,13 +1438,11 @@ export default function Page() {
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
               {faqs.map((t, i) => (
-                <Link
-                  key={i}
-                  href="/v-razrabotke"
-                  className="block nav-link link-gradient"
-                >
-                  {t}
-                </Link>
+                <div key={i}>
+                  <Link href="/v-razrabotke" className="nav-link link-gradient">
+                    {t}
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

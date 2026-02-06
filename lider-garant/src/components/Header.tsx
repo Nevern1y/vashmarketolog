@@ -25,7 +25,6 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import CustomSelect from "./ui/my-select";
 import { toast } from "sonner";
-import { submitLead } from "@/lib/leads";
 
 const financeItems = [
   { label: "Банковские гарантии", href: "/bankovskie-garantii" },
@@ -50,7 +49,7 @@ const formSchema = z.object({
     .regex(/^[+]?[\d\s\-\(\)]+$/, "Неверный формат телефона")
     .refine(
       (phone) => phone.replace(/\D/g, "").length >= 11,
-      "Номер телефона должен содержать минимум 11 цифр"
+      "Номер телефона должен содержать минимум 11 цифр",
     ),
 });
 
@@ -67,7 +66,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     reset,
     setValue,
     watch,
@@ -81,20 +80,9 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
   const phoneValue = watch("phone");
 
-  const onSubmit = async (data: FormData) => {
-    const result = await submitLead({
-      full_name: data.name.trim(),
-      phone: data.phone,
-      source: "website_form",
-      form_name: "header_form",
-    });
-
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-
+  const onSubmit = (data: FormData) => {
     toast.success("Заявка отправлена! Мы перезвоним вам в течение 15 минут.");
+    console.log("Form submitted:", data);
     reset();
     setModalOpen(false);
   };
@@ -134,7 +122,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
           <nav className="mt-1 hidden items-center justify-center gap-6 min-[1260px]:flex lg:gap-8">
             <CustomSelect items={financeItems} />
 
-<Link href="/agents" className="nav-link link-gradient">
+            <Link href="/agents" className="nav-link link-gradient">
               Агентам
             </Link>
             <Link href="/partneram" className="nav-link link-gradient">
@@ -158,7 +146,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
               </a>
               <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                 <DialogTrigger asChild>
-                  <button className="text-xs font-medium text-brand nav-link link-gradient" suppressHydrationWarning>
+                  <button className="text-xs font-medium text-brand nav-link link-gradient">
                     Обратный звонок
                   </button>
                 </DialogTrigger>
@@ -204,7 +192,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button type="submit" className="btn-three w-full" disabled={isSubmitting}>
+                      <Button type="submit" className="btn-three w-full">
                         Отправить
                       </Button>
                     </DialogFooter>
@@ -213,9 +201,9 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
               </Dialog>
             </div>
 
-<Link href="https://lk.lider-garant.ru/auth" className="btn-three py-2 px-6 font-semibold">
+            <button className="btn-three py-2 px-6 font-semibold">
               Личный кабинет
-            </Link>
+            </button>
           </div>
 
           <button
@@ -228,7 +216,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
         </div>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-<SheetContent side="right" className="p-0 w-[92vw] max-w-sm">
+          <SheetContent side="right" className="p-0 w-[92vw] max-w-sm">
             <VisuallyHidden>
               <SheetTitle>Меню навигации</SheetTitle>
             </VisuallyHidden>
@@ -273,21 +261,21 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
                 <nav className="grid gap-2">
                   <Link
-                    href="/agents"
+                    href="#agents"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
                     Агентам
                   </Link>
                   <Link
-                    href="/partneram"
+                    href="#partners"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
                     Партнерам
                   </Link>
                   <Link
-                    href="/o-proekte"
+                    href="#about"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
@@ -323,8 +311,8 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
                       <ThemeToggle />
                     </div>
                   </div>
-<Link
-                    href="https://lk.lider-garant.ru/auth"
+                  <Link
+                    href="#login"
                     onClick={() => setMobileOpen(false)}
                     className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-5 font-semibold text-[oklch(0.141_0.005_285.823)] shadow-sm transition hover:shadow-md"
                   >

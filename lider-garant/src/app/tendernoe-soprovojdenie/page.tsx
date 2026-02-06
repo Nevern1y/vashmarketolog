@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import { getSeoPage } from "@/lib/seo-api";
-import { generatePageMetadata, generateMetadataFromSeoPage } from "@/utils/metadata";
+import {
+  generatePageMetadata,
+  generateMetadataFromSeoPage,
+} from "@/utils/metadata";
 
 const SLUG = "tendernoe-soprovojdenie";
 const FALLBACK_TITLE = "Тендерное сопровождение";

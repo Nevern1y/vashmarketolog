@@ -178,7 +178,7 @@ export default function Page() {
       </FadeIn>
 
       <FadeIn>
-        <section className="mx-auto mt-8 w-full max-w-7xl py-10">
+        <section className="mx-auto mt-8 w-full max-w-7xl py-10" id="vacansies">
           <h2 className="mb-8 text-center text-2xl font-bold tracking-tight text-primary md:text-3xl">
             Актуальные вакансии
           </h2>
@@ -206,7 +206,7 @@ export default function Page() {
                   <p className="text-foreground/70 text-sm">
                     {vacancy.description}
                   </p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <span className="text-lg text-foreground/60">
                       {vacancy.salary}
                     </span>
@@ -239,19 +239,18 @@ export default function Page() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button asChild className="h-12 btn-three">
-                    <a href="#vacancy-form">Откликнуться</a>
+                    <a href="#vacansies">Откликнуться</a>
                   </Button>
                   <Button
                     asChild
-                    variant="outline"
-                    className="h-12 border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+                    className="h-12 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)]"
                   >
                     <a href="tel:+79652841415">Позвонить</a>
                   </Button>
                 </div>
               </div>
 
-              <div className="relative hidden h-[320px] w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl md:flex items-center justify-center">
+              <div className="relative hidden h-80 w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl md:flex items-center justify-center">
                 <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-primary/20 blur-2xl" />
                 <Image
                   src="/help-manager.jpg"
@@ -328,11 +327,13 @@ export default function Page() {
                       rel="noopener noreferrer"
                       title="MAX"
                     >
-                      <img
-                        src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
-                        alt="MAX"
-                        width={47}
-                      />
+                      <a href="https://logo-teka.com/max/">
+                        <img
+                          src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
+                          alt="PNG logo Max"
+                          width={47}
+                        />
+                      </a>
                     </a>
                     <a
                       href="https://t.me/+79652841415"

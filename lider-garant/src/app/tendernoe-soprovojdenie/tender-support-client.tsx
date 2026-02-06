@@ -2,6 +2,7 @@ import BankLogosSlider from "@/components/BankLogosSlider";
 import FadeIn from "@/components/FadeIn";
 import ManagerCTASection from "@/components/ManagerCTASection";
 import SeeAlso from "@/components/see-also";
+import TenderSupportForm from "@/components/TenderSupportForm";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -132,6 +133,10 @@ export default function Page() {
       </FadeIn>
 
       <FadeIn>
+        <TenderSupportForm />
+      </FadeIn>
+
+      <FadeIn>
         <section className="mx-auto mt-12 w-full max-w-7xl">
           <h2 className="mb-6 text-2xl font-bold text-primary md:text-3xl">
             Как мы работаем
@@ -216,13 +221,11 @@ export default function Page() {
                 "Подача заявок тендер",
                 "Подача заявки на участие в тендерах",
               ].map((t, i) => (
-                <Link
-                  key={i}
-                  href="/v-razrabotke"
-                  className="block nav-link link-gradient"
-                >
-                  {t}
-                </Link>
+                <div key={i}>
+                  <Link href="/v-razrabotke" className="nav-link link-gradient">
+                    {t}
+                  </Link>
+                </div>
               ))}
             </div>
           </div>

@@ -21,14 +21,14 @@ const ContactMultiButton = ({ onOpenCallModal }: ContactMultiButtonProps) => {
       color: "bg-primary",
     },
     {
-icon: MessageCircle,
+      icon: MessageCircle,
       label: "MAX",
       action: () => {
         window.open(
           "https://max.ru/u/f9LHodD0cOIXEPJot15IEj_2EIeaAZsKSjeCGIcybYIybHk3HTuHQ3LCd-Y",
           "_blank",
         );
-      },
+    },
       color: "bg-primary",
     },
     {
@@ -52,7 +52,7 @@ icon: MessageCircle,
       icon: Mail,
       label: "Email",
       action: () => {
-        window.location.href = "mailto:info@lider-garant.ru";
+        window.location.href = "mailto:info@lidergarant.ru";
       },
       color: "bg-primary",
     },

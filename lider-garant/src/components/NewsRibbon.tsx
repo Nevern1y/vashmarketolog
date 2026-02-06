@@ -41,17 +41,17 @@ const news = [
 
 export default function NewsRibbon() {
   return (
-    <section className="relative mx-auto w-full max-w-7xl px-6 py-5 overflow-hidden">
-      <div className="relative rounded-4xl border border-foreground/10 p-8 md:p-12 bg-white/5 backdrop-blur-xl">
+    <section className="relative mx-auto w-full max-w-7xl px-6 py-5">
+      <div className="relative rounded-4xl border border-foreground/10 p-8 md:p-12 bg-white/5 backdrop-blur-xl overflow-visible">
         <h2 className="mb-10 mt-5 text-center text-3xl font-semibold text-primary md:text-4xl">
           Новости компании
         </h2>
 
         <div className="absolute top-2 right-6 z-10 isolate flex gap-3 md:top-6 md:right-6">
-          <button className="news-swiper-button-prev flex h-10 w-10 items-center justify-center rounded-full bg-primary backdrop-blur-xl border border-white/10 text-white shadow-lg transition-all hover:bg-white/10 hover:text-primary hover:border-primary">
+          <button className="news-swiper-button-prev flex h-10 w-10 items-center justify-center rounded-full bg-primary backdrop-blur-xl border border-white/10 text-[oklch(0.141_0.005_285.823)] shadow-lg transition-all hover:bg-white/10 hover:text-primary hover:border-primary">
             ←
           </button>
-          <button className="news-swiper-button-next flex h-10 w-10 items-center justify-center rounded-full bg-primary backdrop-blur-xl border border-white/10 text-white shadow-lg transition-all hover:bg-white/10 hover:text-primary hover:border-primary">
+          <button className="news-swiper-button-next flex h-10 w-10 items-center justify-center rounded-full bg-primary backdrop-blur-xl border border-white/10 text-[oklch(0.141_0.005_285.823)] shadow-lg transition-all hover:bg-white/10 hover:text-primary hover:border-primary">
             →
           </button>
         </div>
@@ -78,7 +78,7 @@ export default function NewsRibbon() {
         >
           {news.map((item, i) => (
             <SwiperSlide key={i}>
-              <article className="group ml-2 hover:shadow-xl hover:shadow-primary/10 h-64 flex flex-col justify-between rounded-3xl border border-transparent bg-black/2 backdrop-blur-2xl p-5 transition-all duration-300 hover:border-primary">
+              <article className="group ml-2 mb-15 hover:shadow-2xl hover:shadow-primary/10 h-64 flex flex-col justify-between rounded-3xl border border-transparent bg-black/2 backdrop-blur-2xl p-5 transition-all duration-300 hover:border-primary">
                 <div>
                   <time className="mb-2 block text-xs text-foreground/60">
                     {item.date}
@@ -93,7 +93,7 @@ export default function NewsRibbon() {
                 <Button
                   asChild
                   size="sm"
-                  className="h-9 bg-none border-primary border text-primary hover:bg-primary hover:text-white transition-all"
+                  className="h-9 bg-none border-primary border text-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] transition-all"
                 >
                   <a href="/novosti">Читать полностью →</a>
                 </Button>

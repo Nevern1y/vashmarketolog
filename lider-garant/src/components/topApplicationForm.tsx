@@ -20,7 +20,6 @@ import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
-import { submitLead, GUARANTEE_TYPE_MAP } from "@/lib/leads";
 
 const banks = [
   { name: "ВТБ Банк", logo: "/logos/22.svg", width: 44, height: 44 },
@@ -38,14 +37,14 @@ const formSchema = z.object({
     .string()
     .min(1, "Введите номер телефона")
     .regex(
-      /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/,
-      "Введите корректный номер телефона"
+      /^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$/,
+      "Введите корректный номер телефона",
     ),
   consent: z
     .boolean()
     .refine(
       (val) => val === true,
-      "Необходимо дать согласие на обработку персональных данных"
+      "Необходимо дать согласие на обработку персональных данных",
     ),
 });
 
@@ -60,8 +59,6 @@ export default function TopApplicationForm() {
     control,
     formState: { errors, isSubmitting },
     reset,
-    setValue,
-    watch,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,27 +70,19 @@ export default function TopApplicationForm() {
   });
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    const result = await submitLead({
-      full_name: data.fullname.trim(),
-      phone: data.phone,
-      product_type: "bank_guarantee",
-      guarantee_type:
-        GUARANTEE_TYPE_MAP[data.guaranteeType] || "application_security",
-      source: "landing_page",
-      form_name: "top_application_form",
-    });
+    try {
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
+      toast.success(
+        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
+      );
+
+      reset();
+      setPhoneKey((k) => k + 1);
+    } catch (error) {
+      toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
     }
-
-    toast.success(
-      "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время."
-    );
-
-    reset();
-    setPhoneKey((k) => k + 1);
   };
 
   return (
@@ -147,10 +136,10 @@ export default function TopApplicationForm() {
             </div>
           </div>
 
-          <div className="flex shrink-0 w-full lg:w-auto">
+          <div className="flex shrink-0 w-full lg:w-auto z-30 ">
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="w-full max-w-lg lg:max-w-xl rounded-2xl md:rounded-3xl border border-foreground/20 bg-white/5 p-5 md:p-10 lg:p-12 shadow-2xl relative mt-4 md:-mt-8 lg:-mt-12 md:-mb-8 lg:-mb-12"
+              className="w-full max-w-lg lg:max-w-xl rounded-2xl md:rounded-3xl border border-foreground/20  bg-white/5 p-5 md:p-10 lg:p-12 shadow-2xl relative mt-4 md:-mt-8 lg:-mt-12 md:-mb-8 lg:-mb-12"
               aria-label="Форма получения банковской гарантии"
             >
               <h3 className="mb-1 text-xl md:text-2xl font-bold leading-tight text-primary">
@@ -170,7 +159,7 @@ export default function TopApplicationForm() {
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger
-                        className={`w-full bg-white border-gray-300 px-4 py-2.5 md:py-6 text-sm text-black rounded-md ${
+                        className={`w-full bg-white text-black border-gray-300 px-4 py-2.5 md:py-6 text-sm text-black rounded-md ${
                           errors.guaranteeType ? "border-red-500" : ""
                         }`}
                       >
@@ -206,7 +195,7 @@ export default function TopApplicationForm() {
                   id="fullname"
                   type="text"
                   placeholder="ФИО"
-                  className={`bg-white border-gray-300 px-4 py-2.5 md:py-6 text-sm md:text-base rounded-md ${
+                  className={`bg-white text-black border-gray-300 px-4 py-2.5 md:py-6 text-sm md:text-base rounded-md ${
                     errors.fullname ? "border-red-500" : ""
                   }`}
                   {...register("fullname", {
@@ -234,7 +223,7 @@ export default function TopApplicationForm() {
                     <PhoneInput
                       key={phoneKey}
                       id="phone"
-                      className={`bg-white border-gray-300 px-4 py-2.5 md:py-6 text-sm md:text-base rounded-md ${
+                      className={`bg-white text-black border-gray-300 px-4 py-2.5 md:py-6 text-sm md:text-base rounded-md ${
                         errors.phone ? "border-red-500" : ""
                       }`}
                       value={field.value}

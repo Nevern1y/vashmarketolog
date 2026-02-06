@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import { getSeoPage } from "@/lib/seo-api";
-import { generatePageMetadata, generateMetadataFromSeoPage } from "@/utils/metadata";
+import {
+  generatePageMetadata,
+  generateMetadataFromSeoPage,
+} from "@/utils/metadata";
 
 const SLUG = "ved";
 const FALLBACK_TITLE = "Международные платежи для бизнеса";

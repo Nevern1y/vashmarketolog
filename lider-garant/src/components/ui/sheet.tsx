@@ -8,7 +8,6 @@ const Sheet = DialogPrimitive.Root;
 const SheetTrigger = DialogPrimitive.Trigger;
 const SheetPortal = DialogPrimitive.Portal;
 const SheetClose = DialogPrimitive.Close;
-
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>

@@ -1,31 +1,43 @@
 "use client";
 
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import FadeIn from "@/components/FadeIn";
-import { submitLead, GUARANTEE_TYPE_MAP } from "@/lib/leads";
 
 const guaranteeTypes = [
-  { value: "application_security", label: "Участие в тендере" },
-  { value: "contract_execution", label: "Исполнение контракта" },
-  { value: "warranty_obligations", label: "Исполнение гарантийных обязательств" },
-  { value: "advance_return", label: "Возврат аванса" },
+  { value: "tender", label: "Участие в тендере" },
+  { value: "contract", label: "Исполнение контракта" },
+  { value: "warranty", label: "Исполнение гарантийных обязательств" },
+  { value: "advance", label: "Возврат аванса" },
 ];
 
 export default function GuaranteeCalculator() {
-  const [guaranteeType, setGuaranteeType] = useState("application_security");
+  const [guaranteeType, setGuaranteeType] = useState("tender");
   const [amount, setAmount] = useState(1000000);
   const [months, setMonths] = useState(10);
   const [discount, setDiscount] = useState(true);
-  const [fullname, setFullname] = useState("");
-  const [phone, setPhone] = useState("");
   const [phoneKey, setPhoneKey] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  type FormValues = {
+    fullname: string;
+    phone: string;
+    consent: boolean;
+  };
+
+  const form = useForm<FormValues>({
+    defaultValues: {
+      fullname: "",
+      phone: "",
+      consent: true,
+    },
+    mode: "onSubmit",
+  });
 
   const formatNumber = (num: number) => {
     return num.toLocaleString("ru-RU");
@@ -50,56 +62,20 @@ export default function GuaranteeCalculator() {
     setMonths(Math.min(Math.max(value, 1), 120));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!fullname.trim() || fullname.trim().length < 2) {
-      toast.error("Пожалуйста, укажите ФИО");
-      return;
-    }
-    
-    if (!phone || phone.replace(/\D/g, "").length < 10) {
-      toast.error("Пожалуйста, укажите корректный номер телефона");
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const result = await submitLead({
-        full_name: fullname.trim(),
-        phone,
-        product_type: "bank_guarantee",
-        guarantee_type:
-          GUARANTEE_TYPE_MAP[guaranteeType] || "application_security",
-        amount,
-        term_months: months,
-        source: "website_calculator",
-        form_name: "guarantee_calculator",
-      });
+  const onSubmit = (values: FormValues) => {
+    console.log({
+      guaranteeType,
+      amount,
+      months,
+      discount,
+      fullname: values.fullname,
+      phone: values.phone,
+    });
 
-      if (!result.ok) {
-        throw new Error(result.error);
-      }
+    form.reset();
+    setPhoneKey((k) => k + 1);
 
-      // Success - reset form
-      setFullname("");
-      setPhone("");
-      setPhoneKey((k) => k + 1);
-      
-      toast.success("Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.");
-      
-    } catch (error) {
-      console.error("Lead submission error:", error);
-      toast.error(
-        error instanceof Error 
-          ? error.message 
-          : "Произошла ошибка при отправке. Попробуйте позже."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast.success("Заявка отправлена");
   };
 
   return (
@@ -123,7 +99,7 @@ export default function GuaranteeCalculator() {
                   className={`rounded-lg md:rounded-xl px-2 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-semibold transition-all hover:-translate-y-1 cursor-pointer
                     ${
                       guaranteeType === type.value
-                        ? "border-2 border-teal-400 bg-teal-400 text-white"
+                        ? "border-2 border-teal-400 bg-teal-400 text-[oklch(0.141_0.005_285.823)]"
                         : "border-2 border-teal-400 text-teal-600 bg-transparent"
                     }`}
                 >
@@ -286,29 +262,42 @@ export default function GuaranteeCalculator() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <div className="space-y-2">
                   <Input
                     type="text"
                     placeholder="ФИО"
-                    value={fullname}
-                    onChange={(e) =>
-                      setFullname(e.target.value.replace(/\d/g, ""))
-                    }
-                    className="bg-white border-gray-300 px-4 py-3 md:py-6 text-sm md:text-base"
+                    {...form.register("fullname", {
+                      required: true,
+                      onChange: (e) => {
+                        const target = e.target as HTMLInputElement;
+                        target.value = target.value.replace(/\d/g, "");
+                      },
+                    })}
+                    className="bg-white text-black border-gray-300 px-4 py-3 md:py-6 text-sm md:text-base"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   {/* Phone input styled as rectangular input like others */}
-                  <PhoneInput
-                    key={phoneKey}
-                    placeholder="+7 (___) ___-__-__"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="bg-white border-gray-300 px-4 py-3 md:py-6 text-sm md:text-base"
-                    required
+                  <Controller
+                    name="phone"
+                    control={form.control}
+                    rules={{ required: true }}
+                    render={({ field }) => (
+                      <PhoneInput
+                        key={phoneKey}
+                        placeholder="+7 (___) ___-__-__"
+                        value={field.value}
+                        onChange={field.onChange}
+                        className="bg-white border-gray-300 px-4 py-3 md:py-6 text-sm md:text-base text-black"
+                        required
+                      />
+                    )}
                   />
                 </div>
 
@@ -351,6 +340,7 @@ export default function GuaranteeCalculator() {
                     defaultChecked
                     required
                     className="h-5 w-5 rounded border border-gray-300 accent-primary focus:ring-2 focus:ring-primary/30"
+                    {...form.register("consent", { required: true })}
                   />
                   <span className="text-xs md:text-sm ml-2">
                     Я даю согласие на обработку{" "}
@@ -364,16 +354,8 @@ export default function GuaranteeCalculator() {
                   type="submit"
                   className="w-full h-11 md:h-14 bg-primary btn-three text-sm md:text-base"
                   size="lg"
-                  disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Отправка...
-                    </>
-                  ) : (
-                    "Отправить"
-                  )}
+                  Отправить
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center">

@@ -24,7 +24,7 @@ export default function CookieConsent() {
         analytics: consentType === "accepted",
         marketing: consentType === "accepted",
         functional: consentType === "accepted",
-      })
+      }),
     );
 
     setTimeout(() => {
@@ -75,7 +75,7 @@ export default function CookieConsent() {
           <Button
             variant="outline"
             onClick={decline}
-            className="flex-1 h-10 border-primary text-primary hover:bg-primary hover:text-white"
+            className="flex-1 h-10 border-primary text-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)]"
           >
             Отклонить
           </Button>

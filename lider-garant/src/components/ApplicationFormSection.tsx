@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Image from "next/image";
 import { toast } from "sonner";
-import { submitLead, PRODUCT_TYPE_MAP } from "@/lib/leads";
 import {
   Form,
   FormControl,
@@ -29,7 +28,7 @@ const formSchema = z.object({
     .min(1, "Введите телефон")
     .regex(
       /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/,
-      "Введите корректный номер телефона"
+      "Введите корректный номер телефона",
     )
     .refine((phone) => phone.replace(/\D/g, "").length === 11, {
       message: "Введите корректный номер телефона",
@@ -62,24 +61,8 @@ export default function ApplicationFormSection() {
     mode: "onChange",
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = (values: FormValues) => {
     const amountNum = Number(values.amount.replace(/\s/g, ""));
-    const productType = PRODUCT_TYPE_MAP[values.product] || "bank_guarantee";
-
-    const result = await submitLead({
-      full_name: values.name.trim(),
-      phone: values.phone,
-      product_type: productType,
-      amount: amountNum,
-      inn: values.inn,
-      source: "website_form",
-      form_name: "application_form_section",
-    });
-
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
 
     toast.success("Заявка отправлена", {
       description: `${values.name}, ${
@@ -96,6 +79,7 @@ export default function ApplicationFormSection() {
     "ВЭД",
     "Лизинг",
     "Страхование",
+    "Тендерное сопровождение",
   ];
 
   return (
@@ -114,8 +98,8 @@ export default function ApplicationFormSection() {
                   onClick={() => form.setValue("product", p)}
                   className={`rounded-full px-5 py-2 text-sm font-semibold transition-all border ${
                     form.watch("product") === p
-                      ? "bg-primary text-white  border-transparent shadow-[0_20px_45px_-25px_rgba(16,185,129,1)]"
-                      : "bg-none text-primary border-primary hover:bg-primary hover:text-white transition-all"
+                      ? "bg-primary text-[oklch(0.141_0.005_285.823)] border-transparent shadow-[0_20px_45px_-25px_rgba(16,185,129,1)]"
+                      : "bg-none text-primary border-primary hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)] transition-all"
                   }`}
                 >
                   {p}
@@ -145,7 +129,7 @@ export default function ApplicationFormSection() {
                             onChange={(e) => {
                               const value = e.target.value.replace(
                                 /[^а-яёa-z\s]/gi,
-                                ""
+                                "",
                               );
                               field.onChange(value);
                             }}
@@ -236,7 +220,7 @@ export default function ApplicationFormSection() {
                               const raw = e.target.value.replace(/[^\d]/g, "");
                               const formatted = raw.replace(
                                 /\B(?=(\d{3})+(?!\d))/g,
-                                " "
+                                " ",
                               );
                               field.onChange(formatted);
                             }}
@@ -252,7 +236,6 @@ export default function ApplicationFormSection() {
                   <Button
                     type="submit"
                     className="h-12 btn-three px-6 text-sm font-semibold"
-                    disabled={form.formState.isSubmitting}
                   >
                     Оставить заявку
                   </Button>

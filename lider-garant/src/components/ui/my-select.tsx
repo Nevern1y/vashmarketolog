@@ -71,7 +71,7 @@ export default function CustomSelect({ items }: { items: Item[] }) {
             <Link
               key={item.label}
               href={item.href}
-              className="block px-3 py-2 text-sm hover:bg-muted rounded-md text-black hover:text-primary"
+              className="block px-3 py-2 text-sm hover:bg-muted rounded-md text-black hover:text-black hover:underline transition-all"
             >
               {item.label}
             </Link>

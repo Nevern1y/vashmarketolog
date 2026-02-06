@@ -23,9 +23,9 @@ export default function GuaranteeHeroSection() {
     <section className="relative mx-auto my-12 w-full max-w-7xl px-6">
       {/* Большой бэкграунд-панель */}
       <div className="rounded-[28px] bg-[#f5f7fb] p-8 shadow-sm">
-        <div className="relative flex items-center gap-8 overflow-visible">
+        <div className="relative flex items-center gap-8 overflow-visible isolate">
           {/* Левой блок: логотипы в плашках */}
-          <div className="relative hidden w-1/3 flex-col items-start gap-6 md:flex">
+          <div className="relative hidden w-1/3 flex-col items-start gap-6 md:flex z-10">
             <div className="transform -translate-x-8">
               <LogoPill
                 imgSrc="/images/logo-vtb.svg"
@@ -51,10 +51,8 @@ export default function GuaranteeHeroSection() {
             </div>
           </div>
 
-          {/* Центр: картинка человека */}
-          <div className="flex w-full justify-center md:justify-start">
+          <div className="flex w-full justify-center md:justify-start z-0">
             <div className="relative w-[420px] shrink-0">
-              {/* Замените путь на реальную фотографию (в примере: /images/hero-person.png) */}
               <Image
                 src="/images/hero-person.png"
                 alt="hero"
@@ -65,15 +63,13 @@ export default function GuaranteeHeroSection() {
             </div>
           </div>
 
-          {/* Правая карточка - форма */}
-          <div className="absolute right-0 top-1/2 w-full max-w-[520px] -translate-y-1/2 md:relative md:mr-0 md:ml-auto">
+          <div className="absolute right-0 top-1/2 w-full max-w-[520px] -translate-y-1/2 md:relative md:mr-0 md:ml-auto z-20">
             <div className="mx-auto w-full rounded-2xl bg-white p-8 shadow-[0_14px_30px_rgba(35,45,65,0.08)] md:ml-8">
               <h3 className="mb-6 text-2xl font-extrabold text-slate-800">
                 Получить банковскую гарантию
               </h3>
 
               <div className="space-y-4">
-                {/* select imitation */}
                 <div className="relative">
                   <button
                     type="button"
