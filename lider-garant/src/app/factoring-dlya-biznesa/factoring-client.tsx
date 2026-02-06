@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { submitLead } from "@/lib/leads";
 
 export default function Page() {
   const TOTAL_OFFERS = 25;
@@ -66,10 +67,14 @@ export default function Page() {
   ];
 
   const [search, setSearch] = useState("");
-  const [minAmount] = useState<number | "">("");
-  const [maxAmount] = useState<number | "">("");
+  const minAmount: number | "" = "";
+  const maxAmount: number | "" = "";
 
   const formSchema = z.object({
+    full_name: z
+      .string()
+      .min(2, "Укажите ФИО")
+      .regex(/^[а-яёa-z\s-]+$/i, "ФИО может содержать только буквы"),
     inn: z
       .string()
       .min(1, "Введите ИНН")
@@ -77,12 +82,12 @@ export default function Page() {
     amount: z
       .string()
       .min(1, "Введите сумму")
-      .refine((val) => Number(val) > 0, "Сумма должна быть больше 0"),
+      .refine((val) => Number(val.replace(/\s/g, "")) > 0, "Сумма должна быть больше 0"),
     phone: z
       .string()
       .min(1, "Введите номер телефона")
       .regex(
-        /^\+7[\s(]?\d{3}[\s)]?\d{3}[-\s]?\d{2}[-\s]?\d{2}$/,
+        /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/,
         "Введите корректный номер телефона",
       ),
     consent: z
@@ -104,6 +109,7 @@ export default function Page() {
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      full_name: "",
       inn: "",
       amount: "",
       phone: "",
@@ -112,22 +118,32 @@ export default function Page() {
   });
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    const amountValue = Number(data.amount.replace(/\s/g, ""));
 
-      toast.success(
-        "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
-      );
+    const result = await submitLead({
+      full_name: data.full_name.trim(),
+      phone: data.phone,
+      inn: data.inn,
+      amount: amountValue,
+      product_type: "factoring",
+      source: "website_form",
+      form_name: "factoring_form",
+    });
 
-      reset();
-    } catch (error) {
-      toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
     }
+
+    toast.success(
+      "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
+    );
+
+    reset();
   };
 
   const filteredBanks = banks
-    .map((bank, i) => ({
+    .map((bank) => ({
       name: bank,
       amount: 500_000_000,
       term: 2600,
@@ -296,11 +312,12 @@ export default function Page() {
                         1.8%
                       </div>
                     </div>
-                    <Link href="#factoring-form">
-                      <Button className="shrink-0 text-primary rounded-lg px-3 py-2 sm:rounded-xl sm:px-4 sm:py-2 text-xs font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer w-full sm:w-auto">
-                        Подать заявку
-                      </Button>
-                    </Link>
+                    <Button
+                      asChild
+                      className="shrink-0 text-primary rounded-lg px-3 py-2 sm:rounded-xl sm:px-4 sm:py-2 text-xs font-semibold shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md bg-none border-2 border-primary hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)] cursor-pointer w-full sm:w-auto"
+                    >
+                      <Link href="#factoring-form">Подать заявку</Link>
+                    </Button>
                   </div>
                 ))
               ) : (
@@ -349,13 +366,39 @@ export default function Page() {
                   <div>
                     <Input
                       type="text"
+                      placeholder="ФИО"
+                      className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
+                        errors.full_name ? "border-red-500" : ""
+                      }`}
+                      {...register("full_name", {
+                        onChange: (e) => {
+                          const value = e.target.value.replace(/[^а-яёa-z\s-]/gi, "");
+                          e.target.value = value;
+                        },
+                      })}
+                    />
+                    {errors.full_name && (
+                      <p className="text-red-500 text-xs mt-1 ml-4">
+                        {errors.full_name.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Input
+                      type="text"
                       placeholder="ИНН"
                       inputMode="numeric"
                       maxLength={12}
                       className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
                         errors.inn ? "border-red-500" : ""
                       }`}
-                      {...register("inn")}
+                      {...register("inn", {
+                        onChange: (e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          e.target.value = value;
+                        },
+                      })}
                     />
                     {errors.inn && (
                       <p className="text-red-500 text-xs mt-1 ml-4">
@@ -366,14 +409,18 @@ export default function Page() {
 
                   <div>
                     <Input
-                      type="number"
+                      type="text"
                       placeholder="Сумма"
                       inputMode="numeric"
-                      min={1}
                       className={`h-12 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm text-foreground ${
                         errors.amount ? "border-red-500" : ""
                       }`}
-                      {...register("amount")}
+                      {...register("amount", {
+                        onChange: (e) => {
+                          const value = e.target.value.replace(/[^\d]/g, "");
+                          e.target.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+                        },
+                      })}
                     />
                     {errors.amount && (
                       <p className="text-red-500 text-xs mt-1 ml-4">
@@ -420,6 +467,7 @@ export default function Page() {
                         <a
                           href="/docs/agreement.pdf"
                           target="_blank"
+                          rel="noopener noreferrer"
                           className="mx-1 underline"
                         >
                           Соглашением
@@ -428,6 +476,7 @@ export default function Page() {
                         <a
                           href="/docs/privacy.pdf"
                           target="_blank"
+                          rel="noopener noreferrer"
                           className="ml-1 underline"
                         >
                           Политикой конфиденциальности

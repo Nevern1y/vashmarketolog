@@ -103,6 +103,7 @@ const ALL_BANKS: BankInfo[] = [
     { name: "Ресо Лизинг", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
     { name: "Контрол Лизинг", bgRate: 0, creditRate: 0, speed: "Высокая", type: "leasing" },
     { name: "МГКЛ (Лизинг)", bgRate: 0, creditRate: 0, speed: "Средняя", type: "leasing" },
+    { name: "Индивидуальное рассмотрение (Лизинг)", bgRate: 0, creditRate: 0, speed: "Высокая", individual: true, type: "leasing" },
 ]
 
 interface CalculationSessionViewProps {

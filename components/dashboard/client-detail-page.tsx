@@ -287,6 +287,7 @@ function ClientApplicationsTab({
     if (!name) return '—'
     const abbreviations: Record<string, string> = {
       'Индивидуальное рассмотрение': 'Индивид. рассм.',
+      'Индивидуальное рассмотрение (Лизинг)': 'Индивид. рассм.',
       'Индивидуальный подбор': 'Индивид. подбор',
     }
     return abbreviations[name] || name

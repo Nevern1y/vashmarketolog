@@ -274,6 +274,7 @@ const LEASING_BANKS: BankOffer[] = [
     { name: "Carcade (Лизинг)", minAmount: 500000, maxAmount: 500000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
     { name: "Европлан (Лизинг)", minAmount: 500000, maxAmount: 1000000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
     { name: "ВТБ Лизинг", minAmount: 1000000, maxAmount: 5000000000, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], type: "leasing" },
+    { name: "Индивидуальное рассмотрение (Лизинг)", minAmount: 10000, maxAmount: MAX_AMOUNT_FALLBACK, bgRate: 0, creditRate: 0, speed: "Высокая", laws: ["leasing"], individual: true, type: "leasing" },
 ]
 
 const parseConditionNumber = (value: string | null) => {
@@ -1130,7 +1131,15 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
         await new Promise(r => setTimeout(r, 800)) // Simulate API call
 
         // Calculate based on form data
-        const law = federalLaw === "44" ? "44-ФЗ" : federalLaw === "223" ? "223-ФЗ" : federalLaw === "615" ? "185-ФЗ (615-ПП)" : federalLaw === "275" ? "275-ФЗ" : "КБГ (Коммерческие)"
+        const law = federalLaw === "44"
+            ? "44-ФЗ"
+            : federalLaw === "223"
+                ? "223-ФЗ"
+                : federalLaw === "615" || federalLaw === "185"
+                    ? "185-ФЗ (615-ПП)"
+                    : federalLaw === "275"
+                        ? "275-ФЗ"
+                        : "КБГ (Коммерческие)"
         const rawDays = dateFrom && dateTo
             ? Math.ceil((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / (1000 * 60 * 60 * 24))
             : 30
@@ -2387,7 +2396,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Дата начала</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Дата начала <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="date"
                                             value={dateFrom}
@@ -2405,7 +2414,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="number"
                                             placeholder="88"
@@ -2574,7 +2583,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок контракта с</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок контракта с <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="date"
                                             value={contractDateFrom}
@@ -2592,7 +2601,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="number"
                                             placeholder="90"
@@ -2632,7 +2641,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок кредита с</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок кредита с <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
@@ -2640,7 +2649,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="number"
                                             placeholder="90"
@@ -2753,7 +2762,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок кредита с</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок кредита с <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
@@ -2761,7 +2770,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="number"
                                             placeholder="90"
@@ -2852,7 +2861,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         <Input type="text" inputMode="decimal" value={formatInputNumber(financingAmount)} onChange={e => setFinancingAmount(parseInputNumber(e.target.value))} placeholder="0,00" className="h-11 text-lg font-medium bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок финансирования</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок финансирования <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input type="date" value={financingDate} onChange={e => setFinancingDate(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                 </div>
@@ -2911,7 +2920,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                 </div>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок контракта с</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок контракта с <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
@@ -2919,7 +2928,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                         <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-11 bg-[#0f1d32]/50 border-[#2a3a5c]/30 focus:border-[#3CE8D1]/50 text-white [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:brightness-0 [&::-webkit-calendar-picker-indicator]:invert" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm text-[#94a3b8]">Срок (дней)</Label>
+                                        <Label className="text-sm text-[#94a3b8]">Срок (дней) <span className="text-[#3CE8D1]">*</span></Label>
                                         <Input
                                             type="number"
                                             placeholder="90"
