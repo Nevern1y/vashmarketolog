@@ -77,3 +77,8 @@ backend/nul
 
 # Auto Claude data directory
 .auto-claude/
+
+# temporary upstream comparison clones
+_upstream_lider/
+_upstream_lider2/
+_upstream_lider3/

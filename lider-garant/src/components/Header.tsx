@@ -201,7 +201,10 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
               </Dialog>
             </div>
 
-            <Link href="/login" className="btn-three py-2 px-6 font-semibold">
+            <Link
+              href="https://lk.lider-garant.ru/"
+              className="btn-three py-2 px-6 font-semibold"
+            >
               Личный кабинет
             </Link>
           </div>
@@ -312,7 +315,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
                     </div>
                   </div>
                   <Link
-                    href="/login"
+                    href="https://lk.lider-garant.ru/"
                     onClick={() => setMobileOpen(false)}
                     className="inline-flex h-12 w-full items-center justify-center rounded-full bg-primary px-5 font-semibold text-[oklch(0.141_0.005_285.823)] shadow-sm transition hover:shadow-md"
                   >
