@@ -124,6 +124,7 @@ const FORM_NAME_LABELS: Record<string, string> = {
     landing_bg: "Лендинг БГ",
     landing_credit: "Лендинг кредит",
     landing_main: "Главный лендинг",
+    partners_modal: "Партнерская заявка",
     
     // Other
     footer_form: "Форма в футере",
@@ -137,6 +138,14 @@ const FORM_NAME_LABELS: Record<string, string> = {
 function getFormNameLabel(formName: string | null | undefined): string {
     if (!formName) return "—"
     return FORM_NAME_LABELS[formName] || formName
+}
+
+function getLeadProductLabel(lead: Lead): string {
+    if (lead.form_name === "partners_modal") {
+        return "Партнерство"
+    }
+
+    return PRODUCT_TYPE_LABELS[lead.product_type] || lead.product_type
 }
 
 // ============================================
@@ -282,13 +291,17 @@ export function AdminLeadsView() {
         const hasInn = !!lead.inn
         const hasProduct = lead.product_type && lead.product_type !== 'bank_guarantee'
 
+        if (lead.form_name === 'partners_modal') {
+            return { type: 'interested', color: 'bg-indigo-400/10 text-indigo-400', label: 'Партнер' }
+        }
+
         if (hasAmount && hasTermMonths) {
             return { type: 'ready', color: 'bg-emerald-400/10 text-emerald-400', label: 'Готов' }
         }
         if (hasProduct || hasAmount || hasInn || lead.guarantee_type) {
             return { type: 'interested', color: 'bg-amber-400/10 text-amber-400', label: 'Заинтересован' }
         }
-        return { type: 'callback', color: 'bg-slate-400/10 text-slate-400', label: 'Callback' }
+        return { type: 'callback', color: 'bg-slate-400/10 text-slate-400', label: 'Обращение' }
     }
 
     const openConvertDialog = (lead: Lead) => {
@@ -695,7 +708,7 @@ export function AdminLeadsView() {
                                                 <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-muted-foreground">
                                                     <span className="flex items-center gap-1.5">
                                                         <FileText className="h-3.5 w-3.5" />
-                                                        {PRODUCT_TYPE_LABELS[lead.product_type] || lead.product_type}
+                                                        {getLeadProductLabel(lead)}
                                                     </span>
                                                     {lead.inn && (
                                                         <span className="flex items-center gap-1.5">
@@ -718,7 +731,7 @@ export function AdminLeadsView() {
                                                 </div>
 
                                                 {lead.message && (
-                                                    <p className="mt-2 text-xs text-muted-foreground line-clamp-2 italic">
+                                                    <p className="mt-2 text-xs text-muted-foreground line-clamp-2 whitespace-pre-line italic">
                                                         Сообщение: {lead.message}
                                                     </p>
                                                 )}
