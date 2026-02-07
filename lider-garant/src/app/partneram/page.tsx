@@ -19,6 +19,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { submitLead } from "@/lib/leads";
 
 const formSchema = z.object({
   organization: z.string().min(2, "Введите название банка/организации"),
@@ -95,8 +96,26 @@ export default function Page() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const messageParts = [`Организация: ${data.organization.trim()}`];
+      const comment = data.comments?.trim();
+
+      if (comment) {
+        messageParts.push(`Комментарий: ${comment}`);
+      }
+
+      const result = await submitLead({
+        full_name: data.fullName.trim(),
+        phone: data.phone,
+        email: data.email.trim(),
+        source: "website_form",
+        form_name: "partners_modal",
+        message: messageParts.join("\n"),
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Произошла ошибка при отправке заявки.");
+        return;
+      }
 
       toast.success(
         "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
@@ -104,7 +123,7 @@ export default function Page() {
 
       reset();
       setModalOpen(false);
-    } catch (error) {
+    } catch {
       toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
     }
   };
