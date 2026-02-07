@@ -117,7 +117,7 @@ export default function Page() {
                 </p>
               </div>
               <Button asChild className="h-12 btn-three whitespace-nowrap">
-                <Link href="https://lk.lider-garant.ru/auth?ref=agents">Стать агентом</Link>
+                <Link href="https://lk.lider-garant.ru/auth?register=1&role=agent">Стать агентом</Link>
               </Button>
             </div>
           </section>

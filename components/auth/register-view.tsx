@@ -28,6 +28,7 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
 
   // Get referral ID from URL (?ref=123)
   const referralId = searchParams.get("ref")
+  const roleParam = searchParams.get("role")
 
   // Step management
   const [step, setStep] = useState<Step>("email")
@@ -55,8 +56,13 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
   useEffect(() => {
     if (referralId) {
       setRole("agent")
+      return
     }
-  }, [referralId])
+
+    if (roleParam === "agent" || roleParam === "client") {
+      setRole(roleParam)
+    }
+  }, [referralId, roleParam])
 
   // Clear auth error when inputs change
   useEffect(() => {

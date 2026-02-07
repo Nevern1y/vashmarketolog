@@ -13,16 +13,21 @@ function AuthContent() {
   const router = useRouter()
   const { isAuthenticated, isLoading } = useAuth()
   const refParam = searchParams.get("ref")
+  const registerParam = searchParams.get("register")
+  const shouldShowRegister =
+    Boolean(refParam) || registerParam === "1" || registerParam === "true"
 
-  // If user came from a referral link, show registration form immediately
-  const [view, setView] = useState<"login" | "register">(refParam ? "register" : "login")
+  // If user came from a referral link or direct registration link, show registration form immediately
+  const [view, setView] = useState<"login" | "register">(
+    shouldShowRegister ? "register" : "login",
+  )
 
-  // Update view when ref param changes (for direct navigation)
+  // Update view when query params change (for direct navigation)
   useEffect(() => {
-    if (refParam) {
+    if (shouldShowRegister) {
       setView("register")
     }
-  }, [refParam])
+  }, [shouldShowRegister])
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
