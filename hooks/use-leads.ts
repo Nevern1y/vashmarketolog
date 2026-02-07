@@ -86,10 +86,20 @@ export function useLeads() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const isMounted = useRef(true);
+    const isFetching = useRef(false);
 
-    const fetchLeads = useCallback(async () => {
+    const fetchLeads = useCallback(async (options?: { silent?: boolean }) => {
+        const silent = options?.silent ?? false;
+        if (isFetching.current) {
+            return;
+        }
+
+        isFetching.current = true;
+
         try {
-            setIsLoading(true);
+            if (!silent) {
+                setIsLoading(true);
+            }
             setError(null);
             // Handle both paginated response {results: Lead[]} and direct array Lead[]
             const response = await api.get<Lead[] | { results: Lead[] }>('/applications/admin/leads/');
@@ -104,17 +114,24 @@ export function useLeads() {
                 setError(apiError.message || 'Ошибка загрузки лидов');
             }
         } finally {
-            if (isMounted.current) {
+            if (!silent && isMounted.current) {
                 setIsLoading(false);
             }
+            isFetching.current = false;
         }
     }, []);
 
     useEffect(() => {
         isMounted.current = true;
         fetchLeads();
+
+        const intervalId = window.setInterval(() => {
+            fetchLeads({ silent: true });
+        }, 15000);
+
         return () => {
             isMounted.current = false;
+            window.clearInterval(intervalId);
         };
     }, [fetchLeads]);
 
