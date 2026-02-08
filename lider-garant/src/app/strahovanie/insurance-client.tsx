@@ -630,6 +630,7 @@ export default function Page() {
                 fill
                 className="object-cover object-center rounded-3xl"
                 sizes="(max-width: 768px) 100vw, 50vw"
+                unoptimized
                 priority
               />
             </div>
