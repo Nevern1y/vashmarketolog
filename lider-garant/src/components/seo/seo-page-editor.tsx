@@ -249,6 +249,19 @@ const dedupePopularSearches = (items: PopularSearchItem[]) => {
 
 const isLinkLikeValue = (value: string) => /^(\/|#|https?:\/\/)/i.test(value)
 
+const linkToDefaultText = (value: string) => {
+    const clean = value
+        .trim()
+        .replace(/^https?:\/\/[^/]+/i, "")
+        .replace(/^\/+/, "")
+        .replace(/^#/, "")
+        .replace(/[\-_]+/g, " ")
+        .trim()
+
+    if (!clean) return "По ссылке"
+    return clean.charAt(0).toUpperCase() + clean.slice(1)
+}
+
 const buildPopularSearchItem = (textRaw: string, hrefRaw: string): PopularSearchItem | null => {
     const text = textRaw.trim()
     const href = hrefRaw.trim()
@@ -260,7 +273,7 @@ const buildPopularSearchItem = (textRaw: string, hrefRaw: string): PopularSearch
     // UX fallback: if user pasted URL/path in "Текст запроса" and did not set href,
     // treat that value as both text and href.
     if (text && isLinkLikeValue(text) && (!href || href === "#application")) {
-        return { text, href: text }
+        return { text: linkToDefaultText(text), href: text }
     }
 
     return {
@@ -846,6 +859,12 @@ export function SeoPageEditor({
                                         <Input
                                             value={newSearchTerm}
                                             onChange={(e) => setNewSearchTerm(e.target.value)}
+                                            onBlur={(e) => {
+                                                const value = e.target.value.trim()
+                                                if (isLinkLikeValue(value) && (!newSearchHref.trim() || newSearchHref.trim() === "#application")) {
+                                                    setNewSearchHref(value)
+                                                }
+                                            }}
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
                                             placeholder="Текст запроса (что видит пользователь)"
                                             className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"

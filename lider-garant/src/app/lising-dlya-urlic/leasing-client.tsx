@@ -349,7 +349,6 @@ export default function Page() {
                       type="number"
                       placeholder="Сумма"
                       min={1}
-                      step={1000}
                       className={`bg-white border-gray-300 text-black px-4 py-2.5 text-sm md:text-base rounded-md ${
                         errors.amount ? "border-red-500" : ""
                       }`}
