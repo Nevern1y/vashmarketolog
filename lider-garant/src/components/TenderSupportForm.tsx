@@ -60,6 +60,12 @@ const services = [
   "Финансирование контрактов",
 ];
 
+const TENDER_FIELD_CLASSNAME =
+  "h-11 w-full rounded-xl border-white/20 bg-white/5 text-white placeholder:text-white/55 focus-visible:border-primary/70 focus-visible:ring-primary/30 focus-visible:ring-[3px] backdrop-blur-sm";
+
+const TENDER_TEXTAREA_CLASSNAME =
+  "min-h-[110px] resize-none rounded-xl border-white/20 bg-white/5 text-white placeholder:text-white/55 focus-visible:border-primary/70 focus-visible:ring-primary/30 focus-visible:ring-[3px] backdrop-blur-sm";
+
 export default function TenderSupportForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -142,15 +148,15 @@ export default function TenderSupportForm() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-foreground/10 bg-background/90 p-6 backdrop-blur-md shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-8">
-            <h2 className="mb-6 text-center text-2xl font-bold text-foreground md:text-3xl">
+          <div className="rounded-3xl border border-white/15 bg-linear-to-br from-indigo-900/70 via-[#1a1f5f]/75 to-[#132a5f]/75 p-6 backdrop-blur-md shadow-[0_20px_50px_-35px_rgba(15,23,42,0.55)] md:p-8">
+            <h2 className="mb-6 text-center text-2xl font-bold text-white md:text-3xl">
               Форма обратной связи
             </h2>
 
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
+                className="space-y-4 tender-support-form"
               >
                 <FormField
                   control={form.control}
@@ -163,13 +169,17 @@ export default function TenderSupportForm() {
                         defaultValue={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-11 w-full rounded-xl bg-background/60 border-foreground/15 text-foreground focus-visible:border-primary/60 focus-visible:ring-primary/30 focus-visible:ring-[3px]">
+                          <SelectTrigger className={TENDER_FIELD_CLASSNAME}>
                             <SelectValue placeholder="Тендерное сопровождение" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="border-white/15 bg-[#1a1a2e] text-white">
                           {services.map((service) => (
-                            <SelectItem key={service} value={service}>
+                            <SelectItem
+                              key={service}
+                              value={service}
+                              className="focus:bg-white/10 focus:text-white"
+                            >
                               {service}
                             </SelectItem>
                           ))}
@@ -189,7 +199,7 @@ export default function TenderSupportForm() {
                       <FormControl>
                         <Input
                           placeholder="Иванов Иван Иванович"
-                          className="h-11"
+                          className={TENDER_FIELD_CLASSNAME}
                           {...field}
                         />
                       </FormControl>
@@ -205,7 +215,7 @@ export default function TenderSupportForm() {
                     <FormItem>
                       <FormLabel className="sr-only">Телефон</FormLabel>
                       <FormControl>
-                        <PhoneInput className="h-11" {...field} />
+                        <PhoneInput className={TENDER_FIELD_CLASSNAME} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -222,7 +232,7 @@ export default function TenderSupportForm() {
                         <Input
                           type="email"
                           placeholder="ivanov@email.ru"
-                          className="h-11"
+                          className={TENDER_FIELD_CLASSNAME}
                           {...field}
                         />
                       </FormControl>
@@ -240,7 +250,7 @@ export default function TenderSupportForm() {
                       <FormControl>
                         <Textarea
                           placeholder="Подберите мне закупки в отрасли: ..."
-                          className="min-h-[110px] resize-none"
+                          className={TENDER_TEXTAREA_CLASSNAME}
                           {...field}
                         />
                       </FormControl>
@@ -262,7 +272,7 @@ export default function TenderSupportForm() {
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel className="text-xs font-normal text-foreground/70 md:text-sm">
+                          <FormLabel className="text-xs font-normal text-white/80 md:text-sm">
                             Я даю согласие на обработку моих персональных данных
                           </FormLabel>
                         </div>
@@ -282,7 +292,7 @@ export default function TenderSupportForm() {
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel className="text-xs font-normal text-foreground/70 md:text-sm">
+                          <FormLabel className="text-xs font-normal text-white/80 md:text-sm">
                             Я согласен получать новости, рассылки и звонки от
                             Лидер гарант
                           </FormLabel>

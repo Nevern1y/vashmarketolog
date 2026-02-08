@@ -444,3 +444,20 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklab, var(--primary) 80%, black);
 }
+
+.tender-support-form input,
+.tender-support-form textarea {
+  color: #fff;
+  caret-color: #fff;
+}
+
+.tender-support-form input:-webkit-autofill,
+.tender-support-form input:-webkit-autofill:hover,
+.tender-support-form input:-webkit-autofill:focus,
+.tender-support-form textarea:-webkit-autofill,
+.tender-support-form textarea:-webkit-autofill:hover,
+.tender-support-form textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.08) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}

@@ -32,7 +32,7 @@ import {
     Globe
 } from "lucide-react"
 import { SeoPageEditor, type SeoPage } from "./seo-page-editor"
-import { api } from "../../lib/api"
+import { api, type ApiError } from "../../lib/api"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -131,8 +131,9 @@ export function SeoDashboard() {
             }
             return true
         } catch (error) {
+            const apiError = error as ApiError
             console.error("Failed to save page:", error)
-            toast.error("Ошибка при сохранении")
+            toast.error(apiError?.message || "Ошибка при сохранении")
             return false
         } finally {
             setIsSaving(false)

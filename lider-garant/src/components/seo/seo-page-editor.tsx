@@ -235,6 +235,40 @@ const normalizePopularSearches = (
         .filter((item): item is PopularSearchItem => item !== null)
 }
 
+const dedupePopularSearches = (items: PopularSearchItem[]) => {
+    const seen = new Set<string>()
+    return items.filter((item) => {
+        const key = `${item.text}|||${item.href}`
+        if (seen.has(key)) {
+            return false
+        }
+        seen.add(key)
+        return true
+    })
+}
+
+const isLinkLikeValue = (value: string) => /^(\/|#|https?:\/\/)/i.test(value)
+
+const buildPopularSearchItem = (textRaw: string, hrefRaw: string): PopularSearchItem | null => {
+    const text = textRaw.trim()
+    const href = hrefRaw.trim()
+
+    if (!text && !href) {
+        return null
+    }
+
+    // UX fallback: if user pasted URL/path in "Текст запроса" and did not set href,
+    // treat that value as both text and href.
+    if (text && isLinkLikeValue(text) && (!href || href === "#application")) {
+        return { text, href: text }
+    }
+
+    return {
+        text: text || href,
+        href: href || "#application",
+    }
+}
+
 const normalizeLayoutTemplate = (templateName?: string) => {
     return templateName === "create-page" ? "create-page" : "none"
 }
@@ -315,13 +349,20 @@ export function SeoPageEditor({
     const handleSubmit = async () => {
         if (!formData.slug?.trim()) return
 
+        const pendingSearchItem = buildPopularSearchItem(newSearchTerm, newSearchHref)
+        const normalizedSearches = normalizePopularSearches(formData.popular_searches as Array<PopularSearchItem | string>)
+        const finalPopularSearches = dedupePopularSearches([
+            ...normalizedSearches,
+            ...(pendingSearchItem ? [pendingSearchItem] : []),
+        ])
+
         const payload: Partial<SeoPage> = {
             ...formData,
             slug: normalizedSlug,
             template_name: formData.template_name === "none" ? "" : (formData.template_name || ""),
             autofill_template:
                 formData.autofill_template === "none" ? "" : (formData.autofill_template || ""),
-            popular_searches: normalizePopularSearches(formData.popular_searches as Array<PopularSearchItem | string>),
+            popular_searches: finalPopularSearches,
         }
 
         const success = await onSave(payload)
@@ -352,16 +393,16 @@ export function SeoPageEditor({
 
     // Popular Searches Management
     const addSearchTerm = () => {
-        if (newSearchTerm.trim()) {
-            const href = newSearchHref.trim() || "#application"
-            const newItem: PopularSearchItem = { text: newSearchTerm.trim(), href }
-            setFormData({
-                ...formData,
-                popular_searches: [...(formData.popular_searches || []), newItem]
-            })
-            setNewSearchTerm("")
-            setNewSearchHref("#application")
-        }
+        const newItem = buildPopularSearchItem(newSearchTerm, newSearchHref)
+        if (!newItem) return
+
+        const normalizedSearches = normalizePopularSearches(formData.popular_searches as Array<PopularSearchItem | string>)
+        setFormData({
+            ...formData,
+            popular_searches: dedupePopularSearches([...normalizedSearches, newItem]),
+        })
+        setNewSearchTerm("")
+        setNewSearchHref("#application")
     }
 
     const updateSearchTerm = (index: number, field: 'text' | 'href', value: string) => {
@@ -426,7 +467,7 @@ export function SeoPageEditor({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white sm:rounded-2xl shadow-2xl">
+            <DialogContent className="w-[96vw] max-w-[1200px] max-h-[92vh] overflow-hidden flex flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white sm:rounded-2xl shadow-2xl p-4 sm:p-6">
                 <DialogHeader className="flex-shrink-0 pb-4 border-b border-slate-700/50">
                     <DialogTitle className="text-xl font-bold text-white">
                         {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}
@@ -435,38 +476,38 @@ export function SeoPageEditor({
 
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-12 p-1 gap-1 rounded-xl mb-4">
+                        <TabsList className="flex-shrink-0 grid grid-cols-2 md:grid-cols-5 w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4">
                             <TabsTrigger
                                 value="main"
-                                className="flex-1 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-sm transition-all flex items-center justify-center gap-1.5 px-3"
+                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <Settings className="w-4 h-4 shrink-0" />
                                 <span>Основное</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="meta"
-                                className="flex-1 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-sm transition-all flex items-center justify-center gap-1.5 px-3"
+                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <Tags className="w-4 h-4 shrink-0" />
                                 <span>Мета-теги</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="content"
-                                className="flex-1 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-sm transition-all flex items-center justify-center gap-1.5 px-3"
+                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <FileText className="w-4 h-4 shrink-0" />
                                 <span>Контент</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="faq"
-                                className="flex-1 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-sm transition-all flex items-center justify-center gap-1.5 px-3"
+                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <HelpCircle className="w-4 h-4 shrink-0" />
                                 <span>FAQ</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="offers"
-                                className="flex-1 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-sm transition-all flex items-center justify-center gap-1.5 px-3"
+                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <Building2 className="w-4 h-4 shrink-0" />
                                 <span>Предложения</span>
@@ -476,7 +517,7 @@ export function SeoPageEditor({
                         <div className="flex-1 overflow-y-auto pr-2">
                             {/* MAIN TAB */}
                             <TabsContent value="main" className="space-y-5 mt-0 h-full">
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300 text-sm font-medium">URL Path (Slug) *</Label>
                                         <Input
@@ -572,7 +613,7 @@ export function SeoPageEditor({
                                     <p className="text-xs text-slate-400 mt-2">Пресет заполняет мета-теги, контент, FAQ и блок «Часто ищут» только по кнопке «Применить».</p>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300 text-sm font-medium">Приоритет</Label>
                                         <Input
@@ -655,7 +696,7 @@ export function SeoPageEditor({
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300 text-sm font-medium">H2 Заголовок</Label>
                                         <Input
@@ -789,6 +830,7 @@ export function SeoPageEditor({
                                         </Label>
                                     </div>
                                     <p className="text-xs text-slate-400">Для каждого элемента можно задать ссылку: #якорь, /seo-slug или https://...</p>
+                                    <p className="text-xs text-slate-500">Заполните поля и нажмите +. Если забыли, введённый элемент добавится автоматически при сохранении.</p>
 
                                     <datalist id="seo-page-links">
                                         {availablePages
@@ -805,14 +847,15 @@ export function SeoPageEditor({
                                             value={newSearchTerm}
                                             onChange={(e) => setNewSearchTerm(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
-                                            placeholder="Текст запроса"
+                                            placeholder="Текст запроса (что видит пользователь)"
                                             className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
                                         />
                                         <Input
                                             value={newSearchHref}
                                             onChange={(e) => setNewSearchHref(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
                                             list="seo-page-links"
-                                            placeholder="/slug или #application"
+                                            placeholder="Ссылка: /slug, #application или https://..."
                                             className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
                                         />
                                         <Button type="button" onClick={addSearchTerm} size="sm" className="bg-[#3ce8d1] text-[#0f0f1a] hover:bg-[#3ce8d1]/90 h-9 px-3 rounded-lg">
@@ -940,7 +983,7 @@ export function SeoPageEditor({
                                     </Button>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                                     {(formData.bank_offers || []).length === 0 ? (
                                         <div className="col-span-3 text-center py-8 text-slate-500 bg-[#1a1a2e]/50 rounded-xl border border-dashed border-slate-700">
                                             <Building2 className="w-10 h-10 mx-auto mb-2 opacity-40" />
