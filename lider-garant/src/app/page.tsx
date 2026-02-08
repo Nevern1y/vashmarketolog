@@ -106,7 +106,7 @@ export default function Home() {
                 онлайн
               </p>
               <div className="flex flex-col gap-5 items-start md:flex-row md:items-center">
-                <HashLink href="#application" className="learn-more">
+                <HashLink href="#application" className="learn-more learn-more-wide">
                   <span className="circle">
                     <span className="icon arrow"></span>
                   </span>

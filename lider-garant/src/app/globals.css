@@ -276,11 +276,13 @@
 
 .learn-more-wide {
   width: 18rem;
+  max-width: 100%;
 }
 
 @media (min-width: 768px) {
   .learn-more-wide {
     width: 20rem;
+    max-width: 100%;
   }
 }
 
