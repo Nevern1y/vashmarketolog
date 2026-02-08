@@ -28,14 +28,14 @@ const ContactMultiButton = ({ onOpenCallModal }: ContactMultiButtonProps) => {
           "https://max.ru/u/f9LHodD0cOIXEPJot15IEj_2EIeaAZsKSjeCGIcybYIybHk3HTuHQ3LCd-Y",
           "_blank",
         );
-    },
+      },
       color: "bg-primary",
     },
     {
       icon: Send,
       label: "Telegram",
       action: () => {
-        window.open("https://t.me/lidergarant", "_blank");
+        window.open("https://t.me/lider_garant", "_blank");
       },
       color: "bg-primary",
     },

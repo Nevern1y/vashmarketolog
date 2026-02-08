@@ -234,9 +234,9 @@ export default function Page() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16">
+    <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-10 md:py-16">
       <FadeIn>
-        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-indigo-500/10 via-sky-500/10 to-emerald-500/10 p-8 md:p-12">
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-linear-to-br from-indigo-500/10 via-sky-500/10 to-emerald-500/10 p-4 sm:p-8 md:p-12">
           <div className="absolute inset-0 opacity-10">
             <Image
               src="/economic-activity.jpg"
@@ -246,10 +246,10 @@ export default function Page() {
             />
           </div>
 
-          <div className="relative grid items-center gap-8 md:grid-cols-2">
-            <div className="space-y-6">
+          <div className="relative grid items-center gap-6 sm:gap-8 md:grid-cols-2">
+            <div className="space-y-4 sm:space-y-6">
               <div className="space-y-3">
-                <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight">
                   <span className="text-foreground">Международные</span>
                   <br />
                   <span className="text-foreground">платежи </span>
@@ -286,20 +286,23 @@ export default function Page() {
             </div>
 
             <div className="relative">
-              <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
-                <h3 className="mb-4 text-xl font-semibold text-foreground">
+              <div className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 sm:p-6">
+                <h3 className="mb-3 sm:mb-4 text-lg sm:text-xl font-semibold text-foreground">
                   Получите предложение
                 </h3>
-                <form className="space-y-4" onSubmit={handleFormSubmit}>
-                  <div className="space-y-2">
+                <form
+                  className="space-y-3 sm:space-y-4"
+                  onSubmit={handleFormSubmit}
+                >
+                  <div className="space-y-1.5 sm:space-y-2">
                     <Label
                       htmlFor="from-currency"
-                      className="text-sm font-medium text-foreground/90"
+                      className="text-xs sm:text-sm font-medium text-foreground/90"
                     >
                       Валюта отправления
                     </Label>
                     <Select>
-                      <SelectTrigger className="h-11 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
+                      <SelectTrigger className="h-10 sm:h-11 w-full rounded-full border border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
                         <SelectValue placeholder="Выберите валюту" />
                       </SelectTrigger>
                       <SelectContent>
@@ -316,15 +319,15 @@ export default function Page() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     <Label
                       htmlFor="to-currency"
-                      className="text-sm font-medium text-foreground/90"
+                      className="text-xs sm:text-sm font-medium text-foreground/90"
                     >
                       Валюта получения
                     </Label>
                     <Select>
-                      <SelectTrigger className="h-11 w-full rounded-full border border-foreground/15 bg-background/90 px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
+                      <SelectTrigger className="h-10 sm:h-11 w-full rounded-full border border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
                         <SelectValue placeholder="Выберите валюту" />
                       </SelectTrigger>
                       <SelectContent>
@@ -341,10 +344,10 @@ export default function Page() {
                     </Select>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     <Label
                       htmlFor="amount"
-                      className="text-sm font-medium text-foreground/90"
+                      className="text-xs sm:text-sm font-medium text-foreground/90"
                     >
                       Сумма к оплате
                     </Label>
@@ -352,24 +355,27 @@ export default function Page() {
                       id="amount"
                       type="number"
                       placeholder="Введите сумму"
-                      className="h-11 rounded-full border text-foreground border-foreground/15 bg-background/90 px-4 text-sm"
+                      className="h-10 sm:h-11 rounded-full border text-foreground border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm"
                     />
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     <Label
                       htmlFor="phone"
-                      className="text-sm font-medium text-foreground/90"
+                      className="text-xs sm:text-sm font-medium text-foreground/90"
                     >
                       Телефон
                     </Label>
                     <PhoneInput
                       id="phone"
-                      className="h-11 rounded-full text-foreground border border-foreground/15 bg-background/90 px-4 text-sm"
+                      className="h-10 sm:h-11 rounded-full text-foreground border border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm"
                     />
                   </div>
 
-                  <Button type="submit" className="h-12 btn-three w-full">
+                  <Button
+                    type="submit"
+                    className="h-10 sm:h-12 btn-three w-full text-sm sm:text-base"
+                  >
                     Получить предложение
                   </Button>
                 </form>

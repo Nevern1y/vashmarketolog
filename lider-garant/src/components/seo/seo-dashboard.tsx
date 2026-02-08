@@ -284,6 +284,7 @@ export function SeoDashboard() {
                 page={editingPage}
                 onSave={handleSave}
                 isLoading={isSaving}
+                availablePages={pages.map((item) => ({ slug: item.slug, h1_title: item.h1_title }))}
             />
 
             <Dialog

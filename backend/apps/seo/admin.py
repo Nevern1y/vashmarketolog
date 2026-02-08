@@ -8,14 +8,18 @@ from .utils.templates import SEO_TEMPLATES
 @admin.register(SeoPage)
 class SeoPageAdmin(admin.ModelAdmin):
     list_display = ('slug', 'meta_title', 'page_type', 'is_published', 'updated_at', 'preview_link')
-    list_filter = ('is_published', 'page_type', 'template_name')
+    list_filter = ('is_published', 'page_type', 'template_name', 'autofill_template')
     search_fields = ('slug', 'meta_title', 'h1_title')
     prepopulated_fields = {'slug': ('h1_title',)}
     readonly_fields = ('created_at', 'updated_at', 'preview_link')
     
     fieldsets = (
         ('Основное', {
-            'fields': ('slug', 'page_type', 'template_name', 'is_published', 'priority')
+            'fields': ('slug', 'page_type', 'is_published', 'priority')
+        }),
+        ('Шаблоны', {
+            'fields': ('template_name', 'autofill_template'),
+            'description': 'template_name: layout шаблон (например create-page). autofill_template: контентный пресет для автозаполнения.'
         }),
         ('SEO Метатеги', {
             'fields': ('meta_title', 'meta_description', 'meta_keywords'),
@@ -23,6 +27,15 @@ class SeoPageAdmin(admin.ModelAdmin):
         }),
         ('Контент страницы', {
             'fields': ('h1_title', 'h2_title', 'h3_title', 'hero_image', 'main_description')
+        }),
+        ('Шаблон create-page', {
+            'fields': (
+                'hero_button_text',
+                'hero_button_href',
+                'best_offers_title',
+                'application_form_title',
+                'application_button_text',
+            )
         }),
         ('Структурированные данные', {
             'fields': ('banks', 'faq', 'popular_searches', 'bank_offers'),
@@ -75,6 +88,12 @@ class SeoPageAdmin(admin.ModelAdmin):
                 h3_title=page.h3_title,
                 hero_image=page.hero_image,
                 main_description=page.main_description,
+                hero_button_text=page.hero_button_text,
+                hero_button_href=page.hero_button_href,
+                best_offers_title=page.best_offers_title,
+                application_form_title=page.application_form_title,
+                application_button_text=page.application_button_text,
+                autofill_template=page.autofill_template,
                 faq=page.faq,
                 popular_searches=page.popular_searches,
                 bank_offers=page.bank_offers,
@@ -113,13 +132,27 @@ class SeoPageAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """Применить шаблон при создании новой страницы"""
-        if not change and obj.template_name:
+        if obj.template_name in SEO_TEMPLATES and not obj.autofill_template:
+            # Backward compatibility for legacy manual input in template_name
+            obj.autofill_template = obj.template_name
+            obj.template_name = ''
+
+        should_apply_template = bool(obj.autofill_template)
+        if not should_apply_template and obj.template_name in SEO_TEMPLATES:
+            # Backward compatibility for legacy data where presets were saved in template_name
+            should_apply_template = True
+
+        if not change and should_apply_template:
             self._apply_template(request, obj)
         super().save_model(request, obj, form, change)
     
     def _apply_template(self, request, obj):
         """Заполнить поля на основе выбранного шаблона"""
-        template = SEO_TEMPLATES.get(obj.template_name)
+        template_key = obj.autofill_template
+        if not template_key and obj.template_name in SEO_TEMPLATES:
+            template_key = obj.template_name
+
+        template = SEO_TEMPLATES.get(template_key)
         if not template:
             return
         
@@ -141,6 +174,6 @@ class SeoPageAdmin(admin.ModelAdmin):
         
         self.message_user(
             request,
-            f'Применён шаблон "{obj.template_name}" к странице',
+            f'Применён шаблон "{template_key}" к странице',
             messages.INFO
         )

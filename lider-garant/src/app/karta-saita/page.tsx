@@ -25,7 +25,7 @@ export default function SitemapPage() {
       title: "Услуги",
       links: [
         {
-          href: "/tendernoe-soprovojdenie",
+          href: "/tendernoe-soprovozhdenie",
           label: "Тендерное сопровождение",
         },
         { href: "/proverka-contragentov", label: "Проверка контрагентов" },

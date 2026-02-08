@@ -1,23 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Sun, Moon } from "lucide-react";
+
+function getInitialTheme(): "light" | "dark" {
+  if (typeof window === "undefined") return "light";
+  const stored = localStorage.getItem("theme") as "light" | "dark" | null;
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return stored || (prefersDark ? "dark" : "light");
+}
 
 export default function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">(getInitialTheme);
 
   useEffect(() => {
     setMounted(true);
-
-    const stored = localStorage.getItem("theme") as "light" | "dark" | null;
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-
-    const initialTheme = stored || "dark";
-    setTheme(initialTheme);
-    document.documentElement.setAttribute("data-theme", initialTheme);
+    document.documentElement.setAttribute("data-theme", theme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -27,9 +27,9 @@ export default function ThemeToggle() {
     localStorage.setItem("theme", theme);
   }, [theme, mounted]);
 
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  }, []);
 
   if (!mounted) {
     return (

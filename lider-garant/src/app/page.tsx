@@ -8,6 +8,7 @@ import FadeIn from "@/components/FadeIn";
 import Link from "next/link";
 import BankLogosSlider from "@/components/BankLogosSlider";
 import { FullAnimation } from "@/components/HeroCardsAnimation";
+import HashLink from "@/components/HashLink";
 
 export default function Home() {
   const products = [
@@ -105,14 +106,14 @@ export default function Home() {
                 онлайн
               </p>
               <div className="flex flex-col gap-5 items-start md:flex-row md:items-center">
-                <Link href="#application" className="learn-more learn-more-wide">
+                <HashLink href="#application" className="learn-more">
                   <span className="circle">
                     <span className="icon arrow"></span>
                   </span>
                   <span className="button-text text-sm md:text-base">
                     Получить предложение
                   </span>
-                </Link>
+                </HashLink>
               </div>
             </div>
 

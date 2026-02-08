@@ -1,8 +1,10 @@
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSeoPage } from "@/lib/seo-api";
 import { generateMetadataFromSeoPage } from "@/utils/metadata";
+import SeoTemplatePage from "@/components/seo/seo-template-page";
 
 interface Props {
     params: Promise<{
@@ -38,11 +40,41 @@ export default async function DynamicSeoPage({ params }: Props) {
         notFound();
     }
 
+    const popularSearches = (page.popular_searches || [])
+        .map((item) => {
+            if (typeof item === "string") {
+                const text = item.trim()
+                return text ? { text, href: "#application" } : null
+            }
+
+            const text = String(item?.text || "").trim()
+            if (!text) return null
+
+            return {
+                text,
+                href: String(item?.href || "#application").trim() || "#application",
+            }
+        })
+        .filter((item): item is { text: string; href: string } => item !== null)
+
+    if (page.template_name === "create-page") {
+        return (
+            <SeoTemplatePage
+                title={page.h1_title || "Заголовок страницы"}
+                description={page.main_description || "Описание услуги"}
+                buttonText={page.hero_button_text}
+                buttonHref={page.hero_button_href || "#application"}
+                bestOffersTitle={page.best_offers_title}
+                applicationFormTitle={page.application_form_title}
+                applicationButtonText={page.application_button_text}
+                offers={page.bank_offers}
+                popularSearches={popularSearches}
+            />
+        );
+    }
+
     const bankOffers = page.bank_offers || [];
     const faqItems = page.faq || [];
-    const popularSearches = (page.popular_searches || []).map((item) =>
-        typeof item === "string" ? { text: item } : item
-    );
 
     return (
         <div className="container mx-auto px-4 py-8 lg:py-12">
@@ -147,12 +179,25 @@ export default async function DynamicSeoPage({ params }: Props) {
                         </h2>
                         <div className="flex flex-wrap gap-2">
                             {popularSearches.map((item: { text: string; href?: string }, idx: number) => (
-                                <span
-                                    key={idx}
-                                    className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors cursor-default"
-                                >
-                                    {item.text}
-                                </span>
+                                item.href?.startsWith("http://") || item.href?.startsWith("https://") ? (
+                                    <a
+                                        key={idx}
+                                        href={item.href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors"
+                                    >
+                                        {item.text}
+                                    </a>
+                                ) : (
+                                    <Link
+                                        key={idx}
+                                        href={item.href || "#application"}
+                                        className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors"
+                                    >
+                                        {item.text}
+                                    </Link>
+                                )
                             ))}
                         </div>
                     </section>

@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from rest_framework import serializers
 from .models import SeoPage
 from apps.bank_conditions.serializers import BankSerializer
@@ -20,10 +22,28 @@ class SeoPageSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'slug', 'meta_title', 'meta_description', 'meta_keywords',
             'h1_title', 'h2_title', 'h3_title', 'hero_image', 'main_description',
+            'hero_button_text', 'hero_button_href', 'best_offers_title',
+            'application_form_title', 'application_button_text',
             'faq', 'popular_searches', 'bank_offers', 'banks', 'is_published',
-            'page_type', 'template_name', 'priority', 'created_at', 'updated_at'
+            'page_type', 'template_name', 'autofill_template', 'priority', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'banks']
+
+    @staticmethod
+    def _is_valid_popular_search_href(href: str) -> bool:
+        """
+        Allowed href formats:
+        - hash links (#application)
+        - local links (/kredity-dlya-biznesa)
+        - absolute http/https links
+        """
+        if href.startswith('#'):
+            return True
+        if href.startswith('/'):
+            return True
+
+        parsed = urlparse(href)
+        return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -50,7 +70,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
     def validate_popular_searches(self, value):
         """
         Ensure popular_searches is a list of {text, href} objects or strings.
-        Normalizes strings to {text: string, href: "#"}.
+        Normalizes strings to {text: string, href: "#application"}.
         """
         if value is None:
             return []
@@ -60,15 +80,25 @@ class SeoPageSerializer(serializers.ModelSerializer):
         result = []
         for item in value:
             if isinstance(item, str):
+                text = item.strip()
+                if not text:
+                    continue
                 # Normalize string to object format
-                result.append({'text': item, 'href': '#'})
+                result.append({'text': text, 'href': '#application'})
             elif isinstance(item, dict):
                 if 'text' not in item:
                     raise serializers.ValidationError("Each popular search object must have 'text'")
-                # Ensure href exists
-                if 'href' not in item:
-                    item['href'] = '#'
-                result.append(item)
+                text = str(item.get('text', '')).strip()
+                if not text:
+                    raise serializers.ValidationError("Popular search text cannot be empty")
+
+                href = str(item.get('href') or '#application').strip()
+                if not self._is_valid_popular_search_href(href):
+                    raise serializers.ValidationError(
+                        "popular_searches.href must be a hash (#...), local path (/...), or http/https URL"
+                    )
+
+                result.append({'text': text, 'href': href})
             else:
                 raise serializers.ValidationError("Each popular search must be a string or {text, href} object")
         return result

@@ -16,8 +16,14 @@ export interface SeoPageData {
     h3_title?: string;
     hero_image?: string | null;
     main_description: string;
+    hero_button_text?: string;
+    hero_button_href?: string;
+    best_offers_title?: string;
+    application_form_title?: string;
+    application_button_text?: string;
     page_type: 'landing' | 'product' | 'custom';
     template_name: string;
+    autofill_template?: string;
     is_published: boolean;
     priority: number;
     faq?: Array<{ question: string; answer: string }>;

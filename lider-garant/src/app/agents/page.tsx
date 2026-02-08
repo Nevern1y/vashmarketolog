@@ -4,12 +4,6 @@ import FadeIn from "@/components/FadeIn";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-const entrepreneurs = [
-  "Быстро подберем лучшие условия по банковским гарантиям, кредитам, лизингу, страхованию.",
-  "Предоставим тендерное сопровождение и поможем с РКО и ВЭД.",
-  "решим даже сложные вопросы с оформлением банковских продуктов.",
-];
-
 const specialists = [
   {
     title: "Закрепляем заявки",
@@ -102,25 +96,23 @@ export default function Page() {
               </div>
             ))}
           </div>
-
         </section>
-        
-          <section className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="max-w-2xl">
-                <h3 className="text-xl font-semibold text-foreground">
-                  Хотите стать агентом?
-                </h3>
-                <p className="mt-2 text-sm text-foreground/70">
-                  Зарегистрируйтесь в системе и получайте заявки, поддержку
-                  менеджера и доступ к предложениям банков-партнёров.
-                </p>
-              </div>
-              <Button asChild className="h-12 btn-three whitespace-nowrap">
-                <Link href="https://lk.lider-garant.ru/auth?register=1&role=agent">Стать агентом</Link>
-              </Button>
+        <section className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-2xl">
+              <h3 className="text-xl font-semibold text-foreground">
+                Хотите стать агентом?
+              </h3>
+              <p className="mt-2 text-sm text-foreground/70">
+                Зарегистрируйтесь в системе и получайте заявки, поддержку
+                менеджера и доступ к предложениям банков-партнёров.
+              </p>
             </div>
-          </section>
+            <Button asChild className="h-12 btn-three whitespace-nowrap">
+              <Link href="https://lk.lider-garant.ru/auth">Стать агентом</Link>
+            </Button>
+          </div>
+        </section>
       </FadeIn>
     </main>
   );

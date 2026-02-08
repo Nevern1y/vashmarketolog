@@ -48,7 +48,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function ApplicationFormSection() {
+interface ApplicationFormSectionProps {
+  title?: string;
+  submitButtonText?: string;
+}
+
+export default function ApplicationFormSection({
+  title = "Оставьте заявку",
+  submitButtonText = "Оставить заявку",
+}: ApplicationFormSectionProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -88,7 +96,7 @@ export default function ApplicationFormSection() {
         <div className="relative grid items-center gap-10 px-6 py-10 md:px-12 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <h3 className="mb-6 text-3xl font-semibold leading-tight text-primary md:text-[40px]">
-              Оставьте заявку
+              {title}
             </h3>
             <div className="mb-6 flex flex-wrap gap-3">
               {products.map((p) => (
@@ -237,7 +245,7 @@ export default function ApplicationFormSection() {
                     type="submit"
                     className="h-12 btn-three px-6 text-sm font-semibold"
                   >
-                    Оставить заявку
+                    {submitButtonText}
                   </Button>
                   <p className="text-xs text-foreground/70">
                     Находим только самые лучшие предложения, в которых сами

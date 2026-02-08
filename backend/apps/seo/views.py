@@ -1,7 +1,7 @@
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from .models import SeoPage
 from .serializers import SeoPageSerializer
 from apps.users.permissions import IsSeoManagerOrAdmin
@@ -103,7 +103,9 @@ class SeoPageViewSet(viewsets.ModelViewSet):
         """
         template_name = request.query_params.get('template')
         if template_name:
-            pages = self.queryset.filter(template_name=template_name)
+            pages = self.get_queryset().filter(
+                Q(template_name=template_name) | Q(autofill_template=template_name)
+            )
             serializer = self.get_serializer(pages, many=True)
             return Response(serializer.data)
         

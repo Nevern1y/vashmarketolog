@@ -2,7 +2,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "./ThemeToggle";
-import { Send, MessageCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export default function SiteFooter() {
@@ -64,25 +63,33 @@ export default function SiteFooter() {
             <div className="flex items-center gap-2 mt-3">
               <ThemeToggle />
               <a
-                href="#"
+                href="https://t.me/lider_garant"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Telegram"
                 className="rounded-xl"
               >
-                <img src="/tg-logo.webp" alt="" className="w-12 h-12" />
+                <Image
+                  src="/tg-logo.webp"
+                  alt=""
+                  className="w-12 h-12"
+                  width={150}
+                  height={150}
+                />
               </a>
               <a
-                href="#"
+                href="https://vk.com/lider_garant"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="VK"
                 className=""
               >
-                <img
+                <Image
                   src="/vk-logo.webp"
                   alt=""
                   className="w-10 h-10 rounded-xl"
+                  width={150}
+                  height={150}
                 />
               </a>
             </div>
@@ -168,7 +175,7 @@ export default function SiteFooter() {
               </li>
               <li>
                 <Link
-                  href="/tendernoe-soprovojdenie"
+                  href="/tendernoe-soprovozhdenie"
                   className="nav-link link-gradient"
                 >
                   Тендерное сопровождение

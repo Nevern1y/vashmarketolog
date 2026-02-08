@@ -7,11 +7,19 @@ import { Phone } from "lucide-react";
 import { useState } from "react";
 import VacancyModal from "@/components/VacancyModal";
 
+interface Vacancy {
+  id: number;
+  title: string;
+  salary: string;
+  image: string;
+  description: string;
+}
+
 export default function Page() {
-  const [selectedVacancy, setSelectedVacancy] = useState<any>(null);
+  const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const openVacancyModal = (vacancy: any) => {
+  const openVacancyModal = (vacancy: Vacancy) => {
     setSelectedVacancy(vacancy);
     setIsModalOpen(true);
   };
@@ -295,9 +303,9 @@ export default function Page() {
                       Давай работать вместе!
                     </h3>
                     <p className="text-foreground/80 text-sm leading-relaxed">
-                      "Мы ищем талантливых специалистов, которые готовы расти
-                      вместе с нами. Lider Garant — это место, где ваш
-                      профессионализм ценится и развивается."
+                      &ldquo;Мы ищем талантливых специалистов, которые готовы
+                      расти вместе с нами. Lider Garant — это место, где ваш
+                      профессионализм ценится и развивается.&rdquo;
                     </p>
                   </div>
                 </div>
@@ -327,7 +335,7 @@ export default function Page() {
                       rel="noopener noreferrer"
                       title="MAX"
                     >
-                      <a href="https://logo-teka.com/max/">
+                      <a href="https://max.ru/u/f9LHodD0cOIXEPJot15IEj_2EIeaAZsKSjeCGIcybYIybHk3HTuHQ3LCd-Y">
                         <img
                           src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
                           alt="PNG logo Max"

@@ -7,6 +7,18 @@ export default function HashScroll() {
   const pathname = usePathname();
 
   useEffect(() => {
+    const scrollToElement = (el: HTMLElement) => {
+      // Проверяем поддержку smooth scroll
+      if ("scrollBehavior" in document.documentElement.style) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        // Fallback для старых браузеров
+        const targetPosition =
+          el.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo(0, targetPosition);
+      }
+    };
+
     const scrollToHash = () => {
       const hash = window.location.hash;
       if (!hash || hash.length < 2) return;
@@ -16,7 +28,7 @@ export default function HashScroll() {
       const tryScroll = (attempt: number) => {
         const el = document.getElementById(id);
         if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          scrollToElement(el);
           return;
         }
 
@@ -28,17 +40,25 @@ export default function HashScroll() {
       tryScroll(0);
     };
 
-    const raf1 = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
+    // Fallback для requestAnimationFrame
+    const raf =
+      window.requestAnimationFrame ||
+      function (cb: FrameRequestCallback) {
+        return window.setTimeout(cb, 16);
+      };
+    const cancelRaf = window.cancelAnimationFrame || window.clearTimeout;
+
+    const raf1 = raf(() => {
+      const raf2 = raf(() => {
         scrollToHash();
       });
-      return () => cancelAnimationFrame(raf2);
+      return () => cancelRaf(raf2);
     });
 
     window.addEventListener("hashchange", scrollToHash);
 
     return () => {
-      cancelAnimationFrame(raf1);
+      cancelRaf(raf1);
       window.removeEventListener("hashchange", scrollToHash);
     };
   }, [pathname]);

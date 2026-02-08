@@ -57,7 +57,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: "/strahovanie", priority: 0.9, changeFrequency: "weekly" as const },
     { url: "/ved", priority: 0.9, changeFrequency: "weekly" as const },
     {
-      url: "/tendernoe-soprovojdenie",
+      url: "/tendernoe-soprovozhdenie",
       priority: 0.8,
       changeFrequency: "monthly" as const,
     },

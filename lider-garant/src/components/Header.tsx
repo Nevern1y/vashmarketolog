@@ -264,21 +264,21 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
                 <nav className="grid gap-2">
                   <Link
-                    href="#agents"
+                    href="/agents"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
                     Агентам
                   </Link>
                   <Link
-                    href="#partners"
+                    href="/partneram"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >
                     Партнерам
                   </Link>
                   <Link
-                    href="#about"
+                    href="/o-proekte"
                     onClick={() => setMobileOpen(false)}
                     className="rounded-lg px-3 py-2 hover:bg-foreground/10"
                   >

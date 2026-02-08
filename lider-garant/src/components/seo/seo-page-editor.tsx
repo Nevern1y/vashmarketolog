@@ -54,8 +54,14 @@ export interface SeoPage {
     h3_title: string
     hero_image: string | null
     main_description: string
+    hero_button_text: string
+    hero_button_href: string
+    best_offers_title: string
+    application_form_title: string
+    application_button_text: string
     page_type: 'landing' | 'product' | 'custom'
     template_name: string
+    autofill_template: string
     is_published: boolean
     priority: number
     faq: FaqItem[]
@@ -63,9 +69,13 @@ export interface SeoPage {
     bank_offers: BankOffer[]
 }
 
-// Available templates
-const TEMPLATES = [
-    { value: 'none', label: 'Без шаблона' },
+const LAYOUT_TEMPLATES = [
+    { value: 'none', label: 'Стандартный layout' },
+    { value: 'create-page', label: 'Layout: create-page' },
+]
+
+const AUTOFILL_TEMPLATES = [
+    { value: 'none', label: 'Без автозаполнения' },
     { value: 'factoring', label: 'Факторинг' },
     { value: 'rko', label: 'РКО и спецсчета' },
     { value: 'leasing', label: 'Лизинг' },
@@ -196,6 +206,50 @@ interface SeoPageEditorProps {
     onClose: () => void
     onSave: (data: Partial<SeoPage>) => Promise<boolean>
     isLoading: boolean
+    availablePages?: Array<{
+        slug: string
+        h1_title?: string
+    }>
+}
+
+const normalizePopularSearches = (
+    value: Array<PopularSearchItem | string> | undefined,
+): PopularSearchItem[] => {
+    if (!Array.isArray(value)) {
+        return []
+    }
+
+    return value
+        .map((item) => {
+            if (typeof item === "string") {
+                const text = item.trim()
+                if (!text) return null
+                return { text, href: "#application" }
+            }
+
+            const text = String(item?.text || "").trim()
+            if (!text) return null
+            const href = String(item?.href || "#application").trim() || "#application"
+            return { text, href }
+        })
+        .filter((item): item is PopularSearchItem => item !== null)
+}
+
+const normalizeLayoutTemplate = (templateName?: string) => {
+    return templateName === "create-page" ? "create-page" : "none"
+}
+
+const normalizeAutofillTemplate = (autofillTemplate?: string, templateName?: string) => {
+    if (autofillTemplate && autofillTemplate in TEMPLATE_DATA) {
+        return autofillTemplate
+    }
+
+    if (templateName && templateName in TEMPLATE_DATA) {
+        // Backward compatibility for legacy entries
+        return templateName
+    }
+
+    return "none"
 }
 
 export function SeoPageEditor({
@@ -204,6 +258,7 @@ export function SeoPageEditor({
     onClose,
     onSave,
     isLoading,
+    availablePages = [],
 }: SeoPageEditorProps) {
     const getInitialFormData = (): Partial<SeoPage> => ({
         slug: "",
@@ -215,8 +270,14 @@ export function SeoPageEditor({
         h3_title: "",
         hero_image: null,
         main_description: "",
+        hero_button_text: "",
+        hero_button_href: "#application",
+        best_offers_title: "",
+        application_form_title: "",
+        application_button_text: "",
         page_type: "product",
-        template_name: "",
+        template_name: "none",
+        autofill_template: "none",
         is_published: true,
         priority: 0,
         faq: [],
@@ -226,27 +287,44 @@ export function SeoPageEditor({
 
     const [formData, setFormData] = useState<Partial<SeoPage>>(getInitialFormData())
     const [newSearchTerm, setNewSearchTerm] = useState("")
+    const [newSearchHref, setNewSearchHref] = useState("#application")
     const [activeTab, setActiveTab] = useState("main")
+
+    const normalizedSlug = (formData.slug || "").trim().replace(/^\/+/, "")
 
     useEffect(() => {
         if (open) {
             if (page) {
                 setFormData({
                     ...page,
+                    template_name: normalizeLayoutTemplate(page.template_name),
+                    autofill_template: normalizeAutofillTemplate(page.autofill_template, page.template_name),
                     faq: page.faq || [],
-                    popular_searches: page.popular_searches || [],
+                    popular_searches: normalizePopularSearches(page.popular_searches as Array<PopularSearchItem | string>),
                     bank_offers: page.bank_offers || [],
                 })
             } else {
                 setFormData(getInitialFormData())
             }
+            setNewSearchTerm("")
+            setNewSearchHref("#application")
             setActiveTab("main")
         }
     }, [page, open])
 
     const handleSubmit = async () => {
         if (!formData.slug?.trim()) return
-        const success = await onSave(formData)
+
+        const payload: Partial<SeoPage> = {
+            ...formData,
+            slug: normalizedSlug,
+            template_name: formData.template_name === "none" ? "" : (formData.template_name || ""),
+            autofill_template:
+                formData.autofill_template === "none" ? "" : (formData.autofill_template || ""),
+            popular_searches: normalizePopularSearches(formData.popular_searches as Array<PopularSearchItem | string>),
+        }
+
+        const success = await onSave(payload)
         if (success) {
             onClose()
         }
@@ -275,14 +353,28 @@ export function SeoPageEditor({
     // Popular Searches Management
     const addSearchTerm = () => {
         if (newSearchTerm.trim()) {
-            // Create PopularSearchItem object
-            const newItem: PopularSearchItem = { text: newSearchTerm.trim(), href: '#' }
+            const href = newSearchHref.trim() || "#application"
+            const newItem: PopularSearchItem = { text: newSearchTerm.trim(), href }
             setFormData({
                 ...formData,
                 popular_searches: [...(formData.popular_searches || []), newItem]
             })
             setNewSearchTerm("")
+            setNewSearchHref("#application")
         }
+    }
+
+    const updateSearchTerm = (index: number, field: 'text' | 'href', value: string) => {
+        const newSearches = [...(formData.popular_searches || [])]
+        const existing = newSearches[index] || { text: "", href: "#application" }
+
+        newSearches[index] = {
+            ...existing,
+            [field]: value,
+            href: field === 'href' ? value : (existing.href || "#application"),
+        }
+
+        setFormData({ ...formData, popular_searches: newSearches })
     }
 
     const removeSearchTerm = (index: number) => {
@@ -315,12 +407,12 @@ export function SeoPageEditor({
 
     // Apply Template - заполняет ВСЕ поля из шаблона
     const applyTemplate = () => {
-        const templateName = formData.template_name
-        if (!templateName || templateName === 'none' || !TEMPLATE_DATA[templateName]) return
+        const templateName = formData.autofill_template
+        if (!templateName || templateName === 'none' || !TEMPLATE_DATA[templateName as keyof typeof TEMPLATE_DATA]) return
 
-        const template = TEMPLATE_DATA[templateName]
+        const template = TEMPLATE_DATA[templateName as keyof typeof TEMPLATE_DATA]
         // Convert string[] searches to PopularSearchItem[]
-        const normalizedSearches: PopularSearchItem[] = template.searches.map(s => ({ text: s, href: '#' }))
+        const normalizedSearches: PopularSearchItem[] = template.searches.map((s) => ({ text: s, href: '#application' }))
         setFormData({
             ...formData,
             meta_title: template.meta_title,
@@ -394,6 +486,9 @@ export function SeoPageEditor({
                                             className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
                                         />
                                         <p className="text-xs text-slate-500">Без / в начале</p>
+                                        <p className="text-xs text-slate-500">
+                                            Публичный URL: {normalizedSlug ? `/${normalizedSlug}` : "—"}
+                                        </p>
                                     </div>
 
                                     <div className="space-y-2">
@@ -411,41 +506,70 @@ export function SeoPageEditor({
                                                 <SelectItem value="custom" className="focus:bg-slate-700 focus:text-white">Custom Page</SelectItem>
                                             </SelectContent>
                                         </Select>
+                                        <p className="text-xs text-slate-500">Для страниц из блока «Часто ищут» рекомендуем тип: custom</p>
                                     </div>
                                 </div>
 
                                 <div className="p-4 rounded-xl bg-gradient-to-r from-purple-900/20 to-[#3ce8d1]/10 border border-purple-500/30">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Sparkles className="w-5 h-5 text-purple-400" />
-                                        <Label className="text-white font-medium">Шаблон автозаполнения</Label>
+                                        <Label className="text-white font-medium">Шаблоны страницы</Label>
                                     </div>
-                                    <div className="flex gap-3">
+
+                                    <div className="space-y-2 mb-4">
+                                        <Label className="text-slate-300 text-sm font-medium">Layout шаблон</Label>
                                         <Select
-                                            value={formData.template_name || ""}
+                                            value={formData.template_name || "none"}
                                             onValueChange={(val) => setFormData({ ...formData, template_name: val })}
                                         >
                                             <SelectTrigger className="bg-[#1a1a2e] border-slate-600 text-white focus:ring-[#3ce8d1]/20 rounded-lg h-10 flex-1">
-                                                <SelectValue placeholder="Выберите шаблон" />
+                                                <SelectValue placeholder="Выберите layout" />
                                             </SelectTrigger>
                                             <SelectContent className="bg-[#1a1a2e] border-slate-600 text-slate-200">
-                                                {TEMPLATES.map(t => (
+                                                {LAYOUT_TEMPLATES.map((t) => (
                                                     <SelectItem key={t.value} value={t.value} className="focus:bg-slate-700 focus:text-white">
                                                         {t.label}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        <p className="text-xs text-slate-400">Используется для рендера страницы. Для шаблонных страниц выбирайте Layout: create-page.</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label className="text-slate-300 text-sm font-medium">Контентный пресет (автозаполнение)</Label>
+                                        <div className="flex gap-3">
+                                            <Select
+                                                value={formData.autofill_template || "none"}
+                                                onValueChange={(val) => setFormData({ ...formData, autofill_template: val })}
+                                            >
+                                                <SelectTrigger className="bg-[#1a1a2e] border-slate-600 text-white focus:ring-[#3ce8d1]/20 rounded-lg h-10 flex-1">
+                                                    <SelectValue placeholder="Выберите пресет" />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-[#1a1a2e] border-slate-600 text-slate-200">
+                                                    {AUTOFILL_TEMPLATES.map((t) => (
+                                                        <SelectItem key={t.value} value={t.value} className="focus:bg-slate-700 focus:text-white">
+                                                            {t.label}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
                                         <Button
                                             type="button"
                                             onClick={applyTemplate}
-                                            disabled={!formData.template_name || formData.template_name === 'none'}
+                                            disabled={
+                                                !formData.autofill_template ||
+                                                formData.autofill_template === 'none' ||
+                                                !TEMPLATE_DATA[formData.autofill_template as keyof typeof TEMPLATE_DATA]
+                                            }
                                             className="bg-purple-600 hover:bg-purple-700 text-white h-10 px-5 rounded-lg font-medium disabled:opacity-40"
                                         >
                                             <Sparkles className="w-4 h-4 mr-2" />
                                             Применить
                                         </Button>
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-slate-400 mt-2">Заполнит все поля: мета-теги, контент, FAQ и поисковые запросы</p>
+                                    <p className="text-xs text-slate-400 mt-2">Пресет заполняет мета-теги, контент, FAQ и блок «Часто ищут» только по кнопке «Применить».</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -594,6 +718,68 @@ export function SeoPageEditor({
                                     />
                                 </div>
 
+                                <div className="space-y-3 p-4 rounded-xl bg-[#1a1a2e]/50 border border-slate-700/50">
+                                    <Label className="text-white font-medium">Шаблонные блоки (create-page)</Label>
+                                    <p className="text-xs text-slate-400">Оставьте поля пустыми, чтобы включился авто-режим от H1. Ручные значения всегда в приоритете.</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300 text-sm font-medium">Текст кнопки первого экрана</Label>
+                                            <Input
+                                                value={formData.hero_button_text || ""}
+                                                onChange={(e) => setFormData({ ...formData, hero_button_text: e.target.value })}
+                                                placeholder="Оставить заявку"
+                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            />
+                                            <p className="text-xs text-slate-500">Пусто = авто (по умолчанию: Оставить заявку)</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300 text-sm font-medium">Ссылка кнопки первого экрана</Label>
+                                            <Input
+                                                value={formData.hero_button_href || ""}
+                                                onChange={(e) => setFormData({ ...formData, hero_button_href: e.target.value })}
+                                                placeholder="#application"
+                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300 text-sm font-medium">Заголовок блока Лучшие предложения</Label>
+                                            <Input
+                                                value={formData.best_offers_title || ""}
+                                                onChange={(e) => setFormData({ ...formData, best_offers_title: e.target.value })}
+                                                placeholder="Лучшие предложения"
+                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            />
+                                            <p className="text-xs text-slate-500">Пусто = авто: Лучшие предложения — H1</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300 text-sm font-medium">Заголовок блока заявки</Label>
+                                            <Input
+                                                value={formData.application_form_title || ""}
+                                                onChange={(e) => setFormData({ ...formData, application_form_title: e.target.value })}
+                                                placeholder="Оставьте заявку"
+                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            />
+                                            <p className="text-xs text-slate-500">Пусто = авто: Оставьте заявку — H1</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label className="text-slate-300 text-sm font-medium">Текст кнопки в заявке</Label>
+                                            <Input
+                                                value={formData.application_button_text || ""}
+                                                onChange={(e) => setFormData({ ...formData, application_button_text: e.target.value })}
+                                                placeholder="Оставить заявку"
+                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            />
+                                            <p className="text-xs text-slate-500">Пусто = авто (по умолчанию: Оставить заявку)</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Popular Searches Section */}
                                 <div className="space-y-3 p-4 rounded-xl bg-[#1a1a2e]/50 border border-slate-700/50">
                                     <div className="flex items-center justify-between">
@@ -602,13 +788,31 @@ export function SeoPageEditor({
                                             Часто ищут ({(formData.popular_searches || []).length})
                                         </Label>
                                     </div>
+                                    <p className="text-xs text-slate-400">Для каждого элемента можно задать ссылку: #якорь, /seo-slug или https://...</p>
 
-                                    <div className="flex gap-2">
+                                    <datalist id="seo-page-links">
+                                        {availablePages
+                                            .filter((item) => item.slug && item.slug !== normalizedSlug)
+                                            .map((item) => (
+                                                <option key={item.slug} value={`/${item.slug}`}>
+                                                    {item.h1_title || item.slug}
+                                                </option>
+                                            ))}
+                                    </datalist>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2">
                                         <Input
                                             value={newSearchTerm}
                                             onChange={(e) => setNewSearchTerm(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
-                                            placeholder="Добавить поисковый запрос..."
+                                            placeholder="Текст запроса"
+                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
+                                        />
+                                        <Input
+                                            value={newSearchHref}
+                                            onChange={(e) => setNewSearchHref(e.target.value)}
+                                            list="seo-page-links"
+                                            placeholder="/slug или #application"
                                             className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
                                         />
                                         <Button type="button" onClick={addSearchTerm} size="sm" className="bg-[#3ce8d1] text-[#0f0f1a] hover:bg-[#3ce8d1]/90 h-9 px-3 rounded-lg">
@@ -616,21 +820,35 @@ export function SeoPageEditor({
                                         </Button>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-2 min-h-[32px]">
+                                    <div className="space-y-2 min-h-[32px]">
                                         {(formData.popular_searches || []).length === 0 ? (
                                             <span className="text-slate-500 text-sm">Нет поисковых запросов</span>
                                         ) : (
                                             (formData.popular_searches || []).map((term, idx) => (
-                                                <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30">
-                                                    {term.text}
-                                                    <button
+                                                <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                                                    <Input
+                                                        value={term.text}
+                                                        onChange={(e) => updateSearchTerm(idx, 'text', e.target.value)}
+                                                        placeholder="Текст запроса"
+                                                        className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
+                                                    />
+                                                    <Input
+                                                        value={term.href || "#application"}
+                                                        onChange={(e) => updateSearchTerm(idx, 'href', e.target.value)}
+                                                        list="seo-page-links"
+                                                        placeholder="/slug или #application"
+                                                        className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
+                                                    />
+                                                    <Button
                                                         type="button"
+                                                        variant="ghost"
                                                         onClick={() => removeSearchTerm(idx)}
-                                                        className="hover:text-red-400 transition-colors"
+                                                        className="h-9 text-red-400 hover:text-red-300 hover:bg-red-900/20"
                                                     >
-                                                        <X className="w-3 h-3" />
-                                                    </button>
-                                                </span>
+                                                        <Trash2 className="w-4 h-4 mr-1" />
+                                                        Удалить
+                                                    </Button>
+                                                </div>
                                             ))
                                         )}
                                     </div>
@@ -659,7 +877,7 @@ export function SeoPageEditor({
                                     {(formData.faq || []).length === 0 ? (
                                         <div className="text-center py-8 text-slate-500 bg-[#1a1a2e]/50 rounded-xl border border-dashed border-slate-700">
                                             <HelpCircle className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                                            <p className="text-sm">Нет вопросов. Нажмите "Добавить" или примените шаблон.</p>
+                                            <p className="text-sm">Нет вопросов. Нажмите Добавить или примените шаблон.</p>
                                         </div>
                                     ) : (
                                         (formData.faq || []).map((item, idx) => (

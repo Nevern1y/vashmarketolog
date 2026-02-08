@@ -15,6 +15,13 @@ class SeoPage(models.Model):
     h3_title = models.CharField(_("H3 Title"), max_length=255, blank=True, help_text=_("Tertiary heading"))
     hero_image = models.ImageField(_("Hero Image"), upload_to='seo/hero/', blank=True, null=True, help_text=_("Main block image"))
     main_description = models.TextField(_("Main Description"), blank=True, help_text=_("Text content for the main block"))
+
+    # create-page template sections
+    hero_button_text = models.CharField(_("Hero Button Text"), max_length=100, blank=True, default='')
+    hero_button_href = models.CharField(_("Hero Button URL"), max_length=255, blank=True, default='#application', help_text=_("Can be anchor (#application), local path (/contact), or full URL"))
+    best_offers_title = models.CharField(_("Best Offers Title"), max_length=255, blank=True, default='')
+    application_form_title = models.CharField(_("Application Form Title"), max_length=255, blank=True, default='')
+    application_button_text = models.CharField(_("Application Button Text"), max_length=100, blank=True, default='')
     
     # Structured Data
     faq = models.JSONField(_("FAQ"), default=list, blank=True, help_text=_("List of {question, answer} objects"))
@@ -41,7 +48,20 @@ class SeoPage(models.Model):
     )
     
     # Template System
-    template_name = models.CharField(_("Template Name"), max_length=100, blank=True, help_text="Template to apply on creation (e.g., factoring, rko, leasing)")
+    template_name = models.CharField(
+        _("Layout Template"),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Layout template for rendering (e.g., create-page)",
+    )
+    autofill_template = models.CharField(
+        _("Autofill Template"),
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Content preset for autofill (e.g., factoring, rko, leasing)",
+    )
     
     # Priority for catch-all routing
     priority = models.IntegerField(_("Priority"), default=0, help_text="Higher priority shown first in catch-all routes")

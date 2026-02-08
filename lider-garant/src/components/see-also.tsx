@@ -54,9 +54,9 @@ export default function SeeAlso({ currentPage }: SeeAlsoProps) {
     {
       title: "Тендерное сопровождение",
       desc: "Каждый 3‑й тендер — победа! Штат опытных специалистов по цене одного сотрудника. ",
-      href: "/tendernoe-soprovojdenie",
+      href: "/tendernoe-soprovozhdenie",
       img: "/finance-products/calculator-hand.png",
-      link: "/tendernoe-soprovojdenie",
+      link: "/tendernoe-soprovozhdenie",
     },
     {
       title: "Факторинг для бизнеса",
@@ -94,7 +94,15 @@ export default function SeeAlso({ currentPage }: SeeAlsoProps) {
   return <SeeAlsoSection related={related} />;
 }
 
-function SeeAlsoSection({ related }: { related: any[] }) {
+interface RelatedItem {
+  title: string;
+  desc: string;
+  href: string;
+  img: string;
+  link: string;
+}
+
+function SeeAlsoSection({ related }: { related: RelatedItem[] }) {
   return (
     <>
       <section className="mx-auto w-full max-w-7xl py-12">
