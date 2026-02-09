@@ -105,10 +105,12 @@ export default function TenderSupportForm() {
   };
 
   return (
-    <section
-      id="tender-support-form"
-      className="mx-auto w-full max-w-7xl py-12"
-    >
+    <>
+      <span id="application" className="block h-0" aria-hidden />
+      <section
+        id="tender-support-form"
+        className="mx-auto w-full max-w-7xl py-12"
+      >
       <div className="relative overflow-hidden rounded-3xl border border-foreground/10 bg-linear-to-br from-indigo-500/10 via-sky-500/10 to-emerald-500/10 p-6 md:p-10">
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
@@ -314,6 +316,7 @@ export default function TenderSupportForm() {
           </div>
         </div>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

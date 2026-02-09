@@ -224,12 +224,27 @@ const normalizePopularSearches = (
             if (typeof item === "string") {
                 const text = item.trim()
                 if (!text) return null
+
+                if (isLinkLikeValue(text)) {
+                    return { text: linkToDefaultText(text), href: text }
+                }
+
                 return { text, href: "#application" }
             }
 
-            const text = String(item?.text || "").trim()
-            if (!text) return null
             const href = String(item?.href || "#application").trim() || "#application"
+            const text = String(item?.text || "").trim()
+
+            if (!text && !href) return null
+
+            if (text && isLinkLikeValue(text) && href === "#application") {
+                return { text: linkToDefaultText(text), href: text }
+            }
+
+            if (!text) {
+                return { text: linkToDefaultText(href), href }
+            }
+
             return { text, href }
         })
         .filter((item): item is PopularSearchItem => item !== null)
@@ -272,8 +287,12 @@ const buildPopularSearchItem = (textRaw: string, hrefRaw: string): PopularSearch
 
     // UX fallback: if user pasted URL/path in "Текст запроса" and did not set href,
     // treat that value as both text and href.
-    if (text && isLinkLikeValue(text) && (!href || href === "#application")) {
-        return { text: linkToDefaultText(text), href: text }
+    if (text && isLinkLikeValue(text) && (!href || href === "#application" || href === text)) {
+        return { text: linkToDefaultText(text), href: href || text }
+    }
+
+    if (!text && href) {
+        return { text: linkToDefaultText(href), href }
     }
 
     return {

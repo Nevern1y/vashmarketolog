@@ -4,6 +4,7 @@ import ManagerCTASection from "@/components/ManagerCTASection";
 import SeeAlso from "@/components/see-also";
 import TenderSupportForm from "@/components/TenderSupportForm";
 import { Button } from "@/components/ui/button";
+import type { SeoPageData } from "@/lib/seo-api";
 import Link from "next/link";
 
 const guarantees = [
@@ -79,7 +80,68 @@ const tenderTypes = [
   },
 ];
 
-export default function Page() {
+const defaultPopularSearches = [
+  { text: "Электронный тендер", href: "/v-razrabotke" },
+  { text: "Участие в тендерах", href: "/v-razrabotke" },
+  { text: "Тендеры на строительство", href: "/v-razrabotke" },
+  { text: "Строительные тендеры", href: "/v-razrabotke" },
+  { text: "Поиск тендеров", href: "/v-razrabotke" },
+  { text: "Тендеры и закупки", href: "/v-razrabotke" },
+  { text: "Специалист по тендерам", href: "/v-razrabotke" },
+  { text: "Коммерческие тендеры", href: "/v-razrabotke" },
+  { text: "Государственные тендеры", href: "/v-razrabotke" },
+  { text: "Сопровождение тендеров", href: "/v-razrabotke" },
+  { text: "Аутсорсинг тендеров", href: "/v-razrabotke" },
+  { text: "Ведение тендеров", href: "/v-razrabotke" },
+  { text: "Специалист по закупкам", href: "/v-razrabotke" },
+  { text: "Менеджер по закупкам", href: "/v-razrabotke" },
+  { text: "Тендеры", href: "/v-razrabotke" },
+  { text: "Госконтракты", href: "/v-razrabotke" },
+  { text: "Госзаказ", href: "/v-razrabotke" },
+  { text: "Закупки", href: "/v-razrabotke" },
+  { text: "Госзакупки", href: "/v-razrabotke" },
+  { text: "Подача заявок тендер", href: "/v-razrabotke" },
+  { text: "Подача заявки на участие в тендерах", href: "/v-razrabotke" },
+];
+
+interface TenderSupportClientProps {
+  seoPage?: SeoPageData | null;
+}
+
+const normalizePopularSearches = (
+  searches: SeoPageData["popular_searches"] | undefined,
+) => {
+  if (!Array.isArray(searches) || searches.length === 0) {
+    return defaultPopularSearches;
+  }
+
+  const normalized = searches
+    .map((item) => {
+      if (typeof item === "string") {
+        const text = item.trim();
+        return text ? { text, href: "#application" } : null;
+      }
+
+      const text = String(item?.text || "").trim();
+      if (!text) return null;
+
+      const href = String(item?.href || "#application").trim() || "#application";
+      return { text, href };
+    })
+    .filter((item): item is { text: string; href: string } => item !== null);
+
+  return normalized.length > 0 ? normalized : defaultPopularSearches;
+};
+
+export default function TenderSupportClient({ seoPage }: TenderSupportClientProps) {
+  const heroTitle = seoPage?.h1_title?.trim() || "Тендерное сопровождение";
+  const heroDescription =
+    seoPage?.main_description?.trim() ||
+    "Бесплатная консультация специалиста — узнайте про закупки все!";
+  const heroButtonText = seoPage?.hero_button_text?.trim() || "Свяжитесь со мной!";
+  const heroButtonHref = seoPage?.hero_button_href?.trim() || "#tender-support-form";
+  const popularSearches = normalizePopularSearches(seoPage?.popular_searches);
+
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16">
       <FadeIn>
@@ -90,16 +152,16 @@ export default function Page() {
           <div className="relative grid items-center gap-8 md:grid-cols-2">
             <div className="space-y-5">
               <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-5xl">
-                Тендерное сопровождение
+                {heroTitle}
               </h1>
               <p className="text-sm font-medium uppercase tracking-[0.25em] text-primary/80">
                 от поиска до сопровождения
               </p>
               <p className="max-w-2xl text-base text-foreground/80 md:text-lg">
-                Бесплатная консультация специалиста — узнайте про закупки все!
+                {heroDescription}
               </p>
               <Button asChild className="h-11 btn-three">
-                <a href="#tender-support-form">Свяжитесь со мной!</a>
+                <a href={heroButtonHref}>{heroButtonText}</a>
               </Button>
             </div>
           </div>
@@ -197,34 +259,22 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {[
-                "Электронный тендер",
-                "Участие в тендерах",
-                "Электронный тендер",
-                "Тендеры на строительство",
-                "Строительные тендеры",
-                "Поиск тендеров",
-                "Тендеры и закупки",
-                "Специалист по тендерам",
-                "Коммерческие тендеры",
-                "Государственные тендеры",
-                "Сопровождение тендеров",
-                "Аутсорсинг тендеров",
-                "Ведение тендеров",
-                "Специалист по закупкам",
-                "Менеджер по закупкам",
-                "Тендеры",
-                "Госконтракты",
-                "Госзаказ",
-                "Закупки",
-                "Госзакупки",
-                "Подача заявок тендер",
-                "Подача заявки на участие в тендерах",
-              ].map((t, i) => (
-                <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+              {popularSearches.map((item, i) => (
+                <div key={`${item.text}-${i}`}>
+                  {item.href.startsWith("http://") || item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

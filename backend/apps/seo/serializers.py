@@ -45,6 +45,25 @@ class SeoPageSerializer(serializers.ModelSerializer):
         parsed = urlparse(href)
         return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
 
+    @staticmethod
+    def _is_link_like_value(value: str) -> bool:
+        normalized = value.lower()
+        return normalized.startswith('#') or normalized.startswith('/') or normalized.startswith('http://') or normalized.startswith('https://')
+
+    @staticmethod
+    def _link_to_default_text(value: str) -> str:
+        clean = value.strip()
+
+        if clean.startswith('http://') or clean.startswith('https://'):
+            parsed = urlparse(clean)
+            clean = parsed.path or parsed.netloc
+
+        clean = clean.lstrip('/').lstrip('#').replace('-', ' ').replace('_', ' ').strip()
+        if not clean:
+            return 'По ссылке'
+
+        return clean[0].upper() + clean[1:]
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.hero_image:
@@ -70,7 +89,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
     def validate_popular_searches(self, value):
         """
         Ensure popular_searches is a list of {text, href} objects or strings.
-        Normalizes strings to {text: string, href: "#application"}.
+        Supports smart normalization for link-like values pasted into text.
         """
         if value is None:
             return []
@@ -83,16 +102,27 @@ class SeoPageSerializer(serializers.ModelSerializer):
                 text = item.strip()
                 if not text:
                     continue
+
+                if self._is_link_like_value(text):
+                    result.append({'text': self._link_to_default_text(text), 'href': text})
+                    continue
+
                 # Normalize string to object format
                 result.append({'text': text, 'href': '#application'})
             elif isinstance(item, dict):
-                if 'text' not in item:
+                if 'text' not in item and 'href' not in item:
                     raise serializers.ValidationError("Each popular search object must have 'text'")
-                text = str(item.get('text', '')).strip()
-                if not text:
-                    raise serializers.ValidationError("Popular search text cannot be empty")
 
+                text = str(item.get('text', '')).strip()
                 href = str(item.get('href') or '#application').strip()
+
+                if text and self._is_link_like_value(text) and (href == '#application' or href == text):
+                    href = href or text
+                    text = self._link_to_default_text(text)
+
+                if not text:
+                    text = self._link_to_default_text(href)
+
                 if not self._is_valid_popular_search_href(href):
                     raise serializers.ValidationError(
                         "popular_searches.href must be a hash (#...), local path (/...), or http/https URL"
