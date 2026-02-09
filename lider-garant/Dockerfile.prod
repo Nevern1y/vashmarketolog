@@ -19,9 +19,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ARG NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
-ARG SKIP_SEO_FETCH=1
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV SKIP_SEO_FETCH=$SKIP_SEO_FETCH
 
 # Build Next.js application
 RUN npm run build
@@ -37,6 +35,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+ARG NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \

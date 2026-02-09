@@ -46,17 +46,56 @@ export interface SeoPageData {
     updated_at?: string;
 }
 
-const shouldSkipSeoFetch = () =>
-    process.env.SKIP_SEO_FETCH === '1' || process.env.SKIP_SEO_FETCH === 'true';
+const SKIP_SEO_FETCH_KEY = 'SKIP_SEO_FETCH';
 
-// API Base URL for server-side fetching
-const getApiBaseUrl = () => {
-    // Server-side: use internal URL if available
-    if (typeof window === 'undefined') {
-        return process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const normalizeBaseUrl = (value?: string) => {
+    if (!value) return null;
+    const normalized = value.trim().replace(/\/+$/, '');
+    return normalized.length > 0 ? normalized : null;
+};
+
+const shouldSkipSeoFetch = () => {
+    if (typeof process === 'undefined') {
+        return false;
     }
-    // Client-side: use public URL
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+    // Use bracket access so value is taken from runtime env.
+    const rawValue = (process.env[SKIP_SEO_FETCH_KEY] || '').toLowerCase();
+    return rawValue === '1' || rawValue === 'true';
+};
+
+const getApiBaseUrls = () => {
+    const urls = new Set<string>();
+
+    const add = (value?: string) => {
+        const normalized = normalizeBaseUrl(value);
+        if (normalized) {
+            urls.add(normalized);
+        }
+    };
+
+    if (typeof window === 'undefined') {
+        add(process.env.INTERNAL_API_URL);
+        add(process.env.NEXT_PUBLIC_API_URL);
+        add('http://backend:8000/api');
+        add('http://localhost:8000/api');
+    } else {
+        add(process.env.NEXT_PUBLIC_API_URL);
+        add('http://localhost:8000/api');
+    }
+
+    return Array.from(urls);
+};
+
+const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs = 5000) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    } finally {
+        clearTimeout(timeout);
+    }
 };
 
 /**
@@ -68,27 +107,32 @@ export async function getSeoPage(slug: string): Promise<SeoPageData | null> {
     if (shouldSkipSeoFetch()) {
         return null;
     }
-    try {
-        const response = await fetch(`${getApiBaseUrl()}/seo/pages/${encodeURIComponent(slug)}/`, {
-            next: { revalidate: 10 }, // Short cache to reflect SEO admin updates quickly
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
 
-        if (!response.ok) {
-            if (response.status === 404) {
-                return null;
+    const baseUrls = getApiBaseUrls();
+    const encodedSlug = encodeURIComponent(slug);
+
+    for (const baseUrl of baseUrls) {
+        try {
+            const response = await fetchWithTimeout(`${baseUrl}/seo/pages/${encodedSlug}/`, {
+                next: { revalidate: 10 },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                return await response.json();
             }
-            console.error(`[SEO API] Error fetching page: ${response.status}`);
-            return null;
-        }
 
-        return await response.json();
-    } catch (error) {
-        console.error(`[SEO API] Failed to fetch page ${slug}:`, error);
-        return null;
+            if (response.status !== 404) {
+                console.error(`[SEO API] Error fetching ${slug} from ${baseUrl}: ${response.status}`);
+            }
+        } catch (error) {
+            console.error(`[SEO API] Failed to fetch ${slug} from ${baseUrl}:`, error);
+        }
     }
+
+    return null;
 }
 
 /**
@@ -99,23 +143,29 @@ export async function getAllSeoPages(): Promise<SeoPageData[]> {
     if (shouldSkipSeoFetch()) {
         return [];
     }
-    try {
-        const response = await fetch(`${getApiBaseUrl()}/seo/pages/`, {
-            next: { revalidate: 300 }, // Cache for 5 minutes
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        });
 
-        if (!response.ok) {
-            console.error(`[SEO API] Error fetching all pages: ${response.status}`);
-            return [];
+    const baseUrls = getApiBaseUrls();
+
+    for (const baseUrl of baseUrls) {
+        try {
+            const response = await fetchWithTimeout(`${baseUrl}/seo/pages/`, {
+                next: { revalidate: 300 },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                console.error(`[SEO API] Error fetching all pages from ${baseUrl}: ${response.status}`);
+                continue;
+            }
+
+            const data = await response.json();
+            return Array.isArray(data) ? data : (data.results || []);
+        } catch (error) {
+            console.error(`[SEO API] Failed to fetch all pages from ${baseUrl}:`, error);
         }
-
-        const data = await response.json();
-        return Array.isArray(data) ? data : (data.results || []);
-    } catch (error) {
-        console.error('[SEO API] Failed to fetch all pages:', error);
-        return [];
     }
+
+    return [];
 }

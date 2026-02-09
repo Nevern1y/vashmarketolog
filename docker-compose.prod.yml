@@ -143,6 +143,8 @@ services:
     environment:
       - NODE_ENV=production
       - INTERNAL_API_URL=http://backend:8000/api
+      - NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
+      - SKIP_SEO_FETCH=0
     depends_on:
       - backend
     networks:
