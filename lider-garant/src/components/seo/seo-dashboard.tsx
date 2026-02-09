@@ -140,6 +140,16 @@ export function SeoDashboard() {
         }
     }
 
+    const getPublicPagePath = (slug: string) => {
+        const cleanedSlug = slug.trim().replace(/^\/+/, "").replace(/\/+$/, "")
+        if (!cleanedSlug) return "/"
+
+        return `/${cleanedSlug
+            .split("/")
+            .map((part) => encodeURIComponent(part))
+            .join("/")}`
+    }
+
     return (
         <div className="min-h-screen bg-[#1d194c] text-slate-200">
             {/* Header */}
@@ -253,7 +263,7 @@ export function SeoDashboard() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="bg-[#0b0b12] border-slate-700 text-slate-200">
-                                                    <DropdownMenuItem onClick={() => window.open(`/${page.slug}`, '_blank')} className="focus:bg-slate-800 focus:text-white">
+                                                    <DropdownMenuItem onClick={() => window.open(getPublicPagePath(page.slug), '_blank')} className="focus:bg-slate-800 focus:text-white">
                                                         <ExternalLink className="h-4 w-4 mr-2" />
                                                         Открыть на сайте
                                                     </DropdownMenuItem>

@@ -70,7 +70,7 @@ export async function getSeoPage(slug: string): Promise<SeoPageData | null> {
     }
     try {
         const response = await fetch(`${getApiBaseUrl()}/seo/pages/${encodeURIComponent(slug)}/`, {
-            next: { revalidate: 60 }, // Cache for 60 seconds
+            next: { revalidate: 10 }, // Short cache to reflect SEO admin updates quickly
             headers: {
                 'Content-Type': 'application/json',
             },

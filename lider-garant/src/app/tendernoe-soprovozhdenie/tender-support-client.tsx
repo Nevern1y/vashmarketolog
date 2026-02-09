@@ -80,30 +80,6 @@ const tenderTypes = [
   },
 ];
 
-const defaultPopularSearches = [
-  { text: "Электронный тендер", href: "/v-razrabotke" },
-  { text: "Участие в тендерах", href: "/v-razrabotke" },
-  { text: "Тендеры на строительство", href: "/v-razrabotke" },
-  { text: "Строительные тендеры", href: "/v-razrabotke" },
-  { text: "Поиск тендеров", href: "/v-razrabotke" },
-  { text: "Тендеры и закупки", href: "/v-razrabotke" },
-  { text: "Специалист по тендерам", href: "/v-razrabotke" },
-  { text: "Коммерческие тендеры", href: "/v-razrabotke" },
-  { text: "Государственные тендеры", href: "/v-razrabotke" },
-  { text: "Сопровождение тендеров", href: "/v-razrabotke" },
-  { text: "Аутсорсинг тендеров", href: "/v-razrabotke" },
-  { text: "Ведение тендеров", href: "/v-razrabotke" },
-  { text: "Специалист по закупкам", href: "/v-razrabotke" },
-  { text: "Менеджер по закупкам", href: "/v-razrabotke" },
-  { text: "Тендеры", href: "/v-razrabotke" },
-  { text: "Госконтракты", href: "/v-razrabotke" },
-  { text: "Госзаказ", href: "/v-razrabotke" },
-  { text: "Закупки", href: "/v-razrabotke" },
-  { text: "Госзакупки", href: "/v-razrabotke" },
-  { text: "Подача заявок тендер", href: "/v-razrabotke" },
-  { text: "Подача заявки на участие в тендерах", href: "/v-razrabotke" },
-];
-
 interface TenderSupportClientProps {
   seoPage?: SeoPageData | null;
 }
@@ -112,7 +88,7 @@ const normalizePopularSearches = (
   searches: SeoPageData["popular_searches"] | undefined,
 ) => {
   if (!Array.isArray(searches) || searches.length === 0) {
-    return defaultPopularSearches;
+    return [];
   }
 
   const normalized = searches
@@ -130,7 +106,7 @@ const normalizePopularSearches = (
     })
     .filter((item): item is { text: string; href: string } => item !== null);
 
-  return normalized.length > 0 ? normalized : defaultPopularSearches;
+  return normalized;
 };
 
 export default function TenderSupportClient({ seoPage }: TenderSupportClientProps) {
@@ -251,36 +227,38 @@ export default function TenderSupportClient({ seoPage }: TenderSupportClientProp
       <FadeIn>
         <ManagerCTASection />
       </FadeIn>
-      <FadeIn>
-        <section className="mx-auto w-full max-w-7xl py-12">
-          <h2 className="mb-10 text-4xl font-bold text-primary text-center">
-            Часто ищут
-          </h2>
+      {popularSearches.length > 0 && (
+        <FadeIn>
+          <section className="mx-auto w-full max-w-7xl py-12">
+            <h2 className="mb-10 text-4xl font-bold text-primary text-center">
+              Часто ищут
+            </h2>
 
-          <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {popularSearches.map((item, i) => (
-                <div key={`${item.text}-${i}`}>
-                  {item.href.startsWith("http://") || item.href.startsWith("https://") ? (
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="nav-link link-gradient"
-                    >
-                      {item.text}
-                    </a>
-                  ) : (
-                    <Link href={item.href} className="nav-link link-gradient">
-                      {item.text}
-                    </Link>
-                  )}
-                </div>
-              ))}
+            <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
+                {popularSearches.map((item, i) => (
+                  <div key={`${item.text}-${i}`}>
+                    {item.href.startsWith("http://") || item.href.startsWith("https://") ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="nav-link link-gradient"
+                      >
+                        {item.text}
+                      </a>
+                    ) : (
+                      <Link href={item.href} className="nav-link link-gradient">
+                        {item.text}
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      </FadeIn>
+          </section>
+        </FadeIn>
+      )}
     </main>
   );
 }
