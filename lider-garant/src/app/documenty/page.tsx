@@ -1,5 +1,3 @@
-"use client";
-
 import { FileText, FileCheck } from "lucide-react";
 import FadeIn from "@/components/FadeIn";
 
@@ -22,12 +20,6 @@ const documents = [
 ];
 
 export default function DocumentsPage() {
-  const openDocument = (docPath: string) => {
-    const fullUrl = `${window.location.origin}${encodeURIComponent(docPath)}`;
-    const viewerUrl = `https://docs.google.com/viewer?url=${fullUrl}&embedded=true`;
-    window.open(viewerUrl, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16 space-y-12">
       <FadeIn>
@@ -52,8 +44,10 @@ export default function DocumentsPage() {
       <div className="grid gap-6 md:grid-cols-2">
         {documents.map((doc, index) => (
           <FadeIn key={index} delay={0.1 * (index + 1)}>
-            <button
-              onClick={() => openDocument(doc.href)}
+            <a
+              href={doc.href}
+              target="_blank"
+              rel="noopener noreferrer"
               className={`group relative block w-full text-left overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br ${doc.gradient} p-6 transition-all hover:border-primary/30 cursor-pointer`}
             >
               <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition-all group-hover:bg-primary/20" />
@@ -86,7 +80,7 @@ export default function DocumentsPage() {
                   </span>
                 </div>
               </div>
-            </button>
+            </a>
           </FadeIn>
         ))}
       </div>
