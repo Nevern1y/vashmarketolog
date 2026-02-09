@@ -22,6 +22,8 @@ import GuaranteeCalculator from "@/components/GuaranteeCalculator";
 import WhyUs from "@/components/Why-us";
 import DealFeed from "@/components/deal-feed";
 import SeeAlso from "@/components/see-also";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
 const guarantees = [
   {
@@ -61,7 +63,39 @@ const guarantees = [
     features: ["Коммерческая"],
   },
 ];
-export default function BankGuaranteePage() {
+
+const defaultPopularSearchTerms = [
+  "Банковские гарантии на исполнение контракта",
+  "Банковские гарантии для ИП",
+  "Банковские гарантии на участие в тендере",
+  "Банковские гарантии для ООО",
+  "Банковские гарантии на гарантийное обеспечение (ГО)",
+  "Банковские гарантии 44-ФЗ",
+  "Банковские гарантии на авансовый платеж",
+  "Банковские гарантии 223-ФЗ",
+  "Банковские гарантии по закрытой закупке",
+  "Экспресс-гарантии",
+  "Банковские гарантии по коммерческой закупке",
+  "Налоговые банковские гарантии",
+  "Таможенные банковские гарантии",
+  "Банковская гарантия на обеспечение исполнения",
+  "Банковская гарантия на обеспечение гарантийных обязательств",
+  "Независимая банковская гарантия",
+  "Банковская гарантия на обеспечение исполнения контракт",
+  "Банковская гарантия на обеспечение обязательств",
+];
+
+interface BankGuaranteePageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function BankGuaranteePage({ seoPage }: BankGuaranteePageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/bankovskie-garantii",
+  );
+
   const [showAll, setShowAll] = useState(false);
   const [visibleOffers, setVisibleOffers] = useState(6);
   const TOTAL_OFFERS = 25;
@@ -602,33 +636,23 @@ export default function BankGuaranteePage() {
 
             <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-                {[
-                  "Банковские гарантии на исполнение контракта",
-                  "Банковские гарантии для ИП",
-                  "Банковские гарантии на участие в тендере",
-                  "Банковские гарантии для ООО",
-                  "Банковские гарантии на гарантийное обеспечение (ГО)",
-                  "Банковские гарантии 44-ФЗ",
-                  "Банковские гарантии на авансовый платеж",
-                  "Банковские гарантии 223-ФЗ",
-                  "Банковские гарантии по закрытой закупке",
-                  "Экспресс-гарантии",
-                  "Банковские гарантии по коммерческой закупке",
-                  "Налоговые банковские гарантии",
-                  "Таможенные банковские гарантии",
-                  "Банковская гарантия на обеспечение исполнения",
-                  "Банковская гарантия на обеспечение гарантийных обязательств",
-                  "Независимая банковская гарантия",
-                  "Банковская гарантия на обеспечение исполнения контракт",
-                  "Банковская гарантия на обеспечение обязательств",
-                ].map((t, i) => (
+                {popularSearches.map((item, i) => (
                   <div key={i}>
-                    <Link
-                      href="/v-razrabotke"
-                      className="nav-link link-gradient"
-                    >
-                      {t}
-                    </Link>
+                    {item.href.startsWith("http://") ||
+                    item.href.startsWith("https://") ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="nav-link link-gradient"
+                      >
+                        {item.text}
+                      </a>
+                    ) : (
+                      <Link href={item.href} className="nav-link link-gradient">
+                        {item.text}
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>

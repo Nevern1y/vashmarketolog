@@ -57,11 +57,29 @@ export default async function DynamicSeoPage({ params }: Props) {
         })
         .filter((item): item is { text: string; href: string } => item !== null)
 
-    if (page.template_name === "create-page") {
+    const hasTemplateSignals =
+        Boolean(page.hero_button_text?.trim()) ||
+        Boolean(page.best_offers_title?.trim()) ||
+        Boolean(page.application_form_title?.trim()) ||
+        Boolean(page.application_button_text?.trim()) ||
+        Array.isArray(page.bank_offers) && page.bank_offers.length > 0
+
+    const shouldRenderTemplatePage =
+        page.template_name === "create-page" ||
+        (!page.template_name && hasTemplateSignals)
+
+    const templateDescription =
+        [page.main_description, page.h2_title, page.h3_title]
+            .map((part) => String(part || "").trim())
+            .filter((part) => part.length > 0)
+            .join("\n\n") ||
+        "Описание услуги"
+
+    if (shouldRenderTemplatePage) {
         return (
             <SeoTemplatePage
                 title={page.h1_title || "Заголовок страницы"}
-                description={page.main_description || "Описание услуги"}
+                description={templateDescription}
                 buttonText={page.hero_button_text}
                 buttonHref={page.hero_button_href || "#application"}
                 bestOffersTitle={page.best_offers_title}

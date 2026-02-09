@@ -4,6 +4,7 @@ import {
   generatePageMetadata,
   generateMetadataFromSeoPage,
 } from "@/utils/metadata";
+import VedPageClient from "./ved-client";
 
 const SLUG = "ved";
 const FALLBACK_TITLE = "Международные платежи для бизнеса";
@@ -16,4 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata(FALLBACK_TITLE, `/${SLUG}`);
 }
 
-export { default } from "./ved-client";
+export default async function VedPage() {
+  const seoData = await getSeoPage(SLUG);
+  return <VedPageClient seoPage={seoData} />;
+}

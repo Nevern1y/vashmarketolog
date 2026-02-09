@@ -4,6 +4,7 @@ import {
   generatePageMetadata,
   generateMetadataFromSeoPage,
 } from "@/utils/metadata";
+import FactoringPageClient from "./factoring-client";
 
 const SLUG = "factoring-dlya-biznesa";
 const FALLBACK_TITLE = "Факторинг для бизнеса";
@@ -16,4 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata(FALLBACK_TITLE, `/${SLUG}`);
 }
 
-export { default } from "./factoring-client";
+export default async function FactoringPage() {
+  const seoData = await getSeoPage(SLUG);
+  return <FactoringPageClient seoPage={seoData} />;
+}

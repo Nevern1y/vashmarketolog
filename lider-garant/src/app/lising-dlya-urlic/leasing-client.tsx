@@ -19,8 +19,41 @@ import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
-export default function Page() {
+const defaultPopularSearchTerms = [
+  "лизинг для юр лиц",
+  "лизинг оборудования",
+  "лизинг грузовых автомобилей",
+  "лизинг спецтехники",
+  "лизинг для ИП",
+  "лизинг для ООО",
+  "возвратный лизинг",
+  "лизинг коммерческого транспорта",
+  "лизинг недвижимости",
+  "лизинг с минимальным авансом",
+  "лизинг без первоначального взноса",
+  "лизинг для малого бизнеса",
+  "операционный лизинг",
+  "финансовый лизинг",
+  "лизинговые компании",
+  "онлайн лизинг",
+  "лизинг на 5 лет",
+  "лизинг для стартапа",
+];
+
+interface LeasingPageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function Page({ seoPage }: LeasingPageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/lising-dlya-urlic",
+  );
+
   const TOTAL_OFFERS = 17;
   const [visibleOffers, setVisibleOffers] = useState(6);
 
@@ -559,47 +592,23 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {[
-                "лизинг для бизнеса",
-                "лизинг для малого бизнеса",
-                "лизинг оборудование для бизнеса",
-                "лизинг оборудования для малого бизнеса",
-                "льготный лизинг для бизнеса",
-                "льготный лизинг для малого бизнеса",
-                "лизинг для ип",
-                "лизинг авто для ип",
-                "лизинг для ип без",
-                "лизинг для ип без первоначального",
-                "лизинг для ип без первоначального взноса",
-                "лизинг авто для ип без первоначального взноса",
-                "лизинг для ип на авто без первоначального",
-                "условия лизинга для ип",
-                "газель в лизинг для ип",
-                "автомобиль в лизинг для ип",
-                "машина в лизинг для ип",
-                "лизинг для ип калькулятор",
-                "грузовой лизинг для ип",
-                "лизинг для ип на усн",
-                "купить в лизинг для ип",
-                "лизинг авто с пробегом",
-                "лизинг бу авто",
-                "лизинг авто для юридических",
-                "лизинг авто для юридических лиц",
-                "лизинг оборудования",
-                "оборудование лизинг аренда",
-                "договор лизинга оборудования",
-                "финансовый лизинг оборудования",
-                "стоимость лизинга оборудования",
-                "оборудование кредит лизинг",
-                "лизинг машин оборудования",
-                "лизинг оборудования компания",
-                "приобрести оборудование в лизинг",
-                "какое оборудование в лизинг",
-              ].map((t, i) => (
+              {popularSearches.map((item, i) => (
                 <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+                  {item.href.startsWith("http://") ||
+                  item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

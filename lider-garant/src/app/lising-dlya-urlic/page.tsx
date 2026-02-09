@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { getSeoPage } from "@/lib/seo-api";
 import { generatePageMetadata, generateMetadataFromSeoPage } from "@/utils/metadata";
+import LeasingPageClient from "./leasing-client";
 
 const SLUG = "lising-dlya-urlic";
 const FALLBACK_TITLE = "Лизинг для юридических лиц";
@@ -13,4 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata(FALLBACK_TITLE, `/${SLUG}`);
 }
 
-export { default } from "./leasing-client";
+export default async function LeasingPage() {
+  const seoData = await getSeoPage(SLUG);
+  return <LeasingPageClient seoPage={seoData} />;
+}

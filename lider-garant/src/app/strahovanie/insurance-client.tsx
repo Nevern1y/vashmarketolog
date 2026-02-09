@@ -18,8 +18,41 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
-export default function Page() {
+const defaultPopularSearchTerms = [
+  "страхование смр",
+  "страхование смр при строительстве",
+  "страхование смр онлайн",
+  "страхование гражданской ответственности",
+  "страхование подрядчика",
+  "страхование строительных рисков",
+  "страхование строительно монтажных рисков",
+  "страхование смр для тендера",
+  "страхование объектов строительства",
+  "страхование строительно монтажных работ",
+  "страхование для 44-фз",
+  "страхование для 223-фз",
+  "полис смр",
+  "страхование строительной техники",
+  "страхование ответственности застройщика",
+  "страхование грузов в строительстве",
+  "страхование рисков при строительстве",
+  "страхование контрактов",
+];
+
+interface InsurancePageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function Page({ seoPage }: InsurancePageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/strahovanie",
+  );
+
   const formSchema = z.object({
     inn: z
       .string()
@@ -654,51 +687,23 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {[
-                "страхование контрактов",
-                "страхование смр",
-                "строительные страхование",
-                "страхование ответственности строителей",
-                "страхование строительных рисков",
-                "строительно монтажное страхование",
-                "страхование строительно монтажных рисков",
-                "страхование строительных работ",
-                "страхование проектирования",
-                "страхование рисков проектов",
-                "страхования инвестиционных проектов",
-                "страхование такси оргоп",
-                "страхование имущества организации",
-                "страхования товара",
-                "страхование материальных ценностей",
-                "материальное страхование",
-                "страхование товарно материальных ценностей",
-                "страхование авансового платежа",
-                "экологическое страхование",
-                "страхование компаний",
-                "страхование бизнеса",
-                "страхование бизнеса от рисков",
-                "страхование малого бизнеса",
-                "страхование бизнес кредитов",
-                "страхование среднего бизнеса",
-                "страхование энергетиков",
-                "страхование закупок",
-                "страхование имущества юридических лиц",
-                "страхование ответственности за качество",
-                "страхование транспортных компаний",
-                "страхование транспорта компании",
-                "страхование магазина",
-                "страхование чопов",
-                "страхование грузов",
-                "страхование ответственности директоров",
-                "киберстрахование",
-                "страхование туроператора",
-                "корпоративное страхование",
-                "страхование членов сро",
-              ].map((t, i) => (
+              {popularSearches.map((item, i) => (
                 <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+                  {item.href.startsWith("http://") ||
+                  item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

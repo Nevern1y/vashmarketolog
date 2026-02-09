@@ -23,8 +23,41 @@ import Image from "next/image";
 import Link from "next/link";
 import { GuaranteeSection } from "../../components/GuaranteeSection";
 import { toast } from "sonner";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
-export default function Page() {
+const defaultPopularSearchTerms = [
+  "международные платежи",
+  "платежный агент",
+  "трансграничные переводы",
+  "расчеты в юанях",
+  "расчеты в дирхамах",
+  "оплата инвойсов",
+  "валютный контроль",
+  "оплата поставщику в Китай",
+  "платежи в Турцию",
+  "международные расчеты для ИП",
+  "международные расчеты для ООО",
+  "оплата товара за рубеж",
+  "внешнеторговые платежи",
+  "банковский перевод за границу",
+  "swift альтернативы",
+  "международный эквайринг",
+  "конвертация валюты",
+  "сопровождение ВЭД",
+];
+
+interface VedPageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function Page({ seoPage }: VedPageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/ved",
+  );
+
   const [activeTab, setActiveTab] = useState<"import" | "export">("import");
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1443,11 +1476,23 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {faqs.map((t, i) => (
+              {popularSearches.map((item, i) => (
                 <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+                  {item.href.startsWith("http://") ||
+                  item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

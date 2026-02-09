@@ -17,8 +17,41 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
-export default function Page() {
+const defaultPopularSearchTerms = [
+  "факторинг для бизнеса",
+  "факторинг для юридических лиц",
+  "условия факторинга",
+  "агентский факторинг",
+  "виды факторингов",
+  "факторинг отсрочка",
+  "кредитный факторинг",
+  "факторинг без регресса",
+  "факторинг с регрессом",
+  "факторинг кредитование",
+  "банковский факторинг",
+  "закрытый факторинг",
+  "коммерческий факторинг",
+  "стороны договора факторинга",
+  "факторинг для малого бизнеса",
+  "получение факторинга",
+  "факторинг форма кредитования",
+  "предоставления факторинга",
+];
+
+interface FactoringPageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function Page({ seoPage }: FactoringPageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/factoring-dlya-biznesa",
+  );
+
   const TOTAL_OFFERS = 25;
   const [visibleOffers, setVisibleOffers] = useState(8);
 
@@ -511,30 +544,23 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {[
-                "факторинг для бизнеса",
-                "факторинг для юридических лиц",
-                "условия факторинга",
-                "агентский факторинг",
-                "виды факторингов",
-                "факторинг отсрочка",
-                "кредитный факторинг",
-                "факторинг без регресса",
-                "факторинг с регрессом",
-                "факторинг кредитование",
-                "банковский факторинг",
-                "закрытый факторинг",
-                "коммерческий факторинг",
-                "стороны договора факторинга",
-                "факторинг для малого бизнеса",
-                "получение факторинга",
-                "факторинг форма кредитования",
-                "предоставления факторинга",
-              ].map((t, i) => (
+              {popularSearches.map((item, i) => (
                 <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+                  {item.href.startsWith("http://") ||
+                  item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

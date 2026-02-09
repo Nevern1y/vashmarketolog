@@ -23,8 +23,43 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
-export default function DepositsPage() {
+const defaultPopularSearchTerms = [
+  "депозиты для бизнеса",
+  "депозиты для юридических лиц",
+  "депозиты для ИП",
+  "депозит для ООО",
+  "открытие депозита",
+  "депозитные ставки",
+  "депозитные условия",
+  "корпоративные депозиты",
+  "депозиты с капитализацией",
+  "депозит на короткий срок",
+  "депозит на долгий срок",
+  "надежные депозиты",
+  "выгодные депозиты",
+  "инвестиционные депозиты",
+  "депозиты с пополнением",
+  "депозиты с частичным снятием",
+  "срочные депозиты",
+  "депозиты для малого бизнеса",
+  "депозитный счет",
+  "депозиты под проценты",
+];
+
+interface DepositsPageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function DepositsPage({ seoPage }: DepositsPageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/deposity",
+  );
+
   const formSchema = z.object({
     inn: z
       .string()
@@ -562,23 +597,23 @@ export default function DepositsPage() {
 
             <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-                {[
-                  "Депозиты для малого и среднего бизнеса",
-                  "корпоративные депозиты",
-                  "Депозит для малого бизнеса",
-                  "Депозит для среднего бизнеса",
-                  "Депозиты для юридических лиц",
-                  "Депозиты для юрлиц",
-                  "Депозиты для ИП",
-                  "Депозиты для ООО",
-                  "Депозит для корпоративных клиентов",
-                  "Депозиты для крупного бизнеса",
-                  "Депозиты для компаний",
-                ].map((t, i) => (
+                {popularSearches.map((item, i) => (
                   <div key={i}>
-                    <Link href="/v-razrabotke" className="nav-link link-gradient">
-                      {t}
-                    </Link>
+                    {item.href.startsWith("http://") ||
+                    item.href.startsWith("https://") ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="nav-link link-gradient"
+                      >
+                        {item.text}
+                      </a>
+                    ) : (
+                      <Link href={item.href} className="nav-link link-gradient">
+                        {item.text}
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>

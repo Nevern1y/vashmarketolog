@@ -17,6 +17,33 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
+
+const defaultPopularSearchTerms = [
+  "бизнес карта",
+  "банки с бизнес картами",
+  "дебетовая бизнес карта",
+  "бизнес карты с кешбеком",
+  "тарифы бизнес карт",
+  "снять наличные с бизнес карты",
+  "бизнес карта для ИП",
+  "бизнес карта для ООО",
+  "кредитные карты для бизнеса",
+  "карта с бесплатным обслуживанием",
+  "бизнес карта банка",
+  "виртуальная бизнес карта",
+  "карта для расчетов с поставщиками",
+  "корпоративная карта",
+  "выпуск дополнительных бизнес карт",
+  "оплата рекламы бизнес картой",
+  "бизнес карта с лимитом",
+  "карта для командировок",
+];
+
+interface RkoPageProps {
+  seoPage?: SeoPageData | null;
+}
 
 const bankOffers = [
   {
@@ -117,7 +144,13 @@ const bankOffers = [
   },
 ];
 
-export default function Page() {
+export default function Page({ seoPage }: RkoPageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/rko",
+  );
+
   const formSchema = z.object({
     inn: z
       .string()
@@ -544,28 +577,23 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {[
-                "открытие спецсчета",
-                "банки для открытия спецсчетов",
-                "открытие спецсчетов для торгов",
-                "открытие спецсчета для участия",
-                "расчетно кассовое обслуживание",
-                "расчетно кассовое обслуживание банки",
-                "кассовое обслуживание клиентов",
-                "расчетно кассовое обслуживание клиентов",
-                "рко",
-                "рко для ип",
-                "рко для юридических лиц",
-                "тарифы рко",
-                "рко для бизнеса",
-                "рко для малого бизнеса",
-                "специальные счета для бизнеса",
-                "специальные счета для юридических лиц",
-              ].map((t, i) => (
+              {popularSearches.map((item, i) => (
                 <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+                  {item.href.startsWith("http://") ||
+                  item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

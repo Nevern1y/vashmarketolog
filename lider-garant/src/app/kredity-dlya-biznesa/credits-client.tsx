@@ -20,8 +20,41 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import type { SeoPageData } from "@/lib/seo-api";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 
-export default function Page() {
+const defaultPopularSearchTerms = [
+  "Кредит для бизнеса без залога",
+  "Кредит для малого бизнеса",
+  "Кредит для ООО",
+  "Кредит для ИП",
+  "Кредитование бизнеса",
+  "Кредит для самозанятых",
+  "Кредит для юридических лиц",
+  "Кредитование для ИП",
+  "Кредит под оборот",
+  "Кредит на пополнение оборотных средств",
+  "Кредит на развитие бизнеса",
+  "Срочный кредит для бизнеса",
+  "Овердрафт для бизнеса",
+  "Кредит для стартапа",
+  "Кредит для малого и среднего бизнеса",
+  "Государственная поддержка кредитов",
+  "Льготный кредит для бизнеса",
+  "Экспресс-кредит для бизнеса",
+];
+
+interface CreditsPageProps {
+  seoPage?: SeoPageData | null;
+}
+
+export default function Page({ seoPage }: CreditsPageProps) {
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "/kredity-dlya-biznesa",
+  );
+
   const TOTAL_OFFERS = 25;
   const [visibleOffers, setVisibleOffers] = useState(6);
 
@@ -811,45 +844,23 @@ export default function Page() {
 
           <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-6">
-              {[
-                "кредит для бизнеса",
-                "кредитная линия",
-                "оборотный кредит",
-                "коммерческий кредит",
-                "кредит на развития",
-                "кредиты мал бизнесу",
-                "кредит среднему бизнесу",
-                "кредит для ип",
-                "кредит для ооо",
-                "кредит для юридических лиц",
-                "кредит на оборотные средства",
-                "кредит на пополнение оборотных средств",
-                "кредит для бизнеса без залога",
-                "кредит под залог коммерческой недвижимости",
-                "кредит на проект",
-                "кредит инвестиционных проектов",
-                "кредит коммерческим организациям",
-                "финансовый коммерческий кредит",
-                "коммерческие кредиты предприятиям",
-                "кредит под предприятие",
-                "банковские кредиты предприятиям",
-                "финансовые кредиты предприятию",
-                "кредит для предприятия",
-                "привлечение кредита предприятием",
-                "кредит под производство",
-                "кредит на развития производства",
-                "кредит на завод",
-                "сельхоз кредит",
-                "кредит для селлеров",
-                "кредиты на туризм",
-                "ипотека на коммерческую недвижимость",
-                "коммерческая ипотека",
-                "льготный кредит бизнесу",
-              ].map((t, i) => (
+              {popularSearches.map((item, i) => (
                 <div key={i}>
-                  <Link href="/v-razrabotke" className="nav-link link-gradient">
-                    {t}
-                  </Link>
+                  {item.href.startsWith("http://") ||
+                  item.href.startsWith("https://") ? (
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nav-link link-gradient"
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <Link href={item.href} className="nav-link link-gradient">
+                      {item.text}
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>
