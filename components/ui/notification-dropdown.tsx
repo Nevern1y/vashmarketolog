@@ -24,6 +24,7 @@ import {
     Check,
     Loader2,
     UserPlus,
+    Users,
     Building2,
     PhoneIncoming,
     Send,
@@ -69,6 +70,8 @@ function getNotificationIcon(type: NotificationType) {
             return <PhoneIncoming className="h-5 w-5 text-[#f97316]" />
         case "admin_new_agent":
             return <UserPlus className="h-5 w-5 text-[#3CE8D1]" />
+        case "admin_new_client":
+            return <Users className="h-5 w-5 text-[#3CE8D1]" />
         case "admin_new_partner":
             return <Building2 className="h-5 w-5 text-[#3b82f6]" />
         case "admin_application_sent":
@@ -88,6 +91,7 @@ function getNotificationBg(type: NotificationType, isRead: boolean) {
         case "new_application":
         case "admin_new_application":
         case "admin_new_agent":
+        case "admin_new_client":
         case "admin_application_sent":
             return "bg-[#3CE8D1]/5"
         case "decision_rejected":
@@ -122,6 +126,8 @@ function getActionText(type: NotificationType) {
             return "Открыть лиды"
         case "admin_new_agent":
             return "Открыть агентов"
+        case "admin_new_client":
+            return "Открыть клиентов"
         case "admin_new_partner":
             return "Открыть партнёров"
         case "document_verified":
@@ -259,6 +265,7 @@ export function NotificationDropdown({ onNotificationClick }: NotificationDropdo
                                                             )}
                                                         </>
                                                     ) : notification.type === 'admin_new_agent' ||
+                                                      notification.type === 'admin_new_client' ||
                                                       notification.type === 'admin_new_partner' ? (
                                                         <>
                                                             {notification.details.userName || notification.details.userEmail}

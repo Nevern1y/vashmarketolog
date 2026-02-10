@@ -139,10 +139,10 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
             <div className="flex flex-col items-start leading-tight">
               <a
-                href="tel:+79652841415"
+                href="tel:+74957452720"
                 className="text-[15px] font-semibold text-foreground hover:opacity-80 transition"
               >
-                +7(965)284-14-15
+                +7(495)745-27-20
               </a>
               <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                 <DialogTrigger asChild>
@@ -293,10 +293,10 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
                         <Smartphone className="h-5 w-5" />
                       </div>
                       <a
-                        href="tel:+79652841415"
+                        href="tel:+74957452720"
                         className="text-lg font-semibold tracking-tight text-primary whitespace-nowrap"
                       >
-                        +7(965)284-14-15
+                        +7(495)745-27-20
                       </a>
                     </div>
                   </div>

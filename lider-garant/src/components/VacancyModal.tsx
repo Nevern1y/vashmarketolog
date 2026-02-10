@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Phone, MessageCircle, Send, MapPin, Clock, Users } from "lucide-react";
+import { Phone, MapPin, Clock, Users } from "lucide-react";
 
 interface Vacancy {
   id: number;
@@ -442,7 +442,7 @@ export default function VacancyModal({ vacancy, open, onClose }: Props) {
                   type="button"
                   variant="outline"
                   className="h-12"
-                  onClick={() => window.open("tel:+79652841415")}
+                  onClick={() => window.open("tel:+74957452720")}
                 >
                   <Phone className="h-4 w-4 mr-2" />
                   Позвонить

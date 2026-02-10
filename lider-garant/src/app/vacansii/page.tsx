@@ -253,7 +253,7 @@ export default function Page() {
                     asChild
                     className="h-12 bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)]"
                   >
-                    <a href="tel:+79652841415">Позвонить</a>
+                    <a href="tel:+74957452720">Позвонить</a>
                   </Button>
                 </div>
               </div>
@@ -320,36 +320,36 @@ export default function Page() {
                         HR отдел
                       </div>
                       <a
-                        href="tel:+79652841415"
+                        href="tel:+74957452720"
                         className="text-primary hover:text-primary/80 transition-colors"
                       >
-                        +7 (965) 284-14-15
+                        +7 (495) 745-27-20
                       </a>
                     </div>
                   </div>
 
-                  <div className="flex items-center">
+                  <div className="flex items-center gap-3">
                     <a
-                      href="https://wa.me/79652841415"
+                      href="https://max.ru/u/f9LHodD0cOIXEPJot15IEj_2EIeaAZsKSjeCGIcybYIybHk3HTuHQ3LCd-Y"
                       target="_blank"
                       rel="noopener noreferrer"
                       title="MAX"
                     >
-                      <a href="https://max.ru/u/f9LHodD0cOIXEPJot15IEj_2EIeaAZsKSjeCGIcybYIybHk3HTuHQ3LCd-Y">
-                        <img
-                          src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
-                          alt="PNG logo Max"
-                          width={47}
-                        />
-                      </a>
+                      <img
+                        src="https://logo-teka.com/wp-content/uploads/2025/07/max-messenger-sign-logo.png"
+                        alt="MAX"
+                        width={47}
+                      />
                     </a>
                     <a
-                      href="https://t.me/+79652841415"
+                      href="https://t.me/lider_garant"
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Telegram"
+                      className="flex items-center gap-2"
                     >
                       <img src="/tg-logo.webp" alt="" className="w-15 h-15" />
+                      <span className="text-sm font-medium text-primary">@lider_garant</span>
                     </a>
                   </div>
                 </div>

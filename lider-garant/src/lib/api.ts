@@ -223,7 +223,17 @@ class ApiClient {
 
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
+            const contentType = response.headers.get('content-type') || '';
+            let errorData: any = {};
+
+            if (contentType.includes('application/json')) {
+                errorData = await response.json().catch(() => ({}));
+            } else {
+                const rawText = await response.text().catch(() => '');
+                if (rawText.trim()) {
+                    errorData = { detail: rawText.slice(0, 500) };
+                }
+            }
 
             // Debug logging - skip 404s to avoid noise during polling of deleted items
             if (response.status !== 404) {
@@ -254,6 +264,10 @@ class ApiClient {
                 }
             }
 
+            if (!message || message === 'An error occurred') {
+                message = `${response.status} ${response.statusText || 'Request failed'}`;
+            }
+
             const error: ApiError = {
                 message,
                 status: response.status,
@@ -267,7 +281,21 @@ class ApiClient {
             return {} as T;
         }
 
-        return response.json();
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            return response.json();
+        }
+
+        const rawText = await response.text();
+        if (!rawText.trim()) {
+            return {} as T;
+        }
+
+        try {
+            return JSON.parse(rawText) as T;
+        } catch {
+            return rawText as unknown as T;
+        }
     }
 
     // GET request

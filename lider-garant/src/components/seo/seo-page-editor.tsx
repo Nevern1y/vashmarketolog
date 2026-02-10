@@ -226,13 +226,13 @@ const normalizePopularSearches = (
                 if (!text) return null
 
                 if (isLinkLikeValue(text)) {
-                    return { text: linkToDefaultText(text), href: text }
+                    return { text: linkToDefaultText(text), href: normalizePopularSearchHref(text) }
                 }
 
                 return { text, href: "#application" }
             }
 
-            const href = String(item?.href || "#application").trim() || "#application"
+            const href = normalizePopularSearchHref(String(item?.href || "#application"))
             const text = String(item?.text || "").trim()
 
             if (!text && !href) return null
@@ -264,6 +264,17 @@ const dedupePopularSearches = (items: PopularSearchItem[]) => {
 
 const isLinkLikeValue = (value: string) => /^(\/|#|https?:\/\/)/i.test(value)
 
+const normalizePopularSearchHref = (value: string) => {
+    const href = value.trim()
+    if (!href) return "#application"
+    if (href.startsWith("#") || href.startsWith("/") || /^https?:\/\//i.test(href)) {
+        return href
+    }
+
+    // UX fallback: treat bare slug as local path
+    return `/${href.replace(/^\/+/, "")}`
+}
+
 const linkToDefaultText = (value: string) => {
     const clean = value
         .trim()
@@ -279,7 +290,7 @@ const linkToDefaultText = (value: string) => {
 
 const buildPopularSearchItem = (textRaw: string, hrefRaw: string): PopularSearchItem | null => {
     const text = textRaw.trim()
-    const href = hrefRaw.trim()
+    const href = normalizePopularSearchHref(hrefRaw)
 
     if (!text && !href) {
         return null
@@ -297,7 +308,7 @@ const buildPopularSearchItem = (textRaw: string, hrefRaw: string): PopularSearch
 
     return {
         text: text || href,
-        href: href || "#application",
+        href,
     }
 }
 
@@ -386,12 +397,25 @@ export function SeoPageEditor({
         const finalPopularSearches = dedupePopularSearches([
             ...normalizedSearches,
             ...(pendingSearchItem ? [pendingSearchItem] : []),
-        ])
+        ]).map((item) => ({
+            text: item.text.trim(),
+            href: normalizePopularSearchHref(item.href),
+        }))
+
+        const hasTemplateContent = [
+            formData.hero_button_text,
+            formData.best_offers_title,
+            formData.application_form_title,
+            formData.application_button_text,
+        ].some((value) => String(value || "").trim().length > 0)
+
+        const selectedLayout = formData.template_name === "none" ? "" : (formData.template_name || "")
+        const resolvedLayoutTemplate = selectedLayout || (hasTemplateContent ? "create-page" : "")
 
         const payload: Partial<SeoPage> = {
             ...formData,
             slug: normalizedSlug,
-            template_name: formData.template_name === "none" ? "" : (formData.template_name || ""),
+            template_name: resolvedLayoutTemplate,
             autofill_template:
                 formData.autofill_template === "none" ? "" : (formData.autofill_template || ""),
             popular_searches: finalPopularSearches,
@@ -906,29 +930,38 @@ export function SeoPageEditor({
                                             <span className="text-slate-500 text-sm">Нет поисковых запросов</span>
                                         ) : (
                                             (formData.popular_searches || []).map((term, idx) => (
-                                                <div key={idx} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center">
-                                                    <Input
-                                                        value={term.text}
-                                                        onChange={(e) => updateSearchTerm(idx, 'text', e.target.value)}
-                                                        placeholder="Текст запроса"
-                                                        className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
-                                                    />
-                                                    <Input
-                                                        value={term.href || "#application"}
-                                                        onChange={(e) => updateSearchTerm(idx, 'href', e.target.value)}
-                                                        list="seo-page-links"
-                                                        placeholder="/slug или #application"
-                                                        className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        onClick={() => removeSearchTerm(idx)}
-                                                        className="h-9 text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                                                    >
-                                                        <Trash2 className="w-4 h-4 mr-1" />
-                                                        Удалить
-                                                    </Button>
+                                                <div key={idx} className="space-y-1">
+                                                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                                                        <Input
+                                                            value={term.text}
+                                                            onChange={(e) => updateSearchTerm(idx, 'text', e.target.value)}
+                                                            placeholder="Текст запроса"
+                                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
+                                                        />
+                                                        <Input
+                                                            value={term.href || "#application"}
+                                                            onChange={(e) => updateSearchTerm(idx, 'href', e.target.value)}
+                                                            list="seo-page-links"
+                                                            placeholder="/slug или #application"
+                                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            onClick={() => removeSearchTerm(idx)}
+                                                            className="h-9 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                                        >
+                                                            <Trash2 className="w-4 h-4 mr-1" />
+                                                            Удалить
+                                                        </Button>
+                                                    </div>
+                                                    {normalizedSlug &&
+                                                        normalizePopularSearchHref(term.href || "")
+                                                            .replace(/\/+$/, "") === `/${normalizedSlug}` && (
+                                                            <p className="text-xs text-amber-300/80">
+                                                                Ссылка ведет на эту же страницу. Для перехода нужен другой slug.
+                                                            </p>
+                                                        )}
                                                 </div>
                                             ))
                                         )}

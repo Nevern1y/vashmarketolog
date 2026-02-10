@@ -17,15 +17,15 @@ const cards = [
     icon: Phone,
     title: "Позвоните нам",
     desc: "Звонок бесплатный по России.",
-    link: "tel:+7(965)284-14-15 ",
-    cta: "+7(965)284-14-15 ",
+    link: "tel:+74957452720",
+    cta: "+7(495)745-27-20",
   },
   {
     icon: MessageSquareText,
     title: "Напишите нам",
     desc: "Отвечаем на почту в рабочее время.",
-    link: "mailto:info@lider-garant.ru",
-    cta: "info@lider-garant.ru",
+    link: "mailto:support@lider-garant.ru",
+    cta: "support@lider-garant.ru",
   },
 ];
 

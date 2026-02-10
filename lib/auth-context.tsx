@@ -10,7 +10,7 @@
  * - If only refresh token exists, attempts to refresh first
  * - isLoading starts TRUE to prevent premature redirect
  * 
- * AUTO-LOGOUT: Logs out user after 1 hour of inactivity.
+ * AUTO-LOGOUT: Logs out user after 2 hours of inactivity.
  * Activity is detected via mouse movements, keyboard events, and clicks.
  */
 "use client"
@@ -19,9 +19,10 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { authApi, tokenStorage, refreshAccessToken, type User, type RegisterPayload, type ApiError } from '@/lib/api';
 import type { AppMode } from '@/lib/types';
 
-// Auto-logout after 1 hour of inactivity (in milliseconds)
-const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+// Auto-logout after 2 hours of inactivity (in milliseconds)
+const INACTIVITY_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours
 const ACTIVITY_CHECK_INTERVAL_MS = 60 * 1000;  // Check every minute
+const LAST_ACTIVITY_STORAGE_KEY = 'lider_garant_last_activity_ts'
 
 interface AuthContextType {
     user: User | null;
@@ -203,6 +204,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('[AUTH] Logout API call failed (ignored):', err);
         } finally {
             setUser(null);
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY)
+            }
             setIsLoading(false);
             console.log('[AUTH] Logged out');
         }
@@ -212,19 +216,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // Only track activity when user is authenticated
         if (!user) return;
+
+        const syncActivity = (timestamp: number = Date.now()) => {
+            lastActivityRef.current = timestamp
+            localStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, String(timestamp))
+        }
+
+        const readStoredActivity = () => {
+            const raw = localStorage.getItem(LAST_ACTIVITY_STORAGE_KEY)
+            if (!raw) return null
+            const parsed = Number(raw)
+            return Number.isFinite(parsed) ? parsed : null
+        }
+
+        // Initialize/sync activity timestamp across tabs
+        syncActivity(Date.now())
         
         // Reset activity timestamp on user actions
         const handleActivity = () => {
-            lastActivityRef.current = Date.now();
+            syncActivity(Date.now())
         };
+
+        const handleStorageSync = (event: StorageEvent) => {
+            if (event.key !== LAST_ACTIVITY_STORAGE_KEY || !event.newValue) return
+            const parsed = Number(event.newValue)
+            if (Number.isFinite(parsed) && parsed > lastActivityRef.current) {
+                lastActivityRef.current = parsed
+            }
+        }
 
         // Check for inactivity periodically
         const checkInactivity = () => {
             const now = Date.now();
+            const storedActivity = readStoredActivity()
+            if (storedActivity && storedActivity > lastActivityRef.current) {
+                lastActivityRef.current = storedActivity
+            }
             const timeSinceLastActivity = now - lastActivityRef.current;
             
             if (timeSinceLastActivity > INACTIVITY_TIMEOUT_MS) {
-                console.log('[AUTH] User inactive for 1 hour, logging out...');
+                console.log('[AUTH] User inactive for 2 hours, logging out...');
                 logout();
             }
         };
@@ -235,6 +266,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.addEventListener('click', handleActivity);
         window.addEventListener('scroll', handleActivity);
         window.addEventListener('touchstart', handleActivity);
+        window.addEventListener('storage', handleStorageSync)
 
         // Check inactivity every minute
         const intervalId = setInterval(checkInactivity, ACTIVITY_CHECK_INTERVAL_MS);
@@ -246,6 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             window.removeEventListener('click', handleActivity);
             window.removeEventListener('scroll', handleActivity);
             window.removeEventListener('touchstart', handleActivity);
+            window.removeEventListener('storage', handleStorageSync)
             clearInterval(intervalId);
         };
     }, [user, logout]);

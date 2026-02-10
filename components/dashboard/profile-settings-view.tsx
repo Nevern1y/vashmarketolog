@@ -63,6 +63,7 @@ export function ProfileSettingsView() {
     // Role check - partners see Referrals tab, clients don't
     const isPartner = user?.role === "partner"
     const isClient = user?.role === "client"
+    const isAdmin = user?.role === "admin"
 
     // Profile editing state
     const [isEditingProfile, setIsEditingProfile] = useState(false)
@@ -623,7 +624,9 @@ export function ProfileSettingsView() {
                                 </p>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm">Новые заявки</span>
+                                        <span className="text-sm">
+                                            {isAdmin ? "Новые регистрации (агенты/клиенты)" : "Новые заявки"}
+                                        </span>
                                         <Switch
                                             checked={emailNewApplicationsEnabled}
                                             onCheckedChange={setEmailNewApplicationsEnabled}
@@ -802,16 +805,16 @@ export function ProfileSettingsView() {
                         <CardContent className="space-y-6">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <a
-                                    href="https://api.whatsapp.com/send/?phone=79652841415&text&type=phone_number&app_absent=0"
+                                    href="https://t.me/lider_garant"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="p-4 rounded-lg border space-y-2 hover:bg-muted/50 transition-colors"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <Phone className="h-5 w-5 text-[#25D366]" />
-                                        <span className="font-medium">WhatsApp</span>
+                                        <MessageCircle className="h-5 w-5 text-[#229ED9]" />
+                                        <span className="font-medium">Telegram</span>
                                     </div>
-                                    <p className="text-lg font-bold">+7 (965) 284-14-15</p>
+                                    <p className="text-lg font-bold">@lider_garant</p>
                                     <p className="text-sm text-muted-foreground">Нажмите чтобы написать</p>
                                 </a>
                                 <a

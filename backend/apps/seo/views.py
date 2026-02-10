@@ -28,11 +28,14 @@ class SeoPageViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """
         Dynamic permissions based on action:
-        - Read operations: AllowAny (public SEO pages for website)
+        - Public read operations: AllowAny (public SEO pages for website)
+        - Admin list: IsSeoManagerOrAdmin (returns drafts + published)
         - Write operations: IsSeoManagerOrAdmin (admin or seo role required)
         """
         if self.action in ['list', 'retrieve', 'by_type', 'by_template']:
             return [permissions.AllowAny()]
+        if self.action in ['admin_list']:
+            return [IsSeoManagerOrAdmin()]
         # create, update, partial_update, destroy require SEO manager or admin
         return [IsSeoManagerOrAdmin()]
     
@@ -113,6 +116,17 @@ class SeoPageViewSet(viewsets.ModelViewSet):
             {'error': 'Параметр template обязателен'},
             status=400
         )
+
+    @action(detail=False, methods=['get'], url_path='admin-list')
+    def admin_list(self, request):
+        """
+        Returns all SEO pages for admin/SEO manager dashboard.
+
+        Unlike public list(), this endpoint includes drafts and unpublished pages.
+        """
+        pages = SeoPage.objects.all().order_by('-priority', 'slug')
+        serializer = self.get_serializer(pages, many=True)
+        return Response(serializer.data)
     
     def retrieve(self, request, *args, **kwargs):
         """

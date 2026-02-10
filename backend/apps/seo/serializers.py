@@ -46,6 +46,19 @@ class SeoPageSerializer(serializers.ModelSerializer):
         return parsed.scheme in ('http', 'https') and bool(parsed.netloc)
 
     @staticmethod
+    def _normalize_popular_search_href(href: str) -> str:
+        clean = (href or '').strip()
+        if not clean:
+            return '#application'
+
+        lower_clean = clean.lower()
+        if clean.startswith('#') or clean.startswith('/') or lower_clean.startswith('http://') or lower_clean.startswith('https://'):
+            return clean
+
+        # UX fallback: treat bare slug as local path
+        return f"/{clean.lstrip('/')}"
+
+    @staticmethod
     def _is_link_like_value(value: str) -> bool:
         normalized = value.lower()
         return normalized.startswith('#') or normalized.startswith('/') or normalized.startswith('http://') or normalized.startswith('https://')
@@ -114,7 +127,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError("Each popular search object must have 'text'")
 
                 text = str(item.get('text', '')).strip()
-                href = str(item.get('href') or '#application').strip()
+                href = self._normalize_popular_search_href(str(item.get('href') or '#application'))
 
                 if text and self._is_link_like_value(text) and (href == '#application' or href == text):
                     href = href or text
@@ -175,3 +188,41 @@ class SeoPageSerializer(serializers.ModelSerializer):
             result.append(normalized)
         
         return result
+
+    def validate(self, attrs):
+        """
+        Auto-enable create-page layout when template-only blocks are filled.
+
+        This prevents accidental "empty" rendering when a manager fills
+        template content but forgets to select Layout: create-page.
+        """
+        instance = getattr(self, 'instance', None)
+
+        template_name = str(
+            attrs.get('template_name', getattr(instance, 'template_name', '')) or ''
+        ).strip()
+
+        hero_button_text = str(
+            attrs.get('hero_button_text', getattr(instance, 'hero_button_text', '')) or ''
+        ).strip()
+        best_offers_title = str(
+            attrs.get('best_offers_title', getattr(instance, 'best_offers_title', '')) or ''
+        ).strip()
+        application_form_title = str(
+            attrs.get('application_form_title', getattr(instance, 'application_form_title', '')) or ''
+        ).strip()
+        application_button_text = str(
+            attrs.get('application_button_text', getattr(instance, 'application_button_text', '')) or ''
+        ).strip()
+
+        has_template_content = any([
+            hero_button_text,
+            best_offers_title,
+            application_form_title,
+            application_button_text,
+        ])
+
+        if not template_name and has_template_content:
+            attrs['template_name'] = 'create-page'
+
+        return attrs

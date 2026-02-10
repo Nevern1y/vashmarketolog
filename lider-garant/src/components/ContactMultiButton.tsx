@@ -16,7 +16,7 @@ const ContactMultiButton = ({ onOpenCallModal }: ContactMultiButtonProps) => {
       icon: Phone,
       label: "Позвонить",
       action: () => {
-        window.location.href = "tel:+79652841415";
+        window.location.href = "tel:+74957452720";
       },
       color: "bg-primary",
     },
@@ -52,7 +52,7 @@ const ContactMultiButton = ({ onOpenCallModal }: ContactMultiButtonProps) => {
       icon: Mail,
       label: "Email",
       action: () => {
-        window.location.href = "mailto:info@lidergarant.ru";
+        window.location.href = "mailto:support@lider-garant.ru";
       },
       color: "bg-primary",
     },

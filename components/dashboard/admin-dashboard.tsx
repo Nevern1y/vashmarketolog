@@ -349,6 +349,9 @@ export function AdminDashboard() {
             case "admin_new_agent":
                 handleViewChange("agents")
                 break
+            case "admin_new_client":
+                handleViewChange("clients")
+                break
             case "admin_new_partner":
                 handleViewChange("partners")
                 break

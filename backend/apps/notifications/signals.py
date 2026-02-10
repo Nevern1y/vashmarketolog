@@ -50,6 +50,9 @@ def get_notification_email_category(notification_type: str) -> str | None:
     if notification_type in [
         NotificationType.NEW_APPLICATION,
         NotificationType.ADMIN_NEW_APPLICATION,
+        NotificationType.ADMIN_NEW_AGENT,
+        NotificationType.ADMIN_NEW_PARTNER,
+        NotificationType.ADMIN_NEW_CLIENT,
     ]:
         return 'new_applications'
 
@@ -566,19 +569,23 @@ def create_admin_lead_notification(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=UserModel)
 def create_admin_user_notification(sender, instance, created, **kwargs):
-    """Notify admins about new agents or partners."""
+    """Notify admins about new agents, clients or partners."""
     if not created:
         return
 
     user = instance
-    if user.role not in [UserRole.AGENT, UserRole.PARTNER]:
+    if user.role not in [UserRole.AGENT, UserRole.CLIENT, UserRole.PARTNER]:
         return
 
-    notification_type = (
-        NotificationType.ADMIN_NEW_AGENT
-        if user.role == UserRole.AGENT
-        else NotificationType.ADMIN_NEW_PARTNER
-    )
+    if user.role == UserRole.AGENT:
+        notification_type = NotificationType.ADMIN_NEW_AGENT
+        title = 'Новый агент'
+    elif user.role == UserRole.CLIENT:
+        notification_type = NotificationType.ADMIN_NEW_CLIENT
+        title = 'Новый клиент'
+    else:
+        notification_type = NotificationType.ADMIN_NEW_PARTNER
+        title = 'Новый партнёр'
 
     full_name = " ".join([name for name in [user.first_name, user.last_name] if name]).strip()
     display_name = full_name or user.email
@@ -593,7 +600,7 @@ def create_admin_user_notification(sender, instance, created, **kwargs):
 
     notify_admins(
         notification_type=notification_type,
-        title='Новый агент' if user.role == UserRole.AGENT else 'Новый партнёр',
+        title=title,
         message=display_name,
         data=data,
         source_object=user,

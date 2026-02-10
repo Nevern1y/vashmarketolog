@@ -63,20 +63,22 @@ function DialogContent({
           // Base positioning - fixed centered
           'fixed z-50',
           'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+          // On short viewports (old laptops), anchor near top
+          '[@media(max-height:820px)]:top-2 [@media(max-height:820px)]:translate-y-0',
           // Size constraints with safe viewport units
-          'w-[calc(100%-2rem)] max-w-lg',
-          'max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)]',
+          'w-[calc(100%-1rem)] max-w-lg',
+          'max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)]',
           // Content container styling
           'bg-background rounded-lg border shadow-lg',
           // Padding
-          'p-6',
+          'p-4 sm:p-6',
           // Animations
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
           'duration-200',
           // Scrolling support for tall content
-          'overflow-y-auto [-webkit-overflow-scrolling:touch]',
+          'overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]',
           // Safari-specific fixes
           'transform-gpu',
           className,

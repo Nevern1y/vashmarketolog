@@ -32,7 +32,7 @@ import {
     Globe
 } from "lucide-react"
 import { SeoPageEditor, type SeoPage } from "./seo-page-editor"
-import { api, type ApiError } from "../../lib/api"
+import { api, tokenStorage, type ApiError } from "../../lib/api"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import {
@@ -62,14 +62,43 @@ export function SeoDashboard() {
     const fetchPages = async () => {
         setIsLoading(true)
         try {
-            // In a real scenario, we might need a specific endpoint for the admin list
-            // For now, using the public one which returns all published pages.
-            // Ideally, we need an endpoint that returns ALL pages (including drafts) for admin.
-            // Assuming existing /api/seo/pages/ handles this via permissions or query params if needed.
-            const data = await api.get<SeoPage[]>("/seo/pages/")
-            setPages(data)
+            if (!tokenStorage.isAuthenticated()) {
+                toast.error("Сессия истекла", {
+                    description: "Войдите заново, чтобы управлять SEO страницами.",
+                })
+                router.push("/seo-manager/login")
+                return
+            }
+
+            try {
+                const data = await api.get<SeoPage[]>("/seo/pages/admin-list/")
+                setPages(data)
+            } catch (error) {
+                const apiError = error as ApiError
+
+                if (apiError?.status === 404) {
+                    // Backward compatibility if backend deployment is lagging behind frontend.
+                    const data = await api.get<SeoPage[]>("/seo/pages/")
+                    setPages(data)
+                    toast.warning("Показан публичный список", {
+                        description: "Для полного списка (включая черновики) обновите backend до версии с /seo/pages/admin-list/.",
+                    })
+                } else {
+                    throw error
+                }
+            }
         } catch (error) {
+            const apiError = error as ApiError
             console.error("Failed to fetch SEO pages:", error)
+
+            if (apiError?.status === 401 || apiError?.status === 403) {
+                toast.error("Нет доступа к SEO админке", {
+                    description: "Проверьте вход с ролью seo/admin.",
+                })
+                router.push("/seo-manager/login")
+            } else {
+                toast.error(apiError?.message || "Не удалось загрузить список страниц")
+            }
         } finally {
             setIsLoading(false)
         }
@@ -103,12 +132,18 @@ export function SeoDashboard() {
         if (!pageToDelete) return
         setIsDeleting(true)
         try {
-            await api.delete(`/seo/pages/${pageToDelete.slug}/`)
+            const encodedSlug = pageToDelete.slug
+                .split('/')
+                .map((part) => encodeURIComponent(part))
+                .join('/')
+
+            await api.delete(`/seo/pages/${encodedSlug}/`)
             setPages(pages.filter(p => p.slug !== pageToDelete.slug))
             toast.success("Страница удалена")
         } catch (error) {
+            const apiError = error as ApiError
             console.error("Failed to delete page:", error)
-            toast.error("Ошибка при удалении страницы")
+            toast.error(apiError?.message || "Ошибка при удалении страницы")
         } finally {
             setIsDeleting(false)
             setIsDeleteDialogOpen(false)
@@ -122,18 +157,39 @@ export function SeoDashboard() {
             let result: SeoPage;
             if (editingPage) {
                 // Update
-                result = await api.patch<SeoPage>(`/seo/pages/${editingPage.slug}/`, data)
-                setPages(pages.map(p => p.id === result.id ? result : p))
+                const encodedSlug = editingPage.slug
+                    .split('/')
+                    .map((part) => encodeURIComponent(part))
+                    .join('/')
+
+                result = await api.patch<SeoPage>(`/seo/pages/${encodedSlug}/`, data)
+                if (result && typeof result === 'object' && 'id' in result) {
+                    setPages(pages.map(p => p.id === result.id ? result : p))
+                } else {
+                    await fetchPages()
+                }
             } else {
                 // Create
                 result = await api.post<SeoPage>("/seo/pages/", data)
-                setPages([result, ...pages])
+                if (result && typeof result === 'object' && 'id' in result) {
+                    setPages([result, ...pages])
+                } else {
+                    await fetchPages()
+                }
             }
             return true
         } catch (error) {
             const apiError = error as ApiError
             console.error("Failed to save page:", error)
-            toast.error(apiError?.message || "Ошибка при сохранении")
+
+            if (apiError?.status === 401 || apiError?.status === 403) {
+                toast.error("Сессия истекла", {
+                    description: "Войдите заново и повторите сохранение.",
+                })
+                router.push("/seo-manager/login")
+            } else {
+                toast.error(apiError?.message || "Ошибка при сохранении")
+            }
             return false
         } finally {
             setIsSaving(false)

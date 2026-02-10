@@ -55,10 +55,10 @@ export default function Page() {
                   Служба поддержки
                 </h2>
                 <a
-                  href="tel:+79652841415"
+                  href="tel:+74957452720"
                   className="mt-1 block text-lg font-medium text-primary hover:underline"
                 >
-                  +7 (965) 284-14-15
+                  +7 (495) 745-27-20
                 </a>
               </div>
             </div>
@@ -94,10 +94,10 @@ export default function Page() {
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Email</h2>
                 <a
-                  href="mailto:info@lider-garant.ru"
+                  href="mailto:support@lider-garant.ru"
                   className="mt-1 block text-primary hover:underline"
                 >
-                  info@lider-garant.ru
+                  support@lider-garant.ru
                 </a>
               </div>
             </div>
@@ -195,7 +195,7 @@ export default function Page() {
                   Telegram
                 </h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  @lidergarant
+                  @lider_garant
                 </p>
               </div>
             </div>

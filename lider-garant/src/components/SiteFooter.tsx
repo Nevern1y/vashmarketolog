@@ -2,11 +2,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import ThemeToggle from "./ThemeToggle";
-import { usePathname } from "next/navigation";
 
 export default function SiteFooter() {
-  const pathname = usePathname();
-
   return (
     <footer className="border-t border-foreground/10 bg-background/80">
       <style>{`
@@ -41,21 +38,21 @@ export default function SiteFooter() {
               <div className="font-semibold">Служба поддержки</div>
               <div className="flex flex-wrap items-center gap-2">
                 <a
-                  href="tel:+79652841415"
+                  href="tel:+74957452720"
                   className="text-primary hover:underline"
                 >
-                  +7(965)284-14-15
+                  +7(495)745-27-20
                 </a>
                 <span>Ежедневно с 7 до 20 Мск</span>
               </div>
               <div>
                 <a
-                  href={`mailto:${"info@lider-garant.ru"
+                  href={`mailto:${"support@lider-garant.ru"
                     .split("@")
                     .join("&#64;")}`}
                   className="text-primary hover:underline"
                 >
-                  info@lider-garant.ru
+                  support@lider-garant.ru
                 </a>
               </div>
             </div>
@@ -222,7 +219,7 @@ export default function SiteFooter() {
               <li>
                 <Link
                   href="/vacansii"
-                  className={`nav-link link-gradient ${pathname === "/vacansii" ? "active" : ""}`}
+                  className="nav-link link-gradient"
                 >
                   Вакансии
                 </Link>

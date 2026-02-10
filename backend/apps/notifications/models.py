@@ -31,6 +31,7 @@ class NotificationType(models.TextChoices):
     ADMIN_NEW_APPLICATION = 'admin_new_application', 'Новая заявка (админ)'
     ADMIN_NEW_LEAD = 'admin_new_lead', 'Новый лид'
     ADMIN_NEW_AGENT = 'admin_new_agent', 'Новый агент'
+    ADMIN_NEW_CLIENT = 'admin_new_client', 'Новый клиент'
     ADMIN_NEW_PARTNER = 'admin_new_partner', 'Новый партнёр'
     ADMIN_APPLICATION_SENT = 'admin_application_sent', 'Заявка отправлена в банк'
 
