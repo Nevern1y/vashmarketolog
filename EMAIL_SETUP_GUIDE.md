@@ -65,6 +65,7 @@ EMAIL_USE_SSL=True
 EMAIL_HOST_USER=info@lider-garant.ru
 
 # 4. Вставьте сюда полученный Пароль Приложения (не от входа в почту!):
+# ВАЖНО: для Docker env-файлов не оборачивайте пароль в кавычки
 EMAIL_HOST_PASSWORD=ваш_секретный_пароль
 ```
 

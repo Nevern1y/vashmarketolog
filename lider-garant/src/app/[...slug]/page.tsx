@@ -82,9 +82,11 @@ export default async function DynamicSeoPage({ params }: Props) {
         Boolean(page.application_button_text?.trim()) ||
         Array.isArray(page.bank_offers) && page.bank_offers.length > 0
 
+    const hasAutofillTemplate = Boolean(page.autofill_template?.trim())
+
     const shouldRenderTemplatePage =
         page.template_name === "create-page" ||
-        (!page.template_name && hasTemplateSignals)
+        (!page.template_name && (hasTemplateSignals || hasAutofillTemplate))
 
     const templateDescription =
         [page.main_description, page.h2_title, page.h3_title]

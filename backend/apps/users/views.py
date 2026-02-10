@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 import logging
+import smtplib
 
 logger = logging.getLogger(__name__)
 
@@ -110,10 +111,22 @@ class SendRegistrationCodeView(APIView):
                 fail_silently=False,
             )
             logger.info(f"Registration code sent to {email}")
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(
+                "SMTP authentication failed while sending registration code. host=%s user=%s code=%s error=%s",
+                getattr(settings, 'EMAIL_HOST', ''),
+                getattr(settings, 'EMAIL_HOST_USER', ''),
+                getattr(e, 'smtp_code', ''),
+                e,
+            )
+            return Response(
+                {'error': 'Сервис отправки писем временно недоступен. Попробуйте позже или обратитесь в поддержку.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
         except Exception as e:
             logger.error(f"Failed to send registration code to {email}: {e}")
             return Response(
-                {'error': f'Ошибка отправки письма: {str(e)}'},
+                {'error': 'Не удалось отправить письмо с кодом. Попробуйте позже.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
@@ -855,10 +868,22 @@ class SendVerificationEmailView(APIView):
                 recipient_list=[user.email],
                 fail_silently=False,
             )
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(
+                "SMTP authentication failed while sending verification email. host=%s user=%s code=%s error=%s",
+                getattr(settings, 'EMAIL_HOST', ''),
+                getattr(settings, 'EMAIL_HOST_USER', ''),
+                getattr(e, 'smtp_code', ''),
+                e,
+            )
+            return Response(
+                {'error': 'Сервис отправки писем временно недоступен. Попробуйте позже или обратитесь в поддержку.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
         except Exception as e:
             logger.error(f"Verification email failed for {user.email}: {e}")
             return Response(
-                {'error': f'Ошибка отправки письма: {str(e)}'},
+                {'error': 'Не удалось отправить письмо для подтверждения. Попробуйте позже.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         

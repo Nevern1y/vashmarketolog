@@ -22,6 +22,9 @@ import {
     SelectValue,
 } from "../ui/select"
 import { Loader2, Plus, Trash2, X, HelpCircle, Search, Building2, Sparkles, FileText, Tags, Settings } from "lucide-react"
+import { toast } from "sonner"
+
+import { api, type ApiError } from "../../lib/api"
 
 // Types matching backend/apps/seo/models.py
 export interface FaqItem {
@@ -67,6 +70,17 @@ export interface SeoPage {
     faq: FaqItem[]
     popular_searches: PopularSearchItem[]  // Fixed: was string[], now object[]
     bank_offers: BankOffer[]
+}
+
+interface AutofillTemplateResponse {
+    name: string
+    meta_title?: string
+    meta_description?: string
+    meta_keywords?: string
+    h1_title?: string
+    main_description?: string
+    faq?: FaqItem[]
+    popular_searches?: Array<PopularSearchItem | string>
 }
 
 const LAYOUT_TEMPLATES = [
@@ -316,12 +330,17 @@ const normalizeLayoutTemplate = (templateName?: string) => {
     return templateName === "create-page" ? "create-page" : "none"
 }
 
+const isKnownAutofillTemplate = (value?: string) => {
+    if (!value) return false
+    return AUTOFILL_TEMPLATES.some((template) => template.value === value && template.value !== "none")
+}
+
 const normalizeAutofillTemplate = (autofillTemplate?: string, templateName?: string) => {
-    if (autofillTemplate && autofillTemplate in TEMPLATE_DATA) {
+    if (isKnownAutofillTemplate(autofillTemplate)) {
         return autofillTemplate
     }
 
-    if (templateName && templateName in TEMPLATE_DATA) {
+    if (isKnownAutofillTemplate(templateName)) {
         // Backward compatibility for legacy entries
         return templateName
     }
@@ -366,6 +385,7 @@ export function SeoPageEditor({
     const [newSearchTerm, setNewSearchTerm] = useState("")
     const [newSearchHref, setNewSearchHref] = useState("#application")
     const [activeTab, setActiveTab] = useState("main")
+    const [isApplyingTemplate, setIsApplyingTemplate] = useState(false)
 
     const normalizedSlug = (formData.slug || "").trim().replace(/^\/+/, "")
 
@@ -409,8 +429,12 @@ export function SeoPageEditor({
             formData.application_button_text,
         ].some((value) => String(value || "").trim().length > 0)
 
+        const hasAutofillPreset = Boolean(
+            formData.autofill_template && formData.autofill_template !== "none",
+        )
+
         const selectedLayout = formData.template_name === "none" ? "" : (formData.template_name || "")
-        const resolvedLayoutTemplate = selectedLayout || (hasTemplateContent ? "create-page" : "")
+        const resolvedLayoutTemplate = selectedLayout || (hasTemplateContent || hasAutofillPreset ? "create-page" : "")
 
         const payload: Partial<SeoPage> = {
             ...formData,
@@ -503,22 +527,85 @@ export function SeoPageEditor({
     }
 
     // Apply Template - заполняет ВСЕ поля из шаблона
-    const applyTemplate = () => {
+    const applyTemplate = async () => {
         const templateName = formData.autofill_template
-        if (!templateName || templateName === 'none' || !TEMPLATE_DATA[templateName as keyof typeof TEMPLATE_DATA]) return
+        if (!templateName || templateName === 'none') return
 
-        const template = TEMPLATE_DATA[templateName as keyof typeof TEMPLATE_DATA]
-        // Convert string[] searches to PopularSearchItem[]
-        const normalizedSearches: PopularSearchItem[] = template.searches.map((s) => ({ text: s, href: '#application' }))
-        setFormData({
-            ...formData,
-            meta_title: template.meta_title,
-            meta_description: template.meta_description,
-            h1_title: template.h1_title,
-            main_description: template.main_description,
-            faq: template.faqs,
-            popular_searches: normalizedSearches,
-        })
+        setIsApplyingTemplate(true)
+
+        try {
+            const template = await api.get<AutofillTemplateResponse>(
+                "/seo/pages/templates/",
+                { name: templateName },
+            )
+
+            setFormData((prev) => {
+                const resolvedLayoutTemplate =
+                    prev.template_name && prev.template_name !== "none"
+                        ? prev.template_name
+                        : "create-page"
+
+                return {
+                    ...prev,
+                    template_name: resolvedLayoutTemplate,
+                    meta_title: template.meta_title || "",
+                    meta_description: template.meta_description || "",
+                    meta_keywords: template.meta_keywords || "",
+                    h1_title: template.h1_title || "",
+                    main_description: template.main_description || "",
+                    faq: template.faq || [],
+                    popular_searches: normalizePopularSearches(template.popular_searches),
+                }
+            })
+
+            toast.success("Шаблон применен")
+            return
+        } catch (error) {
+            const apiError = error as ApiError
+
+            if (apiError?.status === 401 || apiError?.status === 403) {
+                toast.error("Сессия истекла", {
+                    description: "Обновите страницу и войдите заново.",
+                })
+                return
+            }
+
+            const localTemplate = TEMPLATE_DATA[templateName as keyof typeof TEMPLATE_DATA]
+
+            if (!localTemplate) {
+                toast.error(apiError?.message || "Не удалось применить шаблон")
+                return
+            }
+
+            const normalizedSearches: PopularSearchItem[] = localTemplate.searches.map((search) => ({
+                text: search,
+                href: '#application',
+            }))
+
+            setFormData((prev) => {
+                const resolvedLayoutTemplate =
+                    prev.template_name && prev.template_name !== "none"
+                        ? prev.template_name
+                        : "create-page"
+
+                return {
+                    ...prev,
+                    template_name: resolvedLayoutTemplate,
+                    meta_title: localTemplate.meta_title,
+                    meta_description: localTemplate.meta_description,
+                    h1_title: localTemplate.h1_title,
+                    main_description: localTemplate.main_description,
+                    faq: localTemplate.faqs,
+                    popular_searches: normalizedSearches,
+                }
+            })
+
+            toast.warning("Применен локальный пресет", {
+                description: "Не удалось загрузить полный шаблон с backend.",
+            })
+        } finally {
+            setIsApplyingTemplate(false)
+        }
     }
 
     return (
@@ -638,7 +725,18 @@ export function SeoPageEditor({
                                         <div className="flex gap-3">
                                             <Select
                                                 value={formData.autofill_template || "none"}
-                                                onValueChange={(val) => setFormData({ ...formData, autofill_template: val })}
+                                                onValueChange={(val) => {
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        autofill_template: val,
+                                                        template_name:
+                                                            val !== "none" && (
+                                                                !prev.template_name || prev.template_name === "none"
+                                                            )
+                                                                ? "create-page"
+                                                                : prev.template_name,
+                                                    }))
+                                                }}
                                             >
                                                 <SelectTrigger className="bg-[#1a1a2e] border-slate-600 text-white focus:ring-[#3ce8d1]/20 rounded-lg h-10 flex-1">
                                                     <SelectValue placeholder="Выберите пресет" />
@@ -657,16 +755,20 @@ export function SeoPageEditor({
                                             disabled={
                                                 !formData.autofill_template ||
                                                 formData.autofill_template === 'none' ||
-                                                !TEMPLATE_DATA[formData.autofill_template as keyof typeof TEMPLATE_DATA]
+                                                isApplyingTemplate
                                             }
                                             className="bg-purple-600 hover:bg-purple-700 text-white h-10 px-5 rounded-lg font-medium disabled:opacity-40"
                                         >
-                                            <Sparkles className="w-4 h-4 mr-2" />
-                                            Применить
+                                            {isApplyingTemplate ? (
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="w-4 h-4 mr-2" />
+                                            )}
+                                            {isApplyingTemplate ? "Применение..." : "Применить"}
                                         </Button>
                                         </div>
                                     </div>
-                                    <p className="text-xs text-slate-400 mt-2">Пресет заполняет мета-теги, контент, FAQ и блок «Часто ищут» только по кнопке «Применить».</p>
+                                    <p className="text-xs text-slate-400 mt-2">Пресет заполняет мета-теги, контент, FAQ и блок «Часто ищут». Даже без кнопки сохранение применит пресет на backend.</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1115,7 +1217,7 @@ export function SeoPageEditor({
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={!formData.slug?.trim() || isLoading}
+                        disabled={!formData.slug?.trim() || isLoading || isApplyingTemplate}
                         className="bg-[#3ce8d1] text-[#0f0f1a] font-bold hover:bg-[#3ce8d1]/90 shadow-[0_0_15px_rgba(60,232,209,0.3)] h-10 px-6 rounded-xl border-none"
                     >
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

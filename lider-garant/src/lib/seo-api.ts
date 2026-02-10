@@ -58,6 +58,32 @@ const normalizeBaseUrl = (value?: string) => {
     return normalized.length > 0 ? normalized : null;
 };
 
+const normalizeSlug = (value: string) => {
+    const clean = String(value || '')
+        .trim()
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '');
+
+    if (!clean) {
+        return '';
+    }
+
+    try {
+        return decodeURIComponent(clean).toLowerCase();
+    } catch {
+        return clean.toLowerCase();
+    }
+};
+
+const encodeSlugPath = (value: string) => {
+    return String(value || '')
+        .split('/')
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0)
+        .map((part) => encodeURIComponent(part))
+        .join('/');
+};
+
 const shouldSkipSeoFetch = () => {
     if (typeof process === 'undefined') {
         return false;
@@ -115,7 +141,12 @@ export async function getSeoPage(slug: string, options: SeoApiRequestOptions = {
     }
 
     const baseUrls = getApiBaseUrls(options);
-    const encodedSlug = encodeURIComponent(slug);
+    const normalizedSlug = normalizeSlug(slug);
+    const encodedSlug = encodeSlugPath(slug);
+
+    if (!encodedSlug) {
+        return null;
+    }
 
     for (const baseUrl of baseUrls) {
         try {
@@ -138,24 +169,29 @@ export async function getSeoPage(slug: string, options: SeoApiRequestOptions = {
         }
     }
 
-    return null;
+    // Fallback for deployments where detail endpoint routing differs,
+    // but list endpoint is available and contains the page.
+    const fallbackPages = await getAllSeoPages(options);
+    return (
+        fallbackPages.find((page) => normalizeSlug(page.slug) === normalizedSlug) || null
+    );
 }
 
 /**
  * Fetch all published SEO pages
  * @returns Array of SeoPageData
  */
-export async function getAllSeoPages(): Promise<SeoPageData[]> {
+export async function getAllSeoPages(options: SeoApiRequestOptions = {}): Promise<SeoPageData[]> {
     if (shouldSkipSeoFetch()) {
         return [];
     }
 
-    const baseUrls = getApiBaseUrls();
+    const baseUrls = getApiBaseUrls(options);
 
     for (const baseUrl of baseUrls) {
         try {
             const response = await fetchWithTimeout(`${baseUrl}/seo/pages/`, {
-                next: { revalidate: 300 },
+                next: { revalidate: 30 },
                 headers: {
                     'Content-Type': 'application/json',
                 },

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "../../lib/auth-context"
 import { Input } from "../ui/input"
 import { Button } from "../ui/button"
@@ -27,7 +27,6 @@ import {
     Trash2,
     ExternalLink,
     Loader2,
-    Settings,
     LogOut,
     Globe
 } from "lucide-react"
@@ -58,8 +57,36 @@ export function SeoDashboard() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [pageToDelete, setPageToDelete] = useState<SeoPage | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isPublicFallbackNotified, setIsPublicFallbackNotified] = useState(false)
 
-    const fetchPages = async () => {
+    const loadAdminPages = useCallback(async () => {
+        const adminEndpoints = [
+            "/seo/pages-admin-list/",
+            "/seo/pages/admin-list/",
+            "/seo/pages/admin_list/",
+        ]
+
+        let last404: ApiError | null = null
+
+        for (const endpoint of adminEndpoints) {
+            try {
+                return await api.get<SeoPage[]>(endpoint)
+            } catch (error) {
+                const apiError = error as ApiError
+
+                if (apiError?.status === 404) {
+                    last404 = apiError
+                    continue
+                }
+
+                throw error
+            }
+        }
+
+        throw (last404 || { message: "Admin list endpoint not found", status: 404 }) as ApiError
+    }, [])
+
+    const fetchPages = useCallback(async () => {
         setIsLoading(true)
         try {
             if (!tokenStorage.isAuthenticated()) {
@@ -71,7 +98,7 @@ export function SeoDashboard() {
             }
 
             try {
-                const data = await api.get<SeoPage[]>("/seo/pages-admin-list/")
+                const data = await loadAdminPages()
                 setPages(data)
             } catch (error) {
                 const apiError = error as ApiError
@@ -80,9 +107,12 @@ export function SeoDashboard() {
                     // Backward compatibility if backend deployment is lagging behind frontend.
                     const data = await api.get<SeoPage[]>("/seo/pages/")
                     setPages(data)
-                    toast.warning("Показан публичный список", {
-                        description: "Для полного списка (включая черновики) обновите backend до версии с /seo/pages-admin-list/.",
-                    })
+                    if (!isPublicFallbackNotified) {
+                        toast.warning("Показан публичный список", {
+                            description: "Для полного списка (включая черновики) обновите backend до версии с /seo/pages-admin-list/.",
+                        })
+                        setIsPublicFallbackNotified(true)
+                    }
                 } else {
                     throw error
                 }
@@ -102,11 +132,11 @@ export function SeoDashboard() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [isPublicFallbackNotified, loadAdminPages, router])
 
     useEffect(() => {
         fetchPages()
-    }, [])
+    }, [fetchPages])
 
     const filteredPages = pages.filter(page =>
         page.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,7 +168,7 @@ export function SeoDashboard() {
                 .join('/')
 
             await api.delete(`/seo/pages/${encodedSlug}/`)
-            setPages(pages.filter(p => p.slug !== pageToDelete.slug))
+            await fetchPages()
             toast.success("Страница удалена")
         } catch (error) {
             const apiError = error as ApiError
@@ -154,7 +184,6 @@ export function SeoDashboard() {
     const handleSave = async (data: Partial<SeoPage>): Promise<boolean> => {
         setIsSaving(true)
         try {
-            let result: SeoPage;
             if (editingPage) {
                 // Update
                 const encodedSlug = editingPage.slug
@@ -162,21 +191,12 @@ export function SeoDashboard() {
                     .map((part) => encodeURIComponent(part))
                     .join('/')
 
-                result = await api.patch<SeoPage>(`/seo/pages/${encodedSlug}/`, data)
-                if (result && typeof result === 'object' && 'id' in result) {
-                    setPages(pages.map(p => p.id === result.id ? result : p))
-                } else {
-                    await fetchPages()
-                }
+                await api.patch<SeoPage>(`/seo/pages/${encodedSlug}/`, data)
             } else {
                 // Create
-                result = await api.post<SeoPage>("/seo/pages/", data)
-                if (result && typeof result === 'object' && 'id' in result) {
-                    setPages([result, ...pages])
-                } else {
-                    await fetchPages()
-                }
+                await api.post<SeoPage>("/seo/pages/", data)
             }
+            await fetchPages()
             return true
         } catch (error) {
             const apiError = error as ApiError

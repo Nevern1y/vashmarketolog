@@ -2,8 +2,10 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
+
 from .models import SeoPage
 from .serializers import SeoPageSerializer
+from .utils.templates import get_template
 from apps.users.permissions import IsSeoManagerOrAdmin
 
 
@@ -16,6 +18,7 @@ class SeoPageViewSet(viewsets.ModelViewSet):
     
     Permissions:
     - GET (list, retrieve, by_type, by_template): AllowAny (публичные SEO страницы)
+    - GET (admin_list, templates): IsSeoManagerOrAdmin
     - POST, PUT, PATCH, DELETE: IsSeoManagerOrAdmin (только admin или seo роли)
     """
     
@@ -29,12 +32,12 @@ class SeoPageViewSet(viewsets.ModelViewSet):
         """
         Dynamic permissions based on action:
         - Public read operations: AllowAny (public SEO pages for website)
-        - Admin list: IsSeoManagerOrAdmin (returns drafts + published)
+        - Admin endpoints: IsSeoManagerOrAdmin (returns drafts + published, template payload)
         - Write operations: IsSeoManagerOrAdmin (admin or seo role required)
         """
         if self.action in ['list', 'retrieve', 'by_type', 'by_template']:
             return [permissions.AllowAny()]
-        if self.action in ['admin_list']:
+        if self.action in ['admin_list', 'templates']:
             return [IsSeoManagerOrAdmin()]
         # create, update, partial_update, destroy require SEO manager or admin
         return [IsSeoManagerOrAdmin()]
@@ -127,6 +130,41 @@ class SeoPageViewSet(viewsets.ModelViewSet):
         pages = SeoPage.objects.all().order_by('-priority', 'slug')
         serializer = self.get_serializer(pages, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='templates')
+    def templates(self, request):
+        """
+        Returns SEO autofill template payload for admin editor.
+
+        Query params:
+        - name: template key (factoring, rko, leasing, ...)
+        """
+        template_name = str(request.query_params.get('name') or '').strip()
+        if not template_name:
+            return Response(
+                {'error': 'Параметр name обязателен'},
+                status=400,
+            )
+
+        template = get_template(template_name)
+        if not template:
+            return Response(
+                {'error': 'Шаблон не найден'},
+                status=404,
+            )
+
+        return Response(
+            {
+                'name': template_name,
+                'meta_title': template.get('meta_title', ''),
+                'meta_description': template.get('meta_description', ''),
+                'meta_keywords': template.get('meta_keywords', ''),
+                'h1_title': template.get('h1_title', ''),
+                'main_description': template.get('main_description', ''),
+                'faq': template.get('faqs', []),
+                'popular_searches': template.get('popular_searches', []),
+            },
+        )
     
     def retrieve(self, request, *args, **kwargs):
         """

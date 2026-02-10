@@ -19,6 +19,14 @@ ALLOWED_HOSTS = os.getenv(
 # =============================================================================
 # EMAIL CONFIGURATION
 # =============================================================================
+# Handle accidentally quoted values from env files (common with Docker env_file)
+def _clean_env(value: str) -> str:
+    cleaned = value.strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {'"', "'"}:
+        return cleaned[1:-1]
+    return cleaned
+
+
 # Email backend - use SMTP for production
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
@@ -26,18 +34,18 @@ EMAIL_BACKEND = os.getenv(
 )
 
 # SMTP server settings (Beget defaults)
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.beget.com')
+EMAIL_HOST = _clean_env(os.getenv('EMAIL_HOST', 'smtp.beget.com'))
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '465'))
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'True').lower() == 'true'
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False').lower() == 'true'
 
 # SMTP authentication
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = _clean_env(os.getenv('EMAIL_HOST_USER', ''))
+EMAIL_HOST_PASSWORD = _clean_env(os.getenv('EMAIL_HOST_PASSWORD', ''))
 
 # Default sender
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru')
-SERVER_EMAIL = os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL)
+DEFAULT_FROM_EMAIL = _clean_env(os.getenv('DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'))
+SERVER_EMAIL = _clean_env(os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL))
 
 # Email subject prefix for admin notifications
 EMAIL_SUBJECT_PREFIX = '[Лидер Гарант] '

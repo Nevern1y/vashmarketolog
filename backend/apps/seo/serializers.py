@@ -1,7 +1,9 @@
 from urllib.parse import urlparse
 
 from rest_framework import serializers
+
 from .models import SeoPage
+from .utils.templates import SEO_TEMPLATES, get_template
 from apps.bank_conditions.serializers import BankSerializer
 
 
@@ -189,6 +191,47 @@ class SeoPageSerializer(serializers.ModelSerializer):
         
         return result
 
+    @staticmethod
+    def _is_empty_value(value):
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return value.strip() == ''
+        if isinstance(value, (list, tuple, dict, set)):
+            return len(value) == 0
+        return False
+
+    def _apply_autofill_template(self, attrs, instance, template_key):
+        template = get_template(template_key)
+        if not template:
+            return
+
+        text_fields_mapping = {
+            'meta_title': 'meta_title',
+            'meta_description': 'meta_description',
+            'meta_keywords': 'meta_keywords',
+            'h1_title': 'h1_title',
+            'main_description': 'main_description',
+        }
+
+        for field_name, template_field_name in text_fields_mapping.items():
+            current_value = attrs.get(field_name, getattr(instance, field_name, '') if instance else '')
+            if self._is_empty_value(current_value):
+                attrs[field_name] = template.get(template_field_name, '')
+
+        current_faq = attrs.get('faq', getattr(instance, 'faq', []) if instance else [])
+        if self._is_empty_value(current_faq):
+            attrs['faq'] = self.validate_faq(template.get('faqs', []))
+
+        current_popular_searches = attrs.get(
+            'popular_searches',
+            getattr(instance, 'popular_searches', []) if instance else [],
+        )
+        if self._is_empty_value(current_popular_searches):
+            attrs['popular_searches'] = self.validate_popular_searches(
+                template.get('popular_searches', []),
+            )
+
     def validate(self, attrs):
         """
         Auto-enable create-page layout when template-only blocks are filled.
@@ -201,6 +244,28 @@ class SeoPageSerializer(serializers.ModelSerializer):
         template_name = str(
             attrs.get('template_name', getattr(instance, 'template_name', '')) or ''
         ).strip()
+        current_autofill_template = str(
+            getattr(instance, 'autofill_template', '') if instance else '',
+        ).strip()
+        autofill_template = str(
+            attrs.get('autofill_template', current_autofill_template) or '',
+        ).strip()
+
+        # Backward compatibility for legacy payloads where preset was sent in template_name.
+        if template_name in SEO_TEMPLATES and not autofill_template:
+            autofill_template = template_name
+            attrs['autofill_template'] = template_name
+            attrs['template_name'] = ''
+            template_name = ''
+
+        should_apply_autofill_template = bool(autofill_template) and (
+            instance is None or (
+                'autofill_template' in attrs and autofill_template != current_autofill_template
+            )
+        )
+
+        if should_apply_autofill_template:
+            self._apply_autofill_template(attrs, instance, autofill_template)
 
         hero_button_text = str(
             attrs.get('hero_button_text', getattr(instance, 'hero_button_text', '')) or ''
@@ -222,7 +287,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
             application_button_text,
         ])
 
-        if not template_name and has_template_content:
+        if not template_name and (has_template_content or autofill_template):
             attrs['template_name'] = 'create-page'
 
         return attrs
