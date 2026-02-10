@@ -610,54 +610,54 @@ export function SeoPageEditor({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-[96vw] max-w-[1200px] max-h-[92vh] overflow-hidden flex flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white sm:rounded-2xl shadow-2xl p-4 sm:p-6">
-                <DialogHeader className="flex-shrink-0 pb-4 border-b border-slate-700/50">
+            <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] lg:w-[min(1200px,calc(100vw-4rem))] max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0">
+                <DialogHeader className="flex-shrink-0 border-b border-slate-700/50 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                     <DialogTitle className="text-xl font-bold text-white">
                         {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <TabsList className="flex-shrink-0 grid grid-cols-2 md:grid-cols-5 w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4">
+                        <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto">
                             <TabsTrigger
                                 value="main"
-                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
+                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <Settings className="w-4 h-4 shrink-0" />
                                 <span>Основное</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="meta"
-                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
+                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <Tags className="w-4 h-4 shrink-0" />
                                 <span>Мета-теги</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="content"
-                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
+                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <FileText className="w-4 h-4 shrink-0" />
                                 <span>Контент</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="faq"
-                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
+                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <HelpCircle className="w-4 h-4 shrink-0" />
                                 <span>FAQ</span>
                             </TabsTrigger>
                             <TabsTrigger
                                 value="offers"
-                                className="h-9 md:h-10 rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
+                                className="h-9 md:h-10 flex-none min-w-[136px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
                             >
                                 <Building2 className="w-4 h-4 shrink-0" />
                                 <span>Предложения</span>
                             </TabsTrigger>
                         </TabsList>
 
-                        <div className="flex-1 overflow-y-auto pr-2">
+                        <div className="flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-2">
                             {/* MAIN TAB */}
                             <TabsContent value="main" className="space-y-5 mt-0 h-full">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1207,7 +1207,7 @@ export function SeoPageEditor({
                     </Tabs>
                 </div>
 
-                <DialogFooter className="flex-shrink-0 gap-3 sm:justify-end pt-4 border-t border-slate-700/50">
+                <DialogFooter className="flex-shrink-0 gap-3 sm:justify-end border-t border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4">
                     <Button
                         variant="outline"
                         onClick={onClose}

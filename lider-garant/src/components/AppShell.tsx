@@ -28,8 +28,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [callbackName, setCallbackName] = useState("");
   const [callbackPhone, setCallbackPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSeoManagerRoute =
+    pathname?.startsWith("/seo-manager") || pathname?.startsWith("/seoadmin");
   const hideChrome =
-    pathname?.startsWith("/login") || pathname?.startsWith("/register");
+    pathname?.startsWith("/login") ||
+    pathname?.startsWith("/register") ||
+    isSeoManagerRoute;
 
   const handleCallbackSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -68,6 +72,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   if (hideChrome) {
+    if (isSeoManagerRoute) {
+      return <div className="min-h-dvh flex flex-col bg-background">{children}</div>;
+    }
+
     return (
       <div className="min-h-dvh flex flex-col bg-background">
         <div className="mx-auto w-full max-w-7xl px-6 py-6">

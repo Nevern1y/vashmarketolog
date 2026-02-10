@@ -227,28 +227,28 @@ export function SeoDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-[#1d194c] text-slate-200">
+        <div className="min-h-[100dvh] bg-[#1d194c] text-slate-200">
             {/* Header */}
-            <header className="sticky top-0 z-30 flex h-16 items-center border-b border-[#3ce8d1]/20 bg-[#0b0b12]/80 px-6 shadow-sm backdrop-blur-md">
-                <div className="flex items-center gap-2 font-bold text-xl mr-auto text-white">
+            <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center border-b border-[#3ce8d1]/20 bg-[#0b0b12]/80 px-3 sm:px-6 shadow-sm backdrop-blur-md">
+                <div className="flex items-center gap-2 font-bold text-lg sm:text-xl mr-auto text-white">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#3ce8d1]/10 border border-[#3ce8d1]/20">
                         <Globe className="h-5 w-5 text-[#3ce8d1]" />
                     </div>
-                    Админка сайта
+                    <span className="truncate">Админка сайта</span>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="text-sm text-slate-400">
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="hidden lg:block text-sm text-slate-400 truncate max-w-[280px]">
                         {user?.email}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => logout()} className="text-slate-400 hover:text-[#3ce8d1] hover:bg-[#3ce8d1]/10">
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Выйти
+                        <LogOut className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Выйти</span>
                     </Button>
                 </div>
             </header>
 
-            <main className="container mx-auto py-8 px-4">
+            <main className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8">
                 <div className="mb-6 flex flex-wrap items-start gap-4 sm:mb-8 sm:items-center">
                     <div className="min-w-0">
                         <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Страницы</h1>
@@ -280,7 +280,7 @@ export function SeoDashboard() {
 
                 {/* Table */}
                 <div className="rounded-xl border border-[#3ce8d1]/20 bg-[#0b0b12]/50 shadow-xl overflow-hidden backdrop-blur-sm">
-                    <Table>
+                    <Table className="min-w-[920px]">
                         <TableHeader className="bg-[#1d194c]/50">
                             <TableRow className="border-b-slate-700 hover:bg-transparent">
                                 <TableHead className="w-[30%] text-slate-300">URL Path (Slug)</TableHead>
