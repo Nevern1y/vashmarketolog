@@ -12,7 +12,6 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 import logging
-import smtplib
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +27,7 @@ from .serializers import (
     AdminUserUpdateSerializer,
 )
 from .permissions import IsAdmin
+from apps.notifications.email_service import send_reliable_email
 
 User = get_user_model()
 
@@ -41,13 +41,11 @@ class SendRegistrationCodeView(APIView):
     Body:
     - email: string (required)
     
-    Returns success if code was sent. Code expires in 10 minutes.
+    Returns success if code was sent. Code expires in 20 minutes.
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        from django.core.mail import send_mail
-        from django.conf import settings
         from .models import EmailVerificationCode
         
         email = request.data.get('email', '').strip().lower()
@@ -89,50 +87,51 @@ class SendRegistrationCodeView(APIView):
         
         # Create verification code
         verification = EmailVerificationCode.create_for_email(email)
-        
-        # Send email with code
-        try:
-            send_mail(
-                subject='Код подтверждения - Лидер Гарант',
-                message=f'''
+        email_message = f'''
 Здравствуйте!
 
 Ваш код подтверждения для регистрации: {verification.code}
 
-Код действителен 10 минут.
+Код действителен 20 минут.
 
 Если вы не запрашивали регистрацию, проигнорируйте это письмо.
 
 С уважением,
 Команда Лидер Гарант
-                ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-            logger.info(f"Registration code sent to {email}")
-        except smtplib.SMTPAuthenticationError as e:
-            logger.error(
-                "SMTP authentication failed while sending registration code. host=%s user=%s code=%s error=%s",
-                getattr(settings, 'EMAIL_HOST', ''),
-                getattr(settings, 'EMAIL_HOST_USER', ''),
-                getattr(e, 'smtp_code', ''),
-                e,
-            )
+        '''
+        
+        delivery = send_reliable_email(
+            subject='Код подтверждения - Лидер Гарант',
+            message=email_message,
+            recipient_list=[email],
+            event_type='registration_code',
+            metadata={'email': email},
+        )
+
+        if delivery.sent:
+            logger.info("Registration code sent immediately to %s", email)
+            return Response({
+                'message': 'Код подтверждения отправлен на email',
+                'email': email,
+            })
+
+        if not delivery.queued:
+            logger.error("Failed to enqueue registration code email for %s: %s", email, delivery.error_message)
             return Response(
-                {'error': 'Сервис отправки писем временно недоступен. Попробуйте позже или обратитесь в поддержку.'},
+                {'error': 'Сервис отправки писем временно недоступен. Попробуйте позже.'},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
-        except Exception as e:
-            logger.error(f"Failed to send registration code to {email}: {e}")
-            return Response(
-                {'error': 'Не удалось отправить письмо с кодом. Попробуйте позже.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
+
+        logger.warning(
+            "Registration code email queued outbox_id=%s email=%s kind=%s",
+            delivery.outbox_id,
+            email,
+            delivery.error_kind,
+        )
         return Response({
-            'message': 'Код подтверждения отправлен на email',
+            'message': 'Код подтверждения сформирован. Письмо может прийти с небольшой задержкой.',
             'email': email,
+            'delivery_status': 'queued',
         })
 
 
@@ -335,7 +334,6 @@ class PartnerInviteView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def create(self, request, *args, **kwargs):
-        from django.core.mail import send_mail
         from django.conf import settings
         
         serializer = self.get_serializer(data=request.data)
@@ -361,12 +359,12 @@ class PartnerInviteView(generics.CreateAPIView):
         # Send invite email automatically
         bank_name = serializer.validated_data.get('bank_name', 'Ваш банк')
         email_sent = False
+        email_queued = False
         email_error = None
-        
-        try:
-            send_mail(
-                subject=f'Приглашение в систему Лидер Гарант - {bank_name}',
-                message=f'''
+
+        dispatch = send_reliable_email(
+            subject=f'Приглашение в систему Лидер Гарант - {bank_name}',
+            message=f'''
 Здравствуйте!
 
 Вы приглашены стать партнёром платформы Лидер Гарант.
@@ -380,19 +378,30 @@ class PartnerInviteView(generics.CreateAPIView):
 
 С уважением,
 Команда Лидер Гарант
-                ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-            email_sent = True
-        except Exception as e:
-            email_error = f"{e.__class__.__name__}: {e}"
-            logger.exception("Failed to send partner invite email to %s", email)
+            ''',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            event_type='partner_invite',
+            metadata={
+                'partner_user_id': user.id,
+                'bank_name': bank_name,
+            },
+        )
+        email_sent = dispatch.sent
+        email_queued = dispatch.queued
+        if not email_sent and not email_queued:
+            email_error = dispatch.error_message or 'Неизвестная ошибка отправки'
         
         return Response({
-            'message': 'Приглашение создано' + (' и отправлено на email' if email_sent else '. Email не отправлен (проверьте SMTP настройки)'),
+            'message': (
+                'Приглашение создано и отправлено на email'
+                if email_sent
+                else 'Приглашение создано и поставлено в очередь отправки'
+                if email_queued
+                else 'Приглашение создано. Email не отправлен (проверьте SMTP настройки)'
+            ),
             'email_sent': email_sent,
+            'email_queued': email_queued,
             'email_error': email_error,
             'partner': {
                 'id': user.id,
@@ -829,7 +838,6 @@ class SendVerificationEmailView(APIView):
 
     def post(self, request):
         import secrets
-        from django.core.mail import send_mail
         from django.conf import settings
         
         user = request.user
@@ -849,11 +857,10 @@ class SendVerificationEmailView(APIView):
         # Send email
         frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lider-garant.ru')
         verification_url = f"{frontend_url}/verify-email/{token}"
-        
-        try:
-            send_mail(
-                subject='Подтвердите email - Лидер Гарант',
-                message=f'''
+
+        dispatch = send_reliable_email(
+            subject='Подтвердите email - Лидер Гарант',
+            message=f'''
 Здравствуйте!
 
 Для подтверждения вашего email перейдите по ссылке:
@@ -863,32 +870,27 @@ class SendVerificationEmailView(APIView):
 
 С уважением,
 Команда Лидер Гарант
-                ''',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
-        except smtplib.SMTPAuthenticationError as e:
-            logger.error(
-                "SMTP authentication failed while sending verification email. host=%s user=%s code=%s error=%s",
-                getattr(settings, 'EMAIL_HOST', ''),
-                getattr(settings, 'EMAIL_HOST_USER', ''),
-                getattr(e, 'smtp_code', ''),
-                e,
-            )
-            return Response(
-                {'error': 'Сервис отправки писем временно недоступен. Попробуйте позже или обратитесь в поддержку.'},
-                status=status.HTTP_503_SERVICE_UNAVAILABLE
-            )
-        except Exception as e:
-            logger.error(f"Verification email failed for {user.email}: {e}")
+            ''',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            event_type='email_verification',
+            metadata={'user_id': user.id},
+        )
+
+        if not dispatch.sent and not dispatch.queued:
+            logger.error("Verification email failed for %s: %s", user.email, dispatch.error_message)
             return Response(
                 {'error': 'Не удалось отправить письмо для подтверждения. Попробуйте позже.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
         return Response({
-            'message': 'Письмо для подтверждения отправлено',
+            'message': (
+                'Письмо для подтверждения отправлено'
+                if dispatch.sent
+                else 'Письмо поставлено в очередь отправки. Может прийти с небольшой задержкой.'
+            ),
+            'delivery_status': 'sent' if dispatch.sent else 'queued',
         })
 
 
@@ -943,7 +945,6 @@ class PasswordResetRequestView(APIView):
 
     def post(self, request):
         import secrets
-        from django.core.mail import send_mail
         from django.conf import settings
         
         email = request.data.get('email', '').strip().lower()
@@ -968,10 +969,9 @@ class PasswordResetRequestView(APIView):
             frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lider-garant.ru')
             reset_url = f"{frontend_url}/reset-password/{token}"
             
-            try:
-                send_mail(
-                    subject='Сброс пароля - Лидер Гарант',
-                    message=f'''
+            dispatch = send_reliable_email(
+                subject='Сброс пароля - Лидер Гарант',
+                message=f'''
 Здравствуйте!
 
 Вы запросили сброс пароля для вашего аккаунта.
@@ -984,15 +984,16 @@ class PasswordResetRequestView(APIView):
 
 С уважением,
 Команда Лидер Гарант
-                    ''',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            except Exception as e:
-                logger.error(f"Failed to send password reset email to {email}: {e}")
-                # We still don't raise error to user to avoid enumeration/UX issues, 
-                # but now it's logged in backend logs.
+                ''',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                event_type='password_reset',
+                metadata={'user_id': user.id},
+            )
+            if not dispatch.sent and not dispatch.queued:
+                logger.error("Failed to schedule password reset email to %s: %s", email, dispatch.error_message)
+            
+            # Do not reveal result to caller to avoid email enumeration.
                 
         except User.DoesNotExist:
             pass  # Don't reveal if email exists

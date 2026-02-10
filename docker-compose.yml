@@ -90,6 +90,44 @@ services:
     networks:
       - lider_network
 
+  # Reliable SMTP worker (outbox retries)
+  email_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lider_garant_email_worker
+    restart: unless-stopped
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - SECRET_KEY=django-insecure-docker-dev-key-change-in-production
+      - DEBUG=True
+      - DB_NAME=lider_garant
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EMAIL_OUTBOX_BATCH_SIZE=50
+      - EMAIL_OUTBOX_WORKER_SLEEP_SECONDS=10
+      - EMAIL_OUTBOX_MAX_ATTEMPTS=30
+      - EMAIL_OUTBOX_SENT_RETENTION_DAYS=14
+      - EMAIL_OUTBOX_FAILED_RETENTION_DAYS=90
+      - EMAIL_OUTBOX_RETRY_DELAYS_SECONDS=30,120,300,900,1800,3600
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
+    command: >
+      sh -c "python manage.py process_email_outbox --loop --sleep 10 --batch-size 50"
+    networks:
+      - lider_network
+
   # Cabinet Application (Root Next.js) - Port 3001
   cabinet:
     build:

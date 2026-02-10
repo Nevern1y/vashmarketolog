@@ -11,6 +11,22 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
+def _parse_int_list(env_name: str, default: str) -> list[int]:
+    raw = os.getenv(env_name, default)
+    parsed: list[int] = []
+    for item in raw.split(','):
+        value = item.strip()
+        if not value:
+            continue
+        try:
+            number = int(value)
+        except ValueError:
+            continue
+        if number > 0:
+            parsed.append(number)
+    return parsed
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -223,6 +239,27 @@ LEAD_NOTIFICATION_EMAILS = [
     for email in os.getenv('LEAD_NOTIFICATION_EMAILS', '').split(',')
     if email.strip()
 ]
+
+# Registration alerts (new client/agent)
+REGISTRATION_NOTIFICATION_EMAIL_ENABLED = (
+    os.getenv('REGISTRATION_NOTIFICATION_EMAIL_ENABLED', 'True').lower() == 'true'
+)
+REGISTRATION_NOTIFICATION_EMAILS = [
+    email.strip().strip('"').strip("'")
+    for email in os.getenv('REGISTRATION_NOTIFICATION_EMAILS', '').split(',')
+    if email.strip().strip('"').strip("'")
+]
+
+# Reliable SMTP outbox
+EMAIL_OUTBOX_MAX_ATTEMPTS = int(os.getenv('EMAIL_OUTBOX_MAX_ATTEMPTS', '30'))
+EMAIL_OUTBOX_BATCH_SIZE = int(os.getenv('EMAIL_OUTBOX_BATCH_SIZE', '50'))
+EMAIL_OUTBOX_WORKER_SLEEP_SECONDS = int(os.getenv('EMAIL_OUTBOX_WORKER_SLEEP_SECONDS', '10'))
+EMAIL_OUTBOX_SENT_RETENTION_DAYS = int(os.getenv('EMAIL_OUTBOX_SENT_RETENTION_DAYS', '14'))
+EMAIL_OUTBOX_FAILED_RETENTION_DAYS = int(os.getenv('EMAIL_OUTBOX_FAILED_RETENTION_DAYS', '90'))
+EMAIL_OUTBOX_RETRY_DELAYS_SECONDS = _parse_int_list(
+    'EMAIL_OUTBOX_RETRY_DELAYS_SECONDS',
+    '30,120,300,900,1800,3600,7200,21600'
+) or [30, 120, 300, 900, 1800, 3600, 7200, 21600]
 
 
 # Django Channels (WebSocket)

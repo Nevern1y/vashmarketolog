@@ -249,8 +249,8 @@ class CRMClientViewSet(viewsets.ModelViewSet):
         # Normal mode: Send invitation email to client
         if instance.invitation_email:
             try:
-                from django.core.mail import send_mail
                 from django.conf import settings
+                from apps.notifications.email_service import send_reliable_email
                 
                 # Get frontend URL from settings or use default
                 frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
@@ -276,16 +276,27 @@ class CRMClientViewSet(viewsets.ModelViewSet):
 С уважением,
 Команда Лидер Гарант
 '''
-                
-                send_mail(
+
+                dispatch = send_reliable_email(
                     subject=subject,
                     message=message,
                     from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'),
                     recipient_list=[instance.invitation_email],
-                    fail_silently=False,
+                    event_type='crm_client_invite',
+                    metadata={
+                        'company_id': instance.id,
+                        'company_inn': instance.inn,
+                        'agent_id': self.request.user.id,
+                    },
                 )
-                
-                logger.info(f"Invitation email sent to {instance.invitation_email} for company {instance.inn}")
+
+                logger.info(
+                    "CRM invite email dispatch status sent=%s queued=%s outbox_id=%s recipient=%s",
+                    dispatch.sent,
+                    dispatch.queued,
+                    dispatch.outbox_id,
+                    instance.invitation_email,
+                )
                 
             except Exception as e:
                 # Log error but don't fail the request

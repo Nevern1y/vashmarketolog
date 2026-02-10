@@ -8,10 +8,10 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.mail import send_mail
 from django.utils import timezone
 
 from .models import Notification, NotificationType, LeadNotificationSettings, NotificationSettings
+from .email_service import send_reliable_email
 from apps.users.models import UserRole
 
 UserModel = get_user_model()
@@ -156,12 +156,17 @@ def send_notification_email(notification: Notification) -> None:
             return
 
         subject, message = build_notification_email(notification)
-        send_mail(
+        send_reliable_email(
             subject=subject,
             message=message,
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'),
             recipient_list=[user.email],
-            fail_silently=False,
+            event_type=f"notification:{notification.type}",
+            metadata={
+                'notification_id': notification.id,
+                'user_id': notification.user_id,
+                'notification_type': notification.type,
+            },
         )
     except Exception as e:
         logger.error(f"Failed to send notification email: {e}")
@@ -188,6 +193,70 @@ def notify_admins(notification_type, title, message, data=None, source_object=No
             send_notification_email(notification)
         except Exception as e:
             logger.error(f"Failed to create admin notification: {e}")
+
+
+def get_registration_notification_emails():
+    """Get configured emails for registration alerts."""
+    emails = getattr(settings, 'REGISTRATION_NOTIFICATION_EMAILS', [])
+    if not emails:
+        return []
+
+    # Preserve order and remove duplicates
+    unique_emails = []
+    seen = set()
+    for email in emails:
+        normalized = (email or '').strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        unique_emails.append(normalized)
+    return unique_emails
+
+
+def send_registration_alert_email(user, title: str) -> None:
+    """Send operational email about new client/agent registration."""
+    if not getattr(settings, 'REGISTRATION_NOTIFICATION_EMAIL_ENABLED', True):
+        return
+
+    recipients = get_registration_notification_emails()
+    if not recipients:
+        return
+
+    try:
+        full_name = " ".join([name for name in [user.first_name, user.last_name] if name]).strip()
+        display_name = full_name or user.email
+        role_display = user.get_role_display() if hasattr(user, 'get_role_display') else user.role
+        created_at = timezone.localtime(user.date_joined)
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'https://lk.lider-garant.ru')
+
+        subject_prefix = getattr(settings, 'EMAIL_SUBJECT_PREFIX', '')
+        subject = f"{subject_prefix}{title}"
+
+        lines = [
+            title,
+            f"Пользователь: {display_name}",
+            f"Роль: {role_display}",
+            f"Email: {user.email}",
+        ]
+        if user.phone:
+            lines.append(f"Телефон: {user.phone}")
+        lines.append(f"Дата регистрации: {created_at.strftime('%d.%m.%Y %H:%M')}")
+        lines.append("")
+        lines.append(f"Открыть кабинет: {frontend_url}")
+
+        send_reliable_email(
+            subject=subject,
+            message="\n".join(lines),
+            from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'),
+            recipient_list=recipients,
+            event_type='registration_alert',
+            metadata={
+                'user_id': user.id,
+                'user_role': user.role,
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to send registration alert email: {e}")
 
 
 def get_lead_notification_emails():
@@ -556,12 +625,13 @@ def create_admin_lead_notification(sender, instance, created, **kwargs):
         lines.append(f"Сообщение: {lead.message}")
 
     try:
-        send_mail(
+        send_reliable_email(
             subject=subject,
             message="\n".join(lines),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=recipients,
-            fail_silently=False,
+            event_type='lead_notification',
+            metadata={'lead_id': lead.id},
         )
     except Exception as e:
         logger.error(f"Failed to send lead email notification: {e}")
@@ -605,6 +675,10 @@ def create_admin_user_notification(sender, instance, created, **kwargs):
         data=data,
         source_object=user,
     )
+
+    # Operational email alert for new self-registered users
+    if user.role in [UserRole.AGENT, UserRole.CLIENT]:
+        send_registration_alert_email(user, title)
 
 
 # ==========================================

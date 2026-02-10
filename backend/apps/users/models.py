@@ -256,7 +256,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class EmailVerificationCode(models.Model):
     """
     Temporary verification codes for email confirmation during registration.
-    Codes expire after 10 minutes.
+    Codes expire after 20 minutes.
     """
     email = models.EmailField('Email', db_index=True)
     code = models.CharField('Код', max_length=6)
@@ -287,9 +287,9 @@ class EmailVerificationCode(models.Model):
         # Invalidate any existing codes for this email
         cls.objects.filter(email=email.lower(), is_used=False).update(is_used=True)
         
-        # Create new code (expires in 10 minutes)
+        # Create new code (expires in 20 minutes)
         code = cls.generate_code()
-        expires_at = timezone.now() + timedelta(minutes=10)
+        expires_at = timezone.now() + timedelta(minutes=20)
         
         return cls.objects.create(
             email=email.lower(),

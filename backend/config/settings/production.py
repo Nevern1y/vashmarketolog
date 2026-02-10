@@ -3,6 +3,7 @@ Production settings for Lider Garant project.
 Deployment target: lk.lider-garant.ru
 """
 import os
+import logging
 from .base import *
 
 # =============================================================================
@@ -40,12 +41,18 @@ EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'True').lower() == 'true'
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'False').lower() == 'true'
 
 # SMTP authentication
-EMAIL_HOST_USER = _clean_env(os.getenv('EMAIL_HOST_USER', ''))
+EMAIL_HOST_USER = _clean_env(os.getenv('EMAIL_HOST_USER', os.getenv('DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru')))
 EMAIL_HOST_PASSWORD = _clean_env(os.getenv('EMAIL_HOST_PASSWORD', ''))
 
 # Default sender
 DEFAULT_FROM_EMAIL = _clean_env(os.getenv('DEFAULT_FROM_EMAIL', 'noreply@lider-garant.ru'))
 SERVER_EMAIL = _clean_env(os.getenv('SERVER_EMAIL', DEFAULT_FROM_EMAIL))
+
+if EMAIL_BACKEND.endswith('smtp.EmailBackend') and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
+    logging.getLogger(__name__).warning(
+        "SMTP credentials are incomplete. EMAIL_HOST_USER or EMAIL_HOST_PASSWORD is empty. "
+        "Email delivery may fail until .env.prod is fixed."
+    )
 
 # Email subject prefix for admin notifications
 EMAIL_SUBJECT_PREFIX = '[Лидер Гарант] '

@@ -67,9 +67,42 @@ EMAIL_HOST_USER=info@lider-garant.ru
 # 4. Вставьте сюда полученный Пароль Приложения (не от входа в почту!):
 # ВАЖНО: для Docker env-файлов не оборачивайте пароль в кавычки
 EMAIL_HOST_PASSWORD=ваш_секретный_пароль
+
+# 5. Кому отправлять служебные уведомления о новых регистрациях (клиент/агент):
+REGISTRATION_NOTIFICATION_EMAIL_ENABLED=True
+REGISTRATION_NOTIFICATION_EMAILS=info@lider-garant.ru,geo3414@yandex.ru
+
+# 6. Надежная SMTP-доставка (outbox + retry):
+EMAIL_OUTBOX_MAX_ATTEMPTS=30
+EMAIL_OUTBOX_BATCH_SIZE=50
+EMAIL_OUTBOX_WORKER_SLEEP_SECONDS=10
+EMAIL_OUTBOX_SENT_RETENTION_DAYS=14
+EMAIL_OUTBOX_FAILED_RETENTION_DAYS=90
+EMAIL_OUTBOX_RETRY_DELAYS_SECONDS=30,120,300,900,1800,3600,7200,21600
 ```
 
 ## 3. Проверка
 
 После настройки перезапустите сервер (Backend). Попробуйте выполнить действие, требующее отправки письма (например, "Забыли пароль?").
 Если настройки верны, письмо придет на указанный email. Если нет — в консоли появится ошибка (обычно `SMTPAuthenticationError`, если неверен пароль).
+
+Для прод-режима обязательно запускайте воркер отправки:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build backend email_worker
+docker compose -f docker-compose.prod.yml logs -f email_worker
+```
+
+Если используете `deploy-server.sh`, передавайте пароль безопасно через переменную окружения:
+
+```bash
+SMTP_PASSWORD='ваш_пароль_smtp' bash deploy-server.sh
+```
+
+Скрипт остановит деплой, если `EMAIL_HOST_PASSWORD` не задан.
+
+Быстрая диагностика SMTP внутри backend-контейнера:
+
+```bash
+docker compose -f docker-compose.prod.yml exec backend python manage.py check_smtp --send-test --to info@lider-garant.ru geo3414@yandex.ru
+```

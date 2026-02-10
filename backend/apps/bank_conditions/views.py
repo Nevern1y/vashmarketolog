@@ -4,7 +4,6 @@ Views for Bank Conditions API.
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -26,6 +25,7 @@ from .serializers import (
 )
 from apps.users.permissions import IsPartner, IsAdmin
 from apps.users.models import User
+from apps.notifications.email_service import send_reliable_email
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class AdminBankViewSet(viewsets.ModelViewSet):
 
     def _send_partner_invite_email(self, bank_name, email, invite_url):
         try:
-            send_mail(
+            dispatch = send_reliable_email(
                 subject=f'Приглашение в систему Лидер Гарант - {bank_name}',
                 message=f'''
 Здравствуйте!
@@ -78,16 +78,21 @@ class AdminBankViewSet(viewsets.ModelViewSet):
                 ''',
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email],
-                fail_silently=False,
+                event_type='bank_partner_invite',
+                metadata={'bank_name': bank_name, 'recipient': email},
             )
-            return True, None
+            if dispatch.sent:
+                return True, False, None
+            if dispatch.queued:
+                return False, True, 'Письмо поставлено в очередь отправки'
+            return False, False, dispatch.error_message or 'Не удалось отправить письмо'
         except Exception as error:
             logger.exception(
                 "Failed to send partner invite email to %s (bank=%s)",
                 email,
                 bank_name,
             )
-            return False, f"{error.__class__.__name__}: {error}"
+            return False, False, f"{error.__class__.__name__}: {error}"
 
     @action(detail=True, methods=['post'])
     def invite_partner(self, request, pk=None):
@@ -126,11 +131,18 @@ class AdminBankViewSet(viewsets.ModelViewSet):
         bank.save(update_fields=['partner_user'])
 
         invite_url, relative_invite_url = self._build_invite_urls(user)
-        email_sent, email_error = self._send_partner_invite_email(bank.name, email, invite_url)
+        email_sent, email_queued, email_error = self._send_partner_invite_email(bank.name, email, invite_url)
 
         return Response({
-            'message': 'Приглашение создано' + (' и отправлено на email' if email_sent else '. Email не отправлен (проверьте SMTP настройки)'),
+            'message': (
+                'Приглашение создано и отправлено на email'
+                if email_sent
+                else 'Приглашение создано и поставлено в очередь отправки'
+                if email_queued
+                else 'Приглашение создано. Email не отправлен (проверьте SMTP настройки)'
+            ),
             'email_sent': email_sent,
+            'email_queued': email_queued,
             'email_error': email_error,
             'partner': {
                 'id': user.id,

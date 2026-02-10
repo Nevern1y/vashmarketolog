@@ -6,6 +6,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 
 
 class NotificationType(models.TextChoices):
@@ -284,3 +285,59 @@ class LeadNotificationSettings(models.Model):
         if emails and isinstance(emails, list):
             return [email.strip() for email in emails if email and email.strip()]
         return None
+
+
+class EmailOutboxStatus(models.TextChoices):
+    """Delivery state for reliable email outbox."""
+
+    PENDING = 'pending', 'Ожидает отправки'
+    SENT = 'sent', 'Отправлено'
+    FAILED = 'failed', 'Не отправлено'
+
+
+class EmailOutbox(models.Model):
+    """Persistent outbox for reliable SMTP delivery with retries."""
+
+    event_type = models.CharField(
+        'Тип события',
+        max_length=64,
+        blank=True,
+        default='generic',
+        db_index=True,
+    )
+    subject = models.CharField('Тема', max_length=255)
+    message = models.TextField('Текст письма')
+    from_email = models.EmailField('Отправитель')
+    recipient_list = models.JSONField('Получатели', default=list)
+
+    status = models.CharField(
+        'Статус',
+        max_length=16,
+        choices=EmailOutboxStatus.choices,
+        default=EmailOutboxStatus.PENDING,
+        db_index=True,
+    )
+    attempts = models.PositiveIntegerField('Попытки', default=0)
+    max_attempts = models.PositiveIntegerField('Макс. попыток', default=30)
+    next_retry_at = models.DateTimeField('Следующая попытка', default=timezone.now, db_index=True)
+    last_error = models.TextField('Последняя ошибка', blank=True, default='')
+    sent_at = models.DateTimeField('Отправлено', null=True, blank=True)
+
+    metadata = models.JSONField('Метаданные', default=dict, blank=True)
+
+    created_at = models.DateTimeField('Создано', auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField('Обновлено', auto_now=True)
+
+    class Meta:
+        verbose_name = 'Письмо в outbox'
+        verbose_name_plural = 'Outbox SMTP'
+        ordering = ['next_retry_at', 'created_at']
+        indexes = [
+            models.Index(fields=['status', 'next_retry_at']),
+            models.Index(fields=['event_type', '-created_at']),
+        ]
+
+    def __str__(self):
+        recipients = ', '.join((self.recipient_list or [])[:2])
+        suffix = '' if len(self.recipient_list or []) <= 2 else '...'
+        return f"[{self.get_status_display()}] {self.subject} -> {recipients}{suffix}"
