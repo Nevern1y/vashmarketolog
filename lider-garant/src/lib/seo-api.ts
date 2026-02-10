@@ -46,6 +46,10 @@ export interface SeoPageData {
     updated_at?: string;
 }
 
+interface SeoApiRequestOptions {
+    preferredBaseUrl?: string | null;
+}
+
 const SKIP_SEO_FETCH_KEY = 'SKIP_SEO_FETCH';
 
 const normalizeBaseUrl = (value?: string) => {
@@ -64,7 +68,7 @@ const shouldSkipSeoFetch = () => {
     return rawValue === '1' || rawValue === 'true';
 };
 
-const getApiBaseUrls = () => {
+const getApiBaseUrls = (options: SeoApiRequestOptions = {}) => {
     const urls = new Set<string>();
 
     const add = (value?: string) => {
@@ -74,9 +78,11 @@ const getApiBaseUrls = () => {
         }
     };
 
+    add(options.preferredBaseUrl || undefined);
+
     if (typeof window === 'undefined') {
-        add(process.env.INTERNAL_API_URL);
         add(process.env.NEXT_PUBLIC_API_URL);
+        add(process.env.INTERNAL_API_URL);
         add('http://backend:8000/api');
         add('http://localhost:8000/api');
     } else {
@@ -103,12 +109,12 @@ const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs = 5000
  * @param slug - Page slug (e.g., "rko", "ved")
  * @returns SeoPageData or null if not found
  */
-export async function getSeoPage(slug: string): Promise<SeoPageData | null> {
+export async function getSeoPage(slug: string, options: SeoApiRequestOptions = {}): Promise<SeoPageData | null> {
     if (shouldSkipSeoFetch()) {
         return null;
     }
 
-    const baseUrls = getApiBaseUrls();
+    const baseUrls = getApiBaseUrls(options);
     const encodedSlug = encodeURIComponent(slug);
 
     for (const baseUrl of baseUrls) {

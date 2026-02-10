@@ -71,7 +71,7 @@ export function SeoDashboard() {
             }
 
             try {
-                const data = await api.get<SeoPage[]>("/seo/pages/admin-list/")
+                const data = await api.get<SeoPage[]>("/seo/pages-admin-list/")
                 setPages(data)
             } catch (error) {
                 const apiError = error as ApiError
@@ -81,7 +81,7 @@ export function SeoDashboard() {
                     const data = await api.get<SeoPage[]>("/seo/pages/")
                     setPages(data)
                     toast.warning("Показан публичный список", {
-                        description: "Для полного списка (включая черновики) обновите backend до версии с /seo/pages/admin-list/.",
+                        description: "Для полного списка (включая черновики) обновите backend до версии с /seo/pages-admin-list/.",
                     })
                 } else {
                     throw error

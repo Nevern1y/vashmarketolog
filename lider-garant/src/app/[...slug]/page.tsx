@@ -1,6 +1,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getSeoPage } from "@/lib/seo-api";
 import { generateMetadataFromSeoPage } from "@/utils/metadata";
@@ -17,10 +18,26 @@ const getSlugString = (slugArray: string[]) => {
     return slugArray.join("/");
 };
 
+const getRequestApiBaseUrl = async () => {
+    const requestHeaders = await headers();
+    const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
+
+    if (!host) {
+        return null;
+    }
+
+    const proto =
+        requestHeaders.get("x-forwarded-proto") ||
+        (host.includes("localhost") ? "http" : "https");
+
+    return `${proto}://${host}/api`;
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { slug: slugArray } = await params;
     const slug = getSlugString(slugArray);
-    const page = await getSeoPage(slug);
+    const preferredBaseUrl = await getRequestApiBaseUrl();
+    const page = await getSeoPage(slug, { preferredBaseUrl });
 
     if (!page) {
         return {
@@ -34,7 +51,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function DynamicSeoPage({ params }: Props) {
     const { slug: slugArray } = await params;
     const slug = getSlugString(slugArray);
-    const page = await getSeoPage(slug);
+    const preferredBaseUrl = await getRequestApiBaseUrl();
+    const page = await getSeoPage(slug, { preferredBaseUrl });
 
     if (!page) {
         notFound();
