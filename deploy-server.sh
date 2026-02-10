@@ -21,12 +21,17 @@ REPO_URL="https://github.com/Nevern1y/vashmarketolog"
 PROJECT_DIR="/opt/vashmarketolog"
 DOMAINS="lider-garant.ru www.lider-garant.ru lk.lider-garant.ru"
 EMAIL="admin@lider-garant.ru"  # For Let's Encrypt notifications
+GIT_BRANCH="${GIT_BRANCH:-main}"
 RESET_DB="${RESET_DB:-false}"
 MAX_PULL_RETRIES="${MAX_PULL_RETRIES:-3}"
 PULL_RETRY_DELAY="${PULL_RETRY_DELAY:-5}"
 MIN_DOCKER_FREE_GB="${MIN_DOCKER_FREE_GB:-5}"
 DOCKER_DNS="${DOCKER_DNS:-}"
 DISABLE_BUILDKIT="${DISABLE_BUILDKIT:-false}"
+LANDING_DOMAIN="${LANDING_DOMAIN:-lider-garant.ru}"
+SEO_TEMPLATE_PROBE="${SEO_TEMPLATE_PROBE:-guarantees}"
+SEO_SLUG_PROBE="${SEO_SLUG_PROBE:-bankovskie-garantii-na-ispolnenie-kontrakta}"
+ENABLE_SEO_SMOKE_CHECK="${ENABLE_SEO_SMOKE_CHECK:-true}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -164,8 +169,8 @@ if [ -d "$PROJECT_DIR/.git" ]; then
     [ -f "$PROJECT_DIR/.env.prod" ] && cp "$PROJECT_DIR/.env.prod" "$PRESERVE_DIR/.env.prod"
 
     cd "$PROJECT_DIR"
-    git fetch origin
-    git reset --hard origin/main
+    git fetch origin "$GIT_BRANCH"
+    git reset --hard "origin/$GIT_BRANCH"
 
     # Keep local runtime env files untouched
     git clean -fd -e .env -e .env.prod
@@ -177,11 +182,13 @@ if [ -d "$PROJECT_DIR/.git" ]; then
 else
     echo "Первоначальное клонирование репозитория..."
     rm -rf "$PROJECT_DIR"
-    git clone "$REPO_URL" "$PROJECT_DIR"
+    git clone --branch "$GIT_BRANCH" --single-branch "$REPO_URL" "$PROJECT_DIR"
     cd "$PROJECT_DIR"
 fi
 
 echo -e "${GREEN}✓ Репозиторий синхронизирован${NC}"
+echo "Ветка: $GIT_BRANCH"
+echo "Коммит: $(git rev-parse --short HEAD)"
 echo ""
 
 # =============================================================================
@@ -298,6 +305,10 @@ for target in "$ENV_FILE" "$ENV_PROD_FILE"; do
     set_env "EMAIL_OUTBOX_FAILED_RETENTION_DAYS" "90" "$target"
     set_env "EMAIL_OUTBOX_RETRY_DELAYS_SECONDS" "30,120,300,900,1800,3600,7200,21600" "$target"
     set_env "ALLOWED_HOSTS" ".lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx" "$target"
+    set_env "NEXT_PUBLIC_API_URL" "https://${LANDING_DOMAIN}/api" "$target"
+    set_env "INTERNAL_API_URL" "http://backend:8000/api" "$target"
+    set_env "NEXT_PUBLIC_SITE_URL" "https://${LANDING_DOMAIN}" "$target"
+    set_env "SKIP_SEO_FETCH" "0" "$target"
 done
 
 chmod 600 "$ENV_FILE" "$ENV_PROD_FILE" 2>/dev/null || true
@@ -485,7 +496,7 @@ rm -rf "$PROJECT_DIR"
 
 # Воссоздаем директорию и клонируем репозиторий заново
 echo "Клонируем свежий репозиторий..."
-git clone "$REPO_URL" "$PROJECT_DIR"
+git clone --branch "$GIT_BRANCH" --single-branch "$REPO_URL" "$PROJECT_DIR"
 cd "$PROJECT_DIR"
 
 # Восстанавливаем сохраненные файлы
@@ -662,6 +673,83 @@ else
     echo -e "${RED}✗ SEO API недоступен по внутреннему хосту backend. Возможны 404 на SEO-страницах.${NC}"
     cat /tmp/lider_seo_api_check.log || true
     exit 1
+fi
+
+# Landing internal API check (from landing container perspective)
+LANDING_INTERNAL_API_OK=false
+for attempt in 1 2 3 4 5; do
+    if docker compose -f docker-compose.prod.yml exec -T landing node -e "const base=(process.env.INTERNAL_API_URL||'http://backend:8000/api'); fetch(base + '/seo/pages/', { cache: 'no-store' }).then(r=>process.exit(r.status===200?0:1)).catch(()=>process.exit(1));" >/tmp/lider_landing_internal_api_check.log 2>&1; then
+        LANDING_INTERNAL_API_OK=true
+        break
+    fi
+    echo -e "${YELLOW}Landing -> INTERNAL_API_URL check не прошел (попытка ${attempt}/5), повтор через 5s...${NC}"
+    sleep 5
+done
+
+if [ "$LANDING_INTERNAL_API_OK" = true ]; then
+    echo -e "${GREEN}✓ Landing INTERNAL_API_URL check - OK${NC}"
+else
+    echo -e "${RED}✗ Landing контейнер не может получить SEO API по INTERNAL_API_URL.${NC}"
+    cat /tmp/lider_landing_internal_api_check.log || true
+    exit 1
+fi
+
+# Check SEO admin endpoints availability (must exist, auth can be 401/403)
+SEO_TEMPLATES_STATUS=$(curl -sk -H "Host: ${LANDING_DOMAIN}" -o /dev/null -w "%{http_code}" "https://127.0.0.1/api/seo/pages/templates/?name=${SEO_TEMPLATE_PROBE}" || echo "000")
+if echo "$SEO_TEMPLATES_STATUS" | grep -Eq "^(200|401|403)$"; then
+    echo -e "${GREEN}✓ SEO templates endpoint available (status: ${SEO_TEMPLATES_STATUS})${NC}"
+else
+    echo -e "${RED}✗ SEO templates endpoint missing/unhealthy (status: ${SEO_TEMPLATES_STATUS}).${NC}"
+    echo "  Ожидался status 200/401/403 для /api/seo/pages/templates/"
+    exit 1
+fi
+
+SEO_ADMIN_LIST_STATUS=$(curl -sk -H "Host: ${LANDING_DOMAIN}" -o /dev/null -w "%{http_code}" "https://127.0.0.1/api/seo/pages/admin-list/" || echo "000")
+if echo "$SEO_ADMIN_LIST_STATUS" | grep -Eq "^(200|401|403)$"; then
+    echo -e "${GREEN}✓ SEO admin-list endpoint available (status: ${SEO_ADMIN_LIST_STATUS})${NC}"
+else
+    echo -e "${RED}✗ SEO admin-list endpoint missing/unhealthy (status: ${SEO_ADMIN_LIST_STATUS}).${NC}"
+    echo "  Ожидался status 200/401/403 для /api/seo/pages/admin-list/"
+    exit 1
+fi
+
+# Warn if sitemap base URL is not provided to landing runtime
+LANDING_SITE_URL_RUNTIME=$(docker compose -f docker-compose.prod.yml exec -T landing sh -lc 'printf "%s" "${NEXT_PUBLIC_SITE_URL:-}"' 2>/dev/null || true)
+if [ -n "$LANDING_SITE_URL_RUNTIME" ]; then
+    echo -e "${GREEN}✓ NEXT_PUBLIC_SITE_URL в landing: ${LANDING_SITE_URL_RUNTIME}${NC}"
+else
+    warn "NEXT_PUBLIC_SITE_URL пуст в landing контейнере. sitemap.xml может содержать localhost URL."
+fi
+
+# End-to-end SEO page render check
+if [ "$ENABLE_SEO_SMOKE_CHECK" = "true" ]; then
+    SEO_SLUG="${SEO_SLUG_PROBE}"
+    SEO_SLUG_FROM_API=$(docker compose -f docker-compose.prod.yml exec -T backend python -c "import json,urllib.request; data=json.loads(urllib.request.urlopen('http://backend:8000/api/seo/pages/', timeout=10).read().decode()); print(data[0].get('slug','') if isinstance(data,list) and len(data)>0 else '')" 2>/tmp/lider_seo_slug_probe.log || true)
+    if [ -n "$SEO_SLUG_FROM_API" ]; then
+        SEO_SLUG="$SEO_SLUG_FROM_API"
+    fi
+
+    SEO_PAGE_OK=false
+    for attempt in 1 2 3 4 5; do
+        SEO_PAGE_STATUS=$(curl -skL -H "Host: ${LANDING_DOMAIN}" -o /tmp/lider_seo_page_check.html -w "%{http_code}" "https://127.0.0.1/${SEO_SLUG}" || echo "000")
+
+        if [ "$SEO_PAGE_STATUS" = "200" ] && ! grep -q "Страница не найдена" /tmp/lider_seo_page_check.html; then
+            SEO_PAGE_OK=true
+            break
+        fi
+
+        echo -e "${YELLOW}SEO render check не прошел для /${SEO_SLUG} (status: ${SEO_PAGE_STATUS}, попытка ${attempt}/5). Повтор через 5s...${NC}"
+        sleep 5
+    done
+
+    if [ "$SEO_PAGE_OK" = true ]; then
+        echo -e "${GREEN}✓ SEO public page render check - OK (/${SEO_SLUG})${NC}"
+    else
+        echo -e "${RED}✗ SEO public page render check failed (/${SEO_SLUG}).${NC}"
+        echo "  Страница отдает 404-контент или недоступна."
+        head -n 20 /tmp/lider_seo_page_check.html 2>/dev/null || true
+        exit 1
+    fi
 fi
 
 # Process pending outbox once to validate command and flush immediate queue
