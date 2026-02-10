@@ -17,6 +17,20 @@ ALLOWED_HOSTS = os.getenv(
     '.lider-garant.ru,lk.lider-garant.ru,localhost,127.0.0.1'
 ).split(',')
 
+# Internal Docker service hostnames for server-side calls (SEO/API fetches)
+for internal_host in [
+    'backend',
+    'lider_prod_backend',
+    'landing',
+    'lider_prod_landing',
+    'frontend',
+    'lider_prod_frontend',
+    'nginx',
+    'lider_prod_nginx',
+]:
+    if internal_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(internal_host)
+
 # =============================================================================
 # EMAIL CONFIGURATION
 # =============================================================================

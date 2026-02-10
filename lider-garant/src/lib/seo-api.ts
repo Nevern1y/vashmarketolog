@@ -104,14 +104,15 @@ const getApiBaseUrls = (options: SeoApiRequestOptions = {}) => {
         }
     };
 
-    add(options.preferredBaseUrl || undefined);
-
     if (typeof window === 'undefined') {
-        add(process.env.NEXT_PUBLIC_API_URL);
+        // In SSR inside Docker, prefer internal backend URL first.
         add(process.env.INTERNAL_API_URL);
+        add(options.preferredBaseUrl || undefined);
+        add(process.env.NEXT_PUBLIC_API_URL);
         add('http://backend:8000/api');
         add('http://localhost:8000/api');
     } else {
+        add(options.preferredBaseUrl || undefined);
         add(process.env.NEXT_PUBLIC_API_URL);
         add('http://localhost:8000/api');
     }

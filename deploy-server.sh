@@ -297,6 +297,7 @@ for target in "$ENV_FILE" "$ENV_PROD_FILE"; do
     set_env "EMAIL_OUTBOX_SENT_RETENTION_DAYS" "14" "$target"
     set_env "EMAIL_OUTBOX_FAILED_RETENTION_DAYS" "90" "$target"
     set_env "EMAIL_OUTBOX_RETRY_DELAYS_SECONDS" "30,120,300,900,1800,3600,7200,21600" "$target"
+    set_env "ALLOWED_HOSTS" ".lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx" "$target"
 done
 
 chmod 600 "$ENV_FILE" "$ENV_PROD_FILE" 2>/dev/null || true
@@ -641,6 +642,25 @@ if [ "$SMTP_CHECK_OK" = true ]; then
 else
     echo -e "${RED}✗ SMTP не прошел проверку. Деплой остановлен для предотвращения работы без почтовых уведомлений.${NC}"
     cat /tmp/lider_smtp_check.log || true
+    exit 1
+fi
+
+# SEO API internal readiness check (prevents 404 in landing dynamic pages)
+SEO_API_OK=false
+for attempt in 1 2 3 4 5; do
+    if docker compose -f docker-compose.prod.yml exec -T backend python -c "import urllib.request,sys; r=urllib.request.urlopen('http://backend:8000/api/seo/pages/', timeout=10); print(r.status); sys.exit(0 if r.status==200 else 1)" >/tmp/lider_seo_api_check.log 2>&1; then
+        SEO_API_OK=true
+        break
+    fi
+    echo -e "${YELLOW}SEO API check не прошел (попытка ${attempt}/5), повтор через 5s...${NC}"
+    sleep 5
+done
+
+if [ "$SEO_API_OK" = true ]; then
+    echo -e "${GREEN}✓ SEO API internal check - OK${NC}"
+else
+    echo -e "${RED}✗ SEO API недоступен по внутреннему хосту backend. Возможны 404 на SEO-страницах.${NC}"
+    cat /tmp/lider_seo_api_check.log || true
     exit 1
 fi
 

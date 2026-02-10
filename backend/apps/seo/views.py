@@ -64,12 +64,15 @@ class SeoPageViewSet(viewsets.ModelViewSet):
         slug = self.kwargs.get('slug')
         
         if slug:
-            # Remove leading / if present
-            clean_slug = slug.lstrip('/')
+            # Normalize slug and support legacy values saved with leading slash
+            clean_slug = str(slug).strip().strip('/')
+            slug_variants = [clean_slug]
+            if clean_slug:
+                slug_variants.append(f'/{clean_slug}')
             
             # Look for exact match only - no fallback to priority page
             # This ensures proper 404 for unknown slugs
-            exact_match = base_queryset.filter(slug=clean_slug).first()
+            exact_match = base_queryset.filter(slug__in=slug_variants).first()
             if exact_match:
                 return SeoPage.objects.filter(id=exact_match.id)
             

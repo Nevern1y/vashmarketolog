@@ -100,6 +100,13 @@ class SeoPageSerializer(serializers.ModelSerializer):
             if 'question' not in item or 'answer' not in item:
                 raise serializers.ValidationError("Each FAQ item must have 'question' and 'answer'")
         return value
+
+    def validate_slug(self, value):
+        """Normalize slug format to avoid leading/trailing slash mismatches."""
+        clean_slug = str(value or '').strip().strip('/')
+        if not clean_slug:
+            raise serializers.ValidationError("Slug обязателен")
+        return clean_slug
     
     def validate_popular_searches(self, value):
         """
