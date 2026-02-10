@@ -51,32 +51,23 @@ function AlertDialogContent({
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <AlertDialogPrimitive.Content
-        data-slot="alert-dialog-content"
-        className={cn(
-          // Base styles
-          'bg-background fixed z-50 grid w-full gap-4 rounded-lg border p-4 sm:p-6 shadow-lg',
-          // Positioning - centered with Safari-safe viewport
-          'top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]',
-          // On short viewports (old laptops), anchor near top
-          '[@media(max-height:820px)]:top-2 [@media(max-height:820px)]:translate-y-0',
-          // Size constraints with Safari fallbacks
-          'max-w-[calc(100%-1rem)] max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)]',
-          // Overflow for tall content
-          'overflow-y-auto overscroll-contain',
-          // Animations
-          'data-[state=open]:animate-in data-[state=closed]:animate-out',
-          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          'duration-200',
-          // Safari rendering fixes
-          'transform-gpu',
-          // Desktop size
-          'sm:max-w-lg',
-          className,
-        )}
-        {...props}
-      />
+      <div
+        data-slot="alert-dialog-positioner"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 [@media(max-height:820px)]:items-start [@media(max-height:820px)]:pt-2"
+      >
+        <AlertDialogPrimitive.Content
+          data-slot="alert-dialog-content"
+          className={cn(
+            'bg-background grid w-full gap-4 rounded-lg border p-4 sm:p-6 shadow-lg',
+            'max-w-lg max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)]',
+            'overflow-y-auto overscroll-contain',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200',
+            className,
+          )}
+          {...props}
+        />
+      </div>
     </AlertDialogPortal>
   )
 }

@@ -116,7 +116,7 @@ export function PartnerLayout() {
             {/* ============================================ */}
             {/* DESKTOP SIDEBAR (FIXED POSITION) */}
             {/* ============================================ */}
-            <aside className="fixed inset-y-0 left-0 z-30 hidden lg:flex h-dvh w-[260px] flex-col bg-[#0a1628] text-white">
+            <aside className="fixed inset-y-0 left-0 z-30 hidden lg:flex h-screen lg:h-[100dvh] w-[260px] flex-col bg-[#0a1628] text-white">
                 <PartnerSidebarContent
                     activeView={activeView}
                     onViewChange={handleViewChange}

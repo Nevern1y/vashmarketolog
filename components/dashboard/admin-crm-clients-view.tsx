@@ -975,7 +975,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                     if (!open) setSelectedClient(null)
                 }}
             >
-                <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
                     {selectedClient && (
                         <>
                             <DialogHeader>
@@ -1235,7 +1235,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                     if (!open) setSelectedDirectClient(null)
                 }}
             >
-                <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-4 md:p-6">
+                <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
                     {selectedDirectClient && (
                         <>
                             <DialogHeader>

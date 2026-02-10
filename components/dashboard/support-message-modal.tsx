@@ -55,7 +55,7 @@ export function SupportMessageModal({ isOpen, onClose }: SupportMessageModalProp
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-[500px] top-[50%] translate-y-[-50%]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#3CE8D1]/10">

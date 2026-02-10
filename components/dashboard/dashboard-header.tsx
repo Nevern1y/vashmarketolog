@@ -34,6 +34,7 @@ import { useAuth } from "@/lib/auth-context"
 import { useMyCompany } from "@/hooks/use-companies"
 import { useAvatar } from "@/hooks/use-avatar"
 import { type Notification } from "@/hooks/use-notifications"
+import { SUPPORT_CONTACTS } from "@/lib/support-contacts"
 import { SupportMessageModal } from "./support-message-modal"
 
 interface DashboardHeaderProps {
@@ -169,7 +170,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
 
             {/* Contact Popup */}
             <Dialog open={showContactPopup} onOpenChange={setShowContactPopup}>
-                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-y-auto">
                     <div className="sr-only">
                         <DialogTitle>Связаться с нами</DialogTitle>
                         <DialogDescription>Способы связи с куратором и поддержкой</DialogDescription>
@@ -183,7 +184,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                         <div className="space-y-2.5">
                             {/* Call - Teal icon */}
                             <a
-                                href="tel:+79652841415"
+                                href={`tel:${SUPPORT_CONTACTS.phoneRaw}`}
                                 className="flex items-center gap-3 p-3.5 rounded-lg bg-[#0d1829] hover:bg-[#162033] transition-colors"
                             >
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3CE8D1]">
@@ -191,13 +192,13 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-[#94a3b8] uppercase tracking-wide mb-0.5">Позвонить</p>
-                                    <p className="text-sm font-medium text-white">+7 (965) 284-14-15</p>
+                                    <p className="text-sm font-medium text-white">{SUPPORT_CONTACTS.phoneDisplay}</p>
                                 </div>
                             </a>
 
                             {/* Email - Teal icon */}
                             <a
-                                href="mailto:geo3414@yandex.ru"
+                                href={`mailto:${SUPPORT_CONTACTS.email}`}
                                 className="flex items-center gap-3 p-3.5 rounded-lg bg-[#0d1829] hover:bg-[#162033] transition-colors"
                             >
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3CE8D1]">
@@ -205,13 +206,13 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-[#94a3b8] uppercase tracking-wide mb-0.5">Написать на почту</p>
-                                    <p className="text-sm font-medium text-white">geo3414@yandex.ru</p>
+                                    <p className="text-sm font-medium text-white">{SUPPORT_CONTACTS.email}</p>
                                 </div>
                             </a>
 
                             {/* Telegram - Teal icon */}
                             <a
-                                href="https://t.me/lider_garant"
+                                href={SUPPORT_CONTACTS.telegramUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-3 p-3.5 rounded-lg bg-[#0d1829] hover:bg-[#162033] transition-colors"
@@ -221,7 +222,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-[#94a3b8] uppercase tracking-wide mb-0.5">Telegram</p>
-                                    <p className="text-sm font-medium text-white">@lider_garant</p>
+                                    <p className="text-sm font-medium text-white">{SUPPORT_CONTACTS.telegramHandle}</p>
                                 </div>
                             </a>
 
@@ -257,13 +258,13 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2 text-sm">
-                                <a href="tel:+79652841415" className="flex items-center gap-2 text-[#3CE8D1] hover:underline">
+                                <a href={`tel:${SUPPORT_CONTACTS.phoneRaw}`} className="flex items-center gap-2 text-[#3CE8D1] hover:underline">
                                     <Phone className="h-3.5 w-3.5" />
-                                    +7 (965) 284-14-15
+                                    {SUPPORT_CONTACTS.phoneDisplay}
                                 </a>
-                                <a href="mailto:geo3414@yandex.ru" className="flex items-center gap-2 text-[#3CE8D1] hover:underline">
+                                <a href={`mailto:${SUPPORT_CONTACTS.email}`} className="flex items-center gap-2 text-[#3CE8D1] hover:underline">
                                     <Mail className="h-3.5 w-3.5" />
-                                    geo3414@yandex.ru
+                                    {SUPPORT_CONTACTS.email}
                                 </a>
                             </div>
                         </div>

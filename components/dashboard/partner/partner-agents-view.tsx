@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { UserCheck, Users, TrendingUp, Award, Copy, Loader2, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ const ACCREDITATION_STATUS: Record<string, { label: string; color: string; icon:
     pending: { label: 'На проверке', color: 'text-[#f97316] bg-[#f97316]/10', icon: Clock },
     approved: { label: 'Аккредитован', color: 'text-[#3CE8D1] bg-[#3CE8D1]/10', icon: CheckCircle },
     rejected: { label: 'Отклонена', color: 'text-red-500 bg-red-500/10', icon: XCircle },
+    unknown: { label: 'Статус не указан', color: 'text-[#94a3b8] bg-[#94a3b8]/10', icon: AlertCircle },
 }
 
 interface InvitedAgent {
@@ -25,7 +26,7 @@ interface InvitedAgent {
     first_name: string
     last_name: string
     phone?: string
-    accreditation_status: 'none' | 'pending' | 'approved' | 'rejected'
+    accreditation_status: 'none' | 'pending' | 'approved' | 'rejected' | 'unknown'
     date_joined: string
     company_name?: string
 }
@@ -37,14 +38,16 @@ interface InvitedAgent {
  */
 export function PartnerAgentsView() {
     const { user } = useAuth()
-    const { applications, isLoading: isLoadingApps } = useApplications()
+    const { applications, isLoading: isLoadingApps } = useApplications(undefined, undefined, { fetchAllPages: true })
     const [invitedAgents, setInvitedAgents] = useState<InvitedAgent[]>([])
     const [isLoadingAgents, setIsLoadingAgents] = useState(true)
+    const [agentsLoadError, setAgentsLoadError] = useState<string | null>(null)
 
     // Fetch invited agents
     useEffect(() => {
         const fetchAgents = async () => {
             try {
+                setAgentsLoadError(null)
                 const data = await api.get('/auth/my-agents/')
                 // Handle both array responses and paginated object responses
                 let agents: InvitedAgent[] = []
@@ -54,9 +57,8 @@ export function PartnerAgentsView() {
                     agents = (data as { results: InvitedAgent[] }).results
                 }
                 setInvitedAgents(agents)
-            } catch (error) {
-                console.error('Failed to fetch agents:', error)
-                // Fallback to empty - endpoint may not exist yet
+            } catch {
+                setAgentsLoadError('Не удалось загрузить список приглашённых агентов, показываем агентов по заявкам')
                 setInvitedAgents([])
             } finally {
                 setIsLoadingAgents(false)
@@ -67,32 +69,81 @@ export function PartnerAgentsView() {
 
     const isLoading = isLoadingApps || isLoadingAgents
 
+    const agentApplications = useMemo(() => (
+        applications.filter((app) => (
+            app.created_by_role ? app.created_by_role === "agent" : Boolean(app.created_by_email)
+        ))
+    ), [applications])
+
+    const fallbackAgents = useMemo<InvitedAgent[]>(() => {
+        const map = new Map<string, InvitedAgent>()
+
+        agentApplications.forEach((app) => {
+            const email = app.created_by_email?.trim().toLowerCase()
+            if (!email) return
+
+            const createdAt = app.created_at || new Date().toISOString()
+            const existing = map.get(email)
+            const localPart = email.split('@')[0] || 'agent'
+            const creatorName = app.created_by_name?.trim() || ''
+
+            if (!existing) {
+                map.set(email, {
+                    id: map.size + 1,
+                    email,
+                    first_name: creatorName || localPart,
+                    last_name: '',
+                    accreditation_status: 'unknown',
+                    date_joined: createdAt,
+                    company_name: app.company_name || undefined,
+                })
+                return
+            }
+
+            if (new Date(createdAt).getTime() > new Date(existing.date_joined).getTime()) {
+                existing.date_joined = createdAt
+            }
+            if (!existing.first_name && creatorName) {
+                existing.first_name = creatorName
+            }
+            if (!existing.first_name) {
+                existing.first_name = localPart
+            }
+            if (!existing.company_name && app.company_name) {
+                existing.company_name = app.company_name
+            }
+        })
+
+        return Array.from(map.values()).sort((a, b) => (
+            new Date(b.date_joined).getTime() - new Date(a.date_joined).getTime()
+        ))
+    }, [agentApplications])
+
+    const resolvedAgents = invitedAgents.length > 0 ? invitedAgents : fallbackAgents
+    const isUsingFallbackAgents = invitedAgents.length === 0 && fallbackAgents.length > 0
+
     // Calculate stats from real data
-    // Note: Applications come from agents who submitted them (created_by_email)
     const stats = {
-        // Unique agents = unique creators
         uniqueAgents: isLoading ? null : new Set(
-            applications.map(a => a.created_by_email).filter(Boolean)
+            agentApplications.map(a => a.created_by_email?.toLowerCase()).filter(Boolean)
         ).size,
-        // Total applications from all agents
-        totalApplications: isLoading ? null : applications.length,
-        // Top agent by application count
+        totalApplications: isLoading ? null : agentApplications.length,
         topAgent: isLoading ? null : (() => {
             const agentCounts: Record<string, { count: number; name?: string }> = {}
-            applications.forEach(a => {
+            agentApplications.forEach(a => {
                 if (a.created_by_email) {
-                    if (!agentCounts[a.created_by_email]) {
-                        agentCounts[a.created_by_email] = { count: 0, name: a.created_by_name }
+                    const email = a.created_by_email.toLowerCase()
+                    if (!agentCounts[email]) {
+                        agentCounts[email] = { count: 0, name: a.created_by_name }
                     }
-                    agentCounts[a.created_by_email].count++
+                    agentCounts[email].count++
                 }
             })
             const sorted = Object.entries(agentCounts).sort((a, b) => b[1].count - a[1].count)
             if (sorted.length === 0) return null
             return { email: sorted[0][0], count: sorted[0][1].count, name: sorted[0][1].name }
         })(),
-        // New applications this month
-        thisMonth: isLoading ? null : applications.filter(a => {
+        thisMonth: isLoading ? null : agentApplications.filter(a => {
             const created = new Date(a.created_at)
             const now = new Date()
             return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()
@@ -165,9 +216,9 @@ export function PartnerAgentsView() {
                         {isLoading ? (
                             <Skeleton className="h-8 w-12 bg-[#1e3a5f]" />
                         ) : (
-                            <div className="text-2xl font-bold text-white">{invitedAgents.length || stats.uniqueAgents}</div>
+                            <div className="text-2xl font-bold text-white">{resolvedAgents.length || stats.uniqueAgents}</div>
                         )}
-                        <p className="text-xs text-[#94a3b8]">приглашено вами</p>
+                        <p className="text-xs text-[#94a3b8]">в работе с вашим банком</p>
                     </CardContent>
                 </Card>
 
@@ -237,22 +288,29 @@ export function PartnerAgentsView() {
                 <CardHeader>
                     <CardTitle className="text-white">Список агентов</CardTitle>
                     <CardDescription className="text-[#94a3b8]">
-                        Агенты, приглашённые по вашей реферальной ссылке
+                        {isUsingFallbackAgents
+                            ? "Агенты, чьи заявки назначены вашему банку"
+                            : "Агенты, приглашённые по вашей реферальной ссылке"}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {agentsLoadError && (
+                        <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                            {agentsLoadError}
+                        </div>
+                    )}
                     {isLoadingAgents ? (
                         <div className="flex items-center justify-center py-12">
                             <Loader2 className="h-8 w-8 animate-spin text-[#3CE8D1]" />
                         </div>
-                    ) : invitedAgents.length === 0 ? (
+                    ) : resolvedAgents.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12">
                             <UserCheck className="h-16 w-16 text-[#3CE8D1] mb-4" />
                             <h3 className="text-lg font-semibold text-white mb-2">
-                                Нет приглашённых агентов
+                                Пока нет агентов
                             </h3>
                             <p className="text-sm text-[#94a3b8] text-center max-w-md mb-6">
-                                Отправьте реферальную ссылку потенциальным агентам, чтобы они могли зарегистрироваться и работать с вами.
+                                Пригласите агентов по реферальной ссылке или дождитесь первых заявок, назначенных вашему банку.
                             </p>
                             <Button
                                 variant="outline"
@@ -283,11 +341,11 @@ export function PartnerAgentsView() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#1e3a5f]">
-                                    {invitedAgents.map((agent) => {
-                                        const statusCfg = ACCREDITATION_STATUS[agent.accreditation_status] || ACCREDITATION_STATUS.none
+                                    {resolvedAgents.map((agent) => {
+                                        const statusCfg = ACCREDITATION_STATUS[agent.accreditation_status] || ACCREDITATION_STATUS.unknown
                                         const StatusIcon = statusCfg.icon
                                         return (
-                                            <tr key={agent.id} className="hover:bg-[#1e3a5f]/50 transition-colors">
+                                            <tr key={agent.id || agent.email} className="hover:bg-[#1e3a5f]/50 transition-colors">
                                                 <td className="px-4 py-4">
                                                     <div>
                                                         <div className="font-medium text-white">

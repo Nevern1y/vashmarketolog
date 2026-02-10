@@ -6,7 +6,7 @@ import {
     ChevronDown,
     Phone,
     Mail,
-    MessageCircle,
+    Send,
     HelpCircle,
     Shield,
     Banknote,
@@ -18,6 +18,7 @@ import {
     PiggyBank,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { SUPPORT_CONTACTS } from "@/lib/support-contacts"
 import {
     Accordion,
     AccordionContent,
@@ -226,10 +227,10 @@ const faqSections: FAQSection[] = [
 // CONTACT INFO
 // =================================================================================
 const contactInfo = {
-    telegram: "+7 (965) 284-14-15",
+    telegram: SUPPORT_CONTACTS.telegramHandle,
     telegramDescription: "Нажмите чтобы написать",
-    email: "info@lidergarant.ru",
-    workHours: "Служба поддержки и обратная связь",
+    email: SUPPORT_CONTACTS.email,
+    workHours: SUPPORT_CONTACTS.supportTitle,
 }
 
 export function HelpView() {
@@ -273,22 +274,22 @@ export function HelpView() {
             <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-[#0a1628] to-[#1a2942] border border-border">
                 <h3 className="text-lg font-semibold text-white mb-4">{contactInfo.workHours}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#229ED9]/10">
-                            <MessageCircle className="h-6 w-6 text-[#229ED9]" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-slate-400">Telegram</p>
-                            <a
-                                href="https://t.me/lider_garant"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-lg font-semibold text-white hover:text-[#229ED9] transition-colors"
-                            >
-                                @lider_garant
-                            </a>
-                            <p className="text-sm text-slate-400">{contactInfo.telegramDescription}</p>
-                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#229ED9]/10">
+                                <Send className="h-6 w-6 text-[#229ED9]" />
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-400">Telegram</p>
+                                <a
+                                    href={SUPPORT_CONTACTS.telegramUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-lg font-semibold text-white hover:text-[#229ED9] transition-colors"
+                                >
+                                    {contactInfo.telegram}
+                                </a>
+                                <p className="text-sm text-slate-400">{contactInfo.telegramDescription}</p>
+                            </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#3CE8D1]/10">
@@ -310,7 +311,7 @@ export function HelpView() {
                         </div>
                         <div>
                             <a
-                                href="https://t.me/lider_garant"
+                                href={SUPPORT_CONTACTS.telegramUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >

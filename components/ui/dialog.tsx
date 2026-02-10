@@ -57,45 +57,36 @@ function DialogContent({
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
-      <DialogPrimitive.Content
-        data-slot="dialog-content"
-        className={cn(
-          // Base positioning - fixed centered
-          'fixed z-50',
-          'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-          // On short viewports (old laptops), anchor near top
-          '[@media(max-height:820px)]:top-2 [@media(max-height:820px)]:translate-y-0',
-          // Size constraints with safe viewport units
-          'w-[calc(100%-1rem)] max-w-lg',
-          'max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)]',
-          // Content container styling
-          'bg-background rounded-lg border shadow-lg',
-          // Padding
-          'p-4 sm:p-6',
-          // Animations
-          'data-[state=open]:animate-in data-[state=closed]:animate-out',
-          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          'duration-200',
-          // Scrolling support for tall content
-          'overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]',
-          // Safari-specific fixes
-          'transform-gpu',
-          className,
-        )}
-        {...props}
+      <div
+        data-slot="dialog-positioner"
+        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 [@media(max-height:820px)]:items-start [@media(max-height:820px)]:pt-2"
       >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
-          >
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Content>
+        <DialogPrimitive.Content
+          data-slot="dialog-content"
+          className={cn(
+            'relative w-full max-w-lg',
+            'max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)]',
+            'bg-background rounded-lg border shadow-lg',
+            'p-4 sm:p-6',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200',
+            'overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]',
+            className,
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Content>
+      </div>
     </DialogPortal>
   )
 }

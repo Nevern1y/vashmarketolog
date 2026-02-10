@@ -652,28 +652,34 @@ class SubmitAccreditationView(APIView):
 @extend_schema(tags=['Partner - Agent Management'])
 class MyAgentsView(generics.ListAPIView):
     """
-    List agents invited by the current partner.
+    List agents related to the current partner.
     GET /api/auth/my-agents/
     
-    Returns agents who registered via this partner's referral link.
+    Includes:
+    - agents invited by this partner via referral link
+    - agents who already have applications assigned to this partner
     """
     from .serializers import AgentAccreditationSerializer
     serializer_class = AgentAccreditationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        from django.db.models import Prefetch
+        from django.db.models import Prefetch, Q
         from apps.companies.models import CompanyProfile
         from apps.documents.models import Document
         
         user = self.request.user
+        if user.role != 'partner':
+            return User.objects.none()
         
-        # Return agents invited by this user (via referral link)
+        # Return agents invited by this partner OR agents with assigned applications
         # Prefetch companies and documents to avoid N+1 queries
         # (AgentAccreditationSerializer calls _get_company() ~40 times per agent)
         return User.objects.filter(
-            role='agent',
-            invited_by=user
+            Q(role='agent') & (
+                Q(invited_by=user) |
+                Q(created_applications__assigned_partner=user)
+            )
         ).prefetch_related(
             Prefetch(
                 'owned_companies',

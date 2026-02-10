@@ -22,6 +22,7 @@ import {
     Lock,
     Mail,
     MessageCircle,
+    Send,
     ExternalLink,
     Loader2,
     Camera,
@@ -32,6 +33,7 @@ import api, { authApi } from "@/lib/api"
 import { useAvatar } from "@/hooks/use-avatar"
 import { useNotificationSettings } from "@/hooks/use-notification-settings"
 import { formatPhoneNumber } from "@/lib/utils"
+import { SUPPORT_CONTACTS } from "@/lib/support-contacts"
 
 // Tax system options per ТЗ
 const TAX_SYSTEMS = [
@@ -301,7 +303,7 @@ export function ProfileSettingsView() {
 
         const subject = encodeURIComponent(`[${topicLabels[feedbackTopic] || feedbackTopic}] Обращение от ${user?.email || 'пользователя'}`)
         const body = encodeURIComponent(feedbackMessage)
-        const mailtoLink = `mailto:info@lidergarant.ru?subject=${subject}&body=${body}`
+        const mailtoLink = `mailto:${SUPPORT_CONTACTS.email}?subject=${subject}&body=${body}`
 
         window.location.href = mailtoLink
 
@@ -805,27 +807,27 @@ export function ProfileSettingsView() {
                         <CardContent className="space-y-6">
                             <div className="grid gap-4 md:grid-cols-2">
                                 <a
-                                    href="https://t.me/lider_garant"
+                                    href={SUPPORT_CONTACTS.telegramUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="p-4 rounded-lg border space-y-2 hover:bg-muted/50 transition-colors"
                                 >
                                     <div className="flex items-center gap-2">
-                                        <MessageCircle className="h-5 w-5 text-[#229ED9]" />
+                                        <Send className="h-5 w-5 text-[#229ED9]" />
                                         <span className="font-medium">Telegram</span>
                                     </div>
-                                    <p className="text-lg font-bold">@lider_garant</p>
+                                    <p className="text-lg font-bold">{SUPPORT_CONTACTS.telegramHandle}</p>
                                     <p className="text-sm text-muted-foreground">Нажмите чтобы написать</p>
                                 </a>
                                 <a
-                                    href="mailto:info@lidergarant.ru"
+                                    href={`mailto:${SUPPORT_CONTACTS.email}`}
                                     className="p-4 rounded-lg border space-y-2 hover:bg-muted/50 transition-colors"
                                 >
                                     <div className="flex items-center gap-2">
                                         <Mail className="h-5 w-5 text-[#3CE8D1]" />
                                         <span className="font-medium">Email</span>
                                     </div>
-                                    <p className="text-lg font-bold">info@lidergarant.ru</p>
+                                    <p className="text-lg font-bold">{SUPPORT_CONTACTS.email}</p>
                                     <p className="text-sm text-muted-foreground">Ответ в течение 24 часов</p>
                                 </a>
                             </div>
@@ -878,7 +880,7 @@ export function ProfileSettingsView() {
                                         <ExternalLink className="h-4 w-4" />
                                         Видеоинструкции
                                     </a>
-                                    <a href="https://t.me/lidergarant" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#3CE8D1] hover:underline">
+                                    <a href={SUPPORT_CONTACTS.telegramUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#3CE8D1] hover:underline">
                                         <ExternalLink className="h-4 w-4" />
                                         Telegram-канал
                                     </a>

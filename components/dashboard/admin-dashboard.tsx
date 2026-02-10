@@ -408,7 +408,7 @@ export function AdminDashboard() {
             <aside
                 className={cn(
                     "fixed inset-y-0 left-0 z-30 hidden lg:flex flex-col",
-                    "h-dvh border-r border-[#1e3a5f] bg-[#0a1628]",
+                    "h-screen lg:h-[100dvh] border-r border-[#1e3a5f] bg-[#0a1628]",
                     "transition-[width] duration-300 ease-in-out",
                     sidebarCollapsed ? "w-14 xl:w-16" : "w-56 xl:w-60"
                 )}
