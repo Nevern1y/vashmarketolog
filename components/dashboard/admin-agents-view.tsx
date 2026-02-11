@@ -621,7 +621,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
 
             {/* Agent Detail Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
+                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
                     <div className="sr-only">
                         <DialogTitle>{selectedAgent ? getName(selectedAgent) : "Детали агента"}</DialogTitle>
                         <DialogDescription>Информация об агенте и его документах</DialogDescription>

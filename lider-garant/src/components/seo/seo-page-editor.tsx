@@ -610,7 +610,7 @@ export function SeoPageEditor({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] lg:w-[min(1200px,calc(100vw-4rem))] max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0">
+            <DialogContent className="w-full max-w-[1200px] max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0">
                 <DialogHeader className="flex-shrink-0 border-b border-slate-700/50 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                     <DialogTitle className="text-xl font-bold text-white">
                         {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}

@@ -472,7 +472,7 @@ export function ApplicationEditModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white w-[calc(100vw-1rem)] sm:w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden p-0 flex min-h-0 flex-col">
+            <DialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white w-full max-w-2xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden p-0 flex min-h-0 flex-col">
                 <DialogHeader className="shrink-0 border-b border-[#1e3a5f] px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                     <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                         Редактирование заявки #{application.id}
