@@ -45,7 +45,19 @@ export default function SeoTemplatePage({
 }: SeoTemplatePageProps) {
   const cleanTitle = title.trim();
 
+  const normalizeHref = (value?: string) => {
+    const href = String(value || "").trim();
+    if (!href) return "#application";
+    if (href.startsWith("#") || href.startsWith("/") || /^https?:\/\//i.test(href)) {
+      return href;
+    }
+    return `/${href.replace(/^\/+/, "")}`;
+  };
+
+  const isExternalHref = (value: string) => /^https?:\/\//i.test(value);
+
   const resolvedButtonText = buttonText?.trim() || "Оставить заявку";
+  const resolvedButtonHref = normalizeHref(buttonHref);
   const resolvedBestOffersTitle =
     bestOffersTitle?.trim() ||
     (cleanTitle ? `Лучшие предложения — ${cleanTitle}` : "Лучшие предложения");
@@ -58,7 +70,7 @@ export default function SeoTemplatePage({
   const normalizedPopularSearches = popularSearches
     .map((item) => ({
       text: String(item.text || "").trim(),
-      href: String(item.href || "#application").trim() || "#application",
+      href: normalizeHref(String(item.href || "#application")),
     }))
     .filter((item) => item.text.length > 0);
 
@@ -78,7 +90,13 @@ export default function SeoTemplatePage({
 
             <div className="pt-4">
               <Button asChild className="btn-three h-12">
-                <Link href={buttonHref}>{resolvedButtonText}</Link>
+                {isExternalHref(resolvedButtonHref) ? (
+                  <a href={resolvedButtonHref} rel="noopener noreferrer">
+                    {resolvedButtonText}
+                  </a>
+                ) : (
+                  <Link href={resolvedButtonHref}>{resolvedButtonText}</Link>
+                )}
               </Button>
             </div>
           </div>
@@ -120,7 +138,7 @@ export default function SeoTemplatePage({
             <div className="rounded-xl border border-foreground/10 bg-white/5 p-6">
               <div className="grid grid-cols-1 gap-y-2 gap-x-6 sm:grid-cols-2 md:grid-cols-3">
                 {normalizedPopularSearches.map((item, index) =>
-                  item.href.startsWith("http://") || item.href.startsWith("https://") ? (
+                  isExternalHref(item.href) ? (
                     <a
                       key={`${item.text}-${index}`}
                       href={item.href}

@@ -107,6 +107,25 @@ class SeoPageSerializer(serializers.ModelSerializer):
         if not clean_slug:
             raise serializers.ValidationError("Slug обязателен")
         return clean_slug
+
+    def validate_hero_button_href(self, value):
+        """
+        Normalize and validate CTA link for template pages.
+
+        Allowed formats:
+        - hash links (#application)
+        - local links (/kredity-dlya-biznesa)
+        - absolute http/https links
+        - bare slug (auto-normalized to /slug)
+        """
+        href = self._normalize_popular_search_href(str(value or ''))
+
+        if not self._is_valid_popular_search_href(href):
+            raise serializers.ValidationError(
+                "hero_button_href must be a hash (#...), local path (/...), or http/https URL"
+            )
+
+        return href
     
     def validate_popular_searches(self, value):
         """

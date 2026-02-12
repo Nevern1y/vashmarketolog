@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import { getSeoPage } from "@/lib/seo-api";
+import SeoTemplatePage from "@/components/seo/seo-template-page";
+import { getSeoTemplateProps, isCreatePageLayout } from "@/lib/seo-template-utils";
 import { generatePageMetadata, generateMetadataFromSeoPage } from "@/utils/metadata";
 import CreditsPageClient from "./credits-client";
 
@@ -16,5 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CreditsPage() {
     const seoData = await getSeoPage(SLUG);
+
+    if (seoData && isCreatePageLayout(seoData)) {
+        return <SeoTemplatePage {...getSeoTemplateProps(seoData)} />;
+    }
+
     return <CreditsPageClient seoPage={seoData} />;
 }

@@ -18,6 +18,17 @@ const getSlugString = (slugArray: string[]) => {
     return slugArray.join("/");
 };
 
+const normalizeUiHref = (value?: string) => {
+    const href = String(value || "").trim();
+    if (!href) return "#application";
+    if (href.startsWith("#") || href.startsWith("/") || /^https?:\/\//i.test(href)) {
+        return href;
+    }
+    return `/${href.replace(/^\/+/, "")}`;
+};
+
+const isExternalHref = (value: string) => /^https?:\/\//i.test(value);
+
 const getRequestApiBaseUrl = async () => {
     const requestHeaders = await headers();
     const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
@@ -70,7 +81,7 @@ export default async function DynamicSeoPage({ params }: Props) {
 
             return {
                 text,
-                href: String(item?.href || "#application").trim() || "#application",
+                href: normalizeUiHref(String(item?.href || "#application")),
             }
         })
         .filter((item): item is { text: string; href: string } => item !== null)
@@ -217,10 +228,10 @@ export default async function DynamicSeoPage({ params }: Props) {
                         </h2>
                         <div className="flex flex-wrap gap-2">
                             {popularSearches.map((item: { text: string; href?: string }, idx: number) => (
-                                item.href?.startsWith("http://") || item.href?.startsWith("https://") ? (
+                                isExternalHref(normalizeUiHref(item.href)) ? (
                                     <a
                                         key={idx}
-                                        href={item.href}
+                                        href={normalizeUiHref(item.href)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors"
@@ -230,7 +241,7 @@ export default async function DynamicSeoPage({ params }: Props) {
                                 ) : (
                                     <Link
                                         key={idx}
-                                        href={item.href || "#application"}
+                                        href={normalizeUiHref(item.href)}
                                         className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors"
                                     >
                                         {item.text}

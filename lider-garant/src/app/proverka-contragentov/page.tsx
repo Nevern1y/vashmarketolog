@@ -1,5 +1,7 @@
 import { Metadata } from "next";
 import { getSeoPage } from "@/lib/seo-api";
+import SeoTemplatePage from "@/components/seo/seo-template-page";
+import { getSeoTemplateProps, isCreatePageLayout } from "@/lib/seo-template-utils";
 import { generatePageMetadata, generateMetadataFromSeoPage } from "@/utils/metadata";
 import ManagerCTASection from "@/components/ManagerCTASection";
 
@@ -14,7 +16,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return generatePageMetadata(FALLBACK_TITLE, `/${SLUG}`);
 }
 
-export default function Page() {
+export default async function Page() {
+  const seoData = await getSeoPage(SLUG);
+
+  if (seoData && isCreatePageLayout(seoData)) {
+    return <SeoTemplatePage {...getSeoTemplateProps(seoData)} />;
+  }
+
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16">
       <h1 className="text-4xl font-semibold text-primary text-center">

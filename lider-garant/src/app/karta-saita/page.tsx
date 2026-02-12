@@ -1,12 +1,13 @@
 import Link from "next/link";
 import FadeIn from "@/components/FadeIn";
+import { getAllSeoPages } from "@/lib/seo-api";
 
 export const metadata = {
   title: "Карта сайта - Лидер Гарант",
   description: "Карта сайта компании Лидер Гарант - все страницы и разделы",
 };
 
-export default function SitemapPage() {
+export default async function SitemapPage() {
   const sections = [
     {
       title: "Финансовые продукты",
@@ -51,6 +52,44 @@ export default function SitemapPage() {
     },
   ];
 
+  const normalizePath = (value: string) => {
+    const withSlash = value.startsWith("/") ? value : `/${value}`;
+    return withSlash !== "/" ? withSlash.replace(/\/+$/, "") : withSlash;
+  };
+
+  const staticPaths = new Set(
+    sections.flatMap((section) => section.links.map((link) => normalizePath(link.href))),
+  );
+
+  const seoPages = await getAllSeoPages();
+
+  const dynamicSeoLinks = seoPages
+    .map((page) => {
+      const slug = String(page.slug || "").trim().replace(/^\/+/, "");
+      if (!slug) return null;
+
+      const href = normalizePath(slug);
+      if (href === "/" || staticPaths.has(href)) return null;
+
+      return {
+        href,
+        label: page.h1_title?.trim() || slug,
+      };
+    })
+    .filter((item): item is { href: string; label: string } => item !== null)
+    .sort((a, b) => a.label.localeCompare(b.label, "ru"));
+
+  const sectionsWithDynamic =
+    dynamicSeoLinks.length > 0
+      ? [
+          ...sections,
+          {
+            title: "SEO страницы",
+            links: dynamicSeoLinks,
+          },
+        ]
+      : sections;
+
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-12 md:py-16">
       <FadeIn>
@@ -64,7 +103,7 @@ export default function SitemapPage() {
         </section>
 
         <div className="grid gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {sections.map((section, index) => (
+          {sectionsWithDynamic.map((section, index) => (
             <FadeIn key={index}>
               <div className="h-full rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 hover:-translate-y-1">
                 <div className="flex items-center gap-2 mb-5 pb-4 border-b border-white/10">

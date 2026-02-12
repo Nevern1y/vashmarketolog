@@ -975,7 +975,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                     if (!open) setSelectedClient(null)
                 }}
             >
-                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
+                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-0.5rem)] max-h-[calc(100dvh-0.5rem)] sm:max-h-[calc(100vh-1rem)] sm:max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-3 sm:p-4 md:p-6">
                     {selectedClient && (
                         <>
                             <DialogHeader>
@@ -1029,7 +1029,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                 </div>
                             </DialogHeader>
 
-                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 overflow-hidden flex flex-col">
+                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 min-h-0 overflow-hidden flex flex-col">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="info">
                                         <Building2 className="h-4 w-4 mr-2" />
@@ -1041,7 +1041,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                <TabsContent value="info" className="mt-4 flex-1 min-h-0 overflow-y-auto space-y-4">
                                     {isDirectEditing && (
                                         <div className="rounded-lg border p-3 md:p-4 bg-accent/30 space-y-3">
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1152,7 +1152,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
+                                <TabsContent value="applications" className="mt-4 flex-1 min-h-0 overflow-y-auto">
                                     {isAppsLoading ? (
                                         <div className="flex items-center justify-center py-8">
                                             <Loader2 className="h-6 w-6 animate-spin" />
@@ -1235,7 +1235,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                     if (!open) setSelectedDirectClient(null)
                 }}
             >
-                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
+                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-0.5rem)] max-h-[calc(100dvh-0.5rem)] sm:max-h-[calc(100vh-1rem)] sm:max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-3 sm:p-4 md:p-6">
                     {selectedDirectClient && (
                         <>
                             <DialogHeader>
@@ -1290,7 +1290,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                 </div>
                             </DialogHeader>
 
-                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 overflow-hidden flex flex-col">
+                            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'info' | 'applications')} className="flex-1 min-h-0 overflow-hidden flex flex-col">
                                 <TabsList className="grid w-full grid-cols-2">
                                     <TabsTrigger value="info">
                                         <Building2 className="h-4 w-4 mr-2" />
@@ -1302,7 +1302,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                <TabsContent value="info" className="mt-4 flex-1 min-h-0 overflow-y-auto space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <InfoRow label="Компания" value={selectedDirectClient.name} />
                                         <InfoRow label="Краткое название" value={selectedDirectClient.short_name} />
@@ -1318,7 +1318,7 @@ export function AdminCRMClientsView({ onOpenApplication }: AdminCRMClientsViewPr
                                     </div>
                                 </TabsContent>
 
-                                <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
+                                <TabsContent value="applications" className="mt-4 flex-1 min-h-0 overflow-y-auto">
                                     {isAppsLoading ? (
                                         <div className="flex items-center justify-center py-8">
                                             <Loader2 className="h-6 w-6 animate-spin" />

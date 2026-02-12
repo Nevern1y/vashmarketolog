@@ -2286,7 +2286,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     <Button
                                         onClick={() => handleCalculateWithValidation("tz")}
                                         disabled={isSubmitting || !getValidation("tz").valid}
-                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] px-8 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:cursor-not-allowed"
+                                        className="bg-[#3CE8D1] text-[#0a1628] hover:bg-[#2fd4c0] px-8 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:cursor-not-allowed"
                                     >
                                         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                         РАССЧИТАТЬ
@@ -2702,7 +2702,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("kik")} disabled={isSubmitting || !getValidation("kik").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("kik")} disabled={isSubmitting || !getValidation("kik").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
                                     </Button>
@@ -2795,7 +2795,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("express")} disabled={isSubmitting || !getValidation("express").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("express")} disabled={isSubmitting || !getValidation("express").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
                                     </Button>
@@ -2975,7 +2975,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("factoring")} disabled={isSubmitting || !getValidation("factoring").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("factoring")} disabled={isSubmitting || !getValidation("factoring").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
@@ -3037,7 +3037,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:cursor-not-allowed">
+                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:cursor-not-allowed">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
@@ -3155,7 +3155,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("insurance")} disabled={isSubmitting || !getValidation("insurance").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("insurance")} disabled={isSubmitting || !getValidation("insurance").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАСЧЕТ СТРАХОВАНИЯ
                                     </Button>
@@ -3240,7 +3240,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                                             <Button 
                                                 onClick={() => createVedApplication()}
                                                 disabled={isSubmitting}
-                                                className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all disabled:bg-[#2a3a5c] disabled:text-[#64748b] disabled:cursor-not-allowed"
+                                                className="h-12 px-8 border-2 border-[#3CE8D1] bg-transparent text-[#3CE8D1] font-semibold hover:bg-[#3CE8D1] hover:text-[#0a1628] transition-all disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:cursor-not-allowed"
                                             >
                                                 {isSubmitting ? (
                                                     <>

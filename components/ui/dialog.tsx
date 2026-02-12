@@ -59,13 +59,13 @@ function DialogContent({
       <DialogOverlay />
       <div
         data-slot="dialog-positioner"
-        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 [@media(max-height:820px)]:items-start [@media(max-height:820px)]:pt-2"
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-2 sm:p-4 sm:items-center [@media(max-height:900px)]:items-start"
       >
         <DialogPrimitive.Content
           data-slot="dialog-content"
           className={cn(
             'relative w-full max-w-lg',
-            'max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)]',
+            'max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:max-h-[calc(100dvh-2rem)]',
             'bg-background rounded-lg border shadow-lg',
             'p-4 sm:p-6',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',

@@ -974,7 +974,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex flex-col h-full">
+            <SheetContent side="right" className="w-full sm:max-w-3xl p-0 flex h-full flex-col overflow-hidden">
                 {/* Fixed Header */}
                 <SheetHeader className="px-6 py-4 border-b bg-background shrink-0">
                     <SheetTitle>
@@ -1004,10 +1004,10 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 ) : (
                     <>
                         {/* Scrollable Content Area with Tabs */}
-                        <div className="flex-1 overflow-y-auto px-4 py-4">
+                        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
-                                    <Tabs defaultValue="identity" className="w-full">
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-col">
+                                    <Tabs defaultValue="identity" className="w-full min-h-0">
                                         <div className="overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                                             <TabsList className="flex w-max md:w-full md:grid md:grid-cols-10 bg-muted/50 mb-2">
                                                 <TabsTrigger value="identity" className="flex items-center gap-1 text-[10px] md:text-xs px-2 md:px-1">

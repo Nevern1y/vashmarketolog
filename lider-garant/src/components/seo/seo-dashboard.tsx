@@ -138,10 +138,13 @@ export function SeoDashboard() {
         fetchPages()
     }, [fetchPages])
 
-    const filteredPages = pages.filter(page =>
-        page.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        page.h1_title.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredPages = pages.filter((page) => {
+        const normalizedQuery = searchQuery.toLowerCase()
+        const slug = String(page.slug || "").toLowerCase()
+        const h1 = String(page.h1_title || "").toLowerCase()
+
+        return slug.includes(normalizedQuery) || h1.includes(normalizedQuery)
+    })
 
     const handleCreate = () => {
         setEditingPage(null)

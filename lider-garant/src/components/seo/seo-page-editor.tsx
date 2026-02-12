@@ -102,6 +102,22 @@ const AUTOFILL_TEMPLATES = [
     { value: 'checking', label: 'Проверка контрагентов' },
 ]
 
+const RESERVED_STATIC_SLUGS = new Set(
+    [
+        "bankovskie-garantii",
+        "kredity-dlya-biznesa",
+        "lising-dlya-urlic",
+        "factoring-dlya-biznesa",
+        "rko",
+        "deposity",
+        "strahovanie",
+        "ved",
+        "tendernoe-soprovozhdenie",
+        "tendernoe-soprovojdenie",
+        "proverka-contragentov",
+    ].map((slug) => slug.toLowerCase()),
+)
+
 // Template data for auto-fill
 const TEMPLATE_DATA: Record<string, { faqs: FaqItem[], searches: string[], meta_title: string, meta_description: string, h1_title: string, main_description: string }> = {
     factoring: {
@@ -388,6 +404,8 @@ export function SeoPageEditor({
     const [isApplyingTemplate, setIsApplyingTemplate] = useState(false)
 
     const normalizedSlug = (formData.slug || "").trim().replace(/^\/+/, "")
+    const normalizedSlugLower = normalizedSlug.toLowerCase()
+    const isReservedStaticSlug = RESERVED_STATIC_SLUGS.has(normalizedSlugLower)
 
     useEffect(() => {
         if (open) {
@@ -673,6 +691,11 @@ export function SeoPageEditor({
                                         <p className="text-xs text-slate-500">
                                             Публичный URL: {normalizedSlug ? `/${normalizedSlug}` : "—"}
                                         </p>
+                                        {isReservedStaticSlug && (
+                                            <p className="text-xs text-amber-300/90">
+                                                Этот slug совпадает со встроенной страницей услуги. Чтобы заменить ее контентом из SEO, выберите Layout: create-page.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
@@ -717,7 +740,7 @@ export function SeoPageEditor({
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <p className="text-xs text-slate-400">Используется для рендера страницы. Для шаблонных страниц выбирайте Layout: create-page.</p>
+                                        <p className="text-xs text-slate-400">Используется для рендера страницы. Для перехвата встроенных страниц услуг выбирайте Layout: create-page.</p>
                                     </div>
 
                                     <div className="space-y-2">

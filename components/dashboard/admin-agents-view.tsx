@@ -621,7 +621,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
 
             {/* Agent Detail Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-4 md:p-6">
+                <DialogContent className="w-full max-w-4xl max-h-[calc(100vh-0.5rem)] max-h-[calc(100dvh-0.5rem)] sm:max-h-[calc(100vh-1rem)] sm:max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col p-3 sm:p-4 md:p-6">
                     <div className="sr-only">
                         <DialogTitle>{selectedAgent ? getName(selectedAgent) : "Детали агента"}</DialogTitle>
                         <DialogDescription>Информация об агенте и его документах</DialogDescription>
@@ -680,7 +680,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                 </div>
                             </DialogHeader>
 
-                            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
+                            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 overflow-hidden flex flex-col">
                                 <TabsList className="flex w-full">
                                     <TabsTrigger value="info" className="flex-1 min-w-0 gap-1.5 px-2 sm:px-4">
                                         <Building2 className="h-4 w-4 shrink-0" />
@@ -709,7 +709,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                     </TabsTrigger>
                                 </TabsList>
 
-                                <TabsContent value="info" className="flex-1 overflow-y-auto mt-4 space-y-4">
+                                <TabsContent value="info" className="mt-4 flex-1 min-h-0 overflow-y-auto space-y-4">
                                     {isEditingAgent && (
                                         <div className="rounded-lg border p-3 md:p-4 bg-accent/30 space-y-3">
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -863,7 +863,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                     </Collapsible>
                                 </TabsContent>
 
-                                <TabsContent value="documents" className="flex-1 overflow-y-auto mt-4">
+                                <TabsContent value="documents" className="mt-4 flex-1 min-h-0 overflow-y-auto">
                                     {/* Sub-tabs for Agent docs vs Client docs */}
                                     <Tabs value={documentsSubTab} onValueChange={handleDocumentsSubTabChange}>
                                         <TabsList className="mb-4 w-full">
@@ -1055,7 +1055,7 @@ export function AdminAgentsView({ onOpenApplication }: AdminAgentsViewProps) {
                                     </Tabs>
                                 </TabsContent>
 
-                                <TabsContent value="applications" className="flex-1 overflow-y-auto mt-4">
+                                <TabsContent value="applications" className="mt-4 flex-1 min-h-0 overflow-y-auto">
                                     {isAgentAppsLoading ? (
                                         <div className="flex items-center justify-center py-8">
                                             <Loader2 className="h-6 w-6 animate-spin" />
