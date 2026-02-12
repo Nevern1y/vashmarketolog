@@ -29,19 +29,41 @@ const normalizeUiHref = (value?: string) => {
 
 const isExternalHref = (value: string) => /^https?:\/\//i.test(value);
 
+const normalizeApiBaseUrl = (value?: string | null) => {
+    const clean = String(value || "").trim();
+    return clean ? clean.replace(/\/+$/, "") : null;
+};
+
+const isLoopbackHost = (host: string) => {
+    const normalized = host.trim().toLowerCase();
+
+    if (normalized.startsWith("[")) {
+        const closingBracket = normalized.indexOf("]");
+        const ipv6 = closingBracket > -1 ? normalized.slice(1, closingBracket) : normalized;
+        return ipv6 === "::1";
+    }
+
+    const hostname = normalized.split(":")[0];
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+};
+
 const getRequestApiBaseUrl = async () => {
     const requestHeaders = await headers();
     const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
 
     if (!host) {
-        return null;
+        return normalizeApiBaseUrl(process.env.INTERNAL_API_URL);
+    }
+
+    if (isLoopbackHost(host)) {
+        return normalizeApiBaseUrl(process.env.INTERNAL_API_URL);
     }
 
     const proto =
         requestHeaders.get("x-forwarded-proto") ||
         (host.includes("localhost") ? "http" : "https");
 
-    return `${proto}://${host}/api`;
+    return normalizeApiBaseUrl(`${proto}://${host}/api`);
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

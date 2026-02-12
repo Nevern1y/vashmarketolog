@@ -58,6 +58,18 @@ const normalizeBaseUrl = (value?: string) => {
     return normalized.length > 0 ? normalized : null;
 };
 
+const isLikelyNextSelfApi = (value: string) => {
+    try {
+        const parsed = new URL(value);
+        const host = parsed.hostname.toLowerCase();
+        const isLoopback = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+        const port = parsed.port || (parsed.protocol === 'http:' ? '80' : '443');
+        return isLoopback && port === '3000';
+    } catch {
+        return false;
+    }
+};
+
 const normalizeSlug = (value: string) => {
     const clean = String(value || '')
         .trim()
@@ -100,6 +112,9 @@ const getApiBaseUrls = (options: SeoApiRequestOptions = {}) => {
     const add = (value?: string) => {
         const normalized = normalizeBaseUrl(value);
         if (normalized) {
+            if (typeof window === 'undefined' && isLikelyNextSelfApi(normalized)) {
+                return;
+            }
             urls.add(normalized);
         }
     };

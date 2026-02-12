@@ -2,7 +2,7 @@
 
 # =============================================================================
 # DEPLOY SCRIPT FOR LIDER GARANT
-# Server: 85.198.97.62
+# Server: configurable (default: 194.156.117.197)
 # Domains: lider-garant.ru, www.lider-garant.ru, lk.lider-garant.ru
 # =============================================================================
 #
@@ -29,6 +29,7 @@ MIN_DOCKER_FREE_GB="${MIN_DOCKER_FREE_GB:-5}"
 DOCKER_DNS="${DOCKER_DNS:-}"
 DISABLE_BUILDKIT="${DISABLE_BUILDKIT:-false}"
 LANDING_DOMAIN="${LANDING_DOMAIN:-lider-garant.ru}"
+SERVER_PUBLIC_IP="${SERVER_PUBLIC_IP:-194.156.117.197}"
 SEO_TEMPLATE_PROBE="${SEO_TEMPLATE_PROBE:-guarantees}"
 SEO_SLUG_PROBE="${SEO_SLUG_PROBE:-bankovskie-garantii-na-ispolnenie-kontrakta}"
 ENABLE_SEO_SMOKE_CHECK="${ENABLE_SEO_SMOKE_CHECK:-true}"
@@ -110,7 +111,7 @@ retry_pull() {
     done
 }
 
-echo -e "${GREEN}=== ДЕПЛОЙ LIDER GARANT на сервер 85.198.97.62 ===${NC}"
+echo -e "${GREEN}=== ДЕПЛОЙ LIDER GARANT на сервер ${SERVER_PUBLIC_IP} ===${NC}"
 echo ""
 
 if [ "$RESET_DB" = "true" ]; then
@@ -219,7 +220,7 @@ DB_HOST=db
 DB_PORT=5432
 REDIS_HOST=redis
 REDIS_PORT=6379
-ALLOWED_HOSTS=.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost
+ALLOWED_HOSTS=.lider-garant.ru,lk.lider-garant.ru,${SERVER_PUBLIC_IP},localhost
 CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,https://lider-garant.ru
 BANK_API_URL=https://stagebg.realistbank.ru/agent_api1_1
 BANK_API_LOGIN=
@@ -304,7 +305,7 @@ for target in "$ENV_FILE" "$ENV_PROD_FILE"; do
     set_env "EMAIL_OUTBOX_SENT_RETENTION_DAYS" "14" "$target"
     set_env "EMAIL_OUTBOX_FAILED_RETENTION_DAYS" "90" "$target"
     set_env "EMAIL_OUTBOX_RETRY_DELAYS_SECONDS" "30,120,300,900,1800,3600,7200,21600" "$target"
-    set_env "ALLOWED_HOSTS" ".lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx" "$target"
+    set_env "ALLOWED_HOSTS" ".lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,${SERVER_PUBLIC_IP},localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx" "$target"
     set_env "NEXT_PUBLIC_API_URL" "https://${LANDING_DOMAIN}/api" "$target"
     set_env "INTERNAL_API_URL" "http://backend:8000/api" "$target"
     set_env "NEXT_PUBLIC_SITE_URL" "https://${LANDING_DOMAIN}" "$target"
@@ -390,7 +391,7 @@ else
     else
         echo -e "${RED}✗ Не удалось получить SSL сертификаты${NC}"
         echo "Проверьте, что домены lider-garant.ru, www.lider-garant.ru, lk.lider-garant.ru"
-        echo "направлены на IP адрес этого сервера (85.198.97.62)"
+        echo "направлены на IP адрес этого сервера (${SERVER_PUBLIC_IP})"
         echo ""
         echo "Создаем временный self-signed сертификат..."
         

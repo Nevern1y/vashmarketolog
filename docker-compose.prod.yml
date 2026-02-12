@@ -74,8 +74,8 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-.lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx}
-      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,http://85.198.97.62,https://85.198.97.62,https://lider-garant.ru
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-.lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,194.156.117.197,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx}
+      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,http://194.156.117.197,https://194.156.117.197,http://85.198.97.62,https://85.198.97.62,https://lider-garant.ru
       - SECURE_SSL_REDIRECT=False # Nginx handles SSL
       # Bank API
       - BANK_API_URL=${BANK_API_URL:-https://stagebg.realistbank.ru/agent_api1_1}
@@ -120,8 +120,8 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-.lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx}
-      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,http://85.198.97.62,https://85.198.97.62,https://lider-garant.ru
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-.lider-garant.ru,lider-garant.ru,www.lider-garant.ru,lk.lider-garant.ru,194.156.117.197,85.198.97.62,localhost,127.0.0.1,backend,lider_prod_backend,landing,lider_prod_landing,frontend,lider_prod_frontend,nginx,lider_prod_nginx}
+      - CORS_ALLOWED_ORIGINS=https://lk.lider-garant.ru,http://194.156.117.197,https://194.156.117.197,http://85.198.97.62,https://85.198.97.62,https://lider-garant.ru
       - SECURE_SSL_REDIRECT=False
     depends_on:
       db:
@@ -164,12 +164,14 @@ services:
       dockerfile: Dockerfile.prod
       args:
         - NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
+        - NEXT_PUBLIC_SITE_URL=https://lider-garant.ru
     container_name: lider_prod_landing
     restart: always
     environment:
       - NODE_ENV=production
       - INTERNAL_API_URL=http://backend:8000/api
       - NEXT_PUBLIC_API_URL=https://lider-garant.ru/api
+      - NEXT_PUBLIC_SITE_URL=https://lider-garant.ru
       - SKIP_SEO_FETCH=0
     depends_on:
       - backend
