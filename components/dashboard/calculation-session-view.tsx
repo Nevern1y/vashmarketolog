@@ -485,8 +485,16 @@ export function CalculationSessionView({
                 "44_fz": "44",
                 "223_fz": "223",
                 "615_pp": "615",
+                "185_fz": "185",
+                "275_fz": "275",
                 "kbg": "kbg",
                 "commercial": "kbg",
+                "44-ФЗ": "44",
+                "223-ФЗ": "223",
+                "615-ПП": "615",
+                "615 ПП": "615",
+                "185-ФЗ": "185",
+                "275-ФЗ": "275",
             }
             nextFormData.federalLaw = lawMap[data.law] || data.law
         }

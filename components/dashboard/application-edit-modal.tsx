@@ -472,7 +472,7 @@ export function ApplicationEditModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white w-full max-w-2xl max-h-[calc(100vh-0.5rem)] max-h-[calc(100dvh-0.5rem)] sm:max-h-[calc(100vh-1rem)] sm:max-h-[calc(100dvh-1rem)] overflow-hidden p-0 flex min-h-0 flex-col">
+            <DialogContent className="bg-[#0f2042] border-[#1e3a5f] text-white w-full max-w-2xl max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] overflow-hidden p-0 flex min-h-0 flex-col">
                 <DialogHeader className="shrink-0 border-b border-[#1e3a5f] px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
                     <DialogTitle className="text-xl font-semibold flex items-center gap-2">
                         Редактирование заявки #{application.id}
@@ -483,7 +483,7 @@ export function ApplicationEditModal({
                 </DialogHeader>
 
                 <form onSubmit={form.handleSubmit(handleSubmit)} className="flex min-h-0 flex-1 flex-col">
-                    <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] px-4 py-4 sm:px-6 sm:py-5">
                         <div className="space-y-6">
                             {renderProductFields()}
                         </div>

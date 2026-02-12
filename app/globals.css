@@ -363,7 +363,7 @@ input[type="number"] {
  * Old Safari clips content incorrectly when combining
  * overflow:hidden with border-radius on parent elements
  */
-.overflow-hidden {
+.safari-overflow-mask-fix {
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   mask-image: radial-gradient(white, black);
 }
@@ -797,14 +797,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 
-/* Dynamic viewport height for all modals (Safari address bar fix) */
-[data-slot="dialog-content"],
-[data-slot="sheet-content"],
-[role="dialog"],
-[role="alertdialog"] {
-  max-height: 100vh;
-  max-height: 100dvh;
-}
+/* Keep modal sizing local to each component to avoid max-height conflicts. */
 
 /* Backdrop blur fallback for older Safari */
 @supports not (backdrop-filter: blur(10px)) {

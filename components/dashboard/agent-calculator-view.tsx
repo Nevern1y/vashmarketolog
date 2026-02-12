@@ -109,6 +109,22 @@ const LAW_VALUE_MAPPING: Record<string, string> = {
     "275_fz": "275",
     "kbg": "kbg",
     "commercial": "kbg",
+    "44-ФЗ": "44",
+    "223-ФЗ": "223",
+    "615-ПП": "615",
+    "615 ПП": "615",
+    "185-ФЗ": "185",
+    "275-ФЗ": "275",
+    "КБГ": "kbg",
+}
+
+const FEDERAL_LAW_LABELS: Record<string, string> = {
+    "44": "44-ФЗ",
+    "223": "223-ФЗ",
+    "615": "615-ПП",
+    "185": "185-ФЗ",
+    "kbg": "КБГ",
+    "275": "275-ФЗ",
 }
 
 const TAB_BY_PRODUCT: Record<string, string> = {
@@ -135,6 +151,7 @@ const parseOptionalNumber = (value?: string | number | null): number | undefined
 }
 
 const getLawValue = (law?: string | null) => (law ? LAW_VALUE_MAPPING[law] : undefined)
+const getFederalLawLabel = (value?: string) => FEDERAL_LAW_LABELS[value || ""] || "44-ФЗ"
 
 // Insurance categories and products per ТЗ + employer requirements
 // Backend enum values with Russian labels
@@ -1320,7 +1337,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
         // Build goscontract_data based on product type
         const buildGoscontractData = () => {
             const baseData: Record<string, unknown> = {
-                law: lawMapping[federalLaw] || "44-ФЗ",
+                law: lawMapping[federalLaw] || "44_fz",
                 purchase_number: noticeNumber || undefined,
                 lot_number: lotNumber || undefined,
             }
@@ -1944,7 +1961,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             <div className="bg-muted/30 p-3 rounded-lg text-sm">
                 <span className="text-muted-foreground">Параметры расчёта:</span>
                 <span className="ml-2">Сумма: <strong className="text-[#3CE8D1]">{(amount ?? 0).toLocaleString("ru-RU")} ₽</strong></span>
-                <span className="ml-4">Закон: <strong>{federalLaw}-ФЗ</strong></span>
+                <span className="ml-4">Закон: <strong>{getFederalLawLabel(federalLaw)}</strong></span>
             </div>
 
             <Card>
@@ -2490,7 +2507,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-4 py-2 rounded-xl text-sm font-medium transition-all",
                                                 federalLaw === val
-                                                    ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
                                                     : "bg-[#1a2942] text-white border border-[#3CE8D1]/40 hover:border-[#3CE8D1] hover:bg-[#1a2942]/80"
                                             )}
                                         >
@@ -2627,7 +2644,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 federalLaw === val
-                                                    ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
                                                     : "bg-[#1a2942] text-white border border-[#3CE8D1]/40 hover:border-[#3CE8D1] hover:bg-[#1a2942]/80"
                                             )}
                                         >
@@ -3166,7 +3183,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 contractType === val
-                                                    ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
                                                     : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
                                             )}
                                         >
@@ -3370,7 +3387,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 insuranceCategory === cat
-                                                    ? "bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
                                                     : "bg-[#1e3a5f] text-white border border-[#3CE8D1]/30 hover:border-[#3CE8D1]/50 hover:bg-[#1e3a5f]/80"
                                             )}
                                         >

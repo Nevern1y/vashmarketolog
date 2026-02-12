@@ -1004,7 +1004,7 @@ export function EditClientSheet({ isOpen, clientId, onClose, onSaved, mode = 'ed
                 ) : (
                     <>
                         {/* Scrollable Content Area with Tabs */}
-                        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+                        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] px-4 py-4">
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-col">
                                     <Tabs defaultValue="identity" className="w-full min-h-0">

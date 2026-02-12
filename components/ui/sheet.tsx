@@ -65,7 +65,7 @@ function SheetContent({
           // Safari fixes - max height with dvh fallback
           'max-h-[100vh] max-h-[100dvh]',
           // Overflow handling
-          'overflow-y-auto',
+          'overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]',
           // Safari rendering
           'transform-gpu',
           // Side-specific styles
