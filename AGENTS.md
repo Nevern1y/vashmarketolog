@@ -1,145 +1,160 @@
 # AGENTS.md - Coding Agent Guidelines
 
 ## Project Overview
-- Next.js 16 Cabinet app in repo root (`/app`, `/components`, `/hooks`, `/lib`).
-- Next.js 16 Landing app in `/lider-garant`.
-- Django REST Framework backend in `/backend`.
-- Backend is the source of truth; frontends adapt visuals and UX.
+- Monorepo with 3 active apps:
+  - Cabinet: Next.js 16 in repo root (`/app`, `/components`, `/hooks`, `/lib`)
+  - Landing: Next.js 16 in `/lider-garant` (`/lider-garant/src/...`)
+  - Backend: Django 5 + DRF in `/backend`
+- Backend is the source of truth for validation, state transitions, and business rules.
+- Frontends use TypeScript with `strict: true`.
 
-## Critical Instructions (Must Follow)
+## Critical Rules
 - NEVER create or modify `opencode.json` or `.opencode/`.
-- NEVER create git commits unless explicitly requested.
-- NEVER run destructive commands (rm -rf, git reset --hard) without explicit consent.
-- Prefer `mcp.json`/`.env.mcp` for MCP config if needed; do not create new configs.
+- NEVER create commits unless explicitly requested.
+- NEVER run destructive commands (`rm -rf`, `git reset --hard`, force push) without explicit approval.
+- Keep changes scoped to the request; avoid unrelated refactors.
+- Prefer existing config files (`.mcp.json`, `.env.mcp`) when needed.
 
-## Repo Layout
-```
-/app                    # Cabinet (Next.js App Router)
-/components             # UI + dashboard components
+## Repository Layout
+```txt
+/app                    # Cabinet app routes/layouts
+/components             # Cabinet UI and dashboard components
 /hooks                  # Cabinet hooks
-/lib                    # API client, auth, status mapping, utils
+/lib                    # Cabinet API/auth/mappings/utils
 /backend                # Django backend
-/lider-garant           # Landing Next.js app
-/nginx                  # Nginx configs + SSL (prod)
+/lider-garant           # Landing app
+/nginx                  # Nginx production config
 ```
 
-## Build / Lint / Run
+## Build / Lint / Run Commands
+
+### Cabinet (repo root)
 ```bash
-# Cabinet (repo root)
 npm run dev
 npm run build
 npm run lint
 npm run start
+```
 
-# Landing (from /lider-garant)
+### Landing (`/lider-garant`)
+```bash
 npm run dev
 npm run build
 npm run lint
 npm run start
+```
 
-# Backend (from /backend)
+### Backend (`/backend`)
+```bash
 python manage.py runserver 0.0.0.0:8000
 python manage.py migrate
+python manage.py makemigrations
+```
 
-# Docker (dev)
+### Docker (repo root)
+```bash
 docker-compose up -d
-
-# Docker (prod)
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
 ## Tests (Single-Test Focus)
-- No JS test framework is configured by default.
-- If JS tests are added later:
-  - Jest: `npx jest path/to/test.ts`
-  - Vitest: `npx vitest run path/to/test.ts`
-- Django built-in runner:
-  - All tests: `python manage.py test`
-  - Single module: `python manage.py test apps.users.tests.test_views`
-  - Single case/method: `python manage.py test apps.users.tests.test_views.TestClass.test_method`
 
-## TypeScript / React Code Style
-- Strict mode is enabled in `tsconfig.json`.
-- Path alias: `@/*` → repo root (Cabinet), `@/*` → `/lider-garant/src` (Landing).
-- Match the local file style (quotes/semicolons/indentation); avoid global reformatting.
-- Add `"use client"` as the first line for client components.
-- Prefer `import type` for type-only imports.
+### Current state
+- Django tests are configured.
+- No Jest/Vitest/Playwright config is present in this repo.
 
-### Import Order
-```ts
-"use client"
-
-import { useState, useCallback } from 'react'
-import { ChevronLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useApplications } from '@/hooks/use-applications'
-import { cn } from '@/lib/utils'
-import api, { type ApiError } from '@/lib/api'
-import type { ViewType } from '@/lib/types'
-```
-
-### Components & Naming
-- Components: PascalCase. Files: kebab-case.
-- Props: `interface PropsName { ... }`.
-- Handlers: `handle<Action>` naming.
-- Hooks: `useX` prefix.
-
-### Hooks Return Shape
-```ts
-return { data, isLoading, error, refetch }
-```
-
-## Error Handling & UX
-- Use try/catch/finally; always clear loading in `finally`.
-- Cast API errors: `const apiError = err as ApiError`.
-- Use `toast` from `sonner` for user feedback.
-- Use shadcn/ui `AlertDialog` for confirmations; avoid `window.confirm/alert`.
-- Avoid legacy `hooks/use-toast.ts` and `components/ui/toaster.tsx`.
-- On mutation errors, return `null` instead of throwing.
-
-## API & Data Rules
-- Use `api` from `@/lib/api` for all requests (no raw fetch).
-- Use `api.uploadWithProgress` for uploads that need progress.
-- Auth: `useAuth` from `@/lib/auth-context`.
-- Status mapping: always use `getStatusConfig` from `lib/status-mapping.ts`.
-- Bank numeric statuses: use `lib/application-statuses.ts`.
-- NEVER use switch-case for status mapping.
-
-## Key Files
-- `lib/api.ts` - API client with auth/refresh and upload helpers.
-- `lib/status-mapping.ts` - Status → visual config (single source of truth).
-- `lib/application-statuses.ts` - Bank status IDs and labels.
-- `lib/auth-context.tsx` - Auth state and helpers.
-- `hooks/use-applications.ts` - Application queries/mutations.
-- `components/ui/alert-dialog.tsx` - Confirmation dialog component.
-
-## Forms (react-hook-form + zod)
-```ts
-const schema = z.object({
-  inn: z.string().min(10).max(12),
-  employee_count: z.coerce.number().optional(),
-})
-const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) })
-```
-
-## Styling
-- Use `cn()` from `@/lib/utils` for class merging.
-- Base colors used in UI: `#0a1628` background, `#3CE8D1` primary.
-- Prefer Tailwind opacity utilities like `bg-[#3CE8D1]/10`.
-
-## Django / Python Style
-- 4-space indentation; snake_case for functions/variables.
-- Imports: stdlib → third-party → local apps.
-- DRF patterns: serializers for validation, class-based views (APIView/generics).
-- Use `Response` with `status.*` codes; prefer `get_object_or_404`.
-- Use `timezone` for timestamps.
-- Add/keep `@extend_schema` annotations for API docs.
-
-## Environment
+### Backend test commands (`/backend`)
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-INTERNAL_API_URL=http://backend:8000/api
+# all tests
+python manage.py test
+
+# single module
+python manage.py test apps.applications.tests
+
+# single class
+python manage.py test apps.applications.tests.ApplicationAssignSerializerTest
+
+# single method
+python manage.py test apps.applications.tests.ApplicationAssignSerializerTest.test_assign_inactive_partner
 ```
+
+### Docker equivalents (repo root)
+```bash
+docker-compose exec backend python manage.py test
+docker-compose exec backend python manage.py test apps.applications.tests.ApplicationAssignSerializerTest.test_assign_inactive_partner
+```
+
+## TypeScript / React Style
+
+### Imports
+- In client components, keep `"use client"` as the first line.
+- Preferred order: React/Next -> third-party -> alias imports (`@/...`) -> relative imports -> type imports.
+- Prefer `import type` for type-only imports.
+- Avoid style-only import churn in untouched files.
+
+### Formatting
+- Match local file style (quotes, semicolons, spacing, indentation).
+- Repo style is mixed; do not run global formatting passes.
+- Keep diffs focused on behavior, not cosmetics.
+
+### Types
+- Prefer explicit interfaces/types for API payloads and responses.
+- Avoid `any`; prefer specific types, `unknown`, or `Record<string, unknown>`.
+- Keep API calls typed (`api.get<T>`, `api.post<T>`, etc.).
+- Alias mapping:
+  - Cabinet: `@/* -> ./*`
+  - Landing: `@/* -> ./src/*`
+
+### Naming
+- Components: `PascalCase`.
+- Hooks: `useX`.
+- Handlers: `handleAction`.
+- Constants: `UPPER_SNAKE_CASE`.
+- Props interfaces: `ComponentProps` pattern.
+
+## Error Handling and UX
+- Use `try/catch/finally` for async flows; clear loading in `finally`.
+- Frontend API error pattern:
+  - `const apiError = err as ApiError`
+  - show feedback with `toast` from `sonner`
+- Use `AlertDialog` for destructive confirmations.
+- Avoid `window.alert` / `window.confirm` in app flows.
+- In data hooks, handled mutation failures should usually return `null` or `false`.
+
+## API / Data Rules
+- Use shared API client (`@/lib/api` and landing equivalent), avoid ad-hoc `fetch` in feature code.
+- Use `api.uploadWithProgress` for upload flows that need progress.
+- Auth providers:
+  - Cabinet: `@/lib/auth-context`
+  - Landing: `/lider-garant/src/lib/auth-context`
+- Reuse shared status mapping helpers:
+  - `lib/status-mapping.ts`
+  - `lib/application-statuses.ts`
+
+## Forms and Styling
+- Preferred forms stack: `react-hook-form` + `zod` + `zodResolver`.
+- Keep validation schema close to form implementation.
+- Use `z.coerce.number()` for numeric inputs when needed.
+- Use `cn()` from `@/lib/utils` for class merging.
+- Reuse existing CSS variables and shared status colors.
+
+## Django / DRF Style
+- 4-space indentation.
+- `snake_case` for functions/variables, `PascalCase` for classes.
+- Import order: stdlib -> third-party -> local modules.
+- Use serializers for validation and normalization.
+- Prefer existing class-based patterns (`APIView`, generics, viewsets).
+- Return `Response(..., status=status.HTTP_...)` with explicit status codes.
+- Use `get_object_or_404` where appropriate.
+- Use `timezone.now()` for timestamps.
+- Keep and extend `@extend_schema` annotations.
+
+## Verification Before Handoff
+- Run relevant build/lint commands for touched app(s).
+- For backend behavior changes, run at least one targeted Django test when feasible.
+- If anything is not verified, state exactly what was skipped and why.
 
 ## Cursor / Copilot Rules
-- No `.cursor/rules`, `.cursorrules`, or `.github/copilot-instructions.md` found.
+- `.cursor/rules/`: not found
+- `.cursorrules`: not found
+- `.github/copilot-instructions.md`: not found

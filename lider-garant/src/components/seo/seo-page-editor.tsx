@@ -628,16 +628,16 @@ export function SeoPageEditor({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-full max-w-[1200px] max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0">
-                <DialogHeader className="flex-shrink-0 border-b border-slate-700/50 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
-                    <DialogTitle className="text-xl font-bold text-white">
+            <DialogContent className="w-full max-w-[1120px] max-h-[calc(100vh-1rem)] max-h-[calc(100svh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:max-h-[calc(100svh-2rem)] sm:max-h-[calc(100dvh-2rem)] overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0">
+                <DialogHeader className="flex-shrink-0 border-b border-slate-700/50 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:pt-3 [@media(max-height:820px)]:pb-2">
+                    <DialogTitle className="text-xl font-bold text-white [@media(max-height:820px)]:text-lg">
                         {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5">
+                <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                        <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto">
+                        <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto [@media(max-height:820px)]:mb-3">
                             <TabsTrigger
                                 value="main"
                                 className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
@@ -675,9 +675,9 @@ export function SeoPageEditor({
                             </TabsTrigger>
                         </TabsList>
 
-                        <div className="flex-1 min-h-0 overflow-y-auto pr-0 sm:pr-2">
+                        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-0 sm:pr-2">
                             {/* MAIN TAB */}
-                            <TabsContent value="main" className="space-y-5 mt-0 h-full">
+                            <TabsContent value="main" className="mt-0 space-y-5 [@media(max-height:820px)]:space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label className="text-slate-300 text-sm font-medium">URL Path (Slug) *</Label>
@@ -1230,18 +1230,18 @@ export function SeoPageEditor({
                     </Tabs>
                 </div>
 
-                <DialogFooter className="flex-shrink-0 gap-3 sm:justify-end border-t border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4">
+                <DialogFooter className="flex-shrink-0 gap-3 sm:justify-end border-t border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4 [@media(max-height:820px)]:gap-2 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-2.5">
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white h-10 px-5 rounded-xl hover:border-slate-500"
+                        className="border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white h-10 px-5 rounded-xl hover:border-slate-500 [@media(max-height:820px)]:h-9"
                     >
                         Отмена
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={!formData.slug?.trim() || isLoading || isApplyingTemplate}
-                        className="bg-[#3ce8d1] text-[#0f0f1a] font-bold hover:bg-[#3ce8d1]/90 shadow-[0_0_15px_rgba(60,232,209,0.3)] h-10 px-6 rounded-xl border-none"
+                        className="bg-[#3ce8d1] text-[#0f0f1a] font-bold hover:bg-[#3ce8d1]/90 shadow-[0_0_15px_rgba(60,232,209,0.3)] h-10 px-6 rounded-xl border-none [@media(max-height:820px)]:h-9"
                     >
                         {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         Сохранить
