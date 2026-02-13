@@ -93,7 +93,7 @@ export default function BankGuaranteePage({ seoPage }: BankGuaranteePageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/bankovskie-garantii",
+    "/v-razrabotke",
   );
 
   const [showAll, setShowAll] = useState(false);
