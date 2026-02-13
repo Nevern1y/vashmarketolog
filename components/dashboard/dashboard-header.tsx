@@ -170,7 +170,7 @@ export function DashboardHeader({ onNotificationClick, onNavigateToSettings }: D
 
             {/* Contact Popup */}
             <Dialog open={showContactPopup} onOpenChange={setShowContactPopup}>
-                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] overflow-y-auto">
+                <DialogContent className="sm:max-w-md bg-[#1a2537] border-[#2a3547] text-white p-0 sm:p-0 max-h-[calc(100vh-1rem)] supports-[height:100dvh]:max-h-[calc(100dvh-1rem)] overflow-y-auto">
                     <div className="sr-only">
                         <DialogTitle>Связаться с нами</DialogTitle>
                         <DialogDescription>Способы связи с куратором и поддержкой</DialogDescription>

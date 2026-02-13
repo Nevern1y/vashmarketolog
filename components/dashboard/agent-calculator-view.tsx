@@ -2507,7 +2507,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-4 py-2 rounded-xl text-sm font-medium transition-all",
                                                 federalLaw === val
-                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "safari-cyan-pill-active"
                                                     : "bg-[#1a2942] text-white border border-[#3CE8D1]/40 hover:border-[#3CE8D1] hover:bg-[#1a2942]/80"
                                             )}
                                         >
@@ -2644,7 +2644,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 federalLaw === val
-                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "safari-cyan-pill-active"
                                                     : "bg-[#1a2942] text-white border border-[#3CE8D1]/40 hover:border-[#3CE8D1] hover:bg-[#1a2942]/80"
                                             )}
                                         >
@@ -2810,7 +2810,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     <Button
                                         onClick={() => handleCalculateWithValidation("bg")}
                                         disabled={isSubmitting || !getValidation("bg").valid}
-                                        className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:from-[#1f3556] disabled:to-[#1c3152] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all"
+                                        className="h-12 px-8 safari-cyan-primary font-semibold hover:opacity-90 disabled:opacity-100 disabled:cursor-not-allowed transition-all"
                                     >
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
@@ -3013,7 +3013,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("kik")} disabled={isSubmitting || !getValidation("kik").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("kik")} disabled={isSubmitting || !getValidation("kik").valid} className="h-12 px-8 safari-cyan-primary font-semibold hover:opacity-90 disabled:opacity-100 disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
                                     </Button>
@@ -3107,7 +3107,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("express")} disabled={isSubmitting || !getValidation("express").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("express")} disabled={isSubmitting || !getValidation("express").valid} className="h-12 px-8 safari-cyan-primary font-semibold hover:opacity-90 disabled:opacity-100 disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАССЧИТАТЬ СТОИМОСТЬ
                                     </Button>
@@ -3183,7 +3183,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 contractType === val
-                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "safari-cyan-pill-active"
                                                     : "bg-[#1a2942]/50 text-[#94a3b8] border border-[#2a3a5c]/50 hover:border-[#3CE8D1]/30 hover:text-white"
                                             )}
                                         >
@@ -3277,7 +3277,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("factoring")} disabled={isSubmitting || !getValidation("factoring").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("factoring")} disabled={isSubmitting || !getValidation("factoring").valid} className="h-12 px-8 safari-cyan-primary font-semibold hover:opacity-90 disabled:opacity-100 disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
@@ -3339,7 +3339,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                             {/* Actions */}
                             <div className="pt-6 border-t border-[#2a3a5c]/30">
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 transition-all disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:cursor-not-allowed">
+                                    <Button onClick={() => handleCalculateWithValidation("leasing")} disabled={isSubmitting} className="h-12 px-8 safari-cyan-primary font-semibold hover:opacity-90 transition-all disabled:opacity-100 disabled:cursor-not-allowed">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         ПОЛУЧИТЬ ПРЕДЛОЖЕНИЕ
                                     </Button>
@@ -3387,7 +3387,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                             className={cn(
                                                 "px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200",
                                                 insuranceCategory === cat
-                                                    ? "bg-[#3CE8D1] bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] shadow-lg shadow-[#3CE8D1]/20"
+                                                    ? "safari-cyan-pill-active"
                                                     : "bg-[#1e3a5f] text-white border border-[#3CE8D1]/30 hover:border-[#3CE8D1]/50 hover:bg-[#1e3a5f]/80"
                                             )}
                                         >
@@ -3457,7 +3457,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4">
-                                    <Button onClick={() => handleCalculateWithValidation("insurance")} disabled={isSubmitting || !getValidation("insurance").valid} className="h-12 px-8 bg-gradient-to-r from-[#3CE8D1] to-[#2fd4c0] text-[#0a1628] font-semibold hover:opacity-90 shadow-lg shadow-[#3CE8D1]/20 disabled:bg-[#1f3556] disabled:text-[#b7c7e6] disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed transition-all">
+                                    <Button onClick={() => handleCalculateWithValidation("insurance")} disabled={isSubmitting || !getValidation("insurance").valid} className="h-12 px-8 safari-cyan-primary font-semibold hover:opacity-90 disabled:opacity-100 disabled:cursor-not-allowed transition-all">
                                         {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Calculator className="h-5 w-5 mr-2" />}
                                         РАСЧЕТ СТРАХОВАНИЯ
                                     </Button>

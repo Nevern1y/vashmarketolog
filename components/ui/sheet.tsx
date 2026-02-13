@@ -63,7 +63,7 @@ function SheetContent({
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:duration-300 data-[state=open]:duration-500',
           // Safari fixes - max height with dvh fallback
-          'max-h-[100vh] max-h-[100dvh]',
+          'max-h-[100vh] supports-[height:100dvh]:max-h-[100dvh]',
           // Overflow handling
           'overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]',
           // Safari rendering

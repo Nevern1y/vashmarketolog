@@ -53,13 +53,13 @@ function AlertDialogContent({
       <AlertDialogOverlay />
       <div
         data-slot="alert-dialog-positioner"
-        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-2 sm:p-4 sm:items-center [@media(max-height:900px)]:items-start"
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overflow-x-hidden overscroll-contain [-webkit-overflow-scrolling:touch] p-2 sm:p-4 sm:items-center [@media(max-height:900px)]:items-start"
       >
         <AlertDialogPrimitive.Content
           data-slot="alert-dialog-content"
           className={cn(
             'bg-background grid w-full gap-4 rounded-lg border p-4 sm:p-6 shadow-lg',
-            'max-w-lg max-h-[calc(100vh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:max-h-[calc(100dvh-2rem)]',
+            'max-w-lg max-h-[calc(100vh-1rem)] supports-[height:100dvh]:max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:supports-[height:100dvh]:max-h-[calc(100dvh-2rem)]',
             'overflow-y-auto overscroll-contain',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200',

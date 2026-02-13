@@ -413,7 +413,7 @@ function NewsEditDialog({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-full max-w-[64rem] max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
+            <DialogContent className="w-full max-w-[64rem] max-h-[calc(100vh-1rem)] supports-[height:100dvh]:max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
                     <DialogTitle>
                         {newsItem ? "Редактировать новость" : "Создать новость"}

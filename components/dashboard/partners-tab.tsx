@@ -1102,7 +1102,7 @@ export function PartnersTab() {
             </CardContent>
 
             <Dialog open={bankDialogOpen} onOpenChange={setBankDialogOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
+                <DialogContent className="sm:max-w-lg max-h-[calc(100vh-1rem)] supports-[height:100dvh]:max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>{bankDialogMode === "create" ? "Добавить банк" : "Редактировать банк"}</DialogTitle>
                         <DialogDescription>Укажите основные данные банка и статус подключения.</DialogDescription>
@@ -1159,7 +1159,7 @@ export function PartnersTab() {
             </Dialog>
 
             <Dialog open={partnerDialogOpen} onOpenChange={setPartnerDialogOpen}>
-                <DialogContent className="sm:max-w-md max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
+                <DialogContent className="sm:max-w-md max-h-[calc(100vh-1rem)] supports-[height:100dvh]:max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>Подключение партнёра</DialogTitle>
                         <DialogDescription>
@@ -1210,7 +1210,7 @@ export function PartnersTab() {
             </Dialog>
 
             <Dialog open={conditionDialogOpen} onOpenChange={setConditionDialogOpen}>
-                <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
+                <DialogContent className="sm:max-w-lg max-h-[calc(100vh-1rem)] supports-[height:100dvh]:max-h-[calc(100dvh-1rem)] overflow-y-auto p-4 sm:p-6">
                     <DialogHeader>
                         <DialogTitle>{conditionDialogMode === "create" ? "Добавить условие" : "Редактировать условие"}</DialogTitle>
                         <DialogDescription>Заполните параметры условий банка.</DialogDescription>
