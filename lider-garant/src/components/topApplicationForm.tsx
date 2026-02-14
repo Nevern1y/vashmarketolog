@@ -20,6 +20,7 @@ import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
+import { submitLead } from "@/lib/leads";
 
 const banks = [
   { name: "ВТБ Банк", logo: "/logos/22.svg", width: 44, height: 44 },
@@ -50,6 +51,13 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const GUARANTEE_TYPE_BY_FORM_VALUE: Record<string, string> = {
+  tender: "application_security",
+  contract: "contract_execution",
+  warranty: "warranty_obligations",
+  advance: "advance_return",
+};
+
 export default function TopApplicationForm() {
   const [phoneKey, setPhoneKey] = useState(0);
 
@@ -71,8 +79,21 @@ export default function TopApplicationForm() {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await submitLead({
+        full_name: data.fullname.trim(),
+        phone: data.phone,
+        product_type: "bank_guarantee",
+        guarantee_type:
+          GUARANTEE_TYPE_BY_FORM_VALUE[data.guaranteeType] ||
+          "application_security",
+        source: "website_form",
+        form_name: "top_application_form",
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Произошла ошибка при отправке заявки.");
+        return;
+      }
 
       toast.success(
         "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
@@ -80,7 +101,7 @@ export default function TopApplicationForm() {
 
       reset();
       setPhoneKey((k) => k + 1);
-    } catch (error) {
+    } catch {
       toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
     }
   };

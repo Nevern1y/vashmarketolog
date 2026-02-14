@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { submitLead } from "@/lib/leads";
 import type { SeoPageData } from "@/lib/seo-api";
 import { normalizePopularSearches } from "@/lib/popular-searches";
 
@@ -102,15 +103,27 @@ export default function Page({ seoPage }: InsurancePageProps) {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await submitLead({
+        full_name: data.fullname.trim(),
+        phone: data.phone,
+        inn: data.inn,
+        amount: Number(data.amount),
+        product_type: "insurance",
+        source: "website_form",
+        form_name: "insurance_form",
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Произошла ошибка при отправке заявки.");
+        return;
+      }
 
       toast.success(
         "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
       );
 
       reset();
-    } catch (error) {
+    } catch {
       toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
     }
   };

@@ -94,6 +94,7 @@ const FORM_NAME_LABELS: Record<string, string> = {
     callback_modal: "Обратный звонок",
     app_shell_callback: "Быстрый звонок",
     header_form: "Заявка из шапки",
+    vacancy_modal: "Отклик на вакансию",
     top_application_form: "Форма БГ (главная)",
     guarantee_calculator: "Калькулятор БГ",
     application_form_section: "Заявка на продукт",
@@ -119,6 +120,7 @@ const FORM_NAME_LABELS: Record<string, string> = {
     insurance_form: "Заявка на страхование",
     deposit_form: "Заявка на депозит",
     ved_form: "Заявка на ВЭД",
+    tender_support_form: "Заявка на тендерное сопровождение",
     
     // Landing pages
     landing_bg: "Лендинг БГ",

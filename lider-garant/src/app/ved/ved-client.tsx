@@ -23,6 +23,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { GuaranteeSection } from "../../components/GuaranteeSection";
 import { toast } from "sonner";
+import { submitLead } from "@/lib/leads";
 import type { SeoPageData } from "@/lib/seo-api";
 import { normalizePopularSearches } from "@/lib/popular-searches";
 
@@ -59,9 +60,52 @@ export default function Page({ seoPage }: VedPageProps) {
   );
 
   const [activeTab, setActiveTab] = useState<"import" | "export">("import");
+  const [fromCurrency, setFromCurrency] = useState("");
+  const [toCurrency, setToCurrency] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const amount = Number(paymentAmount);
+    if (!fromCurrency || !toCurrency) {
+      toast.error("Выберите валюту отправления и получения");
+      return;
+    }
+
+    if (!amount || amount <= 0) {
+      toast.error("Укажите корректную сумму");
+      return;
+    }
+
+    if (contactPhone.replace(/\D/g, "").length < 11) {
+      toast.error("Укажите корректный номер телефона");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const result = await submitLead({
+      full_name: "Клиент по ВЭД",
+      phone: contactPhone,
+      product_type: "ved",
+      amount,
+      source: "website_form",
+      form_name: "ved_form",
+      message: `Валюта отправления: ${fromCurrency}\nВалюта получения: ${toCurrency}\nСумма: ${amount}`,
+    });
+    setIsSubmitting(false);
+
+    if (!result.ok) {
+      toast.error(result.error || "Произошла ошибка при отправке заявки");
+      return;
+    }
+
+    setFromCurrency("");
+    setToCurrency("");
+    setPaymentAmount("");
+    setContactPhone("");
     toast.success("Заявка отправлена! Мы свяжемся с вами в ближайшее время.");
   };
 
@@ -334,7 +378,7 @@ export default function Page({ seoPage }: VedPageProps) {
                     >
                       Валюта отправления
                     </Label>
-                    <Select>
+                    <Select value={fromCurrency} onValueChange={setFromCurrency}>
                       <SelectTrigger className="h-10 sm:h-11 w-full rounded-full border border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
                         <SelectValue placeholder="Выберите валюту" />
                       </SelectTrigger>
@@ -359,7 +403,7 @@ export default function Page({ seoPage }: VedPageProps) {
                     >
                       Валюта получения
                     </Label>
-                    <Select>
+                    <Select value={toCurrency} onValueChange={setToCurrency}>
                       <SelectTrigger className="h-10 sm:h-11 w-full rounded-full border border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20">
                         <SelectValue placeholder="Выберите валюту" />
                       </SelectTrigger>
@@ -389,6 +433,8 @@ export default function Page({ seoPage }: VedPageProps) {
                       type="number"
                       placeholder="Введите сумму"
                       className="h-10 sm:h-11 rounded-full border text-foreground border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm"
+                      value={paymentAmount}
+                      onChange={(event) => setPaymentAmount(event.target.value)}
                     />
                   </div>
 
@@ -402,14 +448,17 @@ export default function Page({ seoPage }: VedPageProps) {
                     <PhoneInput
                       id="phone"
                       className="h-10 sm:h-11 rounded-full text-foreground border border-foreground/15 bg-background/90 px-3 sm:px-4 text-sm"
+                      value={contactPhone}
+                      onChange={(event) => setContactPhone(event.target.value)}
                     />
                   </div>
 
                   <Button
                     type="submit"
                     className="h-10 sm:h-12 btn-three w-full text-sm sm:text-base"
+                    disabled={isSubmitting}
                   >
-                    Получить предложение
+                    {isSubmitting ? "Отправка..." : "Получить предложение"}
                   </Button>
                 </form>
               </div>

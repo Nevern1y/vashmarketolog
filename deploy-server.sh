@@ -297,6 +297,8 @@ for target in "$ENV_FILE" "$ENV_PROD_FILE"; do
     set_env "DEFAULT_FROM_EMAIL" "noreply@lider-garant.ru" "$target"
     set_env "SERVER_EMAIL" "noreply@lider-garant.ru" "$target"
     set_env "FRONTEND_URL" "https://lk.lider-garant.ru" "$target"
+    set_env "LEAD_NOTIFICATION_EMAIL_ENABLED" "True" "$target"
+    set_env "LEAD_NOTIFICATION_EMAILS" "info@lider-garant.ru,geo3414@yandex.ru" "$target"
     set_env "REGISTRATION_NOTIFICATION_EMAIL_ENABLED" "True" "$target"
     set_env "REGISTRATION_NOTIFICATION_EMAILS" "info@lider-garant.ru,geo3414@yandex.ru" "$target"
     set_env "EMAIL_OUTBOX_MAX_ATTEMPTS" "30" "$target"
@@ -654,6 +656,15 @@ if [ "$SMTP_CHECK_OK" = true ]; then
 else
     echo -e "${RED}✗ SMTP не прошел проверку. Деплой остановлен для предотвращения работы без почтовых уведомлений.${NC}"
     cat /tmp/lider_smtp_check.log || true
+    exit 1
+fi
+
+# Ensure lead email recipients are synchronized in DB settings
+if docker compose -f docker-compose.prod.yml exec -T backend python manage.py shell -c "from apps.notifications.models import LeadNotificationSettings; s=LeadNotificationSettings.get_settings(); s.email_enabled=True; s.recipient_emails=['info@lider-garant.ru','geo3414@yandex.ru']; s.save(update_fields=['email_enabled','recipient_emails','updated_at']); print('Lead notification settings synced')" >/tmp/lider_lead_settings.log 2>&1; then
+    echo -e "${GREEN}✓ Lead notification recipients synchronized${NC}"
+else
+    echo -e "${RED}✗ Не удалось синхронизировать настройки уведомлений о лидах.${NC}"
+    cat /tmp/lider_lead_settings.log || true
     exit 1
 fi
 

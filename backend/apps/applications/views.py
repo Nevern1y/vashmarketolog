@@ -1157,6 +1157,7 @@ class PublicLeadCreateView(APIView):
     - Landing pages
     """
     permission_classes = [AllowAny]
+    authentication_classes = []
     
     @extend_schema(
         request=LeadCreateSerializer,

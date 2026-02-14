@@ -21,6 +21,7 @@ import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { SeoPageData } from "@/lib/seo-api";
 import { normalizePopularSearches } from "@/lib/popular-searches";
+import { submitLead } from "@/lib/leads";
 
 const defaultPopularSearchTerms = [
   "лизинг для юр лиц",
@@ -149,8 +150,20 @@ export default function Page({ seoPage }: LeasingPageProps) {
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const result = await submitLead({
+        full_name: "Клиент по лизингу",
+        phone: data.phone,
+        inn: data.inn,
+        amount: Number(data.amount),
+        product_type: "leasing",
+        source: "website_form",
+        form_name: "leasing_form",
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Произошла ошибка при отправке заявки.");
+        return;
+      }
 
       toast.success(
         "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.",
@@ -158,7 +171,7 @@ export default function Page({ seoPage }: LeasingPageProps) {
 
       reset();
       setPhoneKey((k) => k + 1);
-    } catch (error) {
+    } catch {
       toast.error("Произошла ошибка при отправке заявки. Попробуйте еще раз.");
     }
   };

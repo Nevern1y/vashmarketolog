@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PRODUCT_TYPE_MAP, submitLead } from "@/lib/leads";
 
 const formSchema = z.object({
   product: z.string().min(1, "Выберите продукт"),
@@ -69,8 +70,25 @@ export default function ApplicationFormSection({
     mode: "onChange",
   });
 
-  const onSubmit = (values: FormValues) => {
+  const isSubmitting = form.formState.isSubmitting;
+
+  const onSubmit = async (values: FormValues) => {
     const amountNum = Number(values.amount.replace(/\s/g, ""));
+
+    const result = await submitLead({
+      full_name: values.name.trim(),
+      phone: values.phone,
+      inn: values.inn,
+      amount: amountNum,
+      product_type: PRODUCT_TYPE_MAP[values.product] || "bank_guarantee",
+      source: "website_form",
+      form_name: "application_form_section",
+    });
+
+    if (!result.ok) {
+      toast.error(result.error || "Произошла ошибка при отправке заявки");
+      return;
+    }
 
     toast.success("Заявка отправлена", {
       description: `${values.name}, ${
@@ -244,8 +262,9 @@ export default function ApplicationFormSection({
                   <Button
                     type="submit"
                     className="h-12 btn-three px-6 text-sm font-semibold"
+                    disabled={isSubmitting}
                   >
-                    {submitButtonText}
+                    {isSubmitting ? "Отправка..." : submitButtonText}
                   </Button>
                   <p className="text-xs text-foreground/70">
                     Находим только самые лучшие предложения, в которых сами

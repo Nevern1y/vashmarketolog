@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +27,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { submitLead } from "@/lib/leads";
 
 const formSchema = z.object({
   service: z.string().trim().min(1, "Выберите услугу"),
@@ -67,8 +67,6 @@ const TENDER_TEXTAREA_CLASSNAME =
   "min-h-[110px] resize-none rounded-xl border-white/20 bg-white/5 text-white placeholder:text-white/55 focus-visible:border-primary/70 focus-visible:ring-primary/30 focus-visible:ring-[3px] backdrop-blur-sm";
 
 export default function TenderSupportForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,15 +79,24 @@ export default function TenderSupportForm() {
       newsletter: false,
     },
   });
+  const isSubmitting = form.formState.isSubmitting;
 
   const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const result = await submitLead({
+        full_name: data.name.trim(),
+        phone: data.phone,
+        email: data.email.trim(),
+        product_type: "tender_support",
+        source: "website_form",
+        form_name: "tender_support_form",
+        message: `Услуга: ${data.service}\n${data.message.trim()}`,
+      });
 
-      console.log("Form data:", data);
+      if (!result.ok) {
+        toast.error(result.error || "Произошла ошибка при отправке формы.");
+        return;
+      }
 
       toast.success(
         "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время."
@@ -99,8 +106,6 @@ export default function TenderSupportForm() {
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("Произошла ошибка при отправке формы. Попробуйте еще раз.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

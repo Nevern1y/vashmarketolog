@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { Phone, MapPin, Clock, Users } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Phone, MapPin, Clock, Users } from "lucide-react";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { submitLead } from "@/lib/leads";
 
 interface Vacancy {
   id: number;
@@ -268,17 +271,71 @@ const defaultVacancyData: Record<number, Partial<Vacancy>> = {
 
 export default function VacancyModal({ vacancy, open, onClose }: Props) {
   const [mounted, setMounted] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [coverLetter, setCoverLetter] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setName("");
+      setPhone("");
+      setEmail("");
+      setCoverLetter("");
+      setIsSubmitting(false);
+    }
+  }, [open]);
 
   if (!mounted || !vacancy) return null;
 
   const detailedVacancy = {
     ...vacancy,
     ...defaultVacancyData[vacancy.id],
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!name.trim() || !phone.trim()) {
+      toast.error("Заполните обязательные поля");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const messageParts = [`Отклик на вакансию: ${detailedVacancy.title}`];
+      if (coverLetter.trim()) {
+        messageParts.push(`Сопроводительное письмо: ${coverLetter.trim()}`);
+      }
+
+      const result = await submitLead({
+        full_name: name.trim(),
+        phone,
+        email: email.trim() || undefined,
+        source: "website_form",
+        form_name: "vacancy_modal",
+        message: messageParts.join("\n"),
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Ошибка отправки отклика");
+        return;
+      }
+
+      toast.success("Отклик отправлен. Мы свяжемся с вами в ближайшее время.");
+      onClose();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Ошибка отправки отклика";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -381,13 +438,7 @@ export default function VacancyModal({ vacancy, open, onClose }: Props) {
             <h3 className="text-lg font-semibold mb-4">
               Откликнуться на вакансию
             </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                onClose();
-              }}
-              className="space-y-4"
-            >
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Ваше имя *
@@ -395,8 +446,11 @@ export default function VacancyModal({ vacancy, open, onClose }: Props) {
                 <input
                   type="text"
                   placeholder="Введите ваше имя"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
                   className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-3 text-sm outline-none focus:border-foreground/30 transition-colors"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -404,11 +458,13 @@ export default function VacancyModal({ vacancy, open, onClose }: Props) {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Телефон *
                 </label>
-                <input
-                  type="tel"
+                <PhoneInput
                   placeholder="+7 (___) ___-__-__"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
                   className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-3 text-sm outline-none focus:border-foreground/30 transition-colors"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -419,7 +475,10 @@ export default function VacancyModal({ vacancy, open, onClose }: Props) {
                 <input
                   type="email"
                   placeholder="your@email.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-3 text-sm outline-none focus:border-foreground/30 transition-colors"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -430,13 +489,20 @@ export default function VacancyModal({ vacancy, open, onClose }: Props) {
                 <textarea
                   placeholder="Расскажите, почему вы подходите на эту должность..."
                   rows={4}
+                  value={coverLetter}
+                  onChange={(event) => setCoverLetter(event.target.value)}
                   className="w-full rounded-lg border border-foreground/15 bg-background px-4 py-3 text-sm outline-none focus:border-foreground/30 transition-colors resize-none"
+                  disabled={isSubmitting}
                 />
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button type="submit" className="h-12 flex-1 btn-three">
-                  Отправить отклик
+                <Button
+                  type="submit"
+                  className="h-12 flex-1 btn-three"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Отправка..." : "Отправить отклик"}
                 </Button>
                 <Button
                   type="button"

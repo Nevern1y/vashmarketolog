@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import FadeIn from "@/components/FadeIn";
+import { submitLead } from "@/lib/leads";
 
 const guaranteeTypes = [
   { value: "tender", label: "Участие в тендере" },
@@ -16,6 +17,13 @@ const guaranteeTypes = [
   { value: "warranty", label: "Исполнение гарантийных обязательств" },
   { value: "advance", label: "Возврат аванса" },
 ];
+
+const GUARANTEE_TYPE_BY_FORM_VALUE: Record<string, string> = {
+  tender: "application_security",
+  contract: "contract_execution",
+  warranty: "warranty_obligations",
+  advance: "advance_return",
+};
 
 export default function GuaranteeCalculator() {
   const [guaranteeType, setGuaranteeType] = useState("tender");
@@ -38,6 +46,7 @@ export default function GuaranteeCalculator() {
     },
     mode: "onSubmit",
   });
+  const isSubmitting = form.formState.isSubmitting;
 
   const formatNumber = (num: number) => {
     return num.toLocaleString("ru-RU");
@@ -62,15 +71,24 @@ export default function GuaranteeCalculator() {
     setMonths(Math.min(Math.max(value, 1), 120));
   };
 
-  const onSubmit = (values: FormValues) => {
-    console.log({
-      guaranteeType,
-      amount,
-      months,
-      discount,
-      fullname: values.fullname,
+  const onSubmit = async (values: FormValues) => {
+    const result = await submitLead({
+      full_name: values.fullname.trim(),
       phone: values.phone,
+      product_type: "bank_guarantee",
+      guarantee_type:
+        GUARANTEE_TYPE_BY_FORM_VALUE[guaranteeType] || "application_security",
+      amount,
+      term_months: months,
+      source: "website_calculator",
+      form_name: "guarantee_calculator",
+      message: discount ? "Запрошен расчет со скидкой" : undefined,
     });
+
+    if (!result.ok) {
+      toast.error(result.error || "Произошла ошибка при отправке заявки");
+      return;
+    }
 
     form.reset();
     setPhoneKey((k) => k + 1);
@@ -354,8 +372,9 @@ export default function GuaranteeCalculator() {
                   type="submit"
                   className="w-full h-11 md:h-14 bg-primary btn-three text-sm md:text-base"
                   size="lg"
+                  disabled={isSubmitting}
                 >
-                  Отправить
+                  {isSubmitting ? "Отправка..." : "Отправить"}
                 </Button>
 
                 <p className="text-xs text-gray-500 text-center">

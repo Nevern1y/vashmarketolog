@@ -25,6 +25,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import CustomSelect from "./ui/my-select";
 import { toast } from "sonner";
+import { submitLead } from "@/lib/leads";
 
 const financeItems = [
   { label: "Банковские гарантии", href: "/bankovskie-garantii" },
@@ -66,7 +67,7 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
     reset,
     setValue,
     watch,
@@ -80,9 +81,21 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
 
   const phoneValue = watch("phone");
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
+    const result = await submitLead({
+      full_name: data.name.trim(),
+      phone: data.phone,
+      source: "website_form",
+      form_name: "header_form",
+      message: "Запрос обратного звонка из шапки сайта",
+    });
+
+    if (!result.ok) {
+      toast.error(result.error || "Не удалось отправить заявку.");
+      return;
+    }
+
     toast.success("Заявка отправлена! Мы перезвоним вам в течение 15 минут.");
-    console.log("Form submitted:", data);
     reset();
     setModalOpen(false);
   };
@@ -192,8 +205,12 @@ export default function Header({ onOpenCallModal }: HeaderProps) {
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button type="submit" className="btn-three w-full">
-                        Отправить
+                      <Button
+                        type="submit"
+                        className="btn-three w-full"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Отправка..." : "Отправить"}
                       </Button>
                     </DialogFooter>
                   </form>
