@@ -76,6 +76,8 @@ const platform = [
 
 export default function Page() {
   const [modalOpen, setModalOpen] = useState(false);
+  const partnerInputClassName =
+    "bg-background/80 border-white/20 text-white placeholder:text-white/50";
 
   const {
     register,
@@ -164,7 +166,7 @@ export default function Page() {
                       id="organization"
                       {...register("organization")}
                       placeholder="ООО 'Название банка'"
-                      className="bg-background/80 border-white/20"
+                      className={partnerInputClassName}
                     />
                     {errors.organization && (
                       <p className="text-sm text-red-400">
@@ -178,7 +180,7 @@ export default function Page() {
                       id="fullName"
                       {...register("fullName")}
                       placeholder="Иванов Иван Иванович"
-                      className="bg-background/80 border-white/20"
+                      className={partnerInputClassName}
                     />
                     {errors.fullName && (
                       <p className="text-sm text-red-400">
@@ -193,7 +195,7 @@ export default function Page() {
                       type="email"
                       {...register("email")}
                       placeholder="example@bank.ru"
-                      className="bg-background/80 border-white/20"
+                      className={partnerInputClassName}
                     />
                     {errors.email && (
                       <p className="text-sm text-red-400">
@@ -212,7 +214,7 @@ export default function Page() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="+7 (___) ___-__-__"
-                          className="h-11 bg-background/80 border-white/20"
+                          className={`h-11 ${partnerInputClassName}`}
                         />
                       )}
                     />
@@ -228,7 +230,7 @@ export default function Page() {
                       id="comments"
                       {...register("comments")}
                       placeholder="Опишите вашу компанию и интересующие условия сотрудничества..."
-                      className="min-h-[100px] bg-background/80 border-white/20 resize-none"
+                      className={`min-h-[100px] resize-none ${partnerInputClassName}`}
                     />
                   </div>
                 </div>
