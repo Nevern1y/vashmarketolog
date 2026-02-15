@@ -54,6 +54,16 @@ export const GUARANTEE_TYPE_MAP: Record<string, string> = {
   'Возмещение НДС': 'vat_refund',
 }
 
+export const BANK_GUARANTEE_TYPE_OPTIONS = [
+  { value: 'application_security', label: 'Участие в тендере' },
+  { value: 'contract_execution', label: 'Исполнение контракта' },
+  {
+    value: 'warranty_obligations',
+    label: 'Исполнение гарантийных обязательств',
+  },
+  { value: 'advance_return', label: 'Возврат аванса' },
+] as const
+
 export const PRODUCT_TYPE_MAP: Record<string, string> = {
   'Банковская гарантия': 'bank_guarantee',
   'Тендерный кредит': 'tender_loan',

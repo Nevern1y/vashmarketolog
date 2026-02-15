@@ -9,24 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 import { toast } from "sonner";
 import FadeIn from "@/components/FadeIn";
-import { submitLead } from "@/lib/leads";
-
-const guaranteeTypes = [
-  { value: "tender", label: "Участие в тендере" },
-  { value: "contract", label: "Исполнение контракта" },
-  { value: "warranty", label: "Исполнение гарантийных обязательств" },
-  { value: "advance", label: "Возврат аванса" },
-];
-
-const GUARANTEE_TYPE_BY_FORM_VALUE: Record<string, string> = {
-  tender: "application_security",
-  contract: "contract_execution",
-  warranty: "warranty_obligations",
-  advance: "advance_return",
-};
+import { BANK_GUARANTEE_TYPE_OPTIONS, submitLead } from "@/lib/leads";
 
 export default function GuaranteeCalculator() {
-  const [guaranteeType, setGuaranteeType] = useState("tender");
+  const [guaranteeType, setGuaranteeType] = useState<string>(
+    BANK_GUARANTEE_TYPE_OPTIONS[0].value,
+  );
   const [amount, setAmount] = useState(1000000);
   const [months, setMonths] = useState(10);
   const [discount, setDiscount] = useState(true);
@@ -76,8 +64,7 @@ export default function GuaranteeCalculator() {
       full_name: values.fullname.trim(),
       phone: values.phone,
       product_type: "bank_guarantee",
-      guarantee_type:
-        GUARANTEE_TYPE_BY_FORM_VALUE[guaranteeType] || "application_security",
+      guarantee_type: guaranteeType,
       amount,
       term_months: months,
       source: "website_calculator",
@@ -109,7 +96,7 @@ export default function GuaranteeCalculator() {
             </div>
 
             <div className="flex flex-wrap gap-2 md:gap-3">
-              {guaranteeTypes.map((type) => (
+              {BANK_GUARANTEE_TYPE_OPTIONS.map((type) => (
                 <button
                   key={type.value}
                   type="button"

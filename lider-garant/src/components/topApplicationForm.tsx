@@ -20,7 +20,7 @@ import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
-import { submitLead } from "@/lib/leads";
+import { BANK_GUARANTEE_TYPE_OPTIONS, submitLead } from "@/lib/leads";
 
 const banks = [
   { name: "ВТБ Банк", logo: "/logos/22.svg", width: 44, height: 44 },
@@ -51,13 +51,6 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const GUARANTEE_TYPE_BY_FORM_VALUE: Record<string, string> = {
-  tender: "application_security",
-  contract: "contract_execution",
-  warranty: "warranty_obligations",
-  advance: "advance_return",
-};
-
 export default function TopApplicationForm() {
   const [phoneKey, setPhoneKey] = useState(0);
 
@@ -83,9 +76,7 @@ export default function TopApplicationForm() {
         full_name: data.fullname.trim(),
         phone: data.phone,
         product_type: "bank_guarantee",
-        guarantee_type:
-          GUARANTEE_TYPE_BY_FORM_VALUE[data.guaranteeType] ||
-          "application_security",
+        guarantee_type: data.guaranteeType,
         source: "website_form",
         form_name: "top_application_form",
       });
@@ -187,16 +178,11 @@ export default function TopApplicationForm() {
                         <SelectValue placeholder="Выберите тип" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="tender">
-                          Участие в тендере
-                        </SelectItem>
-                        <SelectItem value="contract">
-                          Исполнение контракта
-                        </SelectItem>
-                        <SelectItem value="warranty">
-                          Исполнение гарантийных обязательств
-                        </SelectItem>
-                        <SelectItem value="advance">Возврат аванса</SelectItem>
+                        {BANK_GUARANTEE_TYPE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}

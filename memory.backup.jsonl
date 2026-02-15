@@ -1,0 +1,135 @@
+{"type":"entity","name":"dashboarddesignanalysis","entityType":"repository","observations":["Monorepo with three active applications: Cabinet frontend, Landing frontend, and Backend API.","Backend is the source of truth for validation, state transitions, and business rules.","Repository follows AGENTS.md constraints for scoped changes and non-destructive operations."]}
+{"type":"entity","name":"AGENTS.md","entityType":"guideline","observations":["Defines coding-agent rules and repository-specific conventions.","Forbids modifying opencode.json and .opencode/.","Forbids creating commits unless explicitly requested."]}
+{"type":"entity","name":"Cabinet App","entityType":"frontend-application","observations":["Main Next.js 16 frontend located at repository root.","Primary directories: /app, /components, /hooks, /lib.","Uses TypeScript with strict mode."]}
+{"type":"entity","name":"Landing App","entityType":"frontend-application","observations":["Next.js 16 frontend located in /lider-garant.","Source code is primarily under /lider-garant/src.","Uses TypeScript with strict mode."]}
+{"type":"entity","name":"Backend API","entityType":"backend-application","observations":["Django 5 + DRF backend located in /backend.","Acts as business-logic authority for the monorepo.","Exposes REST APIs and websocket routes for chat."]}
+{"type":"entity","name":"Next.js 16","entityType":"framework","observations":["Used by both Cabinet App and Landing App."]}
+{"type":"entity","name":"Django 5","entityType":"framework","observations":["Used by Backend API for server-side architecture."]}
+{"type":"entity","name":"Django REST Framework","entityType":"framework","observations":["Used by Backend API for API views, serializers, and response patterns."]}
+{"type":"entity","name":"Django Channels","entityType":"framework","observations":["Used by Backend API for websocket functionality in chat."]}
+{"type":"entity","name":"JWT Authentication","entityType":"auth-mechanism","observations":["Backend authentication stack includes JWT-based authentication."]}
+{"type":"entity","name":"Docker Compose","entityType":"infrastructure","observations":["Development and production compose files orchestrate multi-service runtime.","Services include backend, frontend apps, database, redis, object storage, and nginx."]}
+{"type":"entity","name":"PostgreSQL","entityType":"database","observations":["Used as primary relational database service in dockerized environments."]}
+{"type":"entity","name":"Redis","entityType":"infrastructure-component","observations":["Used as cache/broker-style infra component in compose setup."]}
+{"type":"entity","name":"MinIO","entityType":"object-storage","observations":["Included in compose setup for object/file storage needs."]}
+{"type":"entity","name":"app/","entityType":"directory","observations":["Contains Cabinet app routes and layout files."]}
+{"type":"entity","name":"components/","entityType":"directory","observations":["Contains Cabinet UI/dashboard components."]}
+{"type":"entity","name":"hooks/","entityType":"directory","observations":["Contains Cabinet React hooks."]}
+{"type":"entity","name":"lib/","entityType":"directory","observations":["Contains shared Cabinet API, auth, mappings, schemas, and utility modules."]}
+{"type":"entity","name":"lider-garant/src/","entityType":"directory","observations":["Contains Landing frontend source modules."]}
+{"type":"entity","name":"backend/apps/","entityType":"directory","observations":["Contains Django domain apps and business modules."]}
+{"type":"entity","name":"lib/api.ts","entityType":"module","observations":["Shared frontend API client module in Cabinet app.","Preferred API integration path instead of ad-hoc fetch calls."]}
+{"type":"entity","name":"lib/auth-context.tsx","entityType":"module","observations":["Cabinet authentication provider/context module."]}
+{"type":"entity","name":"lib/status-mapping.ts","entityType":"module","observations":["Shared status mapping helper for frontend flows."]}
+{"type":"entity","name":"lib/application-statuses.ts","entityType":"module","observations":["Shared application status definitions/mapping helper."]}
+{"type":"entity","name":"backend/config/urls.py","entityType":"module","observations":["Main backend URL router that mounts app endpoints."]}
+{"type":"entity","name":"backend/config/asgi.py","entityType":"module","observations":["ASGI configuration file wiring websocket/routing runtime."]}
+{"type":"entity","name":"backend/config/settings/base.py","entityType":"module","observations":["Core backend settings file with shared configuration defaults."]}
+{"type":"entity","name":"backend/apps/applications/tests.py","entityType":"test-module","observations":["Contains Django tests for application workflows and assignment behavior.","Includes tests around public lead create behavior and partner assignment cases."]}
+{"type":"entity","name":"No destructive git commands","entityType":"policy","observations":["Disallow destructive operations like hard reset or force push without explicit request."]}
+{"type":"entity","name":"No implicit commits","entityType":"policy","observations":["Commits are only allowed when explicitly requested by the user."]}
+{"type":"entity","name":"No opencode metadata changes","entityType":"policy","observations":["Do not create or modify opencode.json or .opencode/."]}
+{"type":"entity","name":"Users App","entityType":"django-app","observations":["Backend domain app for user accounts, roles, permissions, and related API flows.","Key files include models.py, serializers.py, views.py, permissions.py, and urls.py."]}
+{"type":"entity","name":"Companies App","entityType":"django-app","observations":["Backend domain app for company profile data and related operations.","Contains models, serializers, views, signals, and urls modules."]}
+{"type":"entity","name":"Applications App","entityType":"django-app","observations":["Backend domain app for credit/financial application lifecycle and assignment logic.","Contains models, serializers, views, urls, and tests."]}
+{"type":"entity","name":"Documents App","entityType":"django-app","observations":["Backend domain app for document entities and API handling.","Uses product-dependent document type identifiers in business flow."]}
+{"type":"entity","name":"Bank Conditions App","entityType":"django-app","observations":["Backend domain app for bank condition data and related APIs."]}
+{"type":"entity","name":"Chat App","entityType":"django-app","observations":["Backend domain app for chat models, APIs, and websocket routing/consumers."]}
+{"type":"entity","name":"Notifications App","entityType":"django-app","observations":["Backend domain app for notifications and email delivery pipeline.","Includes email service and management commands for outbox processing and checks."]}
+{"type":"entity","name":"News App","entityType":"django-app","observations":["Backend domain app for news content models and APIs."]}
+{"type":"entity","name":"SEO App","entityType":"django-app","observations":["Backend domain app for SEO page management APIs and template autofill behavior.","Separates public/admin behavior paths."]}
+{"type":"entity","name":"Dictionaries App","entityType":"django-app","observations":["Backend domain app exposing dictionary/reference APIs via serializers and views."]}
+{"type":"entity","name":"Integrations Service","entityType":"backend-service-module","observations":["Integration utilities exist in backend/apps/integrations/services.py."]}
+{"type":"entity","name":"Custom User Model","entityType":"domain-model","observations":["Backend uses a custom user model implementation.","Role-based behavior is central to access and workflow assignment."]}
+{"type":"entity","name":"User Roles","entityType":"domain-constant","observations":["Observed roles: client, agent, partner, admin, seo."]}
+{"type":"entity","name":"Company Profile Schema","entityType":"domain-model","observations":["Company data model includes broad legal/business profile fields.","Schema includes founder/leadership/MCHD/tax-related attributes."]}
+{"type":"entity","name":"Application Workflow","entityType":"domain-workflow","observations":["Applications app implements status-driven lifecycle for multiple product types.","Workflow integrates assignment logic and bank-facing integration fields."]}
+{"type":"entity","name":"Document Type Mapping","entityType":"domain-mapping","observations":["Document library flow uses numeric document_type_id mappings tied to product type."]}
+{"type":"entity","name":"Lead Pipeline","entityType":"domain-workflow","observations":["Supports public lead creation and admin conversion to application flow."]}
+{"type":"entity","name":"Notification Outbox Worker","entityType":"background-process","observations":["Reliable SMTP outbox processing with retry/background handling is implemented."]}
+{"type":"entity","name":"SEO Template Autofill","entityType":"feature","observations":["SEO utilities include template/autofill support for page management."]}
+{"type":"entity","name":"backend/apps/chat/routing.py","entityType":"module","observations":["Defines websocket URL routing for chat functionality."]}
+{"type":"entity","name":"backend/apps/notifications/email_service.py","entityType":"module","observations":["Encapsulates notification email delivery service logic."]}
+{"type":"entity","name":"backend/apps/notifications/management/commands/process_email_outbox.py","entityType":"module","observations":["Management command to process queued email outbox messages."]}
+{"type":"entity","name":"backend/apps/seo/utils/templates.py","entityType":"module","observations":["Utility module for SEO templates and autofill behavior."]}
+{"type":"entity","name":"Backend Django Tests","entityType":"testing-strategy","observations":["Django test framework is configured in backend.","Targeted test execution is supported down to single test method via manage.py test dotted path."]}
+{"type":"entity","name":"Frontend Automated Test Config","entityType":"testing-strategy","observations":["No Jest, Vitest, or Playwright configuration was observed in this repository state."]}
+{"type":"entity","name":"lib/document-types.ts","entityType":"module","observations":["Shared frontend document-type helper/mapping module in Cabinet lib."]}
+{"type":"entity","name":"lib/bank-document-requirements.ts","entityType":"module","observations":["Shared frontend module for bank document requirement mapping/logic."]}
+{"type":"entity","name":"lib/company-schemas.ts","entityType":"module","observations":["Shared frontend schema module for company-related structures."]}
+{"type":"entity","name":"lib/form-utils.ts","entityType":"module","observations":["Shared frontend form utility helpers in Cabinet lib."]}
+{"type":"entity","name":"Landing Auth Context","entityType":"module","observations":["Landing app auth provider is located under /lider-garant/src/lib/auth-context (per project guidelines)."]}
+{"type":"entity","name":"Cabinet Auth Context","entityType":"module","observations":["Cabinet auth provider module path is /lib/auth-context.tsx."]}
+{"type":"entity","name":"Shared Status Helpers","entityType":"shared-abstraction","observations":["Frontend status handling reuses lib/status-mapping.ts and lib/application-statuses.ts helpers."]}
+{"type":"relation","from":"dashboarddesignanalysis","to":"AGENTS.md","relationType":"is_governed_by"}
+{"type":"relation","from":"AGENTS.md","to":"No destructive git commands","relationType":"enforces"}
+{"type":"relation","from":"AGENTS.md","to":"No implicit commits","relationType":"enforces"}
+{"type":"relation","from":"AGENTS.md","to":"No opencode metadata changes","relationType":"enforces"}
+{"type":"relation","from":"dashboarddesignanalysis","to":"Cabinet App","relationType":"contains"}
+{"type":"relation","from":"dashboarddesignanalysis","to":"Landing App","relationType":"contains"}
+{"type":"relation","from":"dashboarddesignanalysis","to":"Backend API","relationType":"contains"}
+{"type":"relation","from":"dashboarddesignanalysis","to":"Docker Compose","relationType":"uses"}
+{"type":"relation","from":"Cabinet App","to":"Next.js 16","relationType":"uses"}
+{"type":"relation","from":"Landing App","to":"Next.js 16","relationType":"uses"}
+{"type":"relation","from":"Backend API","to":"Django 5","relationType":"uses"}
+{"type":"relation","from":"Backend API","to":"Django REST Framework","relationType":"uses"}
+{"type":"relation","from":"Backend API","to":"Django Channels","relationType":"uses"}
+{"type":"relation","from":"Backend API","to":"JWT Authentication","relationType":"uses"}
+{"type":"relation","from":"Docker Compose","to":"PostgreSQL","relationType":"provisions"}
+{"type":"relation","from":"Docker Compose","to":"Redis","relationType":"provisions"}
+{"type":"relation","from":"Docker Compose","to":"MinIO","relationType":"provisions"}
+{"type":"relation","from":"Cabinet App","to":"app/","relationType":"contains"}
+{"type":"relation","from":"Cabinet App","to":"components/","relationType":"contains"}
+{"type":"relation","from":"Cabinet App","to":"hooks/","relationType":"contains"}
+{"type":"relation","from":"Cabinet App","to":"lib/","relationType":"contains"}
+{"type":"relation","from":"Landing App","to":"lider-garant/src/","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"backend/apps/","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/api.ts","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/auth-context.tsx","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/status-mapping.ts","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/application-statuses.ts","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"backend/config/urls.py","relationType":"routes_through"}
+{"type":"relation","from":"Backend API","to":"backend/config/asgi.py","relationType":"loads_runtime_from"}
+{"type":"relation","from":"Backend API","to":"backend/config/settings/base.py","relationType":"configures_from"}
+{"type":"relation","from":"Backend API","to":"Users App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Companies App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Applications App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Documents App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Bank Conditions App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Chat App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Notifications App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"News App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"SEO App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Dictionaries App","relationType":"contains"}
+{"type":"relation","from":"Backend API","to":"Integrations Service","relationType":"contains"}
+{"type":"relation","from":"Users App","to":"Custom User Model","relationType":"defines"}
+{"type":"relation","from":"Custom User Model","to":"User Roles","relationType":"uses"}
+{"type":"relation","from":"Companies App","to":"Company Profile Schema","relationType":"defines"}
+{"type":"relation","from":"Applications App","to":"Application Workflow","relationType":"implements"}
+{"type":"relation","from":"Applications App","to":"Lead Pipeline","relationType":"implements"}
+{"type":"relation","from":"Applications App","to":"backend/apps/applications/tests.py","relationType":"is_tested_by"}
+{"type":"relation","from":"Documents App","to":"Document Type Mapping","relationType":"uses"}
+{"type":"relation","from":"Notifications App","to":"Notification Outbox Worker","relationType":"runs"}
+{"type":"relation","from":"Notifications App","to":"backend/apps/notifications/email_service.py","relationType":"contains"}
+{"type":"relation","from":"Notifications App","to":"backend/apps/notifications/management/commands/process_email_outbox.py","relationType":"contains"}
+{"type":"relation","from":"SEO App","to":"SEO Template Autofill","relationType":"implements"}
+{"type":"relation","from":"SEO App","to":"backend/apps/seo/utils/templates.py","relationType":"contains"}
+{"type":"relation","from":"Chat App","to":"backend/apps/chat/routing.py","relationType":"contains"}
+{"type":"relation","from":"backend/config/asgi.py","to":"backend/apps/chat/routing.py","relationType":"routes_websockets_with"}
+{"type":"relation","from":"Cabinet App","to":"lib/api.ts","relationType":"uses"}
+{"type":"relation","from":"Cabinet App","to":"lib/auth-context.tsx","relationType":"uses"}
+{"type":"relation","from":"Cabinet App","to":"lib/status-mapping.ts","relationType":"uses"}
+{"type":"relation","from":"Cabinet App","to":"lib/application-statuses.ts","relationType":"uses"}
+{"type":"relation","from":"Backend API","to":"Backend Django Tests","relationType":"is_validated_by"}
+{"type":"relation","from":"dashboarddesignanalysis","to":"Frontend Automated Test Config","relationType":"has_testing_state"}
+{"type":"relation","from":"lib/","to":"lib/document-types.ts","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/bank-document-requirements.ts","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/company-schemas.ts","relationType":"contains"}
+{"type":"relation","from":"lib/","to":"lib/form-utils.ts","relationType":"contains"}
+{"type":"relation","from":"Cabinet App","to":"Cabinet Auth Context","relationType":"uses"}
+{"type":"relation","from":"Landing App","to":"Landing Auth Context","relationType":"uses"}
+{"type":"relation","from":"Cabinet App","to":"Shared Status Helpers","relationType":"uses"}
+{"type":"relation","from":"Shared Status Helpers","to":"lib/status-mapping.ts","relationType":"includes"}
+{"type":"relation","from":"Shared Status Helpers","to":"lib/application-statuses.ts","relationType":"includes"}
+{"type":"relation","from":"Documents App","to":"lib/document-types.ts","relationType":"aligns_with"}
+{"type":"relation","from":"Applications App","to":"lib/bank-document-requirements.ts","relationType":"aligns_with"}

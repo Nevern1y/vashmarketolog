@@ -15,37 +15,59 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PRODUCT_TYPE_MAP, submitLead } from "@/lib/leads";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  BANK_GUARANTEE_TYPE_OPTIONS,
+  PRODUCT_TYPE_MAP,
+  submitLead,
+} from "@/lib/leads";
 
-const formSchema = z.object({
-  product: z.string().min(1, "Выберите продукт"),
-  name: z
-    .string()
-    .min(1, "Введите имя")
-    .min(2, "Имя должно содержать минимум 2 символа")
-    .regex(/^[а-яёa-z\s]+$/i, "Имя должно содержать только буквы"),
-  phone: z
-    .string()
-    .min(1, "Введите телефон")
-    .regex(
-      /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/,
-      "Введите корректный номер телефона",
-    )
-    .refine((phone) => phone.replace(/\D/g, "").length === 11, {
-      message: "Введите корректный номер телефона",
-    }),
-  inn: z
-    .string()
-    .min(1, "Введите ИНН")
-    .regex(/^\d{10}$|^\d{12}$/, "ИНН должен содержать 10 или 12 цифр"),
-  amount: z
-    .string()
-    .min(1, "Укажите сумму")
-    .refine((amount) => {
-      const num = Number(amount.replace(/\s/g, ""));
-      return !isNaN(num) && num > 0;
-    }, "Укажите сумму больше 0"),
-});
+const formSchema = z
+  .object({
+    product: z.string().min(1, "Выберите продукт"),
+    guaranteeType: z.string().optional(),
+    name: z
+      .string()
+      .min(1, "Введите имя")
+      .min(2, "Имя должно содержать минимум 2 символа")
+      .regex(/^[а-яёa-z\s]+$/i, "Имя должно содержать только буквы"),
+    phone: z
+      .string()
+      .min(1, "Введите телефон")
+      .regex(
+        /^\+7\s\(\d{3}\)\s\d{3}-\d{2}-\d{2}$/,
+        "Введите корректный номер телефона",
+      )
+      .refine((phone) => phone.replace(/\D/g, "").length === 11, {
+        message: "Введите корректный номер телефона",
+      }),
+    inn: z
+      .string()
+      .min(1, "Введите ИНН")
+      .regex(/^\d{10}$|^\d{12}$/, "ИНН должен содержать 10 или 12 цифр"),
+    amount: z
+      .string()
+      .min(1, "Укажите сумму")
+      .refine((amount) => {
+        const num = Number(amount.replace(/\s/g, ""));
+        return !isNaN(num) && num > 0;
+      }, "Укажите сумму больше 0"),
+  })
+  .superRefine((values, ctx) => {
+    if (values.product === "Банковская гарантия" && !values.guaranteeType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["guaranteeType"],
+        message: "Выберите тип гарантии",
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -62,6 +84,7 @@ export default function ApplicationFormSection({
     resolver: zodResolver(formSchema),
     defaultValues: {
       product: "Кредиты",
+      guaranteeType: "",
       name: "",
       phone: "",
       inn: "",
@@ -71,16 +94,25 @@ export default function ApplicationFormSection({
   });
 
   const isSubmitting = form.formState.isSubmitting;
+  const selectedProduct = form.watch("product");
 
   const onSubmit = async (values: FormValues) => {
     const amountNum = Number(values.amount.replace(/\s/g, ""));
+    const productType = PRODUCT_TYPE_MAP[values.product];
+
+    if (!productType) {
+      toast.error("Не удалось определить выбранный продукт");
+      return;
+    }
 
     const result = await submitLead({
       full_name: values.name.trim(),
       phone: values.phone,
       inn: values.inn,
       amount: amountNum,
-      product_type: PRODUCT_TYPE_MAP[values.product] || "bank_guarantee",
+      product_type: productType,
+      guarantee_type:
+        productType === "bank_guarantee" ? values.guaranteeType : undefined,
       source: "website_form",
       form_name: "application_form_section",
     });
@@ -121,9 +153,15 @@ export default function ApplicationFormSection({
                 <button
                   key={p}
                   type="button"
-                  onClick={() => form.setValue("product", p)}
+                  onClick={() => {
+                    form.setValue("product", p);
+                    if (p !== "Банковская гарантия") {
+                      form.setValue("guaranteeType", "");
+                      form.clearErrors("guaranteeType");
+                    }
+                  }}
                   className={`rounded-full px-5 py-2 text-sm font-semibold transition-all border ${
-                    form.watch("product") === p
+                    selectedProduct === p
                       ? "bg-primary text-[oklch(0.141_0.005_285.823)] border-transparent shadow-[0_20px_45px_-25px_rgba(16,185,129,1)]"
                       : "bg-none text-primary border-primary hover:bg-primary hover:text-[oklch(0.141_0.005_285.823)] transition-all"
                   }`}
@@ -138,6 +176,38 @@ export default function ApplicationFormSection({
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-5"
               >
+                {selectedProduct === "Банковская гарантия" && (
+                  <FormField
+                    control={form.control}
+                    name="guaranteeType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs uppercase tracking-[0.2em] text-foreground/60">
+                          Тип гарантии
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ""}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-12 rounded-full border border-foreground/10 bg-white/10 px-4 text-foreground focus:ring-foreground/40">
+                              <SelectValue placeholder="Выберите тип гарантии" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {BANK_GUARANTEE_TYPE_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
