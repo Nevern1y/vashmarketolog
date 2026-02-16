@@ -50,7 +50,7 @@ export default function Page({ seoPage }: FactoringPageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/factoring-dlya-biznesa",
+    "#factoring-form",
   );
 
   const TOTAL_OFFERS = 25;

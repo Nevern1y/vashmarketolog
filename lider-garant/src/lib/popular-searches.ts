@@ -34,8 +34,8 @@ const dedupe = (items: PopularSearchLink[]) => {
 
 export const normalizePopularSearches = (
   value: PopularSearchInput,
-  fallbackTerms: string[],
-  fallbackHref = "/v-razrabotke",
+  fallbackTerms: Array<string | { text: string; href: string }>,
+  fallbackHref = "#application",
 ): PopularSearchLink[] => {
   const normalized = (Array.isArray(value) ? value : [])
     .map((item) => {
@@ -71,5 +71,8 @@ export const normalizePopularSearches = (
     return dedupe(normalized);
   }
 
-  return fallbackTerms.map((text) => ({ text, href: fallbackHref }));
+  return fallbackTerms.map((term) => {
+    if (typeof term === "string") return { text: term, href: fallbackHref };
+    return term;
+  });
 };

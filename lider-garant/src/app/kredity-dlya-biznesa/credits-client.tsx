@@ -53,7 +53,6 @@ export default function Page({ seoPage }: CreditsPageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/kredity-dlya-biznesa",
   );
 
   const TOTAL_OFFERS = 25;

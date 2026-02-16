@@ -56,7 +56,7 @@ export default function Page({ seoPage }: VedPageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/ved",
+    "#contact",
   );
 
   const [activeTab, setActiveTab] = useState<"import" | "export">("import");

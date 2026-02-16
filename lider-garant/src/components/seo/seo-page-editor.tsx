@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "../ui/select"
-import { Loader2, Plus, Trash2, X, HelpCircle, Search, Building2, Sparkles, FileText, Tags, Settings } from "lucide-react"
+import { Loader2, Plus, Trash2, X, HelpCircle, Search, Building2, Sparkles, FileText, Tags, Settings, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, type ApiError } from "../../lib/api"
@@ -1003,13 +1003,22 @@ export function SeoPageEditor({
                                 </div>
 
                                 {/* Popular Searches Section */}
-                                <div className="space-y-3 p-4 rounded-xl bg-[#1a1a2e]/50 border border-slate-700/50">
+                                <div className={`space-y-3 p-4 rounded-xl border ${(formData.popular_searches || []).length === 0 ? "bg-amber-900/10 border-amber-500/40" : "bg-[#1a1a2e]/50 border-slate-700/50"}`}>
                                     <div className="flex items-center justify-between">
                                         <Label className="text-white font-medium flex items-center gap-2">
                                             <Search className="w-4 h-4 text-[#3ce8d1]" />
                                             Часто ищут ({(formData.popular_searches || []).length})
                                         </Label>
                                     </div>
+                                    {(formData.popular_searches || []).length === 0 && (
+                                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                                            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                                            <div className="text-xs text-amber-200/90 space-y-1">
+                                                <p className="font-medium">Блок &laquo;Часто ищут&raquo; пуст</p>
+                                                <p>Добавьте ключевые запросы и укажите ссылки на существующие SEO-страницы (например <code className="bg-amber-800/40 px-1 rounded">/bankovskie-garantii-na-ispolnenie-kontrakta</code>). Без ссылок кнопки будут вести на форму заявки.</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     <p className="text-xs text-slate-400">Для каждого элемента можно задать ссылку: #якорь, /seo-slug или https://...</p>
                                     <p className="text-xs text-slate-500">Заполните поля и нажмите +. Если забыли, введённый элемент добавится автоматически при сохранении.</p>
 

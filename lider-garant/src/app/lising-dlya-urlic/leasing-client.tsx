@@ -52,7 +52,7 @@ export default function Page({ seoPage }: LeasingPageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/lising-dlya-urlic",
+    "#leasing-form",
   );
 
   const TOTAL_OFFERS = 17;

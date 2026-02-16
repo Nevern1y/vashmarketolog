@@ -58,7 +58,6 @@ export default function DepositsPage({ seoPage }: DepositsPageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/deposity",
   );
 
   const formSchema = z.object({

@@ -149,7 +149,7 @@ export default function Page({ seoPage }: RkoPageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/rko",
+    "#rko-form",
   );
 
   const formSchema = z.object({

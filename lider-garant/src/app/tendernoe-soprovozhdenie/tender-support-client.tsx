@@ -4,6 +4,7 @@ import ManagerCTASection from "@/components/ManagerCTASection";
 import SeeAlso from "@/components/see-also";
 import TenderSupportForm from "@/components/TenderSupportForm";
 import { Button } from "@/components/ui/button";
+import { normalizePopularSearches } from "@/lib/popular-searches";
 import type { SeoPageData } from "@/lib/seo-api";
 import Link from "next/link";
 
@@ -84,30 +85,6 @@ interface TenderSupportClientProps {
   seoPage?: SeoPageData | null;
 }
 
-const normalizePopularSearches = (
-  searches: SeoPageData["popular_searches"] | undefined,
-) => {
-  if (!Array.isArray(searches) || searches.length === 0) {
-    return [];
-  }
-
-  const normalized = searches
-    .map((item) => {
-      if (typeof item === "string") {
-        const text = item.trim();
-        return text ? { text, href: "#application" } : null;
-      }
-
-      const text = String(item?.text || "").trim();
-      if (!text) return null;
-
-      const href = String(item?.href || "#application").trim() || "#application";
-      return { text, href };
-    })
-    .filter((item): item is { text: string; href: string } => item !== null);
-
-  return normalized;
-};
 
 export default function TenderSupportClient({ seoPage }: TenderSupportClientProps) {
   const heroTitle = seoPage?.h1_title?.trim() || "Тендерное сопровождение";
@@ -116,7 +93,7 @@ export default function TenderSupportClient({ seoPage }: TenderSupportClientProp
     "Бесплатная консультация специалиста — узнайте про закупки все!";
   const heroButtonText = seoPage?.hero_button_text?.trim() || "Свяжитесь со мной!";
   const heroButtonHref = seoPage?.hero_button_href?.trim() || "#tender-support-form";
-  const popularSearches = normalizePopularSearches(seoPage?.popular_searches);
+  const popularSearches = normalizePopularSearches(seoPage?.popular_searches, []);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16">

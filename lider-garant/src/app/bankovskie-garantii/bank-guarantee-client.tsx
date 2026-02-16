@@ -64,8 +64,8 @@ const guarantees = [
   },
 ];
 
-const defaultPopularSearchTerms = [
-  "Банковские гарантии на исполнение контракта",
+const defaultPopularSearchTerms: Array<string | { text: string; href: string }> = [
+  { text: "Банковские гарантии на исполнение контракта", href: "/bankovskie-garantii-na-ispolnenie-kontrakta" },
   "Банковские гарантии для ИП",
   "Банковские гарантии на участие в тендере",
   "Банковские гарантии для ООО",
@@ -93,7 +93,7 @@ export default function BankGuaranteePage({ seoPage }: BankGuaranteePageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/v-razrabotke",
+    "#form",
   );
 
   const [showAll, setShowAll] = useState(false);

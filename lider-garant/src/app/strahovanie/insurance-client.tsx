@@ -51,7 +51,7 @@ export default function Page({ seoPage }: InsurancePageProps) {
   const popularSearches = normalizePopularSearches(
     seoPage?.popular_searches,
     defaultPopularSearchTerms,
-    "/strahovanie",
+    "#insurance-form",
   );
 
   const formSchema = z.object({
