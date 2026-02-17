@@ -635,7 +635,7 @@ export function SeoPageEditor({
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col overflow-hidden">
                         <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto [@media(max-height:820px)]:mb-3">
                             <TabsTrigger
@@ -675,7 +675,7 @@ export function SeoPageEditor({
                             </TabsTrigger>
                         </TabsList>
 
-                        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-0 sm:pr-2">
+                        <div className="flex-1 min-h-0 pr-0 sm:pr-2">
                             {/* MAIN TAB */}
                             <TabsContent value="main" className="mt-0 space-y-5 [@media(max-height:820px)]:space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
