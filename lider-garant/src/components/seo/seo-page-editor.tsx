@@ -636,7 +636,7 @@ export function SeoPageEditor({
                 </DialogHeader>
 
                 <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col overflow-hidden">
                         <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto [@media(max-height:820px)]:mb-3">
                             <TabsTrigger
                                 value="main"

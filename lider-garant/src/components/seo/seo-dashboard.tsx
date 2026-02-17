@@ -282,7 +282,7 @@ export function SeoDashboard() {
                 </div>
 
                 {/* Table */}
-                <div className="rounded-xl border border-[#3ce8d1]/20 bg-[#0b0b12]/50 shadow-xl overflow-hidden backdrop-blur-sm">
+                <div className="rounded-xl border border-[#3ce8d1]/20 bg-[#0b0b12]/50 shadow-xl overflow-x-auto backdrop-blur-sm">
                     <Table className="min-w-[920px]">
                         <TableHeader className="bg-[#1d194c]/50">
                             <TableRow className="border-b-slate-700 hover:bg-transparent">
