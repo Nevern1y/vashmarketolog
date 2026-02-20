@@ -81,6 +81,31 @@ const tenderTypes = [
   },
 ];
 
+const defaultPopularSearchTerms = [
+  "Электронный тендер",
+  "Участие в тендерах",
+  "Электронный тендер",
+  "Тендеры на строительство",
+  "Строительные тендеры",
+  "Поиск тендеров",
+  "Тендеры и закупки",
+  "Специалист по тендерам",
+  "Коммерческие тендеры",
+  "Государственные тендеры",
+  "Сопровождение тендеров",
+  "Аутсорсинг тендеров",
+  "Ведение тендеров",
+  "Специалист по закупкам",
+  "Менеджер по закупкам",
+  "Тендеры",
+  "Госконтракты",
+  "Госзаказ",
+  "Закупки",
+  "Госзакупки",
+  "Подача заявок тендер",
+  "Подача заявки на участие в тендерах",
+];
+
 interface TenderSupportClientProps {
   seoPage?: SeoPageData | null;
 }
@@ -93,7 +118,11 @@ export default function TenderSupportClient({ seoPage }: TenderSupportClientProp
     "Бесплатная консультация специалиста — узнайте про закупки все!";
   const heroButtonText = seoPage?.hero_button_text?.trim() || "Свяжитесь со мной!";
   const heroButtonHref = seoPage?.hero_button_href?.trim() || "#tender-support-form";
-  const popularSearches = normalizePopularSearches(seoPage?.popular_searches, []);
+  const popularSearches = normalizePopularSearches(
+    seoPage?.popular_searches,
+    defaultPopularSearchTerms,
+    "#application",
+  );
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-10 md:py-16">
