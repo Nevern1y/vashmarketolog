@@ -628,7 +628,7 @@ export function SeoPageEditor({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-full max-w-[1120px] max-h-[calc(100vh-1rem)] max-h-[calc(100svh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:max-h-[calc(100svh-2rem)] sm:max-h-[calc(100dvh-2rem)] !overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0">
+            <DialogContent className="w-full max-w-[1120px] max-h-[calc(100vh-1rem)] max-h-[calc(100svh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:max-h-[calc(100svh-2rem)] sm:max-h-[calc(100dvh-2rem)] !overflow-hidden flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0 sm:p-0">
                 <DialogHeader className="flex-shrink-0 border-b border-slate-700/50 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:pt-3 [@media(max-height:820px)]:pb-2">
                     <DialogTitle className="text-xl font-bold text-white [@media(max-height:820px)]:text-lg">
                         {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}

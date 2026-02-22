@@ -1,6 +1,5 @@
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getSeoPage } from "@/lib/seo-api";
@@ -26,8 +25,6 @@ const normalizeUiHref = (value?: string) => {
     }
     return `/${href.replace(/^\/+/, "")}`;
 };
-
-const isExternalHref = (value: string) => /^https?:\/\//i.test(value);
 
 const normalizeApiBaseUrl = (value?: string | null) => {
     const clean = String(value || "").trim();
@@ -140,6 +137,7 @@ export default async function DynamicSeoPage({ params }: Props) {
                 applicationButtonText={page.application_button_text}
                 offers={page.bank_offers}
                 popularSearches={popularSearches}
+                showPopularSearches={false}
             />
         );
     }
@@ -237,38 +235,6 @@ export default async function DynamicSeoPage({ params }: Props) {
                                         {item.answer}
                                     </div>
                                 </details>
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                {/* Popular Searches Section */}
-                {popularSearches.length > 0 && (
-                    <section className="space-y-4">
-                        <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                            <span className="text-[#3ce8d1]">🔍</span> Часто ищут
-                        </h2>
-                        <div className="flex flex-wrap gap-2">
-                            {popularSearches.map((item: { text: string; href?: string }, idx: number) => (
-                                isExternalHref(normalizeUiHref(item.href)) ? (
-                                    <a
-                                        key={idx}
-                                        href={normalizeUiHref(item.href)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors"
-                                    >
-                                        {item.text}
-                                    </a>
-                                ) : (
-                                    <Link
-                                        key={idx}
-                                        href={normalizeUiHref(item.href)}
-                                        className="px-4 py-2 rounded-full bg-[#3ce8d1]/10 text-[#3ce8d1] text-sm border border-[#3ce8d1]/30 hover:bg-[#3ce8d1]/20 transition-colors"
-                                    >
-                                        {item.text}
-                                    </Link>
-                                )
                             ))}
                         </div>
                     </section>
