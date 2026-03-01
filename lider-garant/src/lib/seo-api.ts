@@ -178,10 +178,10 @@ export async function getSeoPage(slug: string, options: SeoApiRequestOptions = {
             }
 
             if (response.status !== 404) {
-                console.error(`[SEO API] Error fetching ${slug} from ${baseUrl}: ${response.status}`);
+                // Non-404 error — try next base URL
             }
         } catch (error) {
-            console.error(`[SEO API] Failed to fetch ${slug} from ${baseUrl}:`, error);
+            // Fetch failed — try next base URL
         }
     }
 
@@ -214,14 +214,13 @@ export async function getAllSeoPages(options: SeoApiRequestOptions = {}): Promis
             });
 
             if (!response.ok) {
-                console.error(`[SEO API] Error fetching all pages from ${baseUrl}: ${response.status}`);
                 continue;
             }
 
             const data = await response.json();
             return Array.isArray(data) ? data : (data.results || []);
         } catch (error) {
-            console.error(`[SEO API] Failed to fetch all pages from ${baseUrl}:`, error);
+            // Fetch failed — try next base URL
         }
     }
 

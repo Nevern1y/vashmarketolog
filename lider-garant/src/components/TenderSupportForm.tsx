@@ -104,7 +104,6 @@ export default function TenderSupportForm() {
 
       form.reset();
     } catch (error) {
-      console.error("Error submitting form:", error);
       toast.error("Произошла ошибка при отправке формы. Попробуйте еще раз.");
     }
   };

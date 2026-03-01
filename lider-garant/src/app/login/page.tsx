@@ -43,13 +43,12 @@ export default function LoginPage() {
     try {
       const result = await loginApi(values as LoginData);
       if (result.success) {
-        console.log("Login successful:", result);
+        // Login successful — auth context handles redirect
       } else {
         setError(result.message || "Ошибка входа");
       }
     } catch (err) {
       setError("Произошла ошибка при входе");
-      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }

@@ -119,7 +119,6 @@ export function SeoDashboard() {
             }
         } catch (error) {
             const apiError = error as ApiError
-            console.error("Failed to fetch SEO pages:", error)
 
             if (apiError?.status === 401 || apiError?.status === 403) {
                 toast.error("Нет доступа к SEO админке", {
@@ -175,7 +174,6 @@ export function SeoDashboard() {
             toast.success("Страница удалена")
         } catch (error) {
             const apiError = error as ApiError
-            console.error("Failed to delete page:", error)
             toast.error(apiError?.message || "Ошибка при удалении страницы")
         } finally {
             setIsDeleting(false)
@@ -203,7 +201,6 @@ export function SeoDashboard() {
             return true
         } catch (error) {
             const apiError = error as ApiError
-            console.error("Failed to save page:", error)
 
             if (apiError?.status === 401 || apiError?.status === 403) {
                 toast.error("Сессия истекла", {

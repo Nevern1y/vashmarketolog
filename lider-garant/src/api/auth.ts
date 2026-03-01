@@ -36,7 +36,6 @@ export const loginApi = async (data: LoginData): Promise<AuthResponse> => {
 
     return await response.json();
   } catch (error) {
-    console.error("Login error:", error);
     throw error;
   }
 };
@@ -59,7 +58,6 @@ export const registerApi = async (
 
     return await response.json();
   } catch (error) {
-    console.error("Registration error:", error);
     throw error;
   }
 };

@@ -235,11 +235,9 @@ class ApiClient {
                 }
             }
 
-            // Debug logging - skip 404s to avoid noise during polling of deleted items
+            // Skip 404s to avoid noise during polling of deleted items
             if (response.status !== 404) {
-                console.error("[API ERROR] Status:", response.status);
-                console.error("[API ERROR] URL:", response.url);
-                console.error("[API ERROR] Response:", JSON.stringify(errorData, null, 2));
+                // Error details are included in the thrown ApiError below
             }
 
             // Extract user-friendly error message

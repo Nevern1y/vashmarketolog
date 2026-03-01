@@ -56,7 +56,6 @@ export default function RegisterPage() {
       }
     } catch (err) {
       setError("Произошла ошибка при регистрации");
-      console.error("Registration error:", err);
     } finally {
       setIsLoading(false);
     }

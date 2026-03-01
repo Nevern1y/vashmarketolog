@@ -14,14 +14,12 @@ async function fetchSeoPages(): Promise<SeoPageSlug[]> {
     });
     
     if (!response.ok) {
-      console.warn("[Sitemap] Failed to fetch SEO pages:", response.status);
       return [];
     }
     
     const pages = await response.json();
     return Array.isArray(pages) ? pages : [];
   } catch (error) {
-    console.warn("[Sitemap] Error fetching SEO pages:", error);
     return [];
   }
 }
