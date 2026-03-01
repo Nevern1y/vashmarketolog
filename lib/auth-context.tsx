@@ -61,11 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         initialized.current = true;
 
         const initAuth = async () => {
-            console.log('[AUTH] Initializing auth context...');
-
             // Check if we're in a browser environment
             if (typeof window === 'undefined') {
-                console.log('[AUTH] SSR detected, skipping hydration');
                 setIsLoading(false);
                 return;
             }
@@ -74,31 +71,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const accessToken = tokenStorage.getAccessToken();
             const refreshToken = tokenStorage.getRefreshToken();
 
-            console.log('[AUTH] Tokens in storage:', {
-                hasAccess: !!accessToken,
-                hasRefresh: !!refreshToken
-            });
-
             // If no tokens at all, user is not authenticated
             if (!accessToken && !refreshToken) {
-                console.log('[AUTH] No tokens found, user not authenticated');
                 setIsLoading(false);
                 return;
             }
 
             // Step 2: If we only have refresh token (no access), try to refresh first
             if (!accessToken && refreshToken) {
-                console.log('[AUTH] Only refresh token exists, attempting refresh...');
                 try {
                     const newTokens = await refreshAccessToken();
                     if (!newTokens) {
-                        console.log('[AUTH] Refresh failed, user not authenticated');
                         setIsLoading(false);
                         return;
                     }
-                    console.log('[AUTH] Token refreshed successfully');
                 } catch (err) {
-                    console.log('[AUTH] Refresh failed with error:', err);
                     setIsLoading(false);
                     return;
                 }
@@ -106,24 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Step 3: Now we should have an access token, try to fetch user data
             try {
-                console.log('[AUTH] Fetching user data...');
                 const userData = await authApi.getMe();
-                console.log('[AUTH] User data fetched:', { id: userData.id, email: userData.email, role: userData.role });
                 setUser(userData);
             } catch (err) {
                 const apiError = err as ApiError;
-                console.log('[AUTH] Failed to fetch user:', apiError.status, apiError.message);
 
                 // The API interceptor handles 401 and tries to refresh
                 // If we still get an error after refresh attempt, clear tokens
                 if (apiError.status === 401 || apiError.status === 403) {
-                    console.log('[AUTH] Token invalid/expired, clearing tokens');
                     tokenStorage.clearTokens();
                     setUser(null);
                 } else {
                     // Network error or server error - don't clear tokens yet
                     // User might just be offline
-                    console.log('[AUTH] Non-auth error, keeping tokens:', apiError.message);
                     // Still set user to null since we couldn't fetch
                     setUser(null);
                 }
@@ -131,7 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Step 4: ALWAYS set loading to false after check completes
             setIsLoading(false);
-            console.log('[AUTH] Initialization complete');
         };
 
         initAuth();
@@ -142,13 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(null);
 
         try {
-            console.log('[AUTH] Logging in...');
             const response = await authApi.login(email, password);
-            console.log('[AUTH] Login successful:', { id: response.user.id, role: response.user.role });
             setUser(response.user);
         } catch (err) {
             const apiError = err as ApiError;
-            console.log('[AUTH] Login failed:', apiError.message);
             setError(apiError.message || 'Ошибка входа. Проверьте данные.');
             throw err;
         } finally {
@@ -161,13 +139,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(null);
 
         try {
-            console.log('[AUTH] Registering...');
             const response = await authApi.register(payload);
-            console.log('[AUTH] Registration successful:', { id: response.user.id, role: response.user.role });
             setUser(response.user);
         } catch (err) {
             const apiError = err as ApiError;
-            console.log('[AUTH] Registration failed:', apiError.message);
 
             // Extract detailed validation errors from Django
             let errorMessage = apiError.message || 'Ошибка регистрации.';
@@ -194,21 +169,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const logout = useCallback(async () => {
-        console.log('[AUTH] Logging out...');
         setIsLoading(true);
 
         try {
             await authApi.logout();
         } catch (err) {
             // Ignore logout errors - we're logging out anyway
-            console.log('[AUTH] Logout API call failed (ignored):', err);
         } finally {
             setUser(null);
             if (typeof window !== 'undefined') {
                 localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY)
             }
             setIsLoading(false);
-            console.log('[AUTH] Logged out');
         }
     }, []);
 
@@ -255,7 +227,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const timeSinceLastActivity = now - lastActivityRef.current;
             
             if (timeSinceLastActivity > INACTIVITY_TIMEOUT_MS) {
-                console.log('[AUTH] User inactive for 2 hours, logging out...');
                 logout();
             }
         };
@@ -308,12 +279,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Refresh user data
     const refreshUser = useCallback(async () => {
         try {
-            console.log('[AUTH] Refreshing user data...');
             const userData = await authApi.getMe();
-            console.log('[AUTH] User data refreshed:', { id: userData.id, email: userData.email, role: userData.role });
             setUser(userData);
         } catch (err) {
-            console.log('[AUTH] Failed to refresh user:', err);
+            // Silently fail - caller can handle if needed
         }
     }, []);
 

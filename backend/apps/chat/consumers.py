@@ -405,10 +405,15 @@ class AdminChatListConsumer(AsyncWebsocketConsumer):
             
             # Get sender name
             sender_name = ''
-            if last_msg.sender.first_name or last_msg.sender.last_name:
-                sender_name = f"{last_msg.sender.first_name or ''} {last_msg.sender.last_name or ''}".strip()
-            if not sender_name:
-                sender_name = last_msg.sender.email
+            sender_email = None
+            if last_msg.sender:
+                if last_msg.sender.first_name or last_msg.sender.last_name:
+                    sender_name = f"{last_msg.sender.first_name or ''} {last_msg.sender.last_name or ''}" .strip()
+                if not sender_name:
+                    sender_name = last_msg.sender.email
+                sender_email = last_msg.sender.email
+            else:
+                sender_name = 'Удалённый пользователь'
             
             # Check if admin replied (last message is from admin)
             admin_replied = thread['last_sender_role'] == 'admin'
@@ -420,7 +425,7 @@ class AdminChatListConsumer(AsyncWebsocketConsumer):
             result.append({
                 'application_id': app_id,
                 'company_name': app.company.name if app.company else f'Заявка #{app_id}',
-                'last_sender_email': last_msg.sender.email,
+                'last_sender_email': sender_email,
                 'last_sender_name': sender_name,
                 'last_message_preview': last_msg.content[:100] if last_msg.content else '[Файл]',
                 'unread_count': thread['unread_count'],

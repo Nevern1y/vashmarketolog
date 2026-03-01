@@ -25,7 +25,9 @@ class ApplicationMessage(models.Model):
     )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='sent_messages',
         verbose_name='Отправитель'
     )
@@ -64,14 +66,19 @@ class ApplicationMessage(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Сообщение от {self.sender.email} в заявке #{self.application.id}"
+        sender_email = self.sender.email if self.sender else 'удалённый пользователь'
+        return f"Сообщение от {sender_email} в заявке #{self.application.id}"
 
     @property
     def sender_name(self):
         """Get sender display name."""
-        return self.sender.get_full_name() or self.sender.email
+        if self.sender:
+            return self.sender.get_full_name() or self.sender.email
+        return None
 
     @property
     def sender_role(self):
         """Get sender role."""
-        return self.sender.role
+        if self.sender:
+            return self.sender.role
+        return None

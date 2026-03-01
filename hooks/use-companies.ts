@@ -389,13 +389,10 @@ export function useMyCompany() {
 
         try {
             const payload = normalizeCompanyPayload(data);
-            console.log("[DEBUG] updateCompany payload:", payload);
             const response = await api.patch<Company>('/companies/me/', payload);
-            console.log("[DEBUG] updateCompany success:", response);
             setCompany(response);
             return response;
         } catch (err) {
-            console.error("[DEBUG] updateCompany error:", err);
             const apiError = err as ApiError;
 
             // Handle 401 Unauthorized - logout user
@@ -427,7 +424,6 @@ export function useMyCompany() {
                 }
             }
 
-            console.error("[DEBUG] Parsed error message:", errorMessage);
             setError(errorMessage);
             return null;
         } finally {
@@ -444,14 +440,11 @@ export function useMyCompany() {
 
         try {
             const payload = normalizeCompanyPayload(data);
-            console.log("[DEBUG] createCompany (using PATCH) payload:", payload);
             // Use PATCH instead of POST - backend auto-creates via get_or_create
             const response = await api.patch<Company>('/companies/me/', payload);
-            console.log("[DEBUG] createCompany success:", response);
             setCompany(response);
             return response;
         } catch (err) {
-            console.error("[DEBUG] createCompany error:", err);
             const apiError = err as ApiError;
 
             // Handle 401 Unauthorized - logout user

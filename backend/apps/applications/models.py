@@ -2,7 +2,7 @@
 Application models for Lider Garant.
 Loan/guarantee applications with status workflow and partner decisions.
 """
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 
 
@@ -235,13 +235,13 @@ class CalculationSession(models.Model):
     """
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='calculation_sessions',
         verbose_name='Создал'
     )
     company = models.ForeignKey(
         'companies.CompanyProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='calculation_sessions',
         verbose_name='Компания'
     )
@@ -321,13 +321,13 @@ class Application(models.Model):
     # Creator and Company
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='created_applications',
         verbose_name='Создал'
     )
     company = models.ForeignKey(
         'companies.CompanyProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='applications',
@@ -672,6 +672,67 @@ class Application(models.Model):
         """Can submit if in draft or info_requested (returned for revision)."""
         return self.status in [ApplicationStatus.DRAFT, ApplicationStatus.INFO_REQUESTED]
 
+    # =========================================================================
+    # STATUS STATE MACHINE
+    # =========================================================================
+    # Defines which transitions are allowed. Admin override via restore()
+    # is handled separately with its own transition set.
+    VALID_TRANSITIONS = {
+        ApplicationStatus.DRAFT: {
+            ApplicationStatus.PENDING,       # submit (initial)
+        },
+        ApplicationStatus.PENDING: {
+            ApplicationStatus.IN_REVIEW,     # send_to_review / assign
+            ApplicationStatus.INFO_REQUESTED,  # request_info
+            ApplicationStatus.APPROVED,      # approve (admin shortcut)
+            ApplicationStatus.REJECTED,      # reject
+        },
+        ApplicationStatus.IN_REVIEW: {
+            ApplicationStatus.INFO_REQUESTED,  # request_info / partner decision
+            ApplicationStatus.APPROVED,      # approve / partner decision
+            ApplicationStatus.REJECTED,      # reject / partner decision
+            ApplicationStatus.PENDING,       # restore to pending
+        },
+        ApplicationStatus.INFO_REQUESTED: {
+            ApplicationStatus.PENDING,       # resubmit by client/agent
+            ApplicationStatus.IN_REVIEW,     # resubmit (skip scoring) / send_to_review
+            ApplicationStatus.APPROVED,      # admin approve
+            ApplicationStatus.REJECTED,      # admin reject
+        },
+        ApplicationStatus.APPROVED: {
+            ApplicationStatus.WON,           # mark_issued
+            ApplicationStatus.LOST,          # mark_not_issued
+            ApplicationStatus.PENDING,       # restore
+        },
+        ApplicationStatus.REJECTED: {
+            ApplicationStatus.PENDING,       # restore
+        },
+        ApplicationStatus.WON: {
+            ApplicationStatus.PENDING,       # restore (admin override)
+        },
+        ApplicationStatus.LOST: {
+            ApplicationStatus.PENDING,       # restore (admin override)
+        },
+    }
+
+    def can_transition_to(self, new_status):
+        """Check if transition from current status to new_status is valid."""
+        allowed = self.VALID_TRANSITIONS.get(self.status, set())
+        return new_status in allowed
+
+    def transition_to(self, new_status):
+        """
+        Transition to a new status with validation.
+
+        Raises ValueError if transition is not allowed.
+        MUST be called inside transaction.atomic() with select_for_update().
+        """
+        if not self.can_transition_to(new_status):
+            raise ValueError(
+                f"Недопустимый переход статуса: "
+                f"{self.get_status_display()} → {ApplicationStatus(new_status).label}"
+            )
+
 
 
 class PartnerDecision(models.Model):
@@ -692,7 +753,7 @@ class PartnerDecision(models.Model):
     )
     partner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='decisions',
         verbose_name='Партнёр'
     )
@@ -746,7 +807,9 @@ class TicketMessage(models.Model):
     )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='ticket_messages',
         verbose_name='Отправитель'
     )
@@ -793,7 +856,8 @@ class TicketMessage(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Сообщение от {self.sender.email} в заявке #{self.application_id}"
+        sender_email = self.sender.email if self.sender else 'удалённый пользователь'
+        return f"Сообщение от {sender_email} в заявке #{self.application_id}"
 
     @property
     def file_url(self):
@@ -1019,7 +1083,9 @@ class LeadComment(models.Model):
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='lead_comments',
         verbose_name='Автор'
     )
@@ -1032,4 +1098,5 @@ class LeadComment(models.Model):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"Комментарий к лиду #{self.lead_id} от {self.author.email}"
+        author_email = self.author.email if self.author else 'удалённый пользователь'
+        return f"Комментарий к лиду #{self.lead_id} от {author_email}"

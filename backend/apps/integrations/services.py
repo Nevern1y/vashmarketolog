@@ -12,6 +12,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from django.conf import settings
+from django.db import transaction
 
 from apps.applications.models import Application, ProductType, GuaranteeType
 from apps.companies.models import CompanyProfile
@@ -751,26 +752,27 @@ class BankIntegrationService:
             
             # Update application with simulated external_id
             try:
-                application = Application.objects.get(id=application_id)
-                application.external_id = ticket_id_str
-                application.bank_status = 'Отправлено (Phase 1)'
-                # Update status after sending to bank
-                # Flow: draft -> pending (scoring) -> in_review (after scoring)
-                # Re-submission from INFO_REQUESTED should go directly to review
-                if application.status == ApplicationStatus.INFO_REQUESTED:
-                    application.status = ApplicationStatus.IN_REVIEW
-                elif application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
-                    application.status = ApplicationStatus.PENDING
-                
-                # Save client data snapshot (Phase 2 enhancement)
-                # This preserves the company data at the time of submission
-                company = application.company
-                if company and not application.full_client_data:
-                    application.full_client_data = self._create_company_snapshot(company)
-                    logger.info(f"[PHASE 1] Saved full_client_data snapshot for application {application_id}")
-                
-                application.save()
-                logger.info(f"[PHASE 1] Application {application_id} saved with external_id={ticket_id_str}")
+                with transaction.atomic():
+                    application = Application.objects.select_for_update().get(id=application_id)
+                    application.external_id = ticket_id_str
+                    application.bank_status = 'Отправлено (Phase 1)'
+                    # Update status after sending to bank
+                    # Flow: draft -> pending (scoring) -> in_review (after scoring)
+                    # Re-submission from INFO_REQUESTED should go directly to review
+                    if application.status == ApplicationStatus.INFO_REQUESTED:
+                        application.status = ApplicationStatus.IN_REVIEW
+                    elif application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                        application.status = ApplicationStatus.PENDING
+                    
+                    # Save client data snapshot (Phase 2 enhancement)
+                    # This preserves the company data at the time of submission
+                    company = application.company
+                    if company and not application.full_client_data:
+                        application.full_client_data = self._create_company_snapshot(company)
+                        logger.info(f"[PHASE 1] Saved full_client_data snapshot for application {application_id}")
+                    
+                    application.save()
+                    logger.info(f"[PHASE 1] Application {application_id} saved with external_id={ticket_id_str}")
             except Exception as e:
                 logger.error(f"Failed to save external_id for app {application_id}: {e}")
             
@@ -817,18 +819,19 @@ class BankIntegrationService:
         
         # Step 6: Update application with external_id
         try:
-            application = Application.objects.get(id=application_id)
-            application.external_id = ticket_id_str
-            application.bank_status = 'sent'
-            # Update status after sending to bank
-            # Flow: draft -> pending (scoring) -> in_review (after scoring)
-            # Re-submission from INFO_REQUESTED should go directly to review
-            if application.status == ApplicationStatus.INFO_REQUESTED:
-                application.status = ApplicationStatus.IN_REVIEW
-            elif application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
-                application.status = ApplicationStatus.PENDING
-            application.save()
-            logger.info(f"Application {application_id} saved with external_id={ticket_id_str}")
+            with transaction.atomic():
+                application = Application.objects.select_for_update().get(id=application_id)
+                application.external_id = ticket_id_str
+                application.bank_status = 'sent'
+                # Update status after sending to bank
+                # Flow: draft -> pending (scoring) -> in_review (after scoring)
+                # Re-submission from INFO_REQUESTED should go directly to review
+                if application.status == ApplicationStatus.INFO_REQUESTED:
+                    application.status = ApplicationStatus.IN_REVIEW
+                elif application.status in [ApplicationStatus.DRAFT, ApplicationStatus.PENDING]:
+                    application.status = ApplicationStatus.PENDING
+                application.save()
+                logger.info(f"Application {application_id} saved with external_id={ticket_id_str}")
         except Exception as e:
             logger.error(f"Failed to save external_id for app {application_id}: {e}")
             # Don't raise - the bank already accepted the ticket
@@ -989,64 +992,66 @@ class BankIntegrationService:
         
         logger.info(f"Processing bank webhook: ticket={external_id}, status_id={status_id}")
         
-        # Find application by external_id
-        try:
-            application = Application.objects.get(external_id=external_id)
-        except Application.DoesNotExist:
-            logger.error(f"No application found with external_id={external_id}")
-            return {
-                'success': False,
-                'error': f'Application with external_id {external_id} not found'
-            }
-        
-        # Look up status definition in our reference table
+        # Look up status definition in our reference table (read-only, outside transaction)
         status_def = None
-        try:
-            status_def = ApplicationStatusDefinition.objects.get(
-                status_id=status_id,
-                product_type=application.product_type
-            )
-        except ApplicationStatusDefinition.DoesNotExist:
-            # Try without product filter (for general statuses)
+        
+        with transaction.atomic():
+            # Find application by external_id with row lock
             try:
-                status_def = ApplicationStatusDefinition.objects.filter(
-                    status_id=status_id
-                ).first()
-            except:
-                pass
-        
-        # Update application
-        old_status = application.status
-        old_status_id = application.status_id
-        old_bank_status = application.bank_status
-        
-        # Always save bank's status_id
-        application.status_id = status_id
-        
-        # Update bank_status name
-        if status_name:
-            application.bank_status = status_name
-        elif status_def:
-            application.bank_status = status_def.name
-        
-        # Map to internal status if found in reference table
-        if status_def and status_def.internal_status:
-            # Map internal_status string to ApplicationStatus enum
-            internal_status_map = {
-                'draft': ApplicationStatus.DRAFT,
-                'pending': ApplicationStatus.PENDING,
-                'in_review': ApplicationStatus.IN_REVIEW,
-                'info_requested': ApplicationStatus.INFO_REQUESTED,
-                'approved': ApplicationStatus.APPROVED,
-                'rejected': ApplicationStatus.REJECTED,
-                'won': ApplicationStatus.WON,
-                'lost': ApplicationStatus.LOST,
-            }
-            new_internal = internal_status_map.get(status_def.internal_status)
-            if new_internal:
-                application.status = new_internal
-        
-        application.save()
+                application = Application.objects.select_for_update().get(external_id=external_id)
+            except Application.DoesNotExist:
+                logger.error(f"No application found with external_id={external_id}")
+                return {
+                    'success': False,
+                    'error': f'Application with external_id {external_id} not found'
+                }
+            
+            try:
+                status_def = ApplicationStatusDefinition.objects.get(
+                    status_id=status_id,
+                    product_type=application.product_type
+                )
+            except ApplicationStatusDefinition.DoesNotExist:
+                # Try without product filter (for general statuses)
+                try:
+                    status_def = ApplicationStatusDefinition.objects.filter(
+                        status_id=status_id
+                    ).first()
+                except:
+                    pass
+            
+            # Update application
+            old_status = application.status
+            old_status_id = application.status_id
+            old_bank_status = application.bank_status
+            
+            # Always save bank's status_id
+            application.status_id = status_id
+            
+            # Update bank_status name
+            if status_name:
+                application.bank_status = status_name
+            elif status_def:
+                application.bank_status = status_def.name
+            
+            # Map to internal status if found in reference table
+            if status_def and status_def.internal_status:
+                # Map internal_status string to ApplicationStatus enum
+                internal_status_map = {
+                    'draft': ApplicationStatus.DRAFT,
+                    'pending': ApplicationStatus.PENDING,
+                    'in_review': ApplicationStatus.IN_REVIEW,
+                    'info_requested': ApplicationStatus.INFO_REQUESTED,
+                    'approved': ApplicationStatus.APPROVED,
+                    'rejected': ApplicationStatus.REJECTED,
+                    'won': ApplicationStatus.WON,
+                    'lost': ApplicationStatus.LOST,
+                }
+                new_internal = internal_status_map.get(status_def.internal_status)
+                if new_internal:
+                    application.status = new_internal
+            
+            application.save()
         
         logger.info(
             f"Application {application.id} updated: "

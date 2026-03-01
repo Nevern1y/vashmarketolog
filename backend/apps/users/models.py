@@ -2,7 +2,10 @@
 Custom User model for Lider Garant.
 Supports 4 roles: Client, Agent, Partner (Bank), Admin.
 """
+import hashlib
+import hmac
 import uuid
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.db import models
 from django.utils import timezone
@@ -238,6 +241,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Check if user can access SEO admin panel."""
         return self.is_admin or self.is_seo
 
+    @staticmethod
+    def hash_token(token):
+        """
+        Hash a token using HMAC-SHA256 for secure storage.
+        Uses SECRET_KEY as the HMAC key so hashes are deterministic
+        (allowing DB lookups) but not reversible without the key.
+        """
+        if token is None:
+            return None
+        return hmac.new(
+            settings.SECRET_KEY.encode(),
+            token.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
     def generate_invite_token(self):
         """Generate a unique invite token for partner registration."""
         self.invite_token = uuid.uuid4()
@@ -275,9 +293,9 @@ class EmailVerificationCode(models.Model):
 
     @classmethod
     def generate_code(cls):
-        """Generate a 6-digit code."""
-        import random
-        return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        """Generate a 6-digit code using cryptographically secure randomness."""
+        import secrets
+        return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
 
     @classmethod
     def create_for_email(cls, email):

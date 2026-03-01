@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Q, Count, Case, When, IntegerField
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -283,34 +284,40 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         Submit application for review.
         POST /api/applications/{id}/submit/
         """
-        application = self.get_object()
-        
-        if not application.can_submit:
-            return Response(
-                {'error': 'Заявку нельзя подать на рассмотрение'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Validate has required documents
-        if not application.documents.exists():
-            return Response(
-                {'error': 'Необходимо прикрепить документы'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Determine target status based on current status
-        if application.status == ApplicationStatus.INFO_REQUESTED:
-            # Resubmission after revision - skip scoring, go directly to review
-            application.status = ApplicationStatus.IN_REVIEW
-            # Clear the info request message since revision is complete
-            application.info_request_message = ''
-        else:
-            # Initial submission from draft - go to scoring
-            application.status = ApplicationStatus.PENDING
-        
-        application.submitted_at = timezone.now()
-        application.save()
-        
+        self.get_object()  # DRF permission check
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            if not application.can_submit:
+                return Response(
+                    {'error': 'Заявку нельзя подать на рассмотрение'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Validate has required documents
+            if not application.documents.exists():
+                return Response(
+                    {'error': 'Необходимо прикрепить документы'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Determine target status based on current status
+            if application.status == ApplicationStatus.INFO_REQUESTED:
+                # Resubmission after revision - skip scoring, go directly to review
+                application.transition_to(ApplicationStatus.IN_REVIEW)
+                application.status = ApplicationStatus.IN_REVIEW
+                # Clear the info request message since revision is complete
+                application.info_request_message = ''
+            else:
+                # Initial submission from draft - go to scoring
+                application.transition_to(ApplicationStatus.PENDING)
+                application.status = ApplicationStatus.PENDING
+
+            application.submitted_at = timezone.now()
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -323,17 +330,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         Assign application to a partner (Admin only).
         POST /api/applications/{id}/assign/
         """
-        application = self.get_object()
+        self.get_object()  # DRF permission check
         serializer = ApplicationAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+
         partner_id = serializer.validated_data['partner_id']
         partner = User.objects.get(id=partner_id)
-        
-        application.assigned_partner = partner
-        application.status = ApplicationStatus.IN_REVIEW
-        application.save()
-        
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+            application.assigned_partner = partner
+            if application.can_transition_to(ApplicationStatus.IN_REVIEW):
+                application.status = ApplicationStatus.IN_REVIEW
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -348,36 +359,41 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Only the assigned partner can make decisions.
         """
-        application = self.get_object()
-        
-        # Check if user is the assigned partner
-        if application.assigned_partner != request.user:
-            return Response(
-                {'error': 'Вы не назначены на эту заявку'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
+        self.get_object()  # DRF permission check
+
         serializer = PartnerDecisionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # Create decision
-        decision = PartnerDecision.objects.create(
-            application=application,
-            partner=request.user,
-            **serializer.validated_data
-        )
-        
-        # Update application status based on decision
-        decision_type = serializer.validated_data['decision']
-        if decision_type == 'approved':
-            application.status = ApplicationStatus.APPROVED
-        elif decision_type == 'rejected':
-            application.status = ApplicationStatus.REJECTED
-        elif decision_type == 'info_requested':
-            application.status = ApplicationStatus.INFO_REQUESTED
-        
-        application.save()
-        
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            # Check if user is the assigned partner
+            if application.assigned_partner != request.user:
+                return Response(
+                    {'error': 'Вы не назначены на эту заявку'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Create decision
+            decision = PartnerDecision.objects.create(
+                application=application,
+                partner=request.user,
+                **serializer.validated_data
+            )
+
+            # Update application status based on decision
+            decision_type = serializer.validated_data['decision']
+            status_map = {
+                'approved': ApplicationStatus.APPROVED,
+                'rejected': ApplicationStatus.REJECTED,
+                'info_requested': ApplicationStatus.INFO_REQUESTED,
+            }
+            new_status = status_map.get(decision_type)
+            if new_status and application.can_transition_to(new_status):
+                application.status = new_status
+                application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(responses={200: PartnerDecisionSerializer(many=True)})
@@ -406,23 +422,25 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Sets status to INFO_REQUESTED, allowing the agent to provide more information.
         """
-        application = self.get_object()
-        
-        # Can only request info for pending/in_review applications
-        if application.status not in [ApplicationStatus.PENDING, ApplicationStatus.IN_REVIEW]:
-            return Response(
-                {'error': 'Вернуть на доработку можно только для заявок на рассмотрении'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Save message if provided
+        self.get_object()  # DRF permission check
         message = request.data.get('message', '')
-        if message:
-            application.info_request_message = message
-        
-        application.status = ApplicationStatus.INFO_REQUESTED
-        application.save()
-        
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            if not application.can_transition_to(ApplicationStatus.INFO_REQUESTED):
+                return Response(
+                    {'error': 'Вернуть на доработку можно только для заявок на рассмотрении'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if message:
+                application.info_request_message = message
+
+            application.status = ApplicationStatus.INFO_REQUESTED
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -437,17 +455,22 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Sets status to APPROVED.
         """
-        application = self.get_object()
-        
-        if application.status == ApplicationStatus.APPROVED:
-            return Response(
-                {'error': 'Заявка уже одобрена'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        application.status = ApplicationStatus.APPROVED
-        application.save()
-        
+        self.get_object()  # DRF permission check
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            if application.status == ApplicationStatus.APPROVED:
+                return Response(
+                    {'error': 'Заявка уже одобрена'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            application.transition_to(ApplicationStatus.APPROVED)
+            application.status = ApplicationStatus.APPROVED
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -462,17 +485,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Sets status to WON ("Выдан").
         """
-        application = self.get_object()
+        self.get_object()  # DRF permission check
 
-        if application.status != ApplicationStatus.APPROVED:
-            return Response(
-                {'error': 'Отметить как выданную можно только после статуса «Одобрен»'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
 
-        application.status = ApplicationStatus.WON
-        application.save()
+            if not application.can_transition_to(ApplicationStatus.WON):
+                return Response(
+                    {'error': 'Отметить как выданную можно только после статуса «Одобрен»'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
+            application.status = ApplicationStatus.WON
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -487,17 +514,21 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Sets status to LOST ("Не выдан").
         """
-        application = self.get_object()
+        self.get_object()  # DRF permission check
 
-        if application.status != ApplicationStatus.APPROVED:
-            return Response(
-                {'error': 'Отметить как не выданную можно только после статуса «Одобрен»'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
 
-        application.status = ApplicationStatus.LOST
-        application.save()
+            if not application.can_transition_to(ApplicationStatus.LOST):
+                return Response(
+                    {'error': 'Отметить как не выданную можно только после статуса «Одобрен»'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
+            application.status = ApplicationStatus.LOST
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -514,22 +545,26 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Sets status to REJECTED.
         """
-        application = self.get_object()
-        
-        if application.status == ApplicationStatus.REJECTED:
-            return Response(
-                {'error': 'Заявка уже отклонена'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Save rejection reason if provided
+        self.get_object()  # DRF permission check
         reason = request.data.get('reason', '')
-        if reason:
-            application.rejection_reason = reason
-        
-        application.status = ApplicationStatus.REJECTED
-        application.save()
-        
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            if application.status == ApplicationStatus.REJECTED:
+                return Response(
+                    {'error': 'Заявка уже отклонена'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            application.transition_to(ApplicationStatus.REJECTED)
+            if reason:
+                application.rejection_reason = reason
+
+            application.status = ApplicationStatus.REJECTED
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -544,17 +579,22 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Allows to bring back rejected or info_requested applications to pending.
         """
-        application = self.get_object()
-        
-        if application.status == ApplicationStatus.PENDING:
-            return Response(
-                {'error': 'Заявка уже на рассмотрении'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        application.status = ApplicationStatus.PENDING
-        application.save()
-        
+        self.get_object()  # DRF permission check
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            if application.status == ApplicationStatus.PENDING:
+                return Response(
+                    {'error': 'Заявка уже на рассмотрении'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            application.transition_to(ApplicationStatus.PENDING)
+            application.status = ApplicationStatus.PENDING
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -569,23 +609,27 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         
         Changes status from PENDING to IN_REVIEW when admin sends application to bank.
         """
-        application = self.get_object()
-        
-        if application.status == ApplicationStatus.IN_REVIEW:
-            return Response(
-                {'error': 'Заявка уже на рассмотрении в банке'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if application.status not in [ApplicationStatus.PENDING, ApplicationStatus.INFO_REQUESTED]:
-            return Response(
-                {'error': f'Невозможно отправить на рассмотрение заявку со статусом {application.get_status_display()}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        application.status = ApplicationStatus.IN_REVIEW
-        application.save()
-        
+        self.get_object()  # DRF permission check
+
+        with transaction.atomic():
+            application = Application.objects.select_for_update().get(pk=pk)
+
+            if application.status == ApplicationStatus.IN_REVIEW:
+                return Response(
+                    {'error': 'Заявка уже на рассмотрении в банке'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if not application.can_transition_to(ApplicationStatus.IN_REVIEW):
+                return Response(
+                    {'error': f'Невозможно отправить на рассмотрение заявку со статусом {application.get_status_display()}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            application.status = ApplicationStatus.IN_REVIEW
+            application.save()
+
+        application.refresh_from_db()
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 
     @extend_schema(
@@ -1308,24 +1352,25 @@ class LeadViewSet(viewsets.ModelViewSet):
         
         # Create Application from Lead data (with overrides applied)
         # Admin is set as creator - client can be linked later when they register
-        application = Application.objects.create(
-            created_by=request.user,
-            company=None,  # Will be filled when client completes profile
-            product_type=final_product,
-            guarantee_type=final_guarantee,
-            amount=final_amount,
-            term_months=final_term,
-            status=ApplicationStatus.DRAFT,
-            notes=f"Создано из лида #{lead.id}\n"
-                  f"Контакт: {lead.full_name}\n"
-                  f"Телефон: {lead.phone}\n"
-                  f"Email: {lead.email or 'не указан'}",
-        )
-        
-        # Link lead to created application
-        lead.converted_application = application
-        lead.status = LeadStatus.CONVERTED
-        lead.save()
+        with transaction.atomic():
+            application = Application.objects.create(
+                created_by=request.user,
+                company=None,  # Will be filled when client completes profile
+                product_type=final_product,
+                guarantee_type=final_guarantee,
+                amount=final_amount,
+                term_months=final_term,
+                status=ApplicationStatus.DRAFT,
+                notes=f"Создано из лида #{lead.id}\n"
+                      f"Контакт: {lead.full_name}\n"
+                      f"Телефон: {lead.phone}\n"
+                      f"Email: {lead.email or 'не указан'}",
+            )
+            
+            # Link lead to created application
+            lead.converted_application = application
+            lead.status = LeadStatus.CONVERTED
+            lead.save()
         
         return Response({
             'status': 'ok',
@@ -1545,10 +1590,15 @@ class ChatThreadViewSet(viewsets.ViewSet):
             
             # Get sender name
             sender_name = ''
-            if last_msg.sender.first_name or last_msg.sender.last_name:
-                sender_name = f"{last_msg.sender.first_name or ''} {last_msg.sender.last_name or ''}".strip()
-            if not sender_name:
-                sender_name = last_msg.sender.email
+            sender_email = None
+            if last_msg.sender:
+                if last_msg.sender.first_name or last_msg.sender.last_name:
+                    sender_name = f"{last_msg.sender.first_name or ''} {last_msg.sender.last_name or ''}".strip()
+                if not sender_name:
+                    sender_name = last_msg.sender.email
+                sender_email = last_msg.sender.email
+            else:
+                sender_name = 'Удалённый пользователь'
             
             # Check if admin replied (last message is from admin)
             admin_replied = thread['last_sender_role'] == 'admin'
@@ -1579,7 +1629,7 @@ class ChatThreadViewSet(viewsets.ViewSet):
             result.append({
                 'application_id': app_id,
                 'company_name': app.company.name if app.company else f'Заявка #{app_id}',
-                'last_sender_email': last_msg.sender.email,
+                'last_sender_email': sender_email,
                 'last_sender_name': sender_name,
                 'last_message_preview': last_msg.content[:100] if last_msg.content else '[Файл]',
                 'unread_count': thread['unread_count'],

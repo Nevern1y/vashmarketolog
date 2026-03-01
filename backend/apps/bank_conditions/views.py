@@ -4,6 +4,7 @@ Views for Bank Conditions API.
 import logging
 
 from django.conf import settings
+from django.db import transaction
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -118,18 +119,27 @@ class AdminBankViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        user = User.objects.create(
-            email=email,
-            first_name=serializer.validated_data.get('first_name', ''),
-            last_name=serializer.validated_data.get('last_name', ''),
-            role='partner',
-            is_active=False,
-            invited_by=request.user,
-        )
-        user.generate_invite_token()
+        with transaction.atomic():
+            # Re-fetch bank with row lock to prevent double-invite race
+            bank = Bank.objects.select_for_update().get(pk=bank.pk)
+            if bank.partner_user:
+                return Response(
+                    {'error': 'Банк уже связан с аккаунтом партнёра'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        bank.partner_user = user
-        bank.save(update_fields=['partner_user'])
+            user = User.objects.create(
+                email=email,
+                first_name=serializer.validated_data.get('first_name', ''),
+                last_name=serializer.validated_data.get('last_name', ''),
+                role='partner',
+                is_active=False,
+                invited_by=request.user,
+            )
+            user.generate_invite_token()
+
+            bank.partner_user = user
+            bank.save(update_fields=['partner_user'])
 
         invite_url, relative_invite_url = self._build_invite_urls(user)
         email_sent, email_queued, email_error = self._send_partner_invite_email(bank.name, email, invite_url)
@@ -262,14 +272,23 @@ class AdminBankViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if hasattr(partner_user, 'partner_bank') and partner_user.partner_bank and partner_user.partner_bank.id != bank.id:
-            return Response(
-                {'error': 'Этот партнёр уже связан с другим банком'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        with transaction.atomic():
+            # Re-fetch bank with row lock to prevent race condition
+            bank = Bank.objects.select_for_update().get(pk=bank.pk)
+            if bank.partner_user:
+                return Response(
+                    {'error': 'Банк уже связан с аккаунтом партнёра'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        bank.partner_user = partner_user
-        bank.save(update_fields=['partner_user'])
+            if hasattr(partner_user, 'partner_bank') and partner_user.partner_bank and partner_user.partner_bank.id != bank.id:
+                return Response(
+                    {'error': 'Этот партнёр уже связан с другим банком'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            bank.partner_user = partner_user
+            bank.save(update_fields=['partner_user'])
 
         return Response(AdminBankSerializer(bank).data)
 

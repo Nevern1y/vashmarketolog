@@ -9,7 +9,7 @@ class MessageSerializer(serializers.ModelSerializer):
     """
     Full serializer for chat messages.
     """
-    sender_email = serializers.EmailField(source='sender.email', read_only=True)
+    sender_email = serializers.SerializerMethodField()
     sender_name = serializers.CharField(read_only=True)
     sender_role = serializers.CharField(read_only=True)
     attachment_url = serializers.SerializerMethodField()
@@ -39,6 +39,9 @@ class MessageSerializer(serializers.ModelSerializer):
             'is_moderated',
             'created_at',
         ]
+
+    def get_sender_email(self, obj):
+        return obj.sender.email if obj.sender else None
 
     def get_attachment_url(self, obj):
         """Get full URL for attachment."""
@@ -90,7 +93,7 @@ class MessageListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for message list.
     """
-    sender_email = serializers.EmailField(source='sender.email', read_only=True)
+    sender_email = serializers.SerializerMethodField()
     sender_name = serializers.CharField(read_only=True)
     sender_role = serializers.CharField(read_only=True)
 
@@ -106,6 +109,9 @@ class MessageListSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = fields
+
+    def get_sender_email(self, obj):
+        return obj.sender.email if obj.sender else None
 
 
 class MessageModerateSerializer(serializers.Serializer):

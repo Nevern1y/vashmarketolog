@@ -103,13 +103,13 @@ class Document(models.Model):
     # Ownership
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='documents',
         verbose_name='Владелец'
     )
     company = models.ForeignKey(
         'companies.CompanyProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='documents',
         verbose_name='Компания',
         null=True,
@@ -224,7 +224,7 @@ class DocumentRequest(models.Model):
     # Who needs to provide the document
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='document_requests',
         verbose_name='Пользователь'
     )

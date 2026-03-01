@@ -699,6 +699,10 @@ def create_chat_message_notification(sender, instance, created, **kwargs):
     application = message.application
     sender_user = message.sender
     
+    # Skip notification if sender was deleted
+    if not sender_user:
+        return
+    
     # Get sender display name
     sender_name = sender_user.first_name or sender_user.email
     if sender_user.first_name and sender_user.last_name:
@@ -782,6 +786,10 @@ def create_ticket_message_notification(sender, instance, created, **kwargs):
     message = instance
     application = message.application
     sender_user = message.sender
+    
+    # Skip notification if sender was deleted
+    if not sender_user:
+        return
     
     # Get sender display name
     sender_name = sender_user.first_name or sender_user.email

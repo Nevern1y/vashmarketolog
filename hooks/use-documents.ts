@@ -235,13 +235,6 @@ export function useDocumentMutations(): {
                 formData.append('company', payload.company.toString());
             }
 
-            console.log('[useDocumentMutations] Uploading payload:', {
-                name: payload.name,
-                document_type_id: payload.document_type_id,
-                product_type: payload.product_type,
-                company: payload.company
-            });
-
             const response = await api.uploadWithProgress<Document>(
                 '/documents/',
                 formData,
@@ -250,9 +243,7 @@ export function useDocumentMutations(): {
 
             return response;
         } catch (err: any) {
-            console.error('[useDocumentMutations] Full error object:', err);
             const apiError = err as ApiError;
-            console.error('[useDocumentMutations] Upload error details:', apiError.errors || apiError);
             
             // Format error message from field errors
             let message = apiError.message || 'Ошибка загрузки документа';

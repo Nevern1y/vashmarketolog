@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiResponse
@@ -580,28 +581,31 @@ class AccreditationDecisionView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        action = request.data.get('action')
+        action_value = request.data.get('action')
         comment = request.data.get('comment', '')
         
-        if action not in ['approve', 'reject']:
+        if action_value not in ['approve', 'reject']:
             return Response(
                 {'error': 'Неверное действие. Допустимо: approve, reject'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        if action == 'approve':
-            agent.accreditation_status = 'approved'
-        else:
-            agent.accreditation_status = 'rejected'
-        
-        agent.accreditation_comment = comment
-        agent.accreditation_reviewed_by = request.user
-        agent.accreditation_reviewed_at = timezone.now()
-        agent.save()
+        with transaction.atomic():
+            agent = User.objects.select_for_update().get(pk=pk)
+            
+            if action_value == 'approve':
+                agent.accreditation_status = 'approved'
+            else:
+                agent.accreditation_status = 'rejected'
+            
+            agent.accreditation_comment = comment
+            agent.accreditation_reviewed_by = request.user
+            agent.accreditation_reviewed_at = timezone.now()
+            agent.save()
         
         return Response({
             'status': 'ok',
-            'message': 'Аккредитация одобрена' if action == 'approve' else 'Аккредитация отклонена',
+            'message': 'Аккредитация одобрена' if action_value == 'approve' else 'Аккредитация отклонена',
             'new_status': agent.accreditation_status,
         })
 
@@ -776,37 +780,38 @@ class InvitedClientRegisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Create new client user
-        user = User.objects.create_user(
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            phone=phone,
-            role='client',
-            is_active=True,
-        )
-        
-        # Link client to the agent who invited them
-        user.invited_by = company.owner
-        user.save(update_fields=['invited_by'])
-        
-        # Link company to new user (keep original owner as agent)
-        # Create a new company for this client instead of changing ownership
-        new_company = CompanyProfile.objects.create(
-            owner=user,
-            is_crm_client=False,  # This is client's own company
-            inn=company.inn,
-            name=company.name,
-            short_name=company.short_name,
-            contact_email=email,
-            contact_phone=phone,
-            contact_person=f"{first_name} {last_name}".strip() or company.contact_person,
-        )
-        
-        # Update original CRM client company status to 'confirmed'
-        company.client_status = 'confirmed'
-        company.save()
+        # Create new client user, company, and update CRM status atomically
+        with transaction.atomic():
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                role='client',
+                is_active=True,
+            )
+            
+            # Link client to the agent who invited them
+            user.invited_by = company.owner
+            user.save(update_fields=['invited_by'])
+            
+            # Link company to new user (keep original owner as agent)
+            # Create a new company for this client instead of changing ownership
+            new_company = CompanyProfile.objects.create(
+                owner=user,
+                is_crm_client=False,  # This is client's own company
+                inn=company.inn,
+                name=company.name,
+                short_name=company.short_name,
+                contact_email=email,
+                contact_phone=phone,
+                contact_person=f"{first_name} {last_name}".strip() or company.contact_person,
+            )
+            
+            # Update original CRM client company status to 'confirmed'
+            company.client_status = 'confirmed'
+            company.save()
         
         # Generate tokens for immediate login
         refresh = RefreshToken.for_user(user)
@@ -857,7 +862,7 @@ class SendVerificationEmailView(APIView):
         
         # Generate token
         token = secrets.token_urlsafe(32)
-        user.email_verification_token = token
+        user.email_verification_token = User.hash_token(token)
         user.email_verification_sent_at = timezone.now()
         user.save(update_fields=['email_verification_token', 'email_verification_sent_at'])
         
@@ -911,7 +916,8 @@ class VerifyEmailView(APIView):
 
     def post(self, request, token):
         try:
-            user = User.objects.get(email_verification_token=token)
+            token_hash = User.hash_token(token)
+            user = User.objects.get(email_verification_token=token_hash)
         except User.DoesNotExist:
             return Response(
                 {'error': 'Неверный или устаревший токен'},
@@ -968,7 +974,7 @@ class PasswordResetRequestView(APIView):
             
             # Generate token
             token = secrets.token_urlsafe(32)
-            user.password_reset_token = token
+            user.password_reset_token = User.hash_token(token)
             user.password_reset_sent_at = timezone.now()
             user.save(update_fields=['password_reset_token', 'password_reset_sent_at'])
             
@@ -1047,7 +1053,8 @@ class PasswordResetConfirmView(APIView):
             )
         
         try:
-            user = User.objects.get(password_reset_token=token)
+            token_hash = User.hash_token(token)
+            user = User.objects.get(password_reset_token=token_hash)
         except User.DoesNotExist:
             return Response(
                 {'error': 'Неверный или устаревший токен'},

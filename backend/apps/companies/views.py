@@ -5,6 +5,7 @@ from rest_framework import viewsets, generics, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
 
@@ -385,23 +386,33 @@ class AdminCRMClientViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check for INN duplicates with other agents
-        if company.inn:
-            duplicates = CompanyProfile.objects.filter(
-                inn=company.inn,
-                is_crm_client=True,
-                client_status='confirmed'
-            ).exclude(id=company.id)
+        with transaction.atomic():
+            # Re-fetch with row lock inside transaction
+            company = CompanyProfile.objects.select_for_update().get(pk=company.pk)
             
-            if duplicates.exists():
-                other_agents = ', '.join([d.owner.email for d in duplicates])
+            if company.client_status == 'confirmed':
                 return Response(
-                    {'error': f'Компания с таким ИНН уже закреплена за агентом: {other_agents}'},
+                    {'error': 'Клиент уже закреплён'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-        
-        company.client_status = 'confirmed'
-        company.save()
+            
+            # Check for INN duplicates with other agents
+            if company.inn:
+                duplicates = CompanyProfile.objects.filter(
+                    inn=company.inn,
+                    is_crm_client=True,
+                    client_status='confirmed'
+                ).exclude(id=company.id)
+                
+                if duplicates.exists():
+                    other_agents = ', '.join([d.owner.email for d in duplicates])
+                    return Response(
+                        {'error': f'Компания с таким ИНН уже закреплена за агентом: {other_agents}'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            company.client_status = 'confirmed'
+            company.save()
         
         from .serializers import AdminCRMClientSerializer
         return Response(AdminCRMClientSerializer(company).data)
@@ -507,19 +518,23 @@ class AdminDirectClientsViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def block(self, request, pk=None):
         company = self.get_object()
-        company.is_active = False
-        company.save(update_fields=['is_active'])
-        if company.owner:
-            company.owner.is_active = False
-            company.owner.save(update_fields=['is_active'])
+        with transaction.atomic():
+            company = CompanyProfile.objects.select_for_update().get(pk=company.pk)
+            company.is_active = False
+            company.save(update_fields=['is_active'])
+            if company.owner:
+                company.owner.is_active = False
+                company.owner.save(update_fields=['is_active'])
         return Response(AdminDirectClientSerializer(company).data)
 
     @action(detail=True, methods=['post'])
     def unblock(self, request, pk=None):
         company = self.get_object()
-        company.is_active = True
-        company.save(update_fields=['is_active'])
-        if company.owner:
-            company.owner.is_active = True
-            company.owner.save(update_fields=['is_active'])
+        with transaction.atomic():
+            company = CompanyProfile.objects.select_for_update().get(pk=company.pk)
+            company.is_active = True
+            company.save(update_fields=['is_active'])
+            if company.owner:
+                company.owner.is_active = True
+                company.owner.save(update_fields=['is_active'])
         return Response(AdminDirectClientSerializer(company).data)

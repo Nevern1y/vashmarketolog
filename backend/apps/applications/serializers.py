@@ -855,10 +855,10 @@ class TicketMessageSerializer(serializers.ModelSerializer):
     Serializer for chat messages within applications.
     Supports file attachments via multipart/form-data.
     """
-    sender_id = serializers.IntegerField(source='sender.id', read_only=True)
-    sender_email = serializers.EmailField(source='sender.email', read_only=True)
+    sender_id = serializers.SerializerMethodField()
+    sender_email = serializers.SerializerMethodField()
     sender_name = serializers.SerializerMethodField()
-    sender_role = serializers.CharField(source='sender.role', read_only=True)
+    sender_role = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -879,6 +879,12 @@ class TicketMessageSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'application', 'sender', 'sender_id', 'sender_email', 'sender_name', 'sender_role', 'file_url', 'is_read', 'created_at']
 
+    def get_sender_id(self, obj):
+        return obj.sender_id
+
+    def get_sender_email(self, obj):
+        return obj.sender.email if obj.sender else None
+
     def get_sender_name(self, obj):
         """Get sender's full name."""
         if obj.sender:
@@ -887,6 +893,9 @@ class TicketMessageSerializer(serializers.ModelSerializer):
             full_name = f"{first} {last}".strip()
             return full_name if full_name else obj.sender.email
         return None
+
+    def get_sender_role(self, obj):
+        return obj.sender.role if obj.sender else None
 
     def get_file_url(self, obj):
         """Return absolute file URL."""
@@ -1065,7 +1074,7 @@ class LeadCreateSerializer(serializers.ModelSerializer):
 
 class LeadCommentSerializer(serializers.ModelSerializer):
     """Serializer for lead comments."""
-    author_email = serializers.EmailField(source='author.email', read_only=True)
+    author_email = serializers.SerializerMethodField()
     author_name = serializers.SerializerMethodField()
     
     class Meta:
@@ -1082,8 +1091,13 @@ class LeadCommentSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'author', 'created_at', 'author_email', 'author_name']
     
+    def get_author_email(self, obj):
+        return obj.author.email if obj.author else None
+
     def get_author_name(self, obj):
         """Get display name for author."""
+        if not obj.author:
+            return None
         if obj.author.first_name and obj.author.last_name:
             return f"{obj.author.first_name} {obj.author.last_name}"
         if obj.author.first_name:

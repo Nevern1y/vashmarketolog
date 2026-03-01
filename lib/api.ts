@@ -16,6 +16,34 @@ const REFRESH_TOKEN_KEY = 'lider_garant_refresh_token';
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
+// Default timeout for API requests (30 seconds)
+const DEFAULT_TIMEOUT_MS = 30_000;
+// Longer timeout for file uploads (2 minutes)
+const UPLOAD_TIMEOUT_MS = 120_000;
+
+/**
+ * Fetch wrapper that automatically aborts requests after a timeout.
+ * Prevents hanging connections from blocking the UI indefinitely.
+ */
+function timedFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  return fetch(input, {
+    ...init,
+    signal: controller.signal,
+  }).catch((err) => {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Превышено время ожидания ответа от сервера (${timeoutMs / 1000}с)`);
+    }
+    throw err;
+  }).finally(() => clearTimeout(timeoutId));
+}
+
 // Types
 export interface ApiError {
   message: string;
@@ -91,6 +119,7 @@ export const tokenStorage = {
 
 // Request queue for handling concurrent requests during token refresh
 let isRefreshing = false;
+let refreshPromise: Promise<AuthTokens | null> | null = null;
 let failedQueue: Array<{
   resolve: (value: Response) => void;
   reject: (error: Error) => void;
@@ -98,7 +127,9 @@ let failedQueue: Array<{
 }> = [];
 
 const processQueue = (error: Error | null) => {
-  failedQueue.forEach(async (prom) => {
+  const queue = [...failedQueue];
+  failedQueue = [];
+  queue.forEach(async (prom) => {
     if (error) {
       prom.reject(error);
     } else {
@@ -111,43 +142,54 @@ const processQueue = (error: Error | null) => {
       }
     }
   });
-  failedQueue = [];
 };
 
 // Refresh token function
 // EXPORTED for use in auth-context when only refresh token exists
+// Deduplicates concurrent calls — only one refresh request is in-flight at a time
 export async function refreshAccessToken(): Promise<AuthTokens | null> {
+  // If a refresh is already in progress, return the same promise
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
   const refreshToken = tokenStorage.getRefreshToken();
 
   if (!refreshToken) {
     return null;
   }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/refresh/`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refresh: refreshToken }),
-    });
+  refreshPromise = (async () => {
+    try {
+      const response = await timedFetch(`${API_BASE_URL}/auth/refresh/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
 
-    if (!response.ok) {
-      throw new Error('Token refresh failed');
+      if (!response.ok) {
+        throw new Error('Token refresh failed');
+      }
+
+      const data = await response.json();
+      const tokens: AuthTokens = {
+        access: data.access,
+        refresh: data.refresh || refreshToken, // Some APIs don't return new refresh token
+      };
+
+      tokenStorage.setTokens(tokens);
+      return tokens;
+    } catch (error) {
+      tokenStorage.clearTokens();
+      return null;
+    } finally {
+      refreshPromise = null;
     }
+  })();
 
-    const data = await response.json();
-    const tokens: AuthTokens = {
-      access: data.access,
-      refresh: data.refresh || refreshToken, // Some APIs don't return new refresh token
-    };
-
-    tokenStorage.setTokens(tokens);
-    return tokens;
-  } catch (error) {
-    tokenStorage.clearTokens();
-    return null;
-  }
+  return refreshPromise;
 }
 
 // Main fetch wrapper with auth
@@ -170,7 +212,7 @@ async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Prom
     headers,
   });
 
-  let response = await fetch(request.clone());
+  let response = await timedFetch(request.clone());
 
   // Handle 401 Unauthorized - try to refresh token
   if (response.status === 401 && accessToken) {
@@ -194,7 +236,7 @@ async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Prom
           newHeaders.set('Content-Type', 'application/json');
         }
 
-        response = await fetch(input, {
+        response = await timedFetch(input, {
           ...init,
           headers: newHeaders,
         });
@@ -227,13 +269,6 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-
-      // Debug logging - skip 404s to avoid noise during polling of deleted items
-      if (response.status !== 404) {
-        console.error("[API ERROR] Status:", response.status);
-        console.error("[API ERROR] URL:", response.url);
-        console.error("[API ERROR] Response:", JSON.stringify(errorData, null, 2));
-      }
 
       // Extract user-friendly error message
       // Default to status-based message if errorData is empty
@@ -398,6 +433,7 @@ class ApiClient {
     try {
       const response = await axios.post(url, data, {
         headers: getHeaders(accessToken),
+        timeout: UPLOAD_TIMEOUT_MS,
         onUploadProgress: (progressEvent) => {
           if (onProgress && progressEvent.total) {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -421,6 +457,7 @@ class ApiClient {
           try {
             const response = await axios.post(url, data, {
               headers: getHeaders(newTokens.access),
+              timeout: UPLOAD_TIMEOUT_MS,
               onUploadProgress: (progressEvent) => {
                 if (onProgress && progressEvent.total) {
                   const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -453,7 +490,7 @@ export const api = new ApiClient();
 // Auth-specific functions (public endpoints)
 export const authApi = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login/`, {
+    const response = await timedFetch(`${API_BASE_URL}/auth/login/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -474,7 +511,7 @@ export const authApi = {
   },
 
   register: async (payload: RegisterPayload): Promise<LoginResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/register/`, {
+    const response = await timedFetch(`${API_BASE_URL}/auth/register/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

@@ -18,7 +18,7 @@ class CompanyProfile(models.Model):
     # Ownership
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='owned_companies',
         verbose_name='Владелец'
     )
