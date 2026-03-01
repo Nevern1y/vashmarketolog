@@ -588,7 +588,6 @@ export default function DashboardPage() {
     // UNKNOWN ROLE - Show error message
     // =====================================
     default:
-      console.error(`Unknown user role: ${role}`)
       return (
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
           <div className="text-center">

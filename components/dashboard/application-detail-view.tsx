@@ -218,7 +218,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         setTimeout(() => {
             if (documentsSectionRef.current) {
                 documentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                console.log('[scrollIntoView] Scrolled to documents section')
             }
         }, 100)
     }, [])
@@ -476,7 +475,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
     const handleSpecificDocUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, docTypeId: number, docTypeName: string) => {
         const files = e.target.files
         if (!files || files.length === 0 || !application) {
-            console.log('[Upload] No files or no application')
             return
         }
 
@@ -484,15 +482,11 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
         const mainContent = document.querySelector('main')
         const scrollPos = mainContent?.scrollTop || 0
 
-        console.log(`[Upload] Starting upload for ${docTypeName}, docTypeId: ${docTypeId}`)
-        lastUploadedDocTypeRef.current = docTypeId
-
         setUploadingDocType(docTypeName)
         try {
             const uploadedDocIds: number[] = []
 
             for (const file of Array.from(files)) {
-                console.log(`[Upload] Uploading file: ${file.name}`)
                 const uploadedDoc = await uploadDocument({
                     file,
                     document_type_id: docTypeId,
@@ -500,7 +494,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                     product_type: application.product_type,
                     company: application.company,
                 })
-                console.log(`[Upload] Upload result:`, uploadedDoc)
                 if (uploadedDoc) {
                     uploadedDocIds.push(uploadedDoc.id)
                 }
@@ -524,12 +517,11 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                         uploadedDocIds.push(...matchedDocs.map((doc) => doc.id))
                     }
                 } catch (fallbackError) {
-                    console.error('[Upload] Fallback lookup failed:', fallbackError)
+                    // Fallback lookup failed — proceed without matched docs
                 }
             }
 
             if (uploadedDocIds.length > 0) {
-                console.log(`[Upload] Attaching ${uploadedDocIds.length} docs to application`)
                 const existingDocIds = application.documents?.map(d => d.id) || []
                 const allDocIds = Array.from(new Set([...existingDocIds, ...uploadedDocIds]))
 
@@ -548,15 +540,9 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 })
             } else {
                 const errorMessage = getDocumentError?.() || 'Не удалось загрузить документ'
-                console.warn('[Upload] No documents were uploaded', {
-                    error: errorMessage,
-                    docTypeId,
-                    docTypeName,
-                })
                 toast.error(errorMessage)
             }
         } catch (err) {
-            console.error('[Upload] Error:', err)
             toast.error('Ошибка загрузки документа')
         } finally {
             setUploadingDocType(null)
@@ -580,9 +566,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
             return false
         })
-
-        console.log(`[isDocumentUploaded] "${docName}" (id: ${docId}) => ${found}`,
-            application.documents.map(d => ({ id: d.id, name: d.name, type_id: d.document_type_id })))
 
         return found
     }
@@ -610,7 +593,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
                 onBack?.()
             }
         } catch (err) {
-            console.error(err)
             toast.error("Не удалось удалить заявку")
         } finally {
             setIsDeleting(false)
@@ -756,8 +738,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
 
     // Handle document delete
     const handleDeleteDocument = useCallback(async (docId: number) => {
-        console.log(`[Delete] Deleting document ${docId}`)
-
         try {
             await deleteDocument(docId)
             toast.success('Документ удален')
@@ -765,7 +745,6 @@ export function ApplicationDetailView({ applicationId, onBack, onNavigateToCalcu
             // Refetch to update the document list (no scroll to keep position)
             await refetch()
         } catch (err) {
-            console.error('[Delete] Error:', err)
             toast.error('Ошибка удаления документа')
         }
     }, [deleteDocument, refetch])
@@ -2107,7 +2086,6 @@ const getStatusBadge = (status: string) => {
                                                                     onClick={(e) => {
                                                                         e.preventDefault()
                                                                         e.stopPropagation()
-                                                                        console.log('[UI] Delete clicked for doc:', uploadedDoc.id)
                                                                         handleDeleteDocument(uploadedDoc.id)
                                                                     }}
                                                                     title="Удалить документ"
@@ -2124,7 +2102,6 @@ const getStatusBadge = (status: string) => {
                                                                     className="hidden"
                                                                     disabled={isCurrentlyUploading}
                                                                     onChange={(e) => {
-                                                                        console.log('[UI] File input change triggered for:', reqDoc.name)
                                                                         handleSpecificDocUpload(e, reqDoc.id, reqDoc.name)
                                                                     }}
                                                                 />

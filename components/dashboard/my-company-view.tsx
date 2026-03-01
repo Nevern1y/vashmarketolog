@@ -803,7 +803,6 @@ export function MyCompanyView() {
   // Handle form validation errors - show toast notification
   // Handle form validation errors - show toast notification
   const onFormError = (errors: any) => {
-    console.log("Form validation errors:", errors)
 
     // Map field names to tab names for better error reporting
     const fieldToTab: Record<string, string> = {

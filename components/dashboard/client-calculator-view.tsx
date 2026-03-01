@@ -1420,7 +1420,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                     setCurrentSessionId(session.id)
                 }
             } catch (err) {
-                console.error('Error creating calculation session:', err)
                 // Continue without session - applications will still be created
             }
         }
@@ -1459,7 +1458,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                     errorCount++
                 }
             } catch (err) {
-                console.error('Error creating application:', err)
                 errorCount++
             }
         }
@@ -1469,7 +1467,7 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
             try {
                 await updateSubmittedBanks(sessionId, successfulBankNames)
             } catch (err) {
-                console.error('Error updating submitted banks:', err)
+                // Non-critical — applications were already created
             }
         }
 
@@ -1598,7 +1596,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
 
             return session.id
         } catch (err) {
-            console.error('Error creating RKO session:', err)
             toast.error("Ошибка при создании подбора")
             return null
         }
@@ -1636,7 +1633,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                 toast.error("Не удалось создать заявку")
             }
         } catch (err) {
-            console.error('Error creating RKO application:', err)
             toast.error("Ошибка при создании заявки")
         }
     }
@@ -1699,7 +1695,6 @@ export function ClientCalculatorView({ prefill, onPrefillApplied }: ClientCalcul
                 toast.error("Не удалось создать заявку")
             }
         } catch (err) {
-            console.error('Error creating VED application:', err)
             toast.error("Ошибка при создании заявки")
         } finally {
             setIsSubmitting(false)

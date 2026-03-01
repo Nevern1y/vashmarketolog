@@ -426,7 +426,6 @@ export function CalculationSessionView({
                     errorCount++
                 }
             } catch (err) {
-                console.error('Error creating application for bank', bankName, err)
                 errorCount++
             }
         }
@@ -438,7 +437,7 @@ export function CalculationSessionView({
                 // Refetch session to update the UI (move banks from available to submitted)
                 await refetchSession()
             } catch (err) {
-                console.error('Error updating submitted banks:', err)
+                // Non-critical — applications were already created
             }
         }
 

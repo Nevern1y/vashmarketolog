@@ -516,17 +516,12 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    console.log('[Wizard] Starting file upload')
-
     // Store scroll position
     const dialogContent = document.querySelector('[role="dialog"]') as HTMLElement
     const scrollParent = dialogContent?.querySelector('.overflow-y-auto') as HTMLElement
     const scrollPosition = scrollParent ? scrollParent.scrollTop : (window.pageYOffset || 0)
 
-    console.log(`[Wizard] Saved scroll position: ${scrollPosition}`)
-
     for (const file of Array.from(files)) {
-      console.log(`[Wizard] Uploading file: ${file.name}`)
       const doc = await uploadDocument({
         name: file.name,
         file: file,
@@ -535,14 +530,11 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
         company: activeCompanyId,
       })
 
-      console.log("[Wizard] uploadDocument response:", doc)
-
       if (doc && doc.id) {
         setUploadedDocIds(prev => [...prev, doc.id])
         const typeName = getDocumentTypeName(uploadDocTypeId, normalizedProduct || 'general')
         toast.success(`Документ "${file.name}" загружен (${typeName})`)
       } else {
-        console.error("[Wizard] Upload failed or no ID returned:", doc)
         toast.error(`Ошибка загрузки "${file.name}"`)
       }
     }
@@ -557,7 +549,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     setTimeout(() => {
       if (scrollParent) {
         scrollParent.scrollTop = scrollPosition
-        console.log(`[Wizard] Restored scroll to: ${scrollPosition}`)
       } else {
         window.scrollTo(0, scrollPosition)
       }
@@ -585,15 +576,12 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     const files = e.dataTransfer.files
     if (!files || files.length === 0) return
 
-    console.log('[Wizard] Drop event - files:', files.length)
-
     // Store scroll position
     const dialogContent = document.querySelector('[role="dialog"]') as HTMLElement
     const scrollParent = dialogContent?.querySelector('.overflow-y-auto') as HTMLElement
     const scrollPosition = scrollParent ? scrollParent.scrollTop : (window.pageYOffset || 0)
 
     for (const file of Array.from(files)) {
-      console.log(`[Wizard] Uploading dropped file: ${file.name}`)
       const doc = await uploadDocument({
         name: file.name,
         file: file,
@@ -716,11 +704,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
 
     // Combine selected and uploaded docs, filter out any falsy values
     const allDocIds = [...selectedDocumentIds, ...uploadedDocIds].filter(id => id && typeof id === 'number')
-
-    // Debug: log document IDs
-    console.log("[Wizard] selectedDocumentIds:", selectedDocumentIds)
-    console.log("[Wizard] uploadedDocIds:", uploadedDocIds)
-    console.log("[Wizard] allDocIds (filtered):", allDocIds)
 
     // Validation: user must select at least one bank on Step 3
     if (selectedBankIds.length === 0) {
@@ -941,7 +924,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
     }
 
     // Debug: log full payload
-    console.log("[Wizard] Final payload template:", JSON.stringify(payload, null, 2))
 
     // Create separate applications for each selected bank
     const createdApps: number[] = []
@@ -957,21 +939,15 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
         target_bank_name: bank.name
       }
 
-      console.log(`[Wizard] Creating application for bank: ${bank.name}`)
-
       try {
         const app = await createApplication(bankPayload)
-        console.log(`[Wizard] createApplication response for ${bank.name}:`, app)
 
         if (app && app.id) {
           createdApps.push(app.id)
-          // Заявка остаётся в статусе draft - пользователь сам контролирует отправку
-          console.log(`[Wizard] Application ${app.id} created as draft`)
         } else {
           failedBanks.push(bank.name)
         }
       } catch (err) {
-        console.error(`[Wizard] Error creating application for ${bank.name}:`, err)
         failedBanks.push(bank.name)
       }
     }
@@ -1135,7 +1111,6 @@ export function CreateApplicationWizard({ isOpen, onClose, initialClientId, onSu
         // Don't close wizard, user continues creating app
       }
     } catch (err) {
-      console.error("Failed to create client", err)
       toast.error("Не удалось создать клиента")
     }
   }

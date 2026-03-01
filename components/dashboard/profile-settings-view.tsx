@@ -151,7 +151,6 @@ export function ProfileSettingsView() {
             }
         } catch (error: any) {
             toast.error(error.message || "Ошибка при загрузке фото")
-            console.error(error)
         } finally {
             setIsUploadingAvatar(false)
         }

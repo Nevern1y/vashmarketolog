@@ -192,7 +192,6 @@ export function RegisterView({ onSwitchToLogin }: RegisterViewProps) {
       router.replace("/")
     } catch (err) {
       const apiError = err as { message?: string; status?: number }
-      console.error("Registration failed:", apiError.message || 'Unknown error', apiError)
       // If code is invalid, go back to code step
       if (apiError.message?.includes("код")) {
         setStep("code")

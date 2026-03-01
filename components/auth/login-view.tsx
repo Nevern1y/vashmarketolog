@@ -51,8 +51,6 @@ export function LoginView({ onSwitchToRegister }: LoginViewProps) {
       router.replace("/")
     } catch (err) {
       // Error is already displayed via authError
-      const apiError = err as { message?: string };
-      console.error("Login failed:", apiError.message || err)
     }
   }
 

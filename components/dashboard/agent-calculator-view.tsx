@@ -1524,7 +1524,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                     setCurrentSessionId(session.id)
                 }
             } catch (err) {
-                console.error('Error creating calculation session:', err)
                 // Continue without session - applications will still be created
             }
         }
@@ -1568,7 +1567,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                     errorCount++
                 }
             } catch (err) {
-                console.error('Error creating application:', err)
                 errorCount++
             }
         }
@@ -1578,7 +1576,7 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
             try {
                 await updateSubmittedBanks(sessionId, successfulBankNames)
             } catch (err) {
-                console.error('Error updating submitted banks:', err)
+                // Non-critical — applications were already created
             }
         }
 
@@ -1688,7 +1686,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 toast.error("Не удалось создать заявку")
             }
         } catch (err) {
-            console.error('Error creating tender support application:', err)
             toast.error("Ошибка при создании заявки")
         } finally {
             setIsTenderSupportSubmitting(false)
@@ -1778,7 +1775,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
 
             return session.id
         } catch (err) {
-            console.error('Error creating RKO session:', err)
             toast.error("Ошибка при создании подбора")
             return null
         }
@@ -1837,7 +1833,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 toast.error("Не удалось создать заявку")
             }
         } catch (err) {
-            console.error('Error creating RKO application:', err)
             toast.error("Ошибка при создании заявки")
         }
     }
@@ -1905,7 +1900,6 @@ export function AgentCalculatorView({ prefill, onPrefillApplied }: AgentCalculat
                 toast.error("Не удалось создать заявку")
             }
         } catch (err) {
-            console.error("Error creating VED application:", err)
             toast.error("Ошибка при создании заявки")
         } finally {
             setIsSubmitting(false)

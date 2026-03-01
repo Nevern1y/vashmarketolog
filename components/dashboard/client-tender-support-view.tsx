@@ -109,7 +109,6 @@ export function ClientTenderSupportView() {
                 toast.error("Не удалось создать заявку")
             }
         } catch (err) {
-            console.error("Error creating tender support application:", err)
             toast.error("Ошибка при создании заявки")
         } finally {
             setIsSubmitting(false)

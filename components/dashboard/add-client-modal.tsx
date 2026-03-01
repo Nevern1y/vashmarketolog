@@ -88,7 +88,7 @@ export function AddClientModal({ isOpen, onClose, onSubmit }: AddClientModalProp
             })
             resetForm()
         } catch (error) {
-            console.error("Failed to add client:", error)
+            // Error is handled by the parent hook
         } finally {
             setIsSubmitting(false)
         }

@@ -229,7 +229,7 @@ export function AgentMyCompanyView() {
             try {
                 localData = JSON.parse(savedData)
             } catch (e) {
-                console.error('Failed to parse saved company data')
+                // Corrupted localStorage data — ignore
             }
         }
 
