@@ -93,7 +93,6 @@ export function useBankConditions() {
             const response = await api.get<BankConditionsData>('/bank-conditions/all/')
             setData(response)
         } catch (err: any) {
-            console.error('Error fetching bank conditions:', err)
             setError(err.message || 'Ошибка загрузки условий банков')
         } finally {
             setIsLoading(false)
@@ -170,7 +169,6 @@ export function usePartnerBankProfile() {
             if (apiError.status === 404) {
                 setProfile(null)
             } else {
-                console.error('Error fetching partner bank profile:', err)
                 setError(apiError.message || 'Ошибка загрузки профиля банка')
             }
         } finally {
@@ -192,7 +190,6 @@ export function usePartnerBankProfile() {
             return { profile: response, error: null }
         } catch (err) {
             const apiError = err as ApiError
-            console.error('Error updating partner bank profile:', err)
             const message = apiError.message || 'Ошибка сохранения профиля'
             setError(message)
             return { profile: null, error: message }

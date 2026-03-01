@@ -107,7 +107,6 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
             }
         } catch (err) {
             const apiError = err as ApiError;
-            console.error('[Chat] Fetch error:', apiError);
             setError(apiError.message || 'Ошибка загрузки сообщений');
         } finally {
             setIsLoading(false);
@@ -153,7 +152,6 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
             return true;
         } catch (err) {
             const apiError = err as ApiError;
-            console.error('[Chat] Send error:', apiError.message || err);
             setError(apiError.message || 'Ошибка отправки сообщения');
             return false;
         } finally {
@@ -214,7 +212,6 @@ export function useChatPolling(applicationId: number | string | null, pollingInt
             return response.marked_count;
         } catch (err) {
             const apiError = err as ApiError;
-            console.error('[Chat] Mark read error:', apiError);
             return 0;
         }
     }, [applicationId]);
@@ -299,6 +296,7 @@ export function useChat(applicationId: number | null) {
     const wsRef = useRef<WebSocket | null>(null);
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectAttemptsRef = useRef(0);
 
     // Load message history via REST
     const loadHistory = useCallback(async () => {
@@ -355,6 +353,7 @@ export function useChat(applicationId: number | null) {
             wsRef.current = ws;
 
             ws.onopen = () => {
+                reconnectAttemptsRef.current = 0;
                 setIsConnected(true);
                 setError(null);
             };
@@ -393,8 +392,8 @@ export function useChat(applicationId: number | null) {
                             setError(data.message || 'WebSocket error');
                             break;
                     }
-                } catch (e) {
-                    console.error('Failed to parse WebSocket message:', e);
+                } catch (_) {
+                    // Malformed WS message — ignored
                 }
             };
 
@@ -405,9 +404,12 @@ export function useChat(applicationId: number | null) {
             ws.onclose = (event) => {
                 setIsConnected(false);
                 if (event.code !== 1000) {
+                    const attempt = reconnectAttemptsRef.current;
+                    const delay = Math.min(1000 * Math.pow(2, attempt), 30000); // 1s, 2s, 4s, 8s, 16s, 30s max
+                    reconnectAttemptsRef.current = attempt + 1;
                     reconnectTimeoutRef.current = setTimeout(() => {
                         connect();
-                    }, 3000);
+                    }, delay);
                 }
             };
         } catch (e) {

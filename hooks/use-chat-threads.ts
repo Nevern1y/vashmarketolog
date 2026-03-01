@@ -96,6 +96,7 @@ export function useChatThreads() {
     const wsRef = useRef<WebSocket | null>(null)
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const pollingRef = useRef<NodeJS.Timeout | null>(null)
+    const reconnectAttemptsRef = useRef(0)
 
     // Fetch threads via REST API (fallback)
     const fetchThreads = useCallback(async (showLoading: boolean = false) => {
@@ -110,7 +111,6 @@ export function useChatThreads() {
             setThreads(threadsList.map(transformThread))
         } catch (err) {
             const apiError = err as ApiError
-            console.error('[ChatThreads] Fetch error:', apiError)
             setError(apiError.message || 'Ошибка загрузки чатов')
         } finally {
             setIsLoading(false)
@@ -121,7 +121,6 @@ export function useChatThreads() {
     const connect = useCallback(() => {
         const token = tokenStorage.getAccessToken()
         if (!token) {
-            console.warn('[ChatThreads] No token, using polling')
             return false
         }
 
@@ -136,7 +135,7 @@ export function useChatThreads() {
             wsRef.current = ws
 
             ws.onopen = () => {
-                console.log('[ChatThreads] WebSocket connected')
+                reconnectAttemptsRef.current = 0
                 setIsConnected(true)
                 setError(null)
                 // Stop polling when WS is connected
@@ -164,20 +163,18 @@ export function useChatThreads() {
                             break
 
                         case 'error':
-                            console.error('[ChatThreads] WS error:', data.message)
                             break
                     }
-                } catch (e) {
-                    console.error('[ChatThreads] Failed to parse WS message:', e)
+                } catch (_) {
+                    // Malformed WS message — ignored
                 }
             }
 
-            ws.onerror = (error) => {
-                console.error('[ChatThreads] WebSocket error:', error)
+            ws.onerror = () => {
+                // Connection error — onclose will handle reconnect
             }
 
             ws.onclose = (event) => {
-                console.log('[ChatThreads] WebSocket closed:', event.code)
                 setIsConnected(false)
                 
                 // Start polling as fallback
@@ -187,17 +184,19 @@ export function useChatThreads() {
                     }, POLLING_INTERVAL)
                 }
                 
-                // Attempt reconnect if not intentional close
+                // Attempt reconnect with exponential backoff if not intentional close
                 if (event.code !== 1000) {
+                    const attempt = reconnectAttemptsRef.current
+                    const delay = Math.min(1000 * Math.pow(2, attempt), 30000) // 1s, 2s, 4s, 8s, 16s, 30s max
+                    reconnectAttemptsRef.current = attempt + 1
                     reconnectTimeoutRef.current = setTimeout(() => {
                         connect()
-                    }, 5000)
+                    }, delay)
                 }
             }
 
             return true
-        } catch (e) {
-            console.error('[ChatThreads] Failed to create WebSocket:', e)
+        } catch (_) {
             return false
         }
     }, [fetchThreads])

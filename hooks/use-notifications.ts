@@ -288,7 +288,6 @@ export function useNotifications() {
         } catch (err) {
             // Revert on error
             const apiError = err as ApiError
-            console.error('Failed to mark notification as read:', apiError.message)
             // Optionally revert the optimistic update
             // fetchNotifications(false)
         }
@@ -307,7 +306,6 @@ export function useNotifications() {
             emitRefreshEvent()
         } catch (err) {
             const apiError = err as ApiError
-            console.error('Failed to mark all notifications as read:', apiError.message)
             // Optionally revert the optimistic update
             // fetchNotifications(false)
         }

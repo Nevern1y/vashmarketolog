@@ -72,7 +72,6 @@ export function useNews(categoryId?: number) {
             const response = await api.get<{ results: NewsItem[] }>('/news/', params)
             setNews(response.results || [])
         } catch (err: any) {
-            console.error('Error fetching news:', err)
             setError(err.message || 'Ошибка загрузки новостей')
         } finally {
             setIsLoading(false)
@@ -102,7 +101,6 @@ export function useFeaturedNews() {
             const response = await api.get<NewsFeaturedResponse>('/news/featured/')
             setData(response)
         } catch (err: any) {
-            console.error('Error fetching featured news:', err)
             setError(err.message || 'Ошибка загрузки новостей')
         } finally {
             setIsLoading(false)
@@ -138,7 +136,6 @@ export function useNewsDetail(slug: string | null) {
             const response = await api.get<NewsItem>(`/news/${slug}/`)
             setNewsItem(response)
         } catch (err: any) {
-            console.error('Error fetching news item:', err)
             setError(err.message || 'Ошибка загрузки новости')
         } finally {
             setIsLoading(false)
@@ -172,7 +169,6 @@ export function useNewsCategories() {
             const response = await api.get<{ results: NewsCategory[] }>('/news/categories/')
             setCategories(response.results || [])
         } catch (err: any) {
-            console.error('Error fetching categories:', err)
             setError(err.message || 'Ошибка загрузки категорий')
         } finally {
             setIsLoading(false)
@@ -233,7 +229,6 @@ export function useNewsMutations() {
             toast.success('Новость создана')
             return response
         } catch (err: any) {
-            console.error('Error creating news:', err)
             // Extract detailed error message from API response
             let errorMsg = 'Ошибка создания новости'
             if (err.errors) {
@@ -295,7 +290,6 @@ export function useNewsMutations() {
             toast.success('Новость обновлена')
             return response
         } catch (err: any) {
-            console.error('Error updating news:', err)
             setError(err.message || 'Ошибка обновления новости')
             toast.error('Ошибка обновления новости')
             return null
@@ -313,7 +307,6 @@ export function useNewsMutations() {
             toast.success('Новость удалена')
             return true
         } catch (err: any) {
-            console.error('Error deleting news:', err)
             setError(err.message || 'Ошибка удаления новости')
             toast.error('Ошибка удаления новости')
             return false
@@ -346,7 +339,6 @@ export function useCategoryMutations() {
             toast.success('Категория создана')
             return response
         } catch (err: any) {
-            console.error('Error creating category:', err)
             // Extract detailed error message from API response
             let errorMsg = 'Ошибка создания категории'
             if (err.errors) {
@@ -384,7 +376,6 @@ export function useCategoryMutations() {
             toast.success('Категория обновлена')
             return response
         } catch (err: any) {
-            console.error('Error updating category:', err)
             setError(err.message || 'Ошибка обновления категории')
             toast.error('Ошибка обновления категории')
             return null
@@ -402,7 +393,6 @@ export function useCategoryMutations() {
             toast.success('Категория удалена')
             return true
         } catch (err: any) {
-            console.error('Error deleting category:', err)
             setError(err.message || 'Ошибка удаления категории')
             toast.error('Ошибка удаления категории')
             return false
