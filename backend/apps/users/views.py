@@ -466,6 +466,7 @@ class UserListView(generics.ListAPIView):
     """
     serializer_class = UserListSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list without pagination
 
     def get_queryset(self):
         queryset = User.objects.all()

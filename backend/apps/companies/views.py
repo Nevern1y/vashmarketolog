@@ -319,6 +319,7 @@ class AdminCRMClientViewSet(viewsets.ModelViewSet):
     """
     serializer_class = CRMClientSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list without pagination
 
     def get_queryset(self):
         """Return all CRM clients from all agents (including inactive)."""
@@ -470,6 +471,7 @@ class AdminDirectClientsViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminDirectClientSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list without pagination
 
     def get_queryset(self):
         """Return all direct clients (not CRM clients), including inactive."""

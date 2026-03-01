@@ -45,6 +45,7 @@ class AdminBankViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminBankSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Banks are a small reference table; return all at once
 
     def get_queryset(self):
         queryset = Bank.objects.all().select_related('partner_user')
@@ -324,6 +325,7 @@ class AdminBankConditionViewSet(viewsets.ModelViewSet):
     queryset = BankCondition.objects.select_related('bank')
     serializer_class = BankConditionSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list per bank
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -362,6 +364,7 @@ class AdminIndividualReviewConditionViewSet(viewsets.ModelViewSet):
     queryset = IndividualReviewCondition.objects.select_related('bank')
     serializer_class = IndividualReviewConditionSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list per bank
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -387,6 +390,7 @@ class AdminRKOConditionViewSet(viewsets.ModelViewSet):
     queryset = RKOCondition.objects.select_related('bank')
     serializer_class = RKOConditionSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list per bank
 
 
 class StopFactorViewSet(viewsets.ReadOnlyModelViewSet):
@@ -405,6 +409,7 @@ class AdminStopFactorViewSet(viewsets.ModelViewSet):
     queryset = StopFactor.objects.all()
     serializer_class = StopFactorSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Small reference table, no pagination needed
 
 
 class BankConditionsAggregatedViewSet(viewsets.ViewSet):

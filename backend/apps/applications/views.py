@@ -1196,6 +1196,7 @@ class LeadViewSet(viewsets.ModelViewSet):
     """
     queryset = Lead.objects.select_related('assigned_to').all()
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Frontend expects full list without pagination
     
     def get_serializer_class(self):
         return LeadSerializer
@@ -1427,6 +1428,7 @@ class LeadCommentViewSet(viewsets.ModelViewSet):
     - DELETE /api/admin/leads/{lead_id}/comments/{id}/ - delete comment
     """
     permission_classes = [IsAuthenticated, IsAdmin]
+    pagination_class = None  # Comments per lead are few, no pagination needed
     
     def get_queryset(self):
         from .models import LeadComment
