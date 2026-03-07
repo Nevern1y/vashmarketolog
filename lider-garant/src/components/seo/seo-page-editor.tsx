@@ -196,7 +196,60 @@ const TEMPLATE_DATA: Record<string, { faqs: FaqItem[], searches: string[], meta_
         faqs: [
             { question: "Какие виды платежей?", answer: "SWIFT-переводы, SEPA, переводы в страны СНГ." },
         ],
-        searches: ["международные переводы", "валютные счета", "вэд банки"]
+        searches: [
+            "международные платежи",
+            "оплата международных платежей",
+            "платежный агент",
+            "международные расчеты",
+            "услуга международных платежей",
+            "платформа международных платежей",
+            "переводы за границу",
+            "переводы за рубеж",
+            "вэд платежи",
+            "международные переводы",
+            "перевод денег за границу",
+            "международные платежи и расчеты",
+            "международные банковские платежи",
+            "проведение международных платежей",
+            "получать международные платежи",
+            "платежи в международной торговле",
+            "перевод зарубеж",
+            "международные платежи для бизнеса",
+            "принимать международные платежи",
+            "сервисы международных платежей",
+            "международные трансграничные платежи",
+            "международные онлайн платежи",
+            "платформа трансграничных платежей",
+            "трансграничная система платежей",
+            "денежные переводы зарубеж",
+            "валютные переводы",
+            "банковский платежный агент",
+            "услуги платежного агента",
+            "оплата через платежного агента",
+            "платежный агент перевод",
+            "платежный агент поставщик",
+            "платежный агент вэд",
+            "платежи в китай",
+            "платежи в европу",
+            "платежи в турцию",
+            "платежи в индию",
+            "платежи в иран",
+            "платежи в оаэ",
+            "платежи в дубай",
+            "платежи в японию",
+            "платежи в корею",
+            "валютные денежные переводы",
+            "переводы за границу из россии",
+            "денежный перевод за границу",
+            "перевод валюты за границу",
+            "перевод средств за рубеж",
+            "международные денежные переводы",
+            "валютные платежи",
+            "валютные платежи за границу",
+            "проведение валютных платежей",
+            "международный банковский перевод",
+            "проведение международных расчетов",
+        ]
     },
     insurance: {
         meta_title: 'Страхование для бизнеса',
@@ -635,8 +688,8 @@ export function SeoPageEditor({
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 h-0 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 h-0 min-h-0 flex flex-col overflow-hidden">
+                <div className="flex-1 basis-0 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 basis-0 min-h-0 flex flex-col overflow-hidden">
                         <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto [@media(max-height:820px)]:mb-3">
                             <TabsTrigger
                                 value="main"
@@ -675,7 +728,7 @@ export function SeoPageEditor({
                             </TabsTrigger>
                         </TabsList>
 
-                        <div className="flex-1 h-0 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-0 sm:pr-2 pb-5 sm:pb-3">
+                        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-0 sm:pr-2 pb-5 sm:pb-3">
                             {/* MAIN TAB */}
                             <TabsContent value="main" className="mt-0 space-y-5 [@media(max-height:820px)]:space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
