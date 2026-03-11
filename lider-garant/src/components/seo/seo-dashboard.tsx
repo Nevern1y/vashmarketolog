@@ -30,7 +30,7 @@ import {
     LogOut,
     Globe
 } from "lucide-react"
-import { SeoPageEditor, type SeoPage } from "./seo-page-editor"
+import type { SeoPage } from "./seo-page-editor"
 import { api, tokenStorage, type ApiError } from "../../lib/api"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -50,10 +50,6 @@ export function SeoDashboard() {
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
 
-    // Edit/Create State
-    const [isEditorOpen, setIsEditorOpen] = useState(false)
-    const [editingPage, setEditingPage] = useState<SeoPage | null>(null)
-    const [isSaving, setIsSaving] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [pageToDelete, setPageToDelete] = useState<SeoPage | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -146,13 +142,16 @@ export function SeoDashboard() {
     })
 
     const handleCreate = () => {
-        setEditingPage(null)
-        setIsEditorOpen(true)
+        router.push("/seo-manager/dashboard/create")
     }
 
     const handleEdit = (page: SeoPage) => {
-        setEditingPage(page)
-        setIsEditorOpen(true)
+        const encodedSlug = page.slug
+            .split("/")
+            .map((part) => encodeURIComponent(part))
+            .join("/")
+
+        router.push(`/seo-manager/dashboard/edit/${encodedSlug}`)
     }
 
     const handleDeleteRequest = (page: SeoPage) => {
@@ -179,40 +178,6 @@ export function SeoDashboard() {
             setIsDeleting(false)
             setIsDeleteDialogOpen(false)
             setPageToDelete(null)
-        }
-    }
-
-    const handleSave = async (data: Partial<SeoPage>): Promise<boolean> => {
-        setIsSaving(true)
-        try {
-            if (editingPage) {
-                // Update
-                const encodedSlug = editingPage.slug
-                    .split('/')
-                    .map((part) => encodeURIComponent(part))
-                    .join('/')
-
-                await api.patch<SeoPage>(`/seo/pages/${encodedSlug}/`, data)
-            } else {
-                // Create
-                await api.post<SeoPage>("/seo/pages/", data)
-            }
-            await fetchPages()
-            return true
-        } catch (error) {
-            const apiError = error as ApiError
-
-            if (apiError?.status === 401 || apiError?.status === 403) {
-                toast.error("Сессия истекла", {
-                    description: "Войдите заново и повторите сохранение.",
-                })
-                router.push("/seo-manager/login")
-            } else {
-                toast.error(apiError?.message || "Ошибка при сохранении")
-            }
-            return false
-        } finally {
-            setIsSaving(false)
         }
     }
 
@@ -364,15 +329,6 @@ export function SeoDashboard() {
                     </Table>
                 </div>
             </main>
-
-            <SeoPageEditor
-                open={isEditorOpen}
-                onClose={() => setIsEditorOpen(false)}
-                page={editingPage}
-                onSave={handleSave}
-                isLoading={isSaving}
-                availablePages={pages.map((item) => ({ slug: item.slug, h1_title: item.h1_title }))}
-            />
 
             <Dialog
                 open={isDeleteDialogOpen}

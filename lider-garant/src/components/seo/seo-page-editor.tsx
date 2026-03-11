@@ -5,15 +5,7 @@ import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Label } from "../ui/label"
 import { Textarea } from "../ui/textarea"
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
-} from "../ui/dialog"
 import { Switch } from "../ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import {
     Select,
     SelectContent,
@@ -21,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "../ui/select"
-import { Loader2, Plus, Trash2, X, HelpCircle, Search, Building2, Sparkles, FileText, Tags, Settings, AlertTriangle } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ChevronRight, Loader2, Plus, Trash2, X, HelpCircle, Search, Building2, Sparkles, FileText, Tags, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, type ApiError } from "../../lib/api"
@@ -285,7 +277,6 @@ const TEMPLATE_DATA: Record<string, { faqs: FaqItem[], searches: string[], meta_
 
 interface SeoPageEditorProps {
     page: SeoPage | null
-    open: boolean
     onClose: () => void
     onSave: (data: Partial<SeoPage>) => Promise<boolean>
     isLoading: boolean
@@ -419,7 +410,6 @@ const normalizeAutofillTemplate = (autofillTemplate?: string, templateName?: str
 
 export function SeoPageEditor({
     page,
-    open,
     onClose,
     onSave,
     isLoading,
@@ -453,7 +443,7 @@ export function SeoPageEditor({
     const [formData, setFormData] = useState<Partial<SeoPage>>(getInitialFormData())
     const [newSearchTerm, setNewSearchTerm] = useState("")
     const [newSearchHref, setNewSearchHref] = useState("#application")
-    const [activeTab, setActiveTab] = useState("main")
+    const [currentStep, setCurrentStep] = useState<1 | 2>(1)
     const [isApplyingTemplate, setIsApplyingTemplate] = useState(false)
 
     const normalizedSlug = (formData.slug || "").trim().replace(/^\/+/, "")
@@ -461,24 +451,22 @@ export function SeoPageEditor({
     const isReservedStaticSlug = RESERVED_STATIC_SLUGS.has(normalizedSlugLower)
 
     useEffect(() => {
-        if (open) {
-            if (page) {
-                setFormData({
-                    ...page,
-                    template_name: normalizeLayoutTemplate(page.template_name),
-                    autofill_template: normalizeAutofillTemplate(page.autofill_template, page.template_name),
-                    faq: page.faq || [],
-                    popular_searches: normalizePopularSearches(page.popular_searches as Array<PopularSearchItem | string>),
-                    bank_offers: page.bank_offers || [],
-                })
-            } else {
-                setFormData(getInitialFormData())
-            }
-            setNewSearchTerm("")
-            setNewSearchHref("#application")
-            setActiveTab("main")
+        if (page) {
+            setFormData({
+                ...page,
+                template_name: normalizeLayoutTemplate(page.template_name),
+                autofill_template: normalizeAutofillTemplate(page.autofill_template, page.template_name),
+                faq: page.faq || [],
+                popular_searches: normalizePopularSearches(page.popular_searches as Array<PopularSearchItem | string>),
+                bank_offers: page.bank_offers || [],
+            })
+        } else {
+            setFormData(getInitialFormData())
         }
-    }, [page, open])
+        setNewSearchTerm("")
+        setNewSearchHref("#application")
+        setCurrentStep(1)
+    }, [page])
 
     const handleSubmit = async () => {
         if (!formData.slug?.trim()) return
@@ -680,151 +668,201 @@ export function SeoPageEditor({
     }
 
     return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-full max-w-[1120px] max-h-[calc(100vh-1rem)] max-h-[calc(100svh-1rem)] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100vh-2rem)] sm:max-h-[calc(100svh-2rem)] sm:max-h-[calc(100dvh-2rem)] !overflow-hidden [@media(max-height:820px)]:!overflow-x-hidden [@media(max-height:820px)]:!overflow-y-auto flex min-h-0 flex-col bg-[#0f0f1a] border-[#3ce8d1]/30 text-white rounded-xl sm:rounded-2xl shadow-2xl p-0 sm:p-0">
-                <DialogHeader className="flex-shrink-0 border-b border-slate-700/50 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:pt-3 [@media(max-height:820px)]:pb-2">
-                    <DialogTitle className="text-xl font-bold text-white [@media(max-height:820px)]:text-lg">
-                        {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}
-                    </DialogTitle>
-                </DialogHeader>
+        <div className="min-h-[100dvh] bg-[#1d194c] text-slate-200">
+            <header className="sticky top-0 z-30 border-b border-[#3ce8d1]/20 bg-[#0b0b12]/85 shadow-sm backdrop-blur-md">
+                <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-3 py-3 sm:px-4 sm:py-4">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onClose}
+                        className="shrink-0 text-slate-300 hover:bg-[#3ce8d1]/10 hover:text-[#3ce8d1]"
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Назад
+                    </Button>
 
-                <div className="flex-1 h-0 min-h-0 overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:820px)]:flex-none [@media(max-height:820px)]:h-auto [@media(max-height:820px)]:overflow-visible [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-3">
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 h-0 min-h-0 flex flex-col overflow-hidden [@media(max-height:820px)]:flex-none [@media(max-height:820px)]:h-auto [@media(max-height:820px)]:overflow-visible">
-                        <TabsList className="flex-shrink-0 flex w-full bg-[#1a1a2e] border border-slate-700/50 h-auto p-1 gap-1 rounded-xl mb-4 overflow-x-auto [@media(max-height:820px)]:mb-3">
-                            <TabsTrigger
-                                value="main"
-                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
-                            >
-                                <Settings className="w-4 h-4 shrink-0" />
-                                <span>Основное</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="meta"
-                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
-                            >
-                                <Tags className="w-4 h-4 shrink-0" />
-                                <span>Мета-теги</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="content"
-                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
-                            >
-                                <FileText className="w-4 h-4 shrink-0" />
-                                <span>Контент</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="faq"
-                                className="h-9 md:h-10 flex-none min-w-[120px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
-                            >
-                                <HelpCircle className="w-4 h-4 shrink-0" />
-                                <span>FAQ</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="offers"
-                                className="h-9 md:h-10 flex-none min-w-[136px] rounded-lg data-[state=active]:bg-[#3ce8d1] data-[state=active]:text-[#0f0f1a] data-[state=active]:font-semibold text-slate-400 text-xs md:text-sm transition-all flex items-center justify-center gap-1 px-2 md:px-3 whitespace-nowrap"
-                            >
-                                <Building2 className="w-4 h-4 shrink-0" />
-                                <span>Предложения</span>
-                            </TabsTrigger>
-                        </TabsList>
+                    <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#3ce8d1]/80">
+                            SEO Manager
+                        </p>
+                        <h1 className="truncate text-xl font-bold text-white sm:text-2xl">
+                            {page ? "Редактировать SEO страницу" : "Создать SEO страницу"}
+                        </h1>
+                        <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+                            {normalizedSlug
+                                ? `Работа со страницей /${normalizedSlug}`
+                                : "Пошаговый редактор без модального окна для маленьких экранов."}
+                        </p>
+                    </div>
+                </div>
+            </header>
 
-                        <div className="flex-1 h-0 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] pr-0 sm:pr-2 pb-5 sm:pb-3 [@media(max-height:820px)]:flex-none [@media(max-height:820px)]:h-auto [@media(max-height:820px)]:overflow-visible">
-                            {/* MAIN TAB */}
-                            <TabsContent value="main" className="mt-0 space-y-5 [@media(max-height:820px)]:space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-300 text-sm font-medium">URL Path (Slug) *</Label>
-                                        <Input
-                                            value={formData.slug}
-                                            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                                            placeholder="credit-for-business"
-                                            className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
-                                        />
-                                        <p className="text-xs text-slate-500">Без / в начале</p>
-                                        <p className="text-xs text-slate-500">
-                                            Публичный URL: {normalizedSlug ? `/${normalizedSlug}` : "—"}
+            <main className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-3 py-4 sm:px-4 sm:py-6 lg:py-8">
+                <section className="rounded-2xl border border-[#3ce8d1]/20 bg-[#0b0b12]/60 p-4 shadow-xl backdrop-blur-sm sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <h2 className="text-base font-semibold text-white sm:text-lg">Редактор разбит на 2 шага</h2>
+                            <p className="mt-1 max-w-2xl text-sm text-slate-400">
+                                Сначала заполните базу страницы и основной контент, затем дополнительные блоки: &laquo;Часто ищут&raquo;, FAQ и предложения.
+                            </p>
+                        </div>
+                        <div className="rounded-xl border border-[#3ce8d1]/20 bg-[#3ce8d1]/5 px-3 py-2 text-xs text-slate-300">
+                            Шаг {currentStep} из 2
+                        </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        <button
+                            type="button"
+                            onClick={() => setCurrentStep(1)}
+                            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors ${
+                                currentStep === 1
+                                    ? "border-[#3ce8d1]/60 bg-[#3ce8d1]/10"
+                                    : "border-slate-700/60 bg-[#121225]/70 hover:border-slate-600"
+                            }`}
+                        >
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${
+                                currentStep === 1
+                                    ? "border-[#3ce8d1] bg-[#3ce8d1] text-[#0f0f1a]"
+                                    : "border-slate-600 text-slate-300"
+                            }`}>
+                                {currentStep > 1 ? <CheckCircle2 className="h-4 w-4" /> : "1"}
+                            </span>
+                            <span>
+                                <span className="block font-semibold text-white">База страницы</span>
+                                <span className="mt-1 block text-sm text-slate-400">
+                                    Slug, тип страницы, шаблоны, публикация, meta-теги и основной контент.
+                                </span>
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => setCurrentStep(2)}
+                            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-colors ${
+                                currentStep === 2
+                                    ? "border-[#3ce8d1]/60 bg-[#3ce8d1]/10"
+                                    : "border-slate-700/60 bg-[#121225]/70 hover:border-slate-600"
+                            }`}
+                        >
+                            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold ${
+                                currentStep === 2
+                                    ? "border-[#3ce8d1] bg-[#3ce8d1] text-[#0f0f1a]"
+                                    : "border-slate-600 text-slate-300"
+                            }`}>
+                                2
+                            </span>
+                            <span>
+                                <span className="block font-semibold text-white">Дополнительные блоки</span>
+                                <span className="mt-1 block text-sm text-slate-400">
+                                    Блок &laquo;Часто ищут&raquo;, FAQ и предложения банков. Можно заполнять после основной части.
+                                </span>
+                            </span>
+                        </button>
+                    </div>
+                </section>
+
+                {currentStep === 1 ? (
+                    <section className="rounded-2xl border border-[#3ce8d1]/20 bg-[#0b0b12]/60 p-4 shadow-xl backdrop-blur-sm sm:p-6">
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-semibold text-white">Шаг 1. База страницы</h2>
+                            <p className="text-sm text-slate-400">
+                                Здесь задаются обязательные и ключевые поля страницы. Этого шага достаточно, чтобы безопасно создать или обновить базовую SEO-страницу.
+                            </p>
+                        </div>
+
+                        <div className="mt-6 space-y-6">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-slate-300">URL Path (Slug) *</Label>
+                                    <Input
+                                        value={formData.slug}
+                                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                                        placeholder="credit-for-business"
+                                        className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
+                                    />
+                                    <p className="text-xs text-slate-500">Без / в начале</p>
+                                    <p className="text-xs text-slate-500">Публичный URL: {normalizedSlug ? `/${normalizedSlug}` : "—"}</p>
+                                    {isReservedStaticSlug && (
+                                        <p className="text-xs text-amber-300/90">
+                                            Этот slug совпадает со встроенной страницей услуги. Чтобы заменить ее контентом из SEO, выберите Layout: create-page.
                                         </p>
-                                        {isReservedStaticSlug && (
-                                            <p className="text-xs text-amber-300/90">
-                                                Этот slug совпадает со встроенной страницей услуги. Чтобы заменить ее контентом из SEO, выберите Layout: create-page.
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-300 text-sm font-medium">Тип страницы</Label>
-                                        <Select
-                                            value={formData.page_type}
-                                            onValueChange={(val: 'landing' | 'product' | 'custom') => setFormData({ ...formData, page_type: val })}
-                                        >
-                                            <SelectTrigger className="bg-[#1a1a2e] border-slate-600 text-white focus:ring-[#3ce8d1]/20 rounded-lg h-10">
-                                                <SelectValue placeholder="Выберите тип" />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-[#1a1a2e] border-slate-600 text-slate-200">
-                                                <SelectItem value="landing" className="focus:bg-slate-700 focus:text-white">Landing Page</SelectItem>
-                                                <SelectItem value="product" className="focus:bg-slate-700 focus:text-white">Product Page</SelectItem>
-                                                <SelectItem value="custom" className="focus:bg-slate-700 focus:text-white">Custom Page</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs text-slate-500">Для страниц из блока «Часто ищут» рекомендуем тип: custom</p>
-                                    </div>
+                                    )}
                                 </div>
 
-                                <div className="p-4 rounded-xl bg-gradient-to-r from-purple-900/20 to-[#3ce8d1]/10 border border-purple-500/30">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Sparkles className="w-5 h-5 text-purple-400" />
-                                        <Label className="text-white font-medium">Шаблоны страницы</Label>
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-slate-300">Тип страницы</Label>
+                                    <Select
+                                        value={formData.page_type}
+                                        onValueChange={(val: 'landing' | 'product' | 'custom') => setFormData({ ...formData, page_type: val })}
+                                    >
+                                        <SelectTrigger className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white focus:ring-[#3ce8d1]/20">
+                                            <SelectValue placeholder="Выберите тип" />
+                                        </SelectTrigger>
+                                        <SelectContent className="border-slate-600 bg-[#1a1a2e] text-slate-200">
+                                            <SelectItem value="landing" className="focus:bg-slate-700 focus:text-white">Landing Page</SelectItem>
+                                            <SelectItem value="product" className="focus:bg-slate-700 focus:text-white">Product Page</SelectItem>
+                                            <SelectItem value="custom" className="focus:bg-slate-700 focus:text-white">Custom Page</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-slate-500">Для страниц из блока «Часто ищут» рекомендуем тип: custom</p>
+                                </div>
+                            </div>
 
-                                    <div className="space-y-2 mb-4">
-                                        <Label className="text-slate-300 text-sm font-medium">Layout шаблон</Label>
+                            <div className="rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-900/20 to-[#3ce8d1]/10 p-4">
+                                <div className="mb-3 flex items-center gap-2">
+                                    <Sparkles className="h-5 w-5 text-purple-400" />
+                                    <Label className="font-medium text-white">Шаблоны страницы</Label>
+                                </div>
+
+                                <div className="mb-4 space-y-2">
+                                    <Label className="text-sm font-medium text-slate-300">Layout шаблон</Label>
+                                    <Select
+                                        value={formData.template_name || "none"}
+                                        onValueChange={(val) => setFormData({ ...formData, template_name: val })}
+                                    >
+                                        <SelectTrigger className="h-10 flex-1 rounded-lg border-slate-600 bg-[#1a1a2e] text-white focus:ring-[#3ce8d1]/20">
+                                            <SelectValue placeholder="Выберите layout" />
+                                        </SelectTrigger>
+                                        <SelectContent className="border-slate-600 bg-[#1a1a2e] text-slate-200">
+                                            {LAYOUT_TEMPLATES.map((t) => (
+                                                <SelectItem key={t.value} value={t.value} className="focus:bg-slate-700 focus:text-white">
+                                                    {t.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-slate-400">Используется для рендера страницы. Для перехвата встроенных страниц услуг выбирайте Layout: create-page.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-medium text-slate-300">Контентный пресет (автозаполнение)</Label>
+                                    <div className="flex flex-col gap-3 md:flex-row">
                                         <Select
-                                            value={formData.template_name || "none"}
-                                            onValueChange={(val) => setFormData({ ...formData, template_name: val })}
+                                            value={formData.autofill_template || "none"}
+                                            onValueChange={(val) => {
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    autofill_template: val,
+                                                    template_name:
+                                                        val !== "none" && (!prev.template_name || prev.template_name === "none")
+                                                            ? "create-page"
+                                                            : prev.template_name,
+                                                }))
+                                            }}
                                         >
-                                            <SelectTrigger className="bg-[#1a1a2e] border-slate-600 text-white focus:ring-[#3ce8d1]/20 rounded-lg h-10 flex-1">
-                                                <SelectValue placeholder="Выберите layout" />
+                                            <SelectTrigger className="h-10 flex-1 rounded-lg border-slate-600 bg-[#1a1a2e] text-white focus:ring-[#3ce8d1]/20">
+                                                <SelectValue placeholder="Выберите пресет" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-[#1a1a2e] border-slate-600 text-slate-200">
-                                                {LAYOUT_TEMPLATES.map((t) => (
+                                            <SelectContent className="border-slate-600 bg-[#1a1a2e] text-slate-200">
+                                                {AUTOFILL_TEMPLATES.map((t) => (
                                                     <SelectItem key={t.value} value={t.value} className="focus:bg-slate-700 focus:text-white">
                                                         {t.label}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <p className="text-xs text-slate-400">Используется для рендера страницы. Для перехвата встроенных страниц услуг выбирайте Layout: create-page.</p>
-                                    </div>
 
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-300 text-sm font-medium">Контентный пресет (автозаполнение)</Label>
-                                        <div className="flex gap-3">
-                                            <Select
-                                                value={formData.autofill_template || "none"}
-                                                onValueChange={(val) => {
-                                                    setFormData((prev) => ({
-                                                        ...prev,
-                                                        autofill_template: val,
-                                                        template_name:
-                                                            val !== "none" && (
-                                                                !prev.template_name || prev.template_name === "none"
-                                                            )
-                                                                ? "create-page"
-                                                                : prev.template_name,
-                                                    }))
-                                                }}
-                                            >
-                                                <SelectTrigger className="bg-[#1a1a2e] border-slate-600 text-white focus:ring-[#3ce8d1]/20 rounded-lg h-10 flex-1">
-                                                    <SelectValue placeholder="Выберите пресет" />
-                                                </SelectTrigger>
-                                                <SelectContent className="bg-[#1a1a2e] border-slate-600 text-slate-200">
-                                                    {AUTOFILL_TEMPLATES.map((t) => (
-                                                        <SelectItem key={t.value} value={t.value} className="focus:bg-slate-700 focus:text-white">
-                                                            {t.label}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
                                         <Button
                                             type="button"
                                             onClick={applyTemplate}
@@ -833,51 +871,59 @@ export function SeoPageEditor({
                                                 formData.autofill_template === 'none' ||
                                                 isApplyingTemplate
                                             }
-                                            className="bg-purple-600 hover:bg-purple-700 text-white h-10 px-5 rounded-lg font-medium disabled:opacity-40"
+                                            className="h-10 rounded-lg bg-purple-600 px-5 font-medium text-white hover:bg-purple-700 disabled:opacity-40"
                                         >
                                             {isApplyingTemplate ? (
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                             ) : (
-                                                <Sparkles className="w-4 h-4 mr-2" />
+                                                <Sparkles className="mr-2 h-4 w-4" />
                                             )}
                                             {isApplyingTemplate ? "Применение..." : "Применить"}
                                         </Button>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-2">Пресет заполняет мета-теги, контент, FAQ и блок «Часто ищут». Даже без кнопки сохранение применит пресет на backend.</p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-slate-300 text-sm font-medium">Приоритет</Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.priority || 0}
-                                            onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                                            className="bg-[#1a1a2e] border-slate-600 text-white focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
-                                        />
-                                    </div>
-
-                                    <div className="flex items-end">
-                                        <div className="flex items-center gap-3 h-10 px-4 rounded-lg bg-[#1a1a2e] border border-slate-600 w-full">
-                                            <Switch
-                                                checked={formData.is_published}
-                                                onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
-                                                className="data-[state=checked]:bg-[#3ce8d1]"
-                                            />
-                                            <Label className="text-slate-200 font-medium cursor-pointer" onClick={() => setFormData({ ...formData, is_published: !formData.is_published })}>
-                                                Опубликовано
-                                            </Label>
-                                        </div>
                                     </div>
                                 </div>
-                            </TabsContent>
 
-                            {/* META TAB */}
-                            <TabsContent value="meta" className="space-y-5 mt-0">
+                                <p className="mt-2 text-xs text-slate-400">
+                                    Пресет заполняет мета-теги, контент, FAQ и блок «Часто ищут». Даже без кнопки сохранения он подготовит форму к работе.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <Label className="text-slate-300 text-sm font-medium">Meta Title</Label>
+                                    <Label className="text-sm font-medium text-slate-300">Приоритет</Label>
+                                    <Input
+                                        type="number"
+                                        value={formData.priority || 0}
+                                        onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+                                        className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
+                                    />
+                                </div>
+
+                                <div className="flex items-end">
+                                    <div className="flex h-10 w-full items-center gap-3 rounded-lg border border-slate-600 bg-[#1a1a2e] px-4">
+                                        <Switch
+                                            checked={formData.is_published}
+                                            onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+                                            className="data-[state=checked]:bg-[#3ce8d1]"
+                                        />
+                                        <Label className="cursor-pointer font-medium text-slate-200" onClick={() => setFormData({ ...formData, is_published: !formData.is_published })}>
+                                            Опубликовано
+                                        </Label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 border-t border-slate-700/50 pt-6">
+                            <div className="mb-5 flex items-center gap-2">
+                                <Tags className="h-5 w-5 text-[#3ce8d1]" />
+                                <h3 className="text-base font-semibold text-white">Мета-теги</h3>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-medium text-slate-300">Meta Title</Label>
                                         <span className={`text-xs ${(formData.meta_title || "").length > 60 ? 'text-red-400' : 'text-slate-500'}`}>
                                             {(formData.meta_title || "").length}/60
                                         </span>
@@ -886,13 +932,13 @@ export function SeoPageEditor({
                                         value={formData.meta_title || ""}
                                         onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
                                         placeholder="Заголовок для поисковых систем"
-                                        className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                        className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <Label className="text-slate-300 text-sm font-medium">Meta Description</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-sm font-medium text-slate-300">Meta Description</Label>
                                         <span className={`text-xs ${(formData.meta_description || "").length > 160 ? 'text-red-400' : 'text-slate-500'}`}>
                                             {(formData.meta_description || "").length}/160
                                         </span>
@@ -902,60 +948,63 @@ export function SeoPageEditor({
                                         onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
                                         rows={3}
                                         placeholder="Описание для поисковых систем"
-                                        className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg resize-none"
+                                        className="rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 resize-none"
                                     />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-300 text-sm font-medium">Meta Keywords</Label>
+                                    <Label className="text-sm font-medium text-slate-300">Meta Keywords</Label>
                                     <Textarea
                                         value={formData.meta_keywords || ""}
                                         onChange={(e) => setFormData({ ...formData, meta_keywords: e.target.value })}
                                         rows={2}
                                         placeholder="ключевое слово 1, ключевое слово 2, ..."
-                                        className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg resize-none"
+                                        className="rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 resize-none"
                                     />
                                 </div>
-                            </TabsContent>
+                            </div>
+                        </div>
 
-                            {/* CONTENT TAB */}
-                            <TabsContent value="content" className="space-y-5 mt-0">
+                        <div className="mt-8 border-t border-slate-700/50 pt-6">
+                            <div className="mb-5 flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-[#3ce8d1]" />
+                                <h3 className="text-base font-semibold text-white">Основной контент</h3>
+                            </div>
+
+                            <div className="space-y-5">
                                 <div className="space-y-2">
-                                    <Label className="text-slate-300 text-sm font-medium">H1 Заголовок</Label>
+                                    <Label className="text-sm font-medium text-slate-300">H1 Заголовок</Label>
                                     <Input
                                         value={formData.h1_title || ""}
                                         onChange={(e) => setFormData({ ...formData, h1_title: e.target.value })}
                                         placeholder="Главный заголовок страницы"
-                                        className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                        className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label className="text-slate-300 text-sm font-medium">H2 Заголовок</Label>
+                                        <Label className="text-sm font-medium text-slate-300">H2 Заголовок</Label>
                                         <Input
                                             value={formData.h2_title || ""}
                                             onChange={(e) => setFormData({ ...formData, h2_title: e.target.value })}
                                             placeholder="Вторичный заголовок"
-                                            className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-slate-300 text-sm font-medium">H3 Заголовок</Label>
+                                        <Label className="text-sm font-medium text-slate-300">H3 Заголовок</Label>
                                         <Input
                                             value={formData.h3_title || ""}
                                             onChange={(e) => setFormData({ ...formData, h3_title: e.target.value })}
                                             placeholder="Третичный заголовок"
-                                            className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                            className="h-10 rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                         />
                                     </div>
                                 </div>
 
-                                {/* Hero Image */}
-                                <div className="space-y-3 p-4 rounded-xl bg-[#1a1a2e]/50 border border-slate-700/50">
-                                    <Label className="text-white font-medium flex items-center gap-2">
-                                        🖼️ Картинка главного блока
-                                    </Label>
+                                <div className="space-y-3 rounded-xl border border-slate-700/50 bg-[#1a1a2e]/50 p-4">
+                                    <Label className="flex items-center gap-2 font-medium text-white">🖼️ Картинка главного блока</Label>
                                     {formData.hero_image && (
                                         <div className="relative inline-block">
                                             <img
@@ -966,9 +1015,9 @@ export function SeoPageEditor({
                                             <button
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, hero_image: null })}
-                                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600"
+                                                className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
                                             >
-                                                <X className="w-3 h-3" />
+                                                <X className="h-3 w-3" />
                                             </button>
                                         </div>
                                     )}
@@ -977,223 +1026,233 @@ export function SeoPageEditor({
                                         value={formData.hero_image || ""}
                                         onChange={(e) => setFormData({ ...formData, hero_image: e.target.value || null })}
                                         placeholder="URL картинки (например: /images/hero.jpg)"
-                                        className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                        className="h-10 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                     />
                                     <p className="text-xs text-slate-500">Введите URL изображения или путь к файлу в /public</p>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-slate-300 text-sm font-medium">Основное описание</Label>
+                                    <Label className="text-sm font-medium text-slate-300">Основное описание</Label>
                                     <Textarea
                                         value={formData.main_description || ""}
                                         onChange={(e) => setFormData({ ...formData, main_description: e.target.value })}
                                         rows={5}
                                         placeholder="Текст для основного блока страницы..."
-                                        className="bg-[#1a1a2e] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg resize-y min-h-[120px]"
+                                        className="min-h-[120px] resize-y rounded-lg border-slate-600 bg-[#1a1a2e] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                     />
                                 </div>
 
-                                <div className="space-y-3 p-4 rounded-xl bg-[#1a1a2e]/50 border border-slate-700/50">
-                                    <Label className="text-white font-medium">Шаблонные блоки (create-page)</Label>
+                                <div className="space-y-3 rounded-xl border border-slate-700/50 bg-[#1a1a2e]/50 p-4">
+                                    <Label className="font-medium text-white">Шаблонные блоки (create-page)</Label>
                                     <p className="text-xs text-slate-400">Оставьте поля пустыми, чтобы включился авто-режим от H1. Ручные значения всегда в приоритете.</p>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300 text-sm font-medium">Текст кнопки первого экрана</Label>
+                                            <Label className="text-sm font-medium text-slate-300">Текст кнопки первого экрана</Label>
                                             <Input
                                                 value={formData.hero_button_text || ""}
                                                 onChange={(e) => setFormData({ ...formData, hero_button_text: e.target.value })}
                                                 placeholder="Оставить заявку"
-                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                                className="h-10 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                             />
                                             <p className="text-xs text-slate-500">Пусто = авто (по умолчанию: Оставить заявку)</p>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300 text-sm font-medium">Ссылка кнопки первого экрана</Label>
+                                            <Label className="text-sm font-medium text-slate-300">Ссылка кнопки первого экрана</Label>
                                             <Input
                                                 value={formData.hero_button_href || ""}
                                                 onChange={(e) => setFormData({ ...formData, hero_button_href: e.target.value })}
                                                 placeholder="#application"
-                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                                className="h-10 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                             />
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300 text-sm font-medium">Заголовок блока Лучшие предложения</Label>
+                                            <Label className="text-sm font-medium text-slate-300">Заголовок блока Лучшие предложения</Label>
                                             <Input
                                                 value={formData.best_offers_title || ""}
                                                 onChange={(e) => setFormData({ ...formData, best_offers_title: e.target.value })}
                                                 placeholder="Лучшие предложения"
-                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                                className="h-10 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                             />
                                             <p className="text-xs text-slate-500">Пусто = авто: Лучшие предложения — H1</p>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300 text-sm font-medium">Заголовок блока заявки</Label>
+                                            <Label className="text-sm font-medium text-slate-300">Заголовок блока заявки</Label>
                                             <Input
                                                 value={formData.application_form_title || ""}
                                                 onChange={(e) => setFormData({ ...formData, application_form_title: e.target.value })}
                                                 placeholder="Оставьте заявку"
-                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                                className="h-10 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                             />
                                             <p className="text-xs text-slate-500">Пусто = авто: Оставьте заявку — H1</p>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-slate-300 text-sm font-medium">Текст кнопки в заявке</Label>
+                                            <Label className="text-sm font-medium text-slate-300">Текст кнопки в заявке</Label>
                                             <Input
                                                 value={formData.application_button_text || ""}
                                                 onChange={(e) => setFormData({ ...formData, application_button_text: e.target.value })}
                                                 placeholder="Оставить заявку"
-                                                className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-10"
+                                                className="h-10 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
                                             />
                                             <p className="text-xs text-slate-500">Пусто = авто (по умолчанию: Оставить заявку)</p>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </section>
+                ) : (
+                    <section className="rounded-2xl border border-[#3ce8d1]/20 bg-[#0b0b12]/60 p-4 shadow-xl backdrop-blur-sm sm:p-6">
+                        <div className="space-y-1">
+                            <h2 className="text-lg font-semibold text-white">Шаг 2. Дополнительные блоки</h2>
+                            <p className="text-sm text-slate-400">
+                                Этот шаг можно заполнять после основной части. Здесь собраны длинные и повторяемые блоки, из-за которых модальное окно раньше ломалось на маленьких экранах.
+                            </p>
+                        </div>
 
-                                {/* Popular Searches Section */}
-                                <div className={`space-y-3 p-4 rounded-xl border ${(formData.popular_searches || []).length === 0 ? "bg-amber-900/10 border-amber-500/40" : "bg-[#1a1a2e]/50 border-slate-700/50"}`}>
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-white font-medium flex items-center gap-2">
-                                            <Search className="w-4 h-4 text-[#3ce8d1]" />
-                                            Часто ищут ({(formData.popular_searches || []).length})
-                                        </Label>
-                                    </div>
-                                    {(formData.popular_searches || []).length === 0 && (
-                                        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                                            <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                                            <div className="text-xs text-amber-200/90 space-y-1">
-                                                <p className="font-medium">Блок &laquo;Часто ищут&raquo; пуст</p>
-                                                <p>Добавьте ключевые запросы и укажите ссылки на существующие SEO-страницы (например <code className="bg-amber-800/40 px-1 rounded">/bankovskie-garantii-na-ispolnenie-kontrakta</code>). Без ссылок кнопки будут вести на форму заявки.</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <p className="text-xs text-slate-400">Для каждого элемента можно задать ссылку: #якорь, /seo-slug или https://...</p>
-                                    <p className="text-xs text-slate-500">Заполните поля и нажмите +. Если забыли, введённый элемент добавится автоматически при сохранении.</p>
-
-                                    <datalist id="seo-page-links">
-                                        {availablePages
-                                            .filter((item) => item.slug && item.slug !== normalizedSlug)
-                                            .map((item) => (
-                                                <option key={item.slug} value={`/${item.slug}`}>
-                                                    {item.h1_title || item.slug}
-                                                </option>
-                                            ))}
-                                    </datalist>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2">
-                                        <Input
-                                            value={newSearchTerm}
-                                            onChange={(e) => setNewSearchTerm(e.target.value)}
-                                            onBlur={(e) => {
-                                                const value = e.target.value.trim()
-                                                if (isLinkLikeValue(value) && (!newSearchHref.trim() || newSearchHref.trim() === "#application")) {
-                                                    setNewSearchHref(value)
-                                                }
-                                            }}
-                                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
-                                            placeholder="Текст запроса (что видит пользователь)"
-                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
-                                        />
-                                        <Input
-                                            value={newSearchHref}
-                                            onChange={(e) => setNewSearchHref(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
-                                            list="seo-page-links"
-                                            placeholder="Ссылка: /slug, #application или https://..."
-                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
-                                        />
-                                        <Button type="button" onClick={addSearchTerm} size="sm" className="bg-[#3ce8d1] text-[#0f0f1a] hover:bg-[#3ce8d1]/90 h-9 px-3 rounded-lg">
-                                            <Plus className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-
-                                    <div className="space-y-2 min-h-[32px]">
-                                        {(formData.popular_searches || []).length === 0 ? (
-                                            <span className="text-slate-500 text-sm">Нет поисковых запросов</span>
-                                        ) : (
-                                            (formData.popular_searches || []).map((term, idx) => (
-                                                <div key={idx} className="space-y-1">
-                                                    <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-center">
-                                                        <Input
-                                                            value={term.text}
-                                                            onChange={(e) => updateSearchTerm(idx, 'text', e.target.value)}
-                                                            placeholder="Текст запроса"
-                                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
-                                                        />
-                                                        <Input
-                                                            value={term.href || "#application"}
-                                                            onChange={(e) => updateSearchTerm(idx, 'href', e.target.value)}
-                                                            list="seo-page-links"
-                                                            placeholder="/slug или #application"
-                                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20 rounded-lg h-9"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            onClick={() => removeSearchTerm(idx)}
-                                                            className="h-9 text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                                                        >
-                                                            <Trash2 className="w-4 h-4 mr-1" />
-                                                            Удалить
-                                                        </Button>
-                                                    </div>
-                                                    {normalizedSlug &&
-                                                        normalizePopularSearchHref(term.href || "")
-                                                            .replace(/\/+$/, "") === `/${normalizedSlug}` && (
-                                                            <p className="text-xs text-amber-300/80">
-                                                                Ссылка ведет на эту же страницу. Для перехода нужен другой slug.
-                                                            </p>
-                                                        )}
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </TabsContent>
-
-                            {/* FAQ TAB */}
-                            <TabsContent value="faq" className="space-y-4 mt-0">
+                        <div className="mt-6 space-y-6">
+                            <div className={`space-y-3 rounded-xl border p-4 ${(formData.popular_searches || []).length === 0 ? "border-amber-500/40 bg-amber-900/10" : "border-slate-700/50 bg-[#1a1a2e]/50"}`}>
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-white font-medium flex items-center gap-2">
-                                        <HelpCircle className="w-5 h-5 text-[#3ce8d1]" />
+                                    <Label className="flex items-center gap-2 font-medium text-white">
+                                        <Search className="h-4 w-4 text-[#3ce8d1]" />
+                                        Часто ищут ({(formData.popular_searches || []).length})
+                                    </Label>
+                                </div>
+
+                                {(formData.popular_searches || []).length === 0 && (
+                                    <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                                        <div className="space-y-1 text-xs text-amber-200/90">
+                                            <p className="font-medium">Блок &laquo;Часто ищут&raquo; пуст</p>
+                                            <p>Добавьте ключевые запросы и укажите ссылки на существующие SEO-страницы (например <code className="rounded bg-amber-800/40 px-1">/bankovskie-garantii-na-ispolnenie-kontrakta</code>). Без ссылок кнопки будут вести на форму заявки.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <p className="text-xs text-slate-400">Для каждого элемента можно задать ссылку: #якорь, /seo-slug или https://...</p>
+                                <p className="text-xs text-slate-500">Заполните поля и нажмите +. Если забыли, введённый элемент добавится автоматически при сохранении.</p>
+
+                                <datalist id="seo-page-links">
+                                    {availablePages
+                                        .filter((item) => item.slug && item.slug !== normalizedSlug)
+                                        .map((item) => (
+                                            <option key={item.slug} value={`/${item.slug}`}>
+                                                {item.h1_title || item.slug}
+                                            </option>
+                                        ))}
+                                </datalist>
+
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_1fr_auto]">
+                                    <Input
+                                        value={newSearchTerm}
+                                        onChange={(e) => setNewSearchTerm(e.target.value)}
+                                        onBlur={(e) => {
+                                            const value = e.target.value.trim()
+                                            if (isLinkLikeValue(value) && (!newSearchHref.trim() || newSearchHref.trim() === "#application")) {
+                                                setNewSearchHref(value)
+                                            }
+                                        }}
+                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
+                                        placeholder="Текст запроса (что видит пользователь)"
+                                        className="h-9 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
+                                    />
+                                    <Input
+                                        value={newSearchHref}
+                                        onChange={(e) => setNewSearchHref(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSearchTerm())}
+                                        list="seo-page-links"
+                                        placeholder="Ссылка: /slug, #application или https://..."
+                                        className="h-9 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
+                                    />
+                                    <Button type="button" onClick={addSearchTerm} size="sm" className="h-9 rounded-lg bg-[#3ce8d1] px-3 text-[#0f0f1a] hover:bg-[#3ce8d1]/90">
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+
+                                <div className="min-h-[32px] space-y-2">
+                                    {(formData.popular_searches || []).length === 0 ? (
+                                        <span className="text-sm text-slate-500">Нет поисковых запросов</span>
+                                    ) : (
+                                        (formData.popular_searches || []).map((term, idx) => (
+                                            <div key={idx} className="space-y-1">
+                                                <div className="grid grid-cols-1 items-center gap-2 md:grid-cols-[1fr_1fr_auto]">
+                                                    <Input
+                                                        value={term.text}
+                                                        onChange={(e) => updateSearchTerm(idx, 'text', e.target.value)}
+                                                        placeholder="Текст запроса"
+                                                        className="h-9 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
+                                                    />
+                                                    <Input
+                                                        value={term.href || "#application"}
+                                                        onChange={(e) => updateSearchTerm(idx, 'href', e.target.value)}
+                                                        list="seo-page-links"
+                                                        placeholder="/slug или #application"
+                                                        className="h-9 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1] focus-visible:ring-[#3ce8d1]/20"
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        onClick={() => removeSearchTerm(idx)}
+                                                        className="h-9 text-red-400 hover:bg-red-900/20 hover:text-red-300"
+                                                    >
+                                                        <Trash2 className="mr-1 h-4 w-4" />
+                                                        Удалить
+                                                    </Button>
+                                                </div>
+                                                {normalizedSlug &&
+                                                    normalizePopularSearchHref(term.href || "").replace(/\/+$/, "") === `/${normalizedSlug}` && (
+                                                        <p className="text-xs text-amber-300/80">
+                                                            Ссылка ведет на эту же страницу. Для перехода нужен другой slug.
+                                                        </p>
+                                                    )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 rounded-xl border border-slate-700/50 bg-[#1a1a2e]/50 p-4">
+                                <div className="flex items-center justify-between">
+                                    <Label className="flex items-center gap-2 font-medium text-white">
+                                        <HelpCircle className="h-5 w-5 text-[#3ce8d1]" />
                                         Вопросы и ответы ({(formData.faq || []).length})
                                     </Label>
                                     <Button
                                         type="button"
                                         onClick={addFaq}
                                         size="sm"
-                                        className="bg-[#3ce8d1] text-[#0f0f1a] hover:bg-[#3ce8d1]/90 rounded-lg font-medium"
+                                        className="rounded-lg bg-[#3ce8d1] font-medium text-[#0f0f1a] hover:bg-[#3ce8d1]/90"
                                     >
-                                        <Plus className="w-4 h-4 mr-1" />
+                                        <Plus className="mr-1 h-4 w-4" />
                                         Добавить
                                     </Button>
                                 </div>
 
                                 <div className="space-y-3">
                                     {(formData.faq || []).length === 0 ? (
-                                        <div className="text-center py-8 text-slate-500 bg-[#1a1a2e]/50 rounded-xl border border-dashed border-slate-700">
-                                            <HelpCircle className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                                        <div className="rounded-xl border border-dashed border-slate-700 bg-[#101025] py-8 text-center text-slate-500">
+                                            <HelpCircle className="mx-auto mb-2 h-10 w-10 opacity-40" />
                                             <p className="text-sm">Нет вопросов. Нажмите Добавить или примените шаблон.</p>
                                         </div>
                                     ) : (
                                         (formData.faq || []).map((item, idx) => (
-                                            <div key={idx} className="p-4 rounded-xl bg-[#1a1a2e] border border-slate-700/50 space-y-3">
+                                            <div key={idx} className="space-y-3 rounded-xl border border-slate-700/50 bg-[#1a1a2e] p-4">
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="flex-1 space-y-2">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="w-6 h-6 rounded-full bg-[#3ce8d1]/20 text-[#3ce8d1] text-xs font-bold flex items-center justify-center">{idx + 1}</span>
-                                                            <Label className="text-slate-400 text-xs">Вопрос</Label>
+                                                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#3ce8d1]/20 text-xs font-bold text-[#3ce8d1]">{idx + 1}</span>
+                                                            <Label className="text-xs text-slate-400">Вопрос</Label>
                                                         </div>
                                                         <Input
                                                             value={item.question}
                                                             onChange={(e) => updateFaq(idx, 'question', e.target.value)}
                                                             placeholder="Введите вопрос..."
-                                                            className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] rounded-lg h-9"
+                                                            className="h-9 rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1]"
                                                         />
                                                     </div>
                                                     <Button
@@ -1201,32 +1260,31 @@ export function SeoPageEditor({
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => removeFaq(idx)}
-                                                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 h-8 w-8 mt-5"
+                                                        className="mt-5 h-8 w-8 text-red-400 hover:bg-red-900/20 hover:text-red-300"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                                 <div className="space-y-1 pl-8">
-                                                    <Label className="text-slate-400 text-xs">Ответ</Label>
+                                                    <Label className="text-xs text-slate-400">Ответ</Label>
                                                     <Textarea
                                                         value={item.answer}
                                                         onChange={(e) => updateFaq(idx, 'answer', e.target.value)}
                                                         placeholder="Введите ответ..."
                                                         rows={2}
-                                                        className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] rounded-lg resize-none"
+                                                        className="resize-none rounded-lg border-slate-600 bg-[#0f0f1a] text-white placeholder:text-slate-500 focus:border-[#3ce8d1]"
                                                     />
                                                 </div>
                                             </div>
                                         ))
                                     )}
                                 </div>
-                            </TabsContent>
+                            </div>
 
-                            {/* BANK OFFERS TAB */}
-                            <TabsContent value="offers" className="space-y-4 mt-0">
+                            <div className="space-y-4 rounded-xl border border-slate-700/50 bg-[#1a1a2e]/50 p-4">
                                 <div className="flex items-center justify-between">
-                                    <Label className="text-white font-medium flex items-center gap-2">
-                                        <Building2 className="w-5 h-5 text-[#3ce8d1]" />
+                                    <Label className="flex items-center gap-2 font-medium text-white">
+                                        <Building2 className="h-5 w-5 text-[#3ce8d1]" />
                                         Предложения банков ({(formData.bank_offers || []).length}/9)
                                     </Label>
                                     <Button
@@ -1234,82 +1292,117 @@ export function SeoPageEditor({
                                         onClick={addBankOffer}
                                         disabled={(formData.bank_offers || []).length >= 9}
                                         size="sm"
-                                        className="bg-[#3ce8d1] text-[#0f0f1a] hover:bg-[#3ce8d1]/90 rounded-lg font-medium disabled:opacity-40"
+                                        className="rounded-lg bg-[#3ce8d1] font-medium text-[#0f0f1a] hover:bg-[#3ce8d1]/90 disabled:opacity-40"
                                     >
-                                        <Plus className="w-4 h-4 mr-1" />
+                                        <Plus className="mr-1 h-4 w-4" />
                                         Добавить
                                     </Button>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                                     {(formData.bank_offers || []).length === 0 ? (
-                                        <div className="col-span-3 text-center py-8 text-slate-500 bg-[#1a1a2e]/50 rounded-xl border border-dashed border-slate-700">
-                                            <Building2 className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                                        <div className="col-span-3 rounded-xl border border-dashed border-slate-700 bg-[#101025] py-8 text-center text-slate-500">
+                                            <Building2 className="mx-auto mb-2 h-10 w-10 opacity-40" />
                                             <p className="text-sm">Нет предложений. Добавьте до 9 банковских предложений.</p>
                                         </div>
                                     ) : (
                                         (formData.bank_offers || []).map((offer, idx) => (
-                                            <div key={idx} className="p-3 rounded-xl bg-[#1a1a2e] border border-slate-700/50 space-y-2 relative group">
+                                            <div key={idx} className="group relative space-y-2 rounded-xl border border-slate-700/50 bg-[#1a1a2e] p-3">
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
                                                     onClick={() => removeBankOffer(idx)}
-                                                    className="absolute -top-2 -right-2 text-red-400 hover:text-red-300 hover:bg-red-900/30 h-6 w-6 rounded-full bg-[#0f0f1a] border border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full border border-slate-700 bg-[#0f0f1a] text-red-400 opacity-0 transition-opacity hover:bg-red-900/30 hover:text-red-300 group-hover:opacity-100"
                                                 >
-                                                    <X className="w-3 h-3" />
+                                                    <X className="h-3 w-3" />
                                                 </Button>
 
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="w-5 h-5 rounded bg-[#3ce8d1]/20 text-[#3ce8d1] text-xs font-bold flex items-center justify-center">{idx + 1}</span>
-                                                    <span className="text-slate-400 text-xs">Банк</span>
+                                                <div className="mb-2 flex items-center gap-2">
+                                                    <span className="flex h-5 w-5 items-center justify-center rounded bg-[#3ce8d1]/20 text-xs font-bold text-[#3ce8d1]">{idx + 1}</span>
+                                                    <span className="text-xs text-slate-400">Банк</span>
                                                 </div>
 
                                                 <Input
                                                     value={offer.bank_name}
                                                     onChange={(e) => updateBankOffer(idx, 'bank_name', e.target.value)}
                                                     placeholder="Название банка"
-                                                    className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] rounded-lg h-8 text-sm"
+                                                    className="h-8 rounded-lg border-slate-600 bg-[#0f0f1a] text-sm text-white placeholder:text-slate-500 focus:border-[#3ce8d1]"
                                                 />
                                                 <Input
                                                     value={offer.rate || ""}
                                                     onChange={(e) => updateBankOffer(idx, 'rate', e.target.value)}
                                                     placeholder="от 5% годовых"
-                                                    className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] rounded-lg h-8 text-sm"
+                                                    className="h-8 rounded-lg border-slate-600 bg-[#0f0f1a] text-sm text-white placeholder:text-slate-500 focus:border-[#3ce8d1]"
                                                 />
                                                 <Input
                                                     value={offer.custom_text || ""}
                                                     onChange={(e) => updateBankOffer(idx, 'custom_text', e.target.value)}
                                                     placeholder="Доп. информация"
-                                                    className="bg-[#0f0f1a] border-slate-600 text-white placeholder:text-slate-500 focus:border-[#3ce8d1] rounded-lg h-8 text-sm"
+                                                    className="h-8 rounded-lg border-slate-600 bg-[#0f0f1a] text-sm text-white placeholder:text-slate-500 focus:border-[#3ce8d1]"
                                                 />
                                             </div>
                                         ))
                                     )}
                                 </div>
-                            </TabsContent>
+                            </div>
                         </div>
-                    </Tabs>
-                </div>
+                    </section>
+                )}
 
-                <DialogFooter className="flex-shrink-0 gap-3 sm:justify-end border-t border-slate-700/50 px-4 py-3 sm:px-6 sm:py-4 [@media(max-height:820px)]:gap-2 [@media(max-height:820px)]:px-3 [@media(max-height:820px)]:py-2.5">
-                    <Button
-                        variant="outline"
-                        onClick={onClose}
-                        className="w-full sm:w-auto border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white h-10 px-5 rounded-xl hover:border-slate-500 [@media(max-height:820px)]:h-9"
-                    >
-                        Отмена
-                    </Button>
-                    <Button
-                        onClick={handleSubmit}
-                        disabled={!formData.slug?.trim() || isLoading || isApplyingTemplate}
-                        className="w-full sm:w-auto bg-[#3ce8d1] text-[#0f0f1a] font-bold hover:bg-[#3ce8d1]/90 shadow-[0_0_15px_rgba(60,232,209,0.3)] h-10 px-6 rounded-xl border-none [@media(max-height:820px)]:h-9"
-                    >
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Сохранить
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                <section className="rounded-2xl border border-[#3ce8d1]/20 bg-[#0b0b12]/60 p-4 shadow-xl backdrop-blur-sm sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm text-slate-400">
+                            {currentStep === 1
+                                ? "После шага 1 можно перейти к дополнительным блокам или сразу сохранить страницу."
+                                : "На шаге 2 заполняются расширенные блоки. При необходимости можно вернуться к базовым полям."}
+                        </div>
+
+                        <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                            {currentStep === 2 && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setCurrentStep(1)}
+                                    className="h-10 rounded-xl border-slate-600 px-5 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-white"
+                                >
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Назад к шагу 1
+                                </Button>
+                            )}
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onClose}
+                                className="h-10 rounded-xl border-slate-600 px-5 text-slate-300 hover:border-slate-500 hover:bg-slate-800 hover:text-white"
+                            >
+                                Отмена
+                            </Button>
+
+                            {currentStep === 1 && (
+                                <Button
+                                    type="button"
+                                    onClick={() => setCurrentStep(2)}
+                                    className="h-10 rounded-xl border-none bg-slate-700 px-5 font-medium text-white hover:bg-slate-600"
+                                >
+                                    Шаг 2
+                                    <ChevronRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            )}
+
+                            <Button
+                                onClick={handleSubmit}
+                                disabled={!formData.slug?.trim() || isLoading || isApplyingTemplate}
+                                className="h-10 rounded-xl border-none bg-[#3ce8d1] px-6 font-bold text-[#0f0f1a] shadow-[0_0_15px_rgba(60,232,209,0.3)] hover:bg-[#3ce8d1]/90"
+                            >
+                                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Сохранить
+                            </Button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
     )
 }
