@@ -30,7 +30,7 @@ export default function DocumentsPage() {
     const popup = window.open(viewerUrl, "_blank", "noopener,noreferrer");
 
     if (!popup) {
-      window.location.href = viewerUrl;
+      window.location.assign(viewerUrl);
     }
   };
 

@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 
+from django.conf import settings
 from rest_framework import serializers
 
 from .models import SeoPage
@@ -82,11 +83,35 @@ class SeoPageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.hero_image:
+            raw_name = str(getattr(instance.hero_image, 'name', '') or '')
+
+            if raw_name.startswith('/') or raw_name.lower().startswith(('http://', 'https://')):
+                data['hero_image'] = raw_name
+                return data
+
             try:
                 data['hero_image'] = instance.hero_image.url
             except Exception:
                 data['hero_image'] = str(instance.hero_image)
         return data
+
+    def validate_hero_image(self, value):
+        if value is None:
+            return None
+
+        clean = str(value).strip()
+        if not clean:
+            return None
+
+        parsed = urlparse(clean)
+        candidate_path = parsed.path if parsed.scheme and parsed.netloc else clean
+        media_url = str(settings.MEDIA_URL or '').strip()
+
+        if media_url and candidate_path.startswith(media_url):
+            normalized = candidate_path[len(media_url):].lstrip('/')
+            return normalized or None
+
+        return clean
     
     def validate_faq(self, value):
         """Ensure FAQ is a list of {question, answer} objects."""

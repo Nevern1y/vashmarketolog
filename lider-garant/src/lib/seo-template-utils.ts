@@ -22,10 +22,7 @@ export const isCreatePageLayout = (page?: SeoPageData | null) => {
 };
 
 export const getSeoTemplateDescription = (page: SeoPageData) => {
-  const description = [page.main_description, page.h2_title, page.h3_title]
-    .map((part) => String(part || "").trim())
-    .filter((part) => part.length > 0)
-    .join("\n\n");
+  const description = String(page.main_description || "").trim();
 
   return description || "Описание услуги";
 };
@@ -55,6 +52,8 @@ export const getSeoTemplateProps = (page: SeoPageData) => {
   return {
     title: page.h1_title || "Заголовок страницы",
     description: getSeoTemplateDescription(page),
+    h2Title: page.h2_title,
+    h3Title: page.h3_title,
     buttonText: page.hero_button_text,
     buttonHref: normalizeHref(page.hero_button_href || "#application"),
     bestOffersTitle: page.best_offers_title,

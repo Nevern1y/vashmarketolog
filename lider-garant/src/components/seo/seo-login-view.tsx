@@ -4,13 +4,12 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Lock, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react"
+import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card"
 import { Input } from "../ui/input"
 import { Button } from "../ui/button"
 import { Label } from "../ui/label"
 import { useAuth } from "../../lib/auth-context"
-import { toast } from "sonner"
 
 export function SeoLoginView() {
     const router = useRouter()
@@ -19,30 +18,24 @@ export function SeoLoginView() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
-    const [accessError, setAccessError] = useState<string | null>(null)
+    const hasSeoAccess = user?.role === "admin" || user?.role === "seo"
+    const accessError = user && !hasSeoAccess
+        ? "У вас нет доступа к админ-панели. Требуется роль администратора."
+        : null
 
     // Redirect if already logged in with correct role
     useEffect(() => {
-        if (user) {
-            // Check if user has SEO or admin role
-            if (user.role === 'admin' || user.role === 'seo') {
-                router.push("/seo-manager/dashboard")
-            } else {
-                // User is logged in but doesn't have access
-                setAccessError("У вас нет доступа к админ-панели. Требуется роль администратора.")
-            }
+        if (hasSeoAccess) {
+            router.push("/seo-manager/dashboard")
         }
-    }, [user, router])
+    }, [hasSeoAccess, router])
 
     // Clear auth errors when inputs change
     useEffect(() => {
         if (authError) {
             clearError()
         }
-        if (accessError) {
-            setAccessError(null)
-        }
-    }, [username, password])
+    }, [authError, clearError, username, password])
 
     const isValid = username.trim() !== "" && password.trim() !== ""
 
@@ -50,7 +43,6 @@ export function SeoLoginView() {
         e.preventDefault()
 
         if (!isValid) return
-        setAccessError(null)
 
         try {
             await login(username, password)
@@ -65,7 +57,6 @@ export function SeoLoginView() {
     // Handle switching accounts if user doesn't have access
     const handleSwitchAccount = async () => {
         await logout()
-        setAccessError(null)
         setUsername("")
         setPassword("")
     }

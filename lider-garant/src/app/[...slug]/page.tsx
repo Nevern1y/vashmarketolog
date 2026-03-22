@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { getSeoPage } from "@/lib/seo-api";
+import { getSeoTemplatePopularSearches } from "@/lib/seo-template-utils";
 import { generateMetadataFromSeoPage } from "@/utils/metadata";
 import SeoTemplatePage from "@/components/seo/seo-template-page";
 
@@ -15,15 +16,6 @@ interface Props {
 // Helper to construct slug string from array
 const getSlugString = (slugArray: string[]) => {
     return slugArray.join("/");
-};
-
-const normalizeUiHref = (value?: string) => {
-    const href = String(value || "").trim();
-    if (!href) return "#application";
-    if (href.startsWith("#") || href.startsWith("/") || /^https?:\/\//i.test(href)) {
-        return href;
-    }
-    return `/${href.replace(/^\/+/, "")}`;
 };
 
 const normalizeApiBaseUrl = (value?: string | null) => {
@@ -88,22 +80,7 @@ export default async function DynamicSeoPage({ params }: Props) {
         notFound();
     }
 
-    const popularSearches = (page.popular_searches || [])
-        .map((item) => {
-            if (typeof item === "string") {
-                const text = item.trim()
-                return text ? { text, href: "#application" } : null
-            }
-
-            const text = String(item?.text || "").trim()
-            if (!text) return null
-
-            return {
-                text,
-                href: normalizeUiHref(String(item?.href || "#application")),
-            }
-        })
-        .filter((item): item is { text: string; href: string } => item !== null)
+    const popularSearches = getSeoTemplatePopularSearches(page.popular_searches)
 
     const hasTemplateSignals =
         Boolean(page.hero_button_text?.trim()) ||
@@ -118,18 +95,15 @@ export default async function DynamicSeoPage({ params }: Props) {
         page.template_name === "create-page" ||
         (!page.template_name && (hasTemplateSignals || hasAutofillTemplate))
 
-    const templateDescription =
-        [page.main_description, page.h2_title, page.h3_title]
-            .map((part) => String(part || "").trim())
-            .filter((part) => part.length > 0)
-            .join("\n\n") ||
-        "Описание услуги"
+    const templateDescription = String(page.main_description || "").trim() || "Описание услуги"
 
     if (shouldRenderTemplatePage) {
         return (
             <SeoTemplatePage
                 title={page.h1_title || "Заголовок страницы"}
                 description={templateDescription}
+                h2Title={page.h2_title}
+                h3Title={page.h3_title}
                 buttonText={page.hero_button_text}
                 buttonHref={page.hero_button_href || "#application"}
                 bestOffersTitle={page.best_offers_title}

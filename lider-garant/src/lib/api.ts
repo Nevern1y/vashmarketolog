@@ -20,8 +20,40 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 export interface ApiError {
     message: string;
     status: number;
-    errors?: Record<string, string[]>;
+    errors?: Record<string, unknown>;
 }
+
+type ErrorPayload = Record<string, unknown>;
+
+const getErrorMessage = (errorData: ErrorPayload, fallback: string): string => {
+    const detail = errorData.detail;
+    if (typeof detail === 'string' && detail.trim()) {
+        return detail;
+    }
+
+    const error = errorData.error;
+    if (typeof error === 'string' && error.trim()) {
+        return error;
+    }
+
+    const nonFieldErrors = errorData.non_field_errors;
+    if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === 'string') {
+        return nonFieldErrors[0];
+    }
+
+    const fieldErrors: string[] = [];
+    for (const errors of Object.values(errorData)) {
+        if (Array.isArray(errors) && typeof errors[0] === 'string') {
+            fieldErrors.push(errors[0]);
+        }
+    }
+
+    if (fieldErrors.length > 0) {
+        return fieldErrors.join('. ');
+    }
+
+    return fallback;
+};
 
 export interface AuthTokens {
     access: string;
@@ -224,10 +256,10 @@ class ApiClient {
     private async handleResponse<T>(response: Response): Promise<T> {
         if (!response.ok) {
             const contentType = response.headers.get('content-type') || '';
-            let errorData: any = {};
+            let errorData: ErrorPayload = {};
 
             if (contentType.includes('application/json')) {
-                errorData = await response.json().catch(() => ({}));
+                errorData = await response.json().catch(() => ({} as ErrorPayload)) as ErrorPayload;
             } else {
                 const rawText = await response.text().catch(() => '');
                 if (rawText.trim()) {
@@ -241,26 +273,7 @@ class ApiClient {
             }
 
             // Extract user-friendly error message
-            let message = 'An error occurred';
-
-            if (errorData.detail) {
-                message = errorData.detail;
-            } else if (errorData.error) {
-                message = errorData.error;
-            } else if (errorData.non_field_errors?.[0]) {
-                message = errorData.non_field_errors[0];
-            } else {
-                // Handle field-specific errors like {"email": ["User with this email already exists."]}
-                const fieldErrors: string[] = [];
-                for (const [field, errors] of Object.entries(errorData)) {
-                    if (Array.isArray(errors) && errors.length > 0) {
-                        fieldErrors.push(`${errors[0]}`);
-                    }
-                }
-                if (fieldErrors.length > 0) {
-                    message = fieldErrors.join('. ');
-                }
-            }
+            let message = getErrorMessage(errorData, 'An error occurred');
 
             if (!message || message === 'An error occurred') {
                 message = `${response.status} ${response.statusText || 'Request failed'}`;
@@ -365,7 +378,7 @@ class ApiClient {
         onProgress?: (progress: number) => void
     ): Promise<T> {
         const url = `${this.baseUrl}${endpoint}`;
-        let accessToken = tokenStorage.getAccessToken();
+        const accessToken = tokenStorage.getAccessToken();
 
         const getHeaders = (token: string | null) => {
             const headers: Record<string, string> = {};
@@ -386,9 +399,9 @@ class ApiClient {
                 },
             });
             return response.data;
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Handle 401 Unauthorized - try to refresh token
-            if (error.response?.status === 401) {
+            if (axios.isAxiosError(error) && error.response?.status === 401) {
                 let newTokens = null;
                 try {
                     newTokens = await refreshAccessToken();
@@ -409,19 +422,29 @@ class ApiClient {
                             },
                         });
                         return response.data;
-                    } catch (retryError: any) {
+                    } catch (retryError: unknown) {
                         // If retry fails, throw THIS error, not the original 401
-                        const status = retryError.response?.status || 500;
-                        const message = retryError.response?.data?.detail || retryError.message || 'Upload failed';
-                        const errors = retryError.response?.data;
+                        const status = axios.isAxiosError(retryError) ? (retryError.response?.status || 500) : 500;
+                        const retryData = axios.isAxiosError(retryError) && retryError.response?.data && typeof retryError.response.data === 'object'
+                            ? retryError.response.data as ErrorPayload
+                            : {};
+                        const message = axios.isAxiosError(retryError)
+                            ? getErrorMessage(retryData, retryError.message || 'Upload failed')
+                            : 'Upload failed';
+                        const errors = retryData;
                         throw { message, status, errors } as ApiError;
                     }
                 }
             }
 
-            const status = error.response?.status || 500;
-            const message = error.response?.data?.detail || error.message || 'Upload failed';
-            const errors = error.response?.data;
+            const status = axios.isAxiosError(error) ? (error.response?.status || 500) : 500;
+            const errorData = axios.isAxiosError(error) && error.response?.data && typeof error.response.data === 'object'
+                ? error.response.data as ErrorPayload
+                : {};
+            const message = axios.isAxiosError(error)
+                ? getErrorMessage(errorData, error.message || 'Upload failed')
+                : 'Upload failed';
+            const errors = errorData;
             throw { message, status, errors } as ApiError;
         }
     }

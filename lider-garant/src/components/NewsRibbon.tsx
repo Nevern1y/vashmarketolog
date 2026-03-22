@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
@@ -95,7 +96,7 @@ export default function NewsRibbon() {
                   size="sm"
                   className="h-9 bg-none border-primary border text-primary hover:bg-primary hover:text-white hover:text-[oklch(0.141_0.005_285.823)] transition-all"
                 >
-                  <a href="/novosti">Читать полностью →</a>
+                  <Link href="/novosti">Читать полностью →</Link>
                 </Button>
               </article>
             </SwiperSlide>

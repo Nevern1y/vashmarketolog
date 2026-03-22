@@ -11,6 +11,8 @@ import Link from "next/link";
 interface SeoTemplatePageProps {
   title: string;
   description: string;
+  h2Title?: string;
+  h3Title?: string;
   buttonText?: string;
   buttonHref?: string;
   bestOffersTitle?: string;
@@ -29,6 +31,8 @@ interface SeoTemplatePageProps {
 export default function SeoTemplatePage({
   title,
   description,
+  h2Title,
+  h3Title,
   buttonText = "Оставить заявку",
   buttonHref = "#application",
   bestOffersTitle = "Лучшие предложения",
@@ -44,6 +48,9 @@ export default function SeoTemplatePage({
   children,
 }: SeoTemplatePageProps) {
   const cleanTitle = title.trim();
+  const resolvedH2Title = String(h2Title || "").trim();
+  const resolvedDescription = String(description || "").trim();
+  const resolvedH3Title = String(h3Title || "").trim();
 
   const normalizeHref = (value?: string) => {
     const href = String(value || "").trim();
@@ -83,9 +90,24 @@ export default function SeoTemplatePage({
               <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
                 <span className="text-foreground">{title}</span>
               </h1>
-              <p className="mx-auto max-w-3xl text-lg leading-relaxed text-foreground/80 md:text-xl">
-                {description}
-              </p>
+
+              {resolvedH2Title ? (
+                <h2 className="mx-auto max-w-3xl text-2xl font-semibold leading-tight text-foreground md:text-3xl">
+                  {resolvedH2Title}
+                </h2>
+              ) : null}
+
+              {resolvedDescription ? (
+                <p className="mx-auto max-w-3xl whitespace-pre-line text-base leading-7 text-foreground/80 md:text-lg md:leading-8">
+                  {resolvedDescription}
+                </p>
+              ) : null}
+
+              {resolvedH3Title ? (
+                <h3 className="mx-auto max-w-3xl pt-2 text-lg font-medium leading-relaxed text-foreground/70 md:text-xl">
+                  {resolvedH3Title}
+                </h3>
+              ) : null}
             </div>
 
             <div className="pt-4">
