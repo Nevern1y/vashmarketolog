@@ -31,3 +31,40 @@ class SeoPageSerializerTest(TestCase):
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(serializer.validated_data['hero_image'], 'seo/hero/test.jpg')
+
+    def test_create_page_defaults_are_applied_from_h1_when_template_fields_empty(self):
+        serializer = SeoPageSerializer(data={
+            'slug': 'create-page-defaults',
+            'h1_title': 'Кредиты для бизнеса',
+            'template_name': 'create-page',
+            'hero_button_text': '',
+            'best_offers_title': '',
+            'application_form_title': '',
+            'application_button_text': '',
+        })
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.validated_data['hero_button_text'], 'Оставить заявку')
+        self.assertEqual(serializer.validated_data['best_offers_title'], 'Лучшие предложения — Кредиты для бизнеса')
+        self.assertEqual(serializer.validated_data['application_form_title'], 'Оставьте заявку — Кредиты для бизнеса')
+        self.assertEqual(serializer.validated_data['application_button_text'], 'Оставить заявку')
+
+    def test_partial_update_applies_create_page_defaults_when_fields_are_empty(self):
+        page = SeoPage.objects.create(
+            slug='create-page-partial',
+            h1_title='Старый H1',
+            template_name='create-page',
+            hero_button_text='',
+            best_offers_title='',
+            application_form_title='',
+            application_button_text='',
+        )
+
+        serializer = SeoPageSerializer(instance=page, data={'h1_title': 'Новый H1'}, partial=True)
+
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        updated = serializer.save()
+        self.assertEqual(updated.hero_button_text, 'Оставить заявку')
+        self.assertEqual(updated.best_offers_title, 'Лучшие предложения — Новый H1')
+        self.assertEqual(updated.application_form_title, 'Оставьте заявку — Новый H1')
+        self.assertEqual(updated.application_button_text, 'Оставить заявку')
