@@ -283,6 +283,29 @@ class SeoPageSerializer(serializers.ModelSerializer):
                 template.get('popular_searches', []),
             )
 
+    def _apply_create_page_defaults_from_h1(self, attrs, instance):
+        template_name = str(
+            attrs.get('template_name', getattr(instance, 'template_name', '') if instance else '') or ''
+        ).strip()
+        if template_name != 'create-page':
+            return
+
+        h1_title = str(
+            attrs.get('h1_title', getattr(instance, 'h1_title', '') if instance else '') or ''
+        ).strip()
+
+        defaults = {
+            'hero_button_text': 'Оставить заявку',
+            'best_offers_title': f'Лучшие предложения — {h1_title}' if h1_title else 'Лучшие предложения',
+            'application_form_title': f'Оставьте заявку — {h1_title}' if h1_title else 'Оставьте заявку',
+            'application_button_text': 'Оставить заявку',
+        }
+
+        for field_name, default_value in defaults.items():
+            current_value = attrs.get(field_name, getattr(instance, field_name, '') if instance else '')
+            if self._is_empty_value(current_value):
+                attrs[field_name] = default_value
+
     def validate(self, attrs):
         """
         Auto-enable create-page layout when template-only blocks are filled.
@@ -340,5 +363,7 @@ class SeoPageSerializer(serializers.ModelSerializer):
 
         if not template_name and (has_template_content or autofill_template):
             attrs['template_name'] = 'create-page'
+
+        self._apply_create_page_defaults_from_h1(attrs, instance)
 
         return attrs
