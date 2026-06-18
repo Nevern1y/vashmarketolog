@@ -50,6 +50,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    google: "gCGSz4q-0m7wSUxEuJFQXRuoZpaeeAr2qxGmgLyCaNA",
+  },
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b0b12" },
@@ -106,6 +109,7 @@ export default function RootLayout({
       >
         <noscript>
           <div>
+            {/* eslint-disable-next-line @next/next/no-img-element -- raw noscript tracking beacon must remain a plain img */}
             <img
               src="https://mc.yandex.ru/watch/60939703"
               style={{ position: "absolute", left: "-9999px" }}
